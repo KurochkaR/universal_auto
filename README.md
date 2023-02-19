@@ -17,7 +17,7 @@ If you have error /data/db: permission denied failed to solve run: `sudo chmod -
 
 # How to run report and see results in console?
 ```
-docker exec -it universal_auto_web python manage.py runscript weekly
+docker exec -it universal_auto_web python3 manage.py runscript weekly
 ```
 
 # How to start contribute?
