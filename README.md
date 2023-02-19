@@ -10,10 +10,10 @@ This repo is supposed to get statistics from Uber, Bold, Uklon to calculate perf
 6. Open http://localhost:5050/browser/ with password: `universal_auto_dev` and create DB `universal_auto_dev`
 7. Run `docker-compose up --build`
 If you have error /data/db: permission denied failed to solve run: `sudo chmod -R 777 ./data/db`
-8. Run migrations by `docker exec -it universal_auto_web python manage.py migrate`
-9. Run to create admin user `docker exec -it universal_auto_web python manage.py createsuperuser` 
-10. Open http://localhost:8080/admin/ in browser and auth with user created at step 9
-11. `docker exec -it universal_auto_web python manage.py runscript seed_db`
+8. Run migrations by `docker exec -it universal_auto_web python3 manage.py migrate`
+9. Run to create admin user `docker exec -it universal_auto_web python3 manage.py createsuperuser` 
+10. Open http://localhost/admin/ in browser and auth with user created at step 9
+11. `docker exec -it universal_auto_web python3 manage.py runscript seed_db`
 
 # How to run report and see results in console?
 ```
