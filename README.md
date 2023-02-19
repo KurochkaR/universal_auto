@@ -13,6 +13,7 @@ If you have error /data/db: permission denied failed to solve run: `sudo chmod -
 8. Run migrations by `docker exec -it universal_auto_web python manage.py migrate`
 9. Run to create admin user `docker exec -it universal_auto_web python manage.py createsuperuser` 
 10. Open http://localhost:8080/admin/ in browser and auth with user created at step 9
+11. `docker exec -it universal_auto_web python manage.py runscript seed_db`
 
 # How to run report and see results in console?
 ```
