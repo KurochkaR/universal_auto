@@ -79,3 +79,6 @@ class TestBot(unittest.TestCase):
 
     def test_rating_2(self):
         self.assertIsNotNone('/rating')
+
+    def test_save_debt_report(self):
+        self.assertIsNotNone('Ваш звіт збережено')

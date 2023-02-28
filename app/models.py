@@ -1068,7 +1068,8 @@ class Report_of_driver_debt(models.Model):
     deleted_at = models.DateTimeField(null=True, blank=True, verbose_name='Видалено')
 
     def admin_image(self):
-        return mark_safe(f'<img src="{self.image.url}" width="200" />')
+        if self.image:
+            return mark_safe(f'<img src="{self.image.url}" width="200" />')
     admin_image.short_description = 'Image'
     image.allow_tags = True
 
