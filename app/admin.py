@@ -171,7 +171,7 @@ class DriverManagerAdmin(admin.ModelAdmin):
     list_per_page = 25
 
     fieldsets = [
-        (None, {'fields': ['name', 'second_name', 'email', 'phone_number']}),
+        (None, {'fields': ['name', 'second_name', 'email', 'phone_number', 'chat_id']}),
     ]
 
     inlines = [
@@ -388,3 +388,7 @@ class OwnerAdmin(admin.ModelAdmin):
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
     list_display = [f.name for f in Order._meta.fields]
+
+@admin.register(Fleets_drivers_vehicles_rate)
+class Fleets_drivers_vehicles_rateAdmin(admin.ModelAdmin):
+    list_display = [f.name for f in Fleets_drivers_vehicles_rate._meta.fields]

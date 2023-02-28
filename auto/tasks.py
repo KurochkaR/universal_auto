@@ -27,7 +27,7 @@ MEMCASH_LOCK_AFTER_FINISHING = 10
 logger = get_task_logger(__name__)
 
 
-@app.task
+@app.task(priority=0)
 def raw_gps_handler(id):
     try:
         raw = RawGPS.objects.get(id=id)
@@ -140,7 +140,7 @@ def update_driver_data(self):
         logger.info(e)
 
 
-@app.task(bind=True)
+@app.task(bind=True, priority=9)
 def download_weekly_report_force(self):
     try:
         BoltSynchronizer(BOLT_CHROME_DRIVER.driver).try_to_execute('download_weekly_report')
@@ -160,6 +160,7 @@ def setup_periodic_tasks(sender, **kwargs):
     sender.add_periodic_task(UPDATE_DRIVER_DATA_FREQUENCY, update_driver_data.s())
     sender.add_periodic_task(crontab(minute=0, hour=5), download_weekly_report_force.s())
     # sender.add_periodic_task(60*60*3, download_weekly_report_force.s())
+
 
 def init_chrome_driver():
     global BOLT_CHROME_DRIVER

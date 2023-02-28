@@ -1,31 +1,33 @@
-# fly.toml file generated for snowy-wood-371 on 2022-08-27T09:57:21+03:00
+# fly.toml file generated for snowy-wood-371 on 2023-02-19T22:39:32+02:00
+
+
 
 app = "snowy-wood-371"
 kill_signal = "SIGINT"
 kill_timeout = 5
 processes = []
 
+[deploy]
+  strategy = "bluegreen"
+  release_command = "python3 manage.py migrate --noinput"
 [env]
-  PORT = "80"
+  DEBUG = 0
   ECHO_PORT = "44300"
+  PORT = "80"
 
 [experimental]
   allowed_public_ports = []
   auto_rollback = true
+  cmd = []
+  entrypoint = []
+  exec = []
 
-[[services]]
-  internal_port = 44300
-  protocol = "udp"
-
-  [[services.ports]]
-    port = "44300"
-
-[[services]]
-  internal_port = 44300
-  protocol = "tcp"
-
-  [[services.ports]]
-    port = "44300"
+[processes]
+  app    =  "bash ./entrypoint.sh"
+  worker = "celery -A auto worker --loglevel=info --without-gossip --pool=solo"
+  gps    = "python3 manage.py runscript async_gps_server"
+  beat   = "celery -A auto beat -l INFO"
+  bot    = "python3 manage.py runscript bot"
 
 [[services]]
   http_checks = []
@@ -36,10 +38,10 @@ processes = []
   [services.concurrency]
     hard_limit = 25
     soft_limit = 20
-    type = "connections"
+    type = "requests"
 
   [[services.ports]]
-    force_https = true
+    force_https = false
     handlers = ["http"]
     port = 80
 
@@ -53,9 +55,40 @@ processes = []
     restart_limit = 0
     timeout = "2s"
 
-[[statics]]
-  guest_path = "/app/public"
-  url_prefix = "/static/"
+[[services]]
+  http_checks = []
+  internal_port = 44300
+  processes = ['gps']
+  protocol = "udp"
+  script_checks = []
+  tcp_checks = []
+  [services.concurrency]
+    hard_limit = 10
+    soft_limit = 5
+    type = "connections"
 
-[deploy]
-  release_command = "python3 manage.py migrate --noinput"
+  [[services.ports]]
+    handlers = []
+    port = 44300
+
+[[services]]
+  http_checks = []
+  internal_port = 44300
+  processes = ['gps']
+  protocol = "tcp"
+  script_checks = []
+  tcp_checks = []
+  [services.concurrency]
+    hard_limit = 10
+    soft_limit = 5
+    type = "connections"
+
+  [[services.ports]]
+    handlers = []
+    port = 44300
+
+[[statics]]
+  cache_key = "_static___app_public"
+  guest_path = "/app/static"
+  processes = []
+  url_prefix = "/static/"

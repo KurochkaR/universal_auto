@@ -344,7 +344,7 @@ class User(models.Model):
         verbose_name = 'Користувач'
         verbose_name_plural = 'Користувачі'
 
-    def __str__(self)-> str:
+    def __str__(self) -> str:
         return self.full_name()
 
     def full_name(self):
@@ -415,10 +415,6 @@ class Driver(User):
     OFFLINE = 'Не працюю'
    
     fleet = models.OneToOneField('Fleet', blank=True, null=True, on_delete=models.SET_NULL)
-    #driver_manager_id: ManyToManyField already exists in DriverManager
-    #we have to delete this
-    driver_manager_id = models.ManyToManyField('DriverManager', blank=True)
-    #partner = models.ManyToManyField('Partner', blank=True)
     role = models.CharField(max_length=50, choices=User.Role.choices, default=User.Role.DRIVER)
     driver_status = models.CharField(max_length=35, null=False, default='Offline', verbose_name='Статус водія')
 
@@ -531,7 +527,7 @@ class Client(User):
 
 
 class DriverManager(User):
-    driver_id = models.ManyToManyField(Driver,  blank=True, verbose_name = 'Driver')
+    driver_id = models.ManyToManyField(Driver, null=True, blank=True, verbose_name='Driver')
     role = models.CharField(max_length=50, choices=User.Role.choices, default=User.Role.DRIVER_MANAGER)
 
     class Meta:
@@ -653,9 +649,11 @@ class NewUklonFleet(Fleet):
 
 
 class Vehicle(models.Model):
+    ELECTRO = 'Електро'
+
     name = models.CharField(max_length=255, verbose_name='Назва')
     model = models.CharField(max_length=50, verbose_name='Модель')
-    type = models.CharField(max_length=20, verbose_name='Тип')
+    type = models.CharField(max_length=20, default=ELECTRO, verbose_name='Тип')
     licence_plate = models.CharField(max_length=24, unique=True, verbose_name='Номерний знак')
     vin_code = models.CharField(max_length=17)
     gps_imei = models.CharField(max_length=100, default='')
@@ -679,6 +677,34 @@ class Vehicle(models.Model):
             return vehicle
         except Vehicle.DoesNotExist:
             pass
+
+    @staticmethod
+    def name_validator(name):
+        if len(name) <= 255:
+            return name.title()
+        else:
+            return None
+
+    @staticmethod
+    def model_validator(model):
+        if len(model) <= 50:
+            return model.title()
+        else:
+            return None
+
+    @staticmethod
+    def licence_plate_validator(licence_plate):
+        if len(licence_plate) <= 24:
+            return licence_plate.upper()
+        else:
+            return None
+
+    @staticmethod
+    def vin_code_validator(vin_code):
+        if len(vin_code) <= 17:
+            return vin_code.upper()
+        else:
+            return None
 
 
 class Fleets_drivers_vehicles_rate(models.Model):
@@ -709,17 +735,17 @@ class DriverRateLevels(models.Model):
         verbose_name = 'Рівень рейтингу водія'
         verbose_name_plural = 'Рівень рейтингу водіїв'
 
+
 class RawGPS(models.Model):
-
-    class Meta:
-        verbose_name = 'GPS Raw'
-        verbose_name_plural = 'GPS Raw'
-
     imei = models.CharField(max_length=100)
     client_ip = models.CharField(max_length=100)
     client_port = models.IntegerField()
     data = models.CharField(max_length=1024)
     created_at = models.DateTimeField(editable=False, auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'GPS Raw'
+        verbose_name_plural = 'GPS Raw'
 
 
 class GPS(PolymorphicModel):
@@ -738,13 +764,12 @@ class GPS(PolymorphicModel):
 
 
 class VehicleGPS(GPS):
+    vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE)
+    raw_data = models.OneToOneField(RawGPS, null=True, on_delete=models.CASCADE)
 
     class Meta:
         verbose_name = 'GPS Vehicle'
         verbose_name_plural = 'GPS Vehicle'
-
-    vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE)
-    raw_data = models.OneToOneField(RawGPS, null=True, on_delete=models.CASCADE)
 
 
 class WeeklyReportFile(models.Model):
@@ -1031,6 +1056,7 @@ class Order(models.Model):
             return order
         except Order.DoesNotExist:
             return None
+
 
 class Report_of_driver_debt(models.Model):
     driver = models.CharField(max_length=255, verbose_name='Водій')
@@ -1323,7 +1349,7 @@ class Uber(SeleniumTools):
         el = WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.ID, 'forward-button')))
         el.click()
 
-    def login(self, link = "https://auth.uber.com/login/"):
+    def login(self, link="https://auth.uber.com/login/"):
         self.driver.get(link)
         self.login_form('userInput', 'next-button-wrapper', By.CLASS_NAME)
         self.otp_code_v1()
@@ -1558,6 +1584,9 @@ class Uber(SeleniumTools):
         e.click() 
         self.driver.get_screenshot_as_file('UBER_NAME.png')
 
+    def add_driver(self):
+        url = 'https://supplier.uber.com/orgs/49dffc54-e8d9-47bd-a1e5-52ce16241cb6/drivers'
+
     @staticmethod
     def download_weekly_report(week_number=None, driver=True, sleep=5, headless=True):
         u = Uber(week_number=week_number, driver=False, sleep=0, headless=headless)
@@ -1694,6 +1723,25 @@ class Bolt(SeleniumTools):
                 pass
 
         return items
+
+    def add_driver(self):
+        url = 'https://fleets.bolt.eu/company/58225/driver/add'
+        self.driver.get(f"{url}")
+        if self.sleep:
+            time.sleep(self.sleep)
+        form_email = WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.ID, 'email')))
+        form_email.click()
+        form_email.clear()
+        form_email.send_keys('igorsivak96@gmail.com')
+        form_phone_number = WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.ID, 'phone')))
+        form_phone_number.click()
+        form_phone_number.clear()
+        form_phone_number.send_keys('+380635672343')
+        button = WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.ID, 'ember38')))
+        button.click()
+        if self.sleep:
+            time.sleep(self.sleep)
+        self.driver.get_screenshot_as_file('boly_1.png')
 
     @staticmethod
     def download_weekly_report(week_number=None, day=None,  driver=True, sleep=5, headless=True):
@@ -1869,7 +1917,7 @@ class NewUklon(SeleniumTools):
         self.get_target_page_or_login(url, xpath, self.login)
 
         self.driver.find_element(By.XPATH, '//flt-group-filter[1]/flt-date-range-filter/mat-form-field/div').click()
-        self.driver.find_element(By.XPATH, '//mat-option[@id="mat-option-8"]/span').click()  #Минулий тиждень
+        self.driver.find_element(By.XPATH, '//mat-option[@id="mat-option-7"]/span').click()  #Минулий тиждень
         self.driver.find_element(By.XPATH, '//flt-filter-group/div/div/button').click()  #Експорт CSV
         time.sleep(self.sleep)
         if self.remote:

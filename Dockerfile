@@ -7,4 +7,3 @@ RUN sudo pip install -r requirements.txt
 COPY . .
 RUN sudo chown nobody:nogroup /app
 EXPOSE 8080 44300
-CMD ["honcho", "start"]
