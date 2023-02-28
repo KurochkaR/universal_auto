@@ -7,6 +7,7 @@ import sys
 from django.db import models, IntegrityError
 from django.db.models import Sum, QuerySet
 from django.db.models.base import ModelBase
+from django.utils.safestring import mark_safe
 from polymorphic.models import PolymorphicModel
 from selenium.common import TimeoutException, WebDriverException
 
@@ -1065,6 +1066,11 @@ class Report_of_driver_debt(models.Model):
     created_at = models.DateTimeField(editable=False, auto_now=datetime.datetime.now(), verbose_name='Створено')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='Обновлено')
     deleted_at = models.DateTimeField(null=True, blank=True, verbose_name='Видалено')
+
+    def admin_image(self):
+        return mark_safe(f'<img src="{self.image.url}" width="200" />')
+    admin_image.short_description = 'Image'
+    image.allow_tags = True
 
     class Meta:
         verbose_name = 'Звіт заборгованості водія'

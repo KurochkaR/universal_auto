@@ -344,7 +344,7 @@ class ServiceStationManagerAdmin(admin.ModelAdmin):
 
 @admin.register(Report_of_driver_debt)
 class ReportOfDriverDebtAdmin(admin.ModelAdmin):
-    list_display = ('driver', 'image', 'created_at')
+    list_display = ('driver', 'image', 'created_at', 'admin_image')
     list_filter = ('driver', 'created_at')
     search_fields = ('driver', 'created_at')
 
