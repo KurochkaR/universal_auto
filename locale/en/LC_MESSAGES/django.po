@@ -1,0 +1,165 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-02-23 16:22+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: auto/settings.py:125
+msgid "English"
+msgstr ""
+
+#: auto/settings.py:126
+msgid "Ukrainian"
+msgstr ""
+
+#: taxi_service/templates/index.html:19 taxi_service/templates/index.html:44
+msgid "Універсальне таксі"
+msgstr "Universal taxi"
+
+#: taxi_service/templates/index.html:53
+msgid "Головна"
+msgstr "Main Page"
+
+#: taxi_service/templates/index.html:56 taxi_service/templates/index.html:248
+msgid "Про нас"
+msgstr "About us"
+
+#: taxi_service/templates/index.html:59
+msgid "Чому саме ми"
+msgstr "Why us"
+
+#: taxi_service/templates/index.html:64
+msgid "Замовити таксі"
+msgstr "Order taxi"
+
+#: taxi_service/templates/index.html:85 taxi_service/templates/index.html:109
+#: taxi_service/templates/index.html:133
+msgid "Вітаємо у Elaxi"
+msgstr "Welcome to Elaxi"
+
+#: taxi_service/templates/index.html:91 taxi_service/templates/index.html:115
+#: taxi_service/templates/index.html:139 taxi_service/templates/index.html:258
+msgid "Дізнатися більше"
+msgstr "Read more"
+
+#: taxi_service/templates/index.html:185
+msgid "Тип авто"
+msgstr "Car type"
+
+#: taxi_service/templates/index.html:195
+msgid "Номер телефону"
+msgstr "Phone"
+
+#: taxi_service/templates/index.html:207
+msgid "Ваша адреса"
+msgstr "Pickup location"
+
+#: taxi_service/templates/index.html:217
+msgid "Куди їхати"
+msgstr "Drop location"
+
+#: taxi_service/templates/index.html:222
+msgid "Замовити зараз"
+msgstr "Order now"
+
+#: taxi_service/templates/index.html:274
+msgid "Чому вибрати саме нас"
+msgstr "Why choose us"
+
+#: taxi_service/templates/index.html:286
+msgid "Швидке та легке замовлення"
+msgstr "Fast & Easy Booking"
+
+#: taxi_service/templates/index.html:289
+msgid ""
+"Швидке та інтуїтивне замовлення авто в месенджері Телеграм - що дає змогу "
+"легко зателефонувати водію через месенджер або телефон"
+msgstr ""
+"Quick and intuitive ordering of a car in the Telegram messenger - which "
+"makes it easy to call the driver via messenger or phone"
+
+#: taxi_service/templates/index.html:301
+msgid "Безпека водіння"
+msgstr "Driving safety"
+
+#: taxi_service/templates/index.html:304
+msgid ""
+"Всі машини обладнані системою трекінгу стилю водіння, яка історично гарантує "
+"що водій їздить безпечно."
+msgstr ""
+"All cars are equipped with a driving style tracking system, which "
+"historically guarantees that the driver is driving safely."
+
+#: taxi_service/templates/index.html:316
+msgid "Повне задоволення"
+msgstr "Full Satisfaction"
+
+#: taxi_service/templates/index.html:319
+msgid ""
+"Ми відвеземо вас куди скажете та почекаємо на проміжних точках вашого "
+"маршруту"
+msgstr ""
+"We'll take you wherever you want to go and wait for you at the intermediate "
+"points of your route"
+
+#: taxi_service/templates/index.html:340
+msgid "Завантажити нашу апку"
+msgstr "Download our app"
+
+#: taxi_service/templates/index.html:373
+msgid "Наші клієнти кажуть"
+msgstr "Our customers say"
+
+#: taxi_service/templates/index.html:395
+msgid "Джейн Аддамс"
+msgstr "Jane Addams"
+
+#: taxi_service/templates/index.html:411
+msgid "Джон Кевілл"
+msgstr "John Cavill"
+
+#: taxi_service/templates/index.html:427
+msgid "Ліза Джой"
+msgstr "Liza Joy"
+
+#: taxi_service/templates/index.html:482
+msgid "Наші Контакти"
+msgstr "Contact us"
+
+#: taxi_service/templates/index.html:491
+msgid "Місцезнаходження"
+msgstr "Location"
+
+#: taxi_service/templates/index.html:497
+msgid "Телефон"
+msgstr "Phone"
+
+#: taxi_service/templates/index.html:503
+msgid "Електронна пошта"
+msgstr "Email"
+
+#: taxi_service/templates/index.html:511
+msgid "Підписатись на розсилку"
+msgstr "Sign up to our newsletter"
+
+#: taxi_service/templates/index.html:514
+msgid "Введіть пошту"
+msgstr "Enter your email"
+
+#: taxi_service/templates/index.html:516
+msgid "Підписатись"
+msgstr "Subscribe"
