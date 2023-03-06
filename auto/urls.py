@@ -29,6 +29,5 @@ urlpatterns = [
     path('cars/', gps_cars, name='map'),
     path('', include('taxi_service.urls')),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
-
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
