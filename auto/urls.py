@@ -28,6 +28,7 @@ urlpatterns = [
     path('fake_uber/', include('fake_uber.urls')),
     path('cars/', gps_cars, name='map'),
     path('', include('taxi_service.urls')),
+    path('fake_bolt/', include('fake_bolt.urls')),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
 
