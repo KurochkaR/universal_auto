@@ -16,7 +16,7 @@ from telegram import *
 from telegram.ext import *
 from app.models import *
 from app.portmone.generate_link import *
-from auto.tasks import download_weekly_report_force
+from auto.tasks import download_weekly_report_force, send_on_job_application_on_driver_to_Bolt, send_on_job_application_on_driver_to_Uber
 from . import bolt, uklon, uber
 from scripts.driversrating import DriversRatingMixin
 import traceback
@@ -41,16 +41,18 @@ def start(update, context):
     user = User.get_by_chat_id(chat_id)
     keyboard = [KeyboardButton(text="\U0001f4f2 Надати номер телефону", request_contact=True),
                 KeyboardButton(text="\U0001f696 Викликати Таксі", request_location=True),
-                KeyboardButton(text="\U0001f4e2 Залишити відгук")]
+                KeyboardButton(text="\U0001f4e2 Залишити відгук"),
+                KeyboardButton(text="\U0001F4E8 Залишити заявку на роботу")]
     if user:
         user.chat_id = chat_id
         user.save()
         if user.phone_number:
-           keyboard = [keyboard[1], keyboard[2]]
-        reply_markup = ReplyKeyboardMarkup(
-          keyboard=[keyboard],
-          resize_keyboard=True,
-        )
+            keyboard = [keyboard[1], keyboard[2], keyboard[3]]
+            reply_markup = ReplyKeyboardMarkup(
+                keyboard=[keyboard],
+                resize_keyboard=True,
+                )
+            update.message.reply_text('Зробіть вибір', reply_markup=reply_markup)
     else:
         User.objects.create(
             chat_id=chat_id,
@@ -61,7 +63,7 @@ def start(update, context):
           keyboard=[keyboard],
           resize_keyboard=True,
         )
-    update.message.reply_text("Будь ласка розшарьте номер телефону та геолокацію для виклику таксі", reply_markup=reply_markup,)
+        update.message.reply_text("Будь ласка розшарьте номер телефону та геолокацію для виклику таксі", reply_markup=reply_markup,)
 
 
 def update_phone_number(update, context):
@@ -69,10 +71,12 @@ def update_phone_number(update, context):
     user = User.get_by_chat_id(chat_id)
     phone_number = update.message.contact.phone_number
     if (phone_number and user):
+        if len(phone_number) == 12:
+            phone_number = f'+{phone_number}'
         user.phone_number = phone_number
         user.chat_id = chat_id
         user.save()
-        update.message.reply_text('Дякуємо ми отримали ваш номер телефону для звязку з водієм')
+        update.message.reply_text('Дякуємо ми отримали ваш номер телефону для звязку з водієм', reply_markup=ReplyKeyboardRemove())
 
 
 LOCATION_WRONG = "Місце посадки - невірне"
@@ -83,7 +87,7 @@ def location(update: Update, context: CallbackContext):
     active_drivers = [i.chat_id for i in Driver.objects.all() if i.driver_status == f'{Driver.ACTIVE}']
 
     if len(active_drivers) == 0:
-        report = update.message.reply_text('Вибачте, але зараз немає вільний водіїв. Скористайтеся послугою пізніше')
+        report = update.message.reply_text('Вибачте, але зараз немає вільний водіїв. Скористайтеся послугою пізніше', reply_markup=ReplyKeyboardRemove())
         return report
     else:
         if update.edited_message:
@@ -109,8 +113,9 @@ def location(update: Update, context: CallbackContext):
             time.sleep(5)
 
 
-STATE = None
+STATE = None # range (1-50)
 LOCATION, FROM_ADDRESS, TO_THE_ADDRESS, COMMENT = range(1, 5)
+U_NAME, U_SECOND_NAME, U_EMAIL = range(5, 8)
 
 
 def the_confirmation_of_location(update, context):
@@ -157,7 +162,9 @@ def payment_method(update, context):
 
     update.message.reply_text('Виберіть спосіб оплати:', reply_markup=reply_markup)
 
+
 WAITING = 'Очікується'
+
 
 def order_create(update, context):
 
@@ -272,6 +279,87 @@ def set_status(update, context):
     update.message.reply_text(f'Твій статус: <b>{status}</b>', reply_markup=ReplyKeyboardRemove(), parse_mode=ParseMode.HTML)
 
 
+JOB_DRIVER = 'Водій'
+
+
+# Add job application
+def role_for_job_application(update, context):
+    buttons = [[KeyboardButton(f'{JOB_DRIVER}')]]
+    context.bot.send_message(chat_id=update.effective_chat.id, text='Оберіть посаду на яку ви притендуєте:',
+                reply_markup=ReplyKeyboardMarkup(buttons, resize_keyboard=True, one_time_keyboard=True))
+
+
+def job_application(update, context):
+    role = update.message.text
+    chat_id = update.message.chat.id
+    user = User.get_by_chat_id(chat_id)
+    if (user.phone_number and user.email and user.name and user.second_name):
+        JobApplication.objects.create(
+            first_name=user.name,
+            last_name=user.second_name,
+            email=user.email,
+            phone_number=user.phone_number,
+            role=role)
+        update.message.reply_text('Заявку подано', reply_markup=ReplyKeyboardRemove())
+        update.message.reply_text('Також вам потрібно зареєструватись на сайті https://supplier.uber.com, як водій')
+    else:
+        update.message.reply_text('Надайте повну інформацію про себе, щоб залишити заявку. Скористайтесь командою /upd_informations', reply_markup=ReplyKeyboardRemove())
+
+
+# Update information for users
+def update_name(update, context):
+    global STATE
+    chat_id = update.message.chat.id
+    user = User.get_by_chat_id(chat_id)
+    if user:
+        update.message.reply_text("Введіть Ім`я:")
+        STATE = U_NAME
+    else:
+        update.message.reply_text('Спочатку зареєструйтесь, щоб оновлювати ваші дані')
+
+
+def update_second_name(update, context):
+    global STATE
+    name = update.message.text
+    name = User.name_and_second_name_validator(name=name)
+    if name is not None:
+        context.user_data['u_name'] = name
+        update.message.reply_text("Введіть Прізвище:")
+        STATE = U_SECOND_NAME
+    else:
+        update.message.reply_text('Ім`я занадто довге. Спробуйте ще раз')
+
+
+def update_email(update, context):
+    global STATE
+    second_name = update.message.text
+    second_name = User.name_and_second_name_validator(name=second_name)
+    if second_name is not None:
+        context.user_data['u_second_name'] = second_name
+        update.message.reply_text("Введіть електронну адресу:")
+        STATE = U_EMAIL
+    else:
+        update.message.reply_text('Прізвище занадто довге. Спробуйте ще раз')
+
+
+def update_user_information(update, context):
+    global STATE
+    email = update.message.text
+    chat_id = update.message.chat.id
+    user = User.get_by_chat_id(chat_id)
+    email = User.email_validator(email=email)
+    if email is not None:
+        user.name = context.user_data['u_name']
+        user.second_name = context.user_data['u_second_name']
+        user.email = email
+        user.save()
+        update.message.reply_text('Ваші дані оновлені')
+        STATE = None
+        role_for_job_application(update, context)
+    else:
+        update.message.reply_text('Eлектронна адреса некоректна. Спробуйте ще раз')
+
+
 # Sending comment
 def comment(update, context):
     global STATE
@@ -374,7 +462,6 @@ def phone_number(update, context):
         update.message.reply_text('Eлектронна адреса некоректна. Спробуйте ще раз')
 
 
-
 def create_user(update, context):
     global STATE_DM
     phone_number = update.message.text
@@ -408,8 +495,8 @@ def create_user(update, context):
 SERVICEABLE = 'Придатна'
 BROKEN = 'Зламана'
 
-STATE_D = None
-NUMBERPLATE, REPORT = range(1, 3)
+STATE_D = None    # range(50 - 100)
+NUMBERPLATE, REPORT = range(50, 52)
 
 
 # Changing status car
@@ -497,9 +584,10 @@ def broken_car(update, context):
         update.message.reply_text('Зареєструйтесь як менеджер водіїв')
 
 
-STATE_DM = None
-NAME, SECOND_NAME, EMAIL, PHONE_NUMBER = range(1, 5)
-STATUS, DRIVER, CAR_NUMBERPLATE, RATE, NAME_VEHICLE, MODEL_VEHICLE, LICENCE_PLATE_VEHICLE, VIN_CODE_VEHICLE = range(5, 13)
+STATE_DM = None     # range (100 -150)
+NAME, SECOND_NAME, EMAIL, PHONE_NUMBER = range(100, 104)
+STATUS, DRIVER, CAR_NUMBERPLATE, RATE, NAME_VEHICLE, MODEL_VEHICLE, LICENCE_PLATE_VEHICLE, VIN_CODE_VEHICLE = range(104, 112)
+JOB_APPLICATION = range(112, 113)
 
 
 # Viewing status driver
@@ -589,7 +677,7 @@ def get_list_drivers(update, context):
     if driver_manager is not None:
         drivers = {i.id: f'{i.name } {i.second_name}' for i in Driver.objects.all()}
         if len(drivers) == 0:
-            update.message.reply_text('Кількисть зареєстрованих водіїв 0')
+            update.message.reply_text('Кількість зареєстрованих водіїв 0')
         else:
             drivers_keys = sorted(drivers)
             drivers = {i: drivers[i] for i in drivers_keys}
@@ -723,6 +811,58 @@ def add_information_to_driver(update, context):
         STATE_DM = None
 
 
+# Push job application to fleets
+def get_list_job_application(update, context):
+    global STATE_DM
+    chat_id = update.message.chat.id
+    driver_manager = DriverManager.get_by_chat_id(chat_id)
+    if driver_manager is not None:
+        applications = {i.id: f'{i}' for i in JobApplication.objects.all() if (i.role == f'{JOB_DRIVER}' and i.status_job_application == False)}
+        if len(applications) == 0:
+            update.message.reply_text('Заявок на роботу водія поки немає')
+        else:
+            report_list_applications = ''
+            for k, v in applications.items():
+                report_list_applications += f'{k}: {v}\n'
+            update.message.reply_text(report_list_applications)
+            update.message.reply_text('Укажіть номер користувача, заявку якого ви бажаєте відправити')
+            STATE_DM = JOB_APPLICATION
+    else:
+        update.message.reply_text('Зареєструйтесь як менеджер водіїв')
+
+
+def get_fleet_for_job_application(update, context):
+    global STATE_DM
+    id_job_application = update.message.text
+    try:
+        id_job_application = int(id_job_application)
+        context.user_data['job_application'] = JobApplication.objects.get(id=id_job_application)
+        buttons = [[KeyboardButton(f'- {F_BOLT}')],
+                   [KeyboardButton(f'- {F_UBER}')]]
+        context.bot.send_message(chat_id=update.effective_chat.id,
+                                 text='Оберіть автопарк. Куди ви бажаєте подати заявку',
+                                 reply_markup=ReplyKeyboardMarkup(buttons, resize_keyboard=True))
+        STATE_DM = None
+    except:
+        update.message.reply_text('Не вдалось обробити ваше значення. Спробуйте ще раз')
+
+
+def add_job_application_to_fleet(update, context):
+    response = update.message.text
+    data = context.user_data['job_application']
+    if response == f'- {F_BOLT}':
+        send_on_job_application_on_driver_to_Bolt.delay(email=data.email, phone_number=data.phone_number)
+        update.message.reply_text('Заявка була додана в автопарк Bolt', reply_markup=ReplyKeyboardRemove())
+    elif response == f'- {F_UBER}':
+        send_on_job_application_on_driver_to_Uber.delay(phone_number=data.phone_number,
+                                                        email=data.email,
+                                                        name=data.first_name,
+                                                        second_name=last_name)
+
+        update.message.reply_text('Заявка була додана в автопарк Uber', reply_markup=ReplyKeyboardRemove())
+        update.message.reply_text('Якщо заявки немає в автопарку, користувачу потрібно зареєструватись на сайті як водій')
+
+
 # Add vehicle to db
 def name_vehicle(update, context):
     global STATE_DM
@@ -782,8 +922,8 @@ def get_vin_code_vehicle(update, context):
         update.message.reply_text('Vin code занадто довгий. Спробуйте ще раз')
 
 
-STATE_SSM = None
-LICENCE_PLATE, PHOTO, START_OF_REPAIR, END_OF_REPAIR = range(1, 5)
+STATE_SSM = None   # range(150-200)
+LICENCE_PLATE, PHOTO, START_OF_REPAIR, END_OF_REPAIR = range(150, 154)
 
 
 # Sending report on repair
@@ -887,8 +1027,8 @@ def help(update, context) -> str:
                               'Щоб переглянути команди для вашої ролі скористайтесь командою /get_information \n')
 
 
-STATE_O = None
-CARD, SUM, PORTMONE_SUM, PORTMONE_COMMISSION, GENERATE_LINK = range(1, 6)
+STATE_O = None     # range(200-250)
+CARD, SUM, PORTMONE_SUM, PORTMONE_COMMISSION, GENERATE_LINK = range(200, 205)
 
 TRANSFER_MONEY = 'Перевести кошти'
 GENERATE_LINK = 'Сгенерувати лінк'
@@ -1046,6 +1186,7 @@ def get_information(update, context):
                 '/driver_status - Показати водіїв за їх статусом\n' \
                 '/add - Створити користувачів та автомобілі\n' \
                 '/add_vehicle_to_driver - Добавити водію автомобіль\n' \
+                '/add_job_application_to_fleets - Добавити водія в автопарк\n' \
                 '/option - Взяти вихідний/лікарняний/Сповістити про пошкодження/Записатист до СТО\n'
         update.message.reply_text(f'{report}')
     elif manager is not None:
@@ -1083,6 +1224,12 @@ def text(update, context):
             return payment_method(update, context)
         elif STATE == COMMENT:
             return save_comment(update, context)
+        elif STATE == U_NAME:
+            return update_second_name(update, context)
+        elif STATE == U_SECOND_NAME:
+            return update_email(update, context)
+        elif STATE == U_EMAIL:
+            return update_user_information(update, context)
     elif STATE_D is not None:
         if STATE_D == NUMBERPLATE:
             return change_status_car(update, context)
@@ -1122,6 +1269,8 @@ def text(update, context):
             return get_licence_plate_vehicle(update, context)
         elif STATE_DM == VIN_CODE_VEHICLE:
             return get_vin_code_vehicle(update, context)
+        elif STATE_DM == JOB_APPLICATION:
+            return get_fleet_for_job_application(update, context)
     elif STATE_SSM is not None:
         if STATE_SSM == LICENCE_PLATE:
             return photo(update, context)
@@ -1156,7 +1305,7 @@ def report(update, context):
 
     # sending report to owner
     message = f'Fleet Owner: {"%.2f" % owner["Fleet Owner"]}\n\n' + '\n'.join(totals.values())
-    context.bot.send_message(chat_id=DEVELOPER_CHAT_ID, text=message)
+    context.bot.send_message(chat_id=736204274, text=message)
 
     # sending report to driver
     for driver in drivers:
@@ -1187,6 +1336,10 @@ def auto_report_for_driver_and_owner(context):
 
 def download_report(update, context):
     update.message.reply_text("Weekly report download request submitted")
+    download_weekly_report_force.delay()
+
+
+def auto_download_report(update):
     download_weekly_report_force.delay()
 
 
@@ -1348,7 +1501,12 @@ def main():
         order_create))
     # sending comment
     dp.add_handler(MessageHandler(Filters.text("\U0001f4e2 Залишити відгук"), comment))
+    # Add job application
+    dp.add_handler(MessageHandler(Filters.text("\U0001F4E8 Залишити заявку на роботу"), role_for_job_application))
+    dp.add_handler(MessageHandler(Filters.text(f'{JOB_DRIVER}'), job_application))
 
+    # Update information for users
+    dp.add_handler(CommandHandler("upd_informations", update_name))
 
 
     # Commands for Drivers
@@ -1407,6 +1565,13 @@ def main():
         Filters.text(f'{F_BOLT}'),
        get_driver_external_id))
 
+    # The job application on driver sent to fleet
+    dp.add_handler(CommandHandler("add_job_application_to_fleets", get_list_job_application))
+    dp.add_handler(MessageHandler(
+        Filters.text(f'- {F_BOLT}') |
+        Filters.text(f'- {F_UBER}'),
+        add_job_application_to_fleet))
+
 
     # Commands for Service Station Manager
     # Sending report on repair
@@ -1428,6 +1593,8 @@ def main():
     dp.add_handler(MessageHandler(Filters.text('Update report'), get_update_report))
 
     updater.job_queue.run_daily(auto_report_for_driver_and_owner, time=datetime.time(7, 0, 0), days=(1,))
+    updater.job_queue.run_daily(auto_download_report, time=datetime.time(4, 0, 0), days=(1,))
+
     updater.start_polling()
     updater.idle()
 

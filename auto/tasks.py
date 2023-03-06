@@ -147,7 +147,30 @@ def download_weekly_report_force(self):
         UklonSynchronizer(UKLON_CHROME_DRIVER.driver).try_to_execute('download_weekly_report')
         UberSynchronizer(UBER_CHROME_DRIVER.driver).try_to_execute('download_weekly_report')
     except Exception as e:
-       logger.info(e)
+        logger.info(e)
+
+
+@app.task(bind=True, priority=8)
+def send_on_job_application_on_driver_to_Bolt(self, email, phone_number):
+    try:
+        b = Bolt(driver=True, sleep=3, headless=True)
+        b.login()
+        b.add_driver(email, phone_number)
+        print('The job application has been sent to Bolt')
+    except Exception as e:
+        logger.info(e)
+
+
+@app.task(bind=True, priority=7)
+def send_on_job_application_on_driver_to_Uber(self, phone_number, email, name, second_name):
+    try:
+        ub = Uber(driver=True, sleep=5, headless=True)
+        ub.login_v3()
+        ub.add_driver(phone_number, email, name, second_name)
+        ub.quit()
+        print('The job application has been sent to Uber')
+    except Exception as e:
+        logger.info(e)
 
 
 @app.on_after_finalize.connect

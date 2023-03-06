@@ -395,8 +395,11 @@ class User(models.Model):
 
     @staticmethod
     def phone_number_validator(phone_number) -> str:
-        if len(phone_number) <= 13:
-            if len(phone_number) == 10:
+        pattern = r"^(\+380|380|80|0)+\d{9}$"
+        if re.match(pattern, phone_number) is not None:
+            if len(phone_number) <= 13:
+                return phone_number
+            elif len(phone_number) == 10:
                 valid_phone_number = f'+38{phone_number}'
                 return valid_phone_number
             elif len(phone_number) == 12:
@@ -1094,6 +1097,23 @@ class Event(models.Model):
         verbose_name_plural = 'Події'
 
 
+class JobApplication(models.Model):
+    first_name = models.CharField(max_length=255, verbose_name='Ім\'я')
+    last_name = models.CharField(max_length=255, verbose_name='Прізвище')
+    email = models.EmailField(max_length=255, verbose_name='Електронна пошта')
+    phone_number = models.CharField(max_length=20, verbose_name='Телефон')
+    role = models.CharField(max_length=255, verbose_name='Роль')
+    status_job_application = models.BooleanField(default=False, verbose_name='Опрацьована')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Дата подачі заявки')
+
+    class Meta:
+        verbose_name = 'Заявка'
+        verbose_name_plural = 'Заявки'
+
+    def __str__(self):
+        return f"{self.first_name} {self.last_name}"
+
+
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.keys import Keys
@@ -1592,8 +1612,23 @@ class Uber(SeleniumTools):
         e.click() 
         self.driver.get_screenshot_as_file('UBER_NAME.png')
 
-    def add_driver(self):
+    def add_driver(self, phone_number, email, name, second_name):
         url = 'https://supplier.uber.com/orgs/49dffc54-e8d9-47bd-a1e5-52ce16241cb6/drivers'
+        self.driver.get(f"{url}")
+        if self.sleep:
+            time.sleep(self.sleep)
+        add_driver = self.driver.find_element(By.XPATH, '//button')
+        add_driver.click()
+        if self.sleep:
+            time.sleep(self.sleep)
+        data = self.driver.find_element(By.XPATH, '//div[2]/div/input')
+        data.click()
+        data.send_keys(f'{phone_number[4:]}' + Keys.TAB + Keys.TAB + f'{email}' + Keys.TAB + f'{name}' + Keys.TAB + f'{second_name}')
+        send_data = self.driver.find_element(By.XPATH, '//div[5]/div[2]/button')
+        send_data.click()
+        if self.sleep:
+            time.sleep(self.sleep)
+
 
     @staticmethod
     def download_weekly_report(week_number=None, driver=True, sleep=5, headless=True):
@@ -1640,7 +1675,6 @@ class Bolt(SeleniumTools):
         url = f"{self.base_url}/company/58225/reports/weekly"
         xpath = '//div/div/table'
         self.get_target_page_or_login(url, xpath, self.login)
-
         if self.day:
             self.driver.get(f"{self.base_url}/company/58225/reports/dayly/")
             if self.sleep:
@@ -1732,7 +1766,9 @@ class Bolt(SeleniumTools):
 
         return items
 
-    def add_driver(self):
+    def add_driver(self, email, phone_number):
+        """phone number exmp +380.."""
+
         url = 'https://fleets.bolt.eu/company/58225/driver/add'
         self.driver.get(f"{url}")
         if self.sleep:
@@ -1740,16 +1776,16 @@ class Bolt(SeleniumTools):
         form_email = WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.ID, 'email')))
         form_email.click()
         form_email.clear()
-        form_email.send_keys('igorsivak96@gmail.com')
+        form_email.send_keys(email)
         form_phone_number = WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.ID, 'phone')))
         form_phone_number.click()
         form_phone_number.clear()
-        form_phone_number.send_keys('+380635672343')
+        form_phone_number.send_keys(phone_number)
         button = WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.ID, 'ember38')))
         button.click()
         if self.sleep:
             time.sleep(self.sleep)
-        self.driver.get_screenshot_as_file('boly_1.png')
+
 
     @staticmethod
     def download_weekly_report(week_number=None, day=None,  driver=True, sleep=5, headless=True):
@@ -1777,7 +1813,7 @@ class Uklon(SeleniumTools):
 
     def login(self):
         self.driver.get(self.base_url)
-        element = self.driver.find_element("name",'login').send_keys(os.environ["UKLON_NAME"])
+        element = self.driver.find_element("name", 'login').send_keys(os.environ["UKLON_NAME"])
         element = self.driver.find_element("name", "loginPassword").send_keys(os.environ["UKLON_PASSWORD"])
         self.driver.find_element("name", "Login").click()
         if self.sleep:
