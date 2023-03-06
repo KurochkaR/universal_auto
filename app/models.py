@@ -7,9 +7,7 @@ import sys
 from django.db import models, IntegrityError
 from django.db.models import Sum, QuerySet
 from django.db.models.base import ModelBase
-from django.utils.encoding import iri_to_uri, uri_to_iri
 from django.utils.safestring import mark_safe
-from urllib.parse import quote
 from polymorphic.models import PolymorphicModel
 from selenium.common import TimeoutException, WebDriverException
 
