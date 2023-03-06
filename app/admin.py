@@ -397,3 +397,13 @@ class OrderAdmin(admin.ModelAdmin):
 @admin.register(Fleets_drivers_vehicles_rate)
 class Fleets_drivers_vehicles_rateAdmin(admin.ModelAdmin):
     list_display = [f.name for f in Fleets_drivers_vehicles_rate._meta.fields]
+
+
+@admin.register(JobApplication)
+class JobApplicationAdmin(admin.ModelAdmin):
+    list_display = [f.name for f in JobApplication._meta.fields]
+    list_editable = ['status_job_application']
+
+    fieldsets = [
+        (None, {'fields': ['first_name', 'last_name', 'email', 'phone_number', 'status_job_application']}),
+    ]
