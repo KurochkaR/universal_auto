@@ -1,4 +1,11 @@
+import os
 import unittest
+from unittest.mock import Mock, MagicMock, patch
+
+import pytest
+
+from scripts.bot import save_debt_report
+from app.models import Report_of_driver_debt, Driver
 
 
 class TestBot(unittest.TestCase):
@@ -80,5 +87,19 @@ class TestBot(unittest.TestCase):
     def test_rating_2(self):
         self.assertIsNotNone('/rating')
 
+    @pytest.mark.django_db
     def test_save_debt_report(self):
-        self.assertIsNotNone('Ваш звіт збережено')
+        driver = Driver.objects.create(chat_id=1)
+        update = Mock()
+        update.message.chat.id = 1
+        update.message.photo = [
+            Mock(get_file=Mock(return_value=MagicMock(file_unique_id="image_tg", download=Mock())))
+        ]
+        with patch('app.models.Report_of_driver_debt.objects.create') as mock_create:
+            save_debt_report(update, None)
+            mock_create.assert_called_once()
+            call_args = mock_create.call_args[1]
+            self.assertEqual(call_args['driver'], driver)
+            self.assertEqual(call_args['image'], 'static/reports/reports_of_driver_debt/image_tg.jpg')
+
+

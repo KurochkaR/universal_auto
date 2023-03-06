@@ -471,7 +471,7 @@ def save_debt_report(update, context):
     chat_id = update.message.chat.id
     driver = Driver.get_by_chat_id(chat_id)
     image = update.message.photo[-1].get_file()
-    filename = f'reports/reports_of_driver_debt/{image["file_unique_id"]}.jpg'
+    filename = f'reports/reports_of_driver_debt/{image.file_unique_id}.jpg'
     image.download(filename)
     Report_of_driver_debt.objects.create(
                                 driver=driver,

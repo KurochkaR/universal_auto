@@ -7,7 +7,9 @@ import sys
 from django.db import models, IntegrityError
 from django.db.models import Sum, QuerySet
 from django.db.models.base import ModelBase
+from django.utils.encoding import iri_to_uri, uri_to_iri
 from django.utils.safestring import mark_safe
+from urllib.parse import quote
 from polymorphic.models import PolymorphicModel
 from selenium.common import TimeoutException, WebDriverException
 
@@ -1069,9 +1071,10 @@ class Report_of_driver_debt(models.Model):
 
     def admin_image(self):
         if self.image:
-            return mark_safe(f'<img src="{self.image.url}" width="200" />')
+            url = self.image.url
+            return mark_safe(f'<a href="{url}"><img src="{url}" width="200"></a>')
     admin_image.short_description = 'Image'
-    image.allow_tags = True
+    admin_image.allow_tags = True
 
     class Meta:
         verbose_name = 'Звіт заборгованості водія'
