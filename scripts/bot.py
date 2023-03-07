@@ -1305,15 +1305,16 @@ def report(update, context):
 
     # sending report to owner
     message = f'Fleet Owner: {"%.2f" % owner["Fleet Owner"]}\n\n' + '\n'.join(totals.values())
-    context.bot.send_message(chat_id=736204274, text=message)
+    context.bot.send_message(chat_id=DEVELOPER_CHAT_ID, text=message)
 
     # sending report to driver
-    for driver in drivers:
-        try:
-            message, chat_id = totals[f'{driver}'], drivers[f'{driver}']
-            context.bot.send_message(chat_id=chat_id, text=message)
-        except:
-            pass
+    if len(drivers) != 0:
+        for driver in drivers:
+            try:
+                message, chat_id = totals[f'{driver}'], drivers[f'{driver}']
+                context.bot.send_message(chat_id=chat_id, text=message)
+            except:
+                pass
 
 
 def auto_report_for_driver_and_owner(context):
@@ -1326,20 +1327,17 @@ def auto_report_for_driver_and_owner(context):
     context.bot.send_message(chat_id=DEVELOPER_CHAT_ID, text=message)
 
     # sending report to driver
-    for driver in drivers:
-        try:
-            message, chat_id = totals[f'{driver}'], drivers[f'{driver}']
-            context.bot.send_message(chat_id=chat_id, text=message)
-        except:
-            pass
+    if len(drivers) != 0:
+        for driver in drivers:
+            try:
+                message, chat_id = totals[f'{driver}'], drivers[f'{driver}']
+                context.bot.send_message(chat_id=chat_id, text=message)
+            except:
+                pass
 
 
 def download_report(update, context):
-    update.message.reply_text("Weekly report download request submitted")
-    download_weekly_report_force.delay()
-
-
-def auto_download_report(update):
+    update.message.reply_text("Запит на завантаження щотижневого звіту подано")
     download_weekly_report_force.delay()
 
 
@@ -1593,7 +1591,6 @@ def main():
     dp.add_handler(MessageHandler(Filters.text('Update report'), get_update_report))
 
     updater.job_queue.run_daily(auto_report_for_driver_and_owner, time=datetime.time(7, 0, 0), days=(1,))
-    updater.job_queue.run_daily(auto_download_report, time=datetime.time(4, 0, 0), days=(1,))
 
     updater.start_polling()
     updater.idle()

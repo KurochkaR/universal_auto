@@ -1390,7 +1390,7 @@ class Uber(SeleniumTools):
         # url = f"{self.base_url}/orgs/2c5515cd-a4ed-4136-905f-99504677a324/reports"  #my
         xpath = '//div[@data-testid="report-type-dropdown"]/div/div'
         self.get_target_page_or_login(url, xpath, self.login_v3)
-        # self.driver.get_screenshot_as_file('generate_payments_order.png')
+        self.driver.get_screenshot_as_file('generate_payments_order.png')
         menu = '//div[@data-testid="report-type-dropdown"]/div/div'
         WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, menu)))
         self.driver.find_element(By.XPATH, menu).click()   
@@ -1943,11 +1943,11 @@ class NewUklon(SeleniumTools):
         self.driver.get(self.base_url + '/auth/login')
         if self.sleep:
             time.sleep(self.sleep)
-        element = self.driver.find_element(By.ID,'login')
+        element = self.driver.find_element(By.ID, 'mat-input-1')
 
         element.send_keys(os.environ["UKLON_NAME"])
-
         element = self.driver.find_element(By.ID, "password")
+
         element.send_keys('')
         element.send_keys(os.environ["UKLON_PASSWORD"])
 
