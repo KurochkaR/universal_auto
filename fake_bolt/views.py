@@ -1,3 +1,4 @@
+import csv
 import urllib
 from datetime import datetime
 from django.contrib.auth.decorators import login_required
@@ -51,7 +52,7 @@ class DailyWeeklyBoltView(LoginRequiredMixin, View):
             filename = f"Щотижневий звіт Bolt – {date_str} – Kyiv Fleet 03_232 park Universal-auto.csv"
         response = HttpResponse(
             DailyWeeklyBoltView.name_rows_all + DailyWeeklyBoltView.test_all + "\n" + DailyWeeklyBoltView.name_rows + DailyWeeklyBoltView.test_daily,
-            content_type="text/csv",
+            content_type="text/csv; charset=utf-8",
             headers={
                 "Content-Disposition": f"attachment; filename={urllib.parse.quote(filename)}"
             }, )
