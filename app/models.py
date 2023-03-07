@@ -1075,7 +1075,6 @@ class Report_of_driver_debt(models.Model):
             url = self.image.url
             return mark_safe(f'<a href="{url}"><img src="{url}" width="200"></a>')
     admin_image.short_description = 'Image'
-    admin_image.allow_tags = True
 
     class Meta:
         verbose_name = 'Звіт заборгованості водія'
