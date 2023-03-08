@@ -24,7 +24,7 @@ import hashlib
 from django.db import IntegrityError
 
 PORT = int(os.environ.get('PORT', '8443'))
-DEVELOPER_CHAT_ID = 803129892
+DEVELOPER_CHAT_ID = 515224934
 
 # Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -555,14 +555,15 @@ def get_debt_photo(update, context):
 
 
 def save_debt_report(update, context):
+    os.makedirs('data/mediafiles/reports/reports_of_driver_debt/', exist_ok=True)
     chat_id = update.message.chat.id
     driver = Driver.get_by_chat_id(chat_id)
     image = update.message.photo[-1].get_file()
-    filename = f'reports/reports_of_driver_debt/{image.file_unique_id}.jpg'
+    filename = f'data/mediafiles/reports/reports_of_driver_debt/{image.file_unique_id}.jpg'
     image.download(filename)
     Report_of_driver_debt.objects.create(
                                 driver=driver,
-                                image=f'static/{filename}')
+                                image=f'reports/reports_of_driver_debt/{image.file_unique_id}.jpg')
     update.message.reply_text('Ваш звіт збережено')
 
 

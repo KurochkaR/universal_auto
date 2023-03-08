@@ -100,6 +100,6 @@ class TestBot(unittest.TestCase):
             mock_create.assert_called_once()
             call_args = mock_create.call_args[1]
             self.assertEqual(call_args['driver'], driver)
-            self.assertEqual(call_args['image'], 'static/reports/reports_of_driver_debt/image_tg.jpg')
+            self.assertEqual(call_args['image'], 'reports/reports_of_driver_debt/image_tg.jpg')
 
 

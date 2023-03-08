@@ -1064,7 +1064,7 @@ class Order(models.Model):
 
 class Report_of_driver_debt(models.Model):
     driver = models.CharField(max_length=255, verbose_name='Водій')
-    image = models.ImageField(upload_to='.', verbose_name='Фото')
+    image = models.ImageField(upload_to='reports/reports_of_driver_debt/', verbose_name='Фото')
 
     created_at = models.DateTimeField(editable=False, auto_now=datetime.datetime.now(), verbose_name='Створено')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='Обновлено')
