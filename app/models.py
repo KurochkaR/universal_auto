@@ -4,6 +4,8 @@ import glob
 import os
 import shutil
 import sys
+
+
 from django.db import models, IntegrityError
 from django.db.models import Sum, QuerySet
 from django.db.models.base import ModelBase
@@ -248,9 +250,9 @@ class BoltPaymentsOrder(models.Model, metaclass=GenericPaymentsOrder):
 
     def vendor(self):
         return 'bolt'
-    
+
     def kassa(self):
-        return (self.total_cach_less_drivers_amount()) 
+        return (self.total_cach_less_drivers_amount())
 
     def total_owner_amount(self, rate=0.65):
         return self.total_cach_less_drivers_amount() * (1 - rate) - self.total_drivers_amount(rate)
@@ -386,7 +388,7 @@ class User(models.Model):
 
     @staticmethod
     def email_validator(email) -> str:
-        pattern = r"^[-\w\.]+@([-\w]+\.)+[-\w]{2,4}$"
+        pattern = r"^([a-zA-Z0-9]+\.?[a-zA-Z0-9]+)+@([a-zA-Z0-9]+\.)+[a-zA-Z0-9]{2,4}$"
         if re.match(pattern, email) is not None:
             return email
         else:
@@ -394,8 +396,12 @@ class User(models.Model):
 
     @staticmethod
     def phone_number_validator(phone_number) -> str:
-        if len(phone_number) <= 13:
-            if len(phone_number) == 10:
+
+        pattern = r"^(\+380|380|80|0)+\d{9}$"
+        if re.match(pattern, phone_number) is not None:
+            if len(phone_number) == 13:
+                return phone_number
+            elif len(phone_number) == 10:
                 valid_phone_number = f'+38{phone_number}'
                 return valid_phone_number
             elif len(phone_number) == 12:
@@ -406,15 +412,19 @@ class User(models.Model):
                 return valid_phone_number
         else:
             return None
-        
-        
+
+
 class Driver(User):
     ACTIVE = 'Готовий прийняти заказ'
     WITH_CLIENT = 'В дорозі'
     WAIT_FOR_CLIENT = 'Очікую клієнта'
     OFFLINE = 'Не працюю'
-   
+
     fleet = models.OneToOneField('Fleet', blank=True, null=True, on_delete=models.SET_NULL)
+    #driver_manager_id: ManyToManyField already exists in DriverManager
+    #we have to delete this
+    driver_manager_id = models.ManyToManyField('DriverManager', blank=True)
+    #partner = models.ManyToManyField('Partner', blank=True)
     role = models.CharField(max_length=50, choices=User.Role.choices, default=User.Role.DRIVER)
     driver_status = models.CharField(max_length=35, null=False, default='Offline', verbose_name='Статус водія')
 
@@ -735,7 +745,6 @@ class DriverRateLevels(models.Model):
         verbose_name = 'Рівень рейтингу водія'
         verbose_name_plural = 'Рівень рейтингу водіїв'
 
-
 class RawGPS(models.Model):
     imei = models.CharField(max_length=100)
     client_ip = models.CharField(max_length=100)
@@ -809,7 +818,7 @@ class WeeklyReportFile(models.Model):
         return converted_list
 
     def save_weekly_reports_to_db(self):
-        
+
         for file in csv_list:
             rows = []
             try:
@@ -1029,8 +1038,8 @@ class Comment(models.Model):
 
     class Meta:
         verbose_name = 'Відгук'
-        verbose_name_plural='Відгуки'
-        ordering=['-created_at']
+        verbose_name_plural = 'Відгуки'
+        ordering = ['-created_at']
 
 
 class Order(models.Model):
@@ -1084,6 +1093,48 @@ class Event(models.Model):
     class Meta:
         verbose_name = 'Подія'
         verbose_name_plural = 'Події'
+
+
+
+class SubscribeUsers(models.Model):
+    email = models.EmailField(max_length=254, verbose_name='Електрона пошта')
+    created_at = models.DateTimeField(editable=False, auto_now=True, verbose_name='Створено')
+
+    class Meta:
+        verbose_name = 'Підписник'
+        verbose_name_plural = 'Підписники'
+
+    @staticmethod
+    def get_by_email(email):
+        """
+        Returns subscriber by email
+        :param email: email by which we need to find the subscriber
+        :type email: str
+        :return: subscriber object or None if a subscriber with such email does not exist
+        """
+        try:
+            subscriber = SubscribeUsers.objects.get(email=email)
+            return subscriber
+        except SubscribeUsers.DoesNotExist:
+            return None
+
+
+class JobApplication(models.Model):
+    first_name = models.CharField(max_length=255, verbose_name='Ім\'я')
+    last_name = models.CharField(max_length=255, verbose_name='Прізвище')
+    email = models.EmailField(max_length=255, verbose_name='Електронна пошта')
+    phone_number = models.CharField(max_length=20, verbose_name='Телефон')
+    role = models.CharField(max_length=255, verbose_name='Роль')
+    status_job_application = models.BooleanField(default=False, verbose_name='Опрацьована')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Дата подачі заявки')
+
+    class Meta:
+        verbose_name = 'Заявка'
+        verbose_name_plural = 'Заявки'
+
+    def __str__(self):
+        return f"{self.first_name} {self.last_name}"
+
 
 
 from selenium import webdriver
@@ -1362,7 +1413,7 @@ class Uber(SeleniumTools):
         # url = f"{self.base_url}/orgs/2c5515cd-a4ed-4136-905f-99504677a324/reports"  #my
         xpath = '//div[@data-testid="report-type-dropdown"]/div/div'
         self.get_target_page_or_login(url, xpath, self.login_v3)
-        # self.driver.get_screenshot_as_file('generate_payments_order.png')
+        self.driver.get_screenshot_as_file('generate_payments_order.png')
         menu = '//div[@data-testid="report-type-dropdown"]/div/div'
         WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, menu)))
         self.driver.find_element(By.XPATH, menu).click()   
@@ -1584,8 +1635,23 @@ class Uber(SeleniumTools):
         e.click() 
         self.driver.get_screenshot_as_file('UBER_NAME.png')
 
-    def add_driver(self):
+    def add_driver(self, phone_number, email, name, second_name):
         url = 'https://supplier.uber.com/orgs/49dffc54-e8d9-47bd-a1e5-52ce16241cb6/drivers'
+        self.driver.get(f"{url}")
+        if self.sleep:
+            time.sleep(self.sleep)
+        add_driver = self.driver.find_element(By.XPATH, '//button')
+        add_driver.click()
+        if self.sleep:
+            time.sleep(self.sleep)
+        data = self.driver.find_element(By.XPATH, '//div[2]/div/input')
+        data.click()
+        data.send_keys(f'{phone_number[4:]}' + Keys.TAB + Keys.TAB + f'{email}' + Keys.TAB + f'{name}' + Keys.TAB + f'{second_name}')
+        send_data = self.driver.find_element(By.XPATH, '//div[5]/div[2]/button')
+        send_data.click()
+        if self.sleep:
+            time.sleep(self.sleep)
+
 
     @staticmethod
     def download_weekly_report(week_number=None, driver=True, sleep=5, headless=True):
@@ -1632,7 +1698,6 @@ class Bolt(SeleniumTools):
         url = f"{self.base_url}/company/58225/reports/weekly"
         xpath = '//div/div/table'
         self.get_target_page_or_login(url, xpath, self.login)
-
         if self.day:
             self.driver.get(f"{self.base_url}/company/58225/reports/dayly/")
             if self.sleep:
@@ -1724,7 +1789,9 @@ class Bolt(SeleniumTools):
 
         return items
 
-    def add_driver(self):
+    def add_driver(self, email, phone_number):
+        """phone number exmp +380.."""
+
         url = 'https://fleets.bolt.eu/company/58225/driver/add'
         self.driver.get(f"{url}")
         if self.sleep:
@@ -1732,16 +1799,16 @@ class Bolt(SeleniumTools):
         form_email = WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.ID, 'email')))
         form_email.click()
         form_email.clear()
-        form_email.send_keys('igorsivak96@gmail.com')
+        form_email.send_keys(email)
         form_phone_number = WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.ID, 'phone')))
         form_phone_number.click()
         form_phone_number.clear()
-        form_phone_number.send_keys('+380635672343')
+        form_phone_number.send_keys(phone_number)
         button = WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.ID, 'ember38')))
         button.click()
         if self.sleep:
             time.sleep(self.sleep)
-        self.driver.get_screenshot_as_file('boly_1.png')
+
 
     @staticmethod
     def download_weekly_report(week_number=None, day=None,  driver=True, sleep=5, headless=True):
@@ -1769,7 +1836,7 @@ class Uklon(SeleniumTools):
 
     def login(self):
         self.driver.get(self.base_url)
-        element = self.driver.find_element("name",'login').send_keys(os.environ["UKLON_NAME"])
+        element = self.driver.find_element("name", 'login').send_keys(os.environ["UKLON_NAME"])
         element = self.driver.find_element("name", "loginPassword").send_keys(os.environ["UKLON_PASSWORD"])
         self.driver.find_element("name", "Login").click()
         if self.sleep:
@@ -1899,11 +1966,11 @@ class NewUklon(SeleniumTools):
         self.driver.get(self.base_url + '/auth/login')
         if self.sleep:
             time.sleep(self.sleep)
-        element = self.driver.find_element(By.ID,'login')
+        element = self.driver.find_element(By.ID, 'mat-input-1')
 
         element.send_keys(os.environ["UKLON_NAME"])
-
         element = self.driver.find_element(By.ID, "password")
+
         element.send_keys('')
         element.send_keys(os.environ["UKLON_PASSWORD"])
 

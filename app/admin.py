@@ -314,7 +314,6 @@ class RepairReportAdmin(admin.ModelAdmin):
     list_per_page = 25
 
 
-
 @admin.register(ServiceStation)
 class ServiceStationAdmin(admin.ModelAdmin):
     list_display = ('name', 'owner', 'description')
@@ -342,6 +341,7 @@ class ServiceStationManagerAdmin(admin.ModelAdmin):
         ServiceStationManagerFleetInline,
     ]
 
+
 @admin.register(Report_of_driver_debt)
 class ReportOfDriverDebtAdmin(admin.ModelAdmin):
     list_display = ('driver', 'image', 'created_at')
@@ -351,6 +351,7 @@ class ReportOfDriverDebtAdmin(admin.ModelAdmin):
     fieldsets = [
         (None, {'fields': ['driver', 'image']}),
     ]
+
 
 @admin.register(Comment)
 class CommentAdmin(admin.ModelAdmin):
@@ -362,6 +363,7 @@ class CommentAdmin(admin.ModelAdmin):
         (None, {'fields': ['comment', 'chat_id']}),
     ]
 
+
 @admin.register(Event)
 class EventAdmin(admin.ModelAdmin):
     list_display = ('full_name_driver', 'event', 'status_event', 'created_at', 'updated_at')
@@ -371,6 +373,7 @@ class EventAdmin(admin.ModelAdmin):
     fieldsets = [
         (None, {'fields': ['full_name_driver', 'event', 'chat_id']}),
     ]
+
 
 @admin.register(Owner)
 class OwnerAdmin(admin.ModelAdmin):
@@ -385,10 +388,22 @@ class OwnerAdmin(admin.ModelAdmin):
         (None, {'fields': ['name', 'second_name', 'email', 'phone_number', 'chat_id']}),
     ]
 
+
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
     list_display = [f.name for f in Order._meta.fields]
 
+
 @admin.register(Fleets_drivers_vehicles_rate)
 class Fleets_drivers_vehicles_rateAdmin(admin.ModelAdmin):
     list_display = [f.name for f in Fleets_drivers_vehicles_rate._meta.fields]
+
+
+@admin.register(JobApplication)
+class JobApplicationAdmin(admin.ModelAdmin):
+    list_display = [f.name for f in JobApplication._meta.fields]
+    list_editable = ['status_job_application']
+
+    fieldsets = [
+        (None, {'fields': ['first_name', 'last_name', 'email', 'phone_number', 'status_job_application']}),
+    ]
