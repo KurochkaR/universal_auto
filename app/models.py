@@ -3,14 +3,19 @@ import datetime
 import glob
 import os
 import shutil
+import string
 import sys
-
+import random
 
 from django.db import models, IntegrityError
 from django.db.models import Sum, QuerySet
 from django.db.models.base import ModelBase
+from django.utils.safestring import mark_safe
+from django.utils import timezone
 from polymorphic.models import PolymorphicModel
 from selenium.common import TimeoutException, WebDriverException
+
+from auto import settings
 
 
 class PaymentsOrder(models.Model):
@@ -289,7 +294,7 @@ class UberPaymentsOrder(models.Model, metaclass=GenericPaymentsOrder):
         unique_together = (('report_from', 'report_to', 'driver_uuid'))
 
     def driver_id(self):
-        return self.driver_uuid
+        return str(self.driver_uuid)
 
     def report_text(self, name=None, rate=0.65):
         name = name or self.full_name()
@@ -419,11 +424,9 @@ class Driver(User):
     WITH_CLIENT = 'В дорозі'
     WAIT_FOR_CLIENT = 'Очікую клієнта'
     OFFLINE = 'Не працюю'
+    RENT = 'Орендую авто'
 
     fleet = models.OneToOneField('Fleet', blank=True, null=True, on_delete=models.SET_NULL)
-    #driver_manager_id: ManyToManyField already exists in DriverManager
-    #we have to delete this
-    driver_manager_id = models.ManyToManyField('DriverManager', blank=True)
     #partner = models.ManyToManyField('Partner', blank=True)
     role = models.CharField(max_length=50, choices=User.Role.choices, default=User.Role.DRIVER)
     driver_status = models.CharField(max_length=35, null=False, default='Offline', verbose_name='Статус водія')
@@ -494,6 +497,21 @@ class Driver(User):
             return None
 
 
+class StatusChange(models.Model):
+    driver = models.ForeignKey(Driver, on_delete=models.CASCADE)
+    name = models.CharField(max_length=255, verbose_name='Назва статусу')
+    start_time = models.DateTimeField(auto_now_add=True)
+    end_time = models.DateTimeField(null=True, blank=True)
+    duration = models.DurationField(null=True, blank=True)
+
+
+class RentInformation(models.Model):
+    driver = models.ForeignKey(Driver, on_delete=models.SET_NULL, null=True)
+    driver_name = models.CharField(max_length=50, blank=True)
+    rent_time = models.DurationField(null=True, blank=True, verbose_name='Час оренди')
+    rent_distance = models.FloatField(null=True, blank=True, verbose_name='Орендована дистанція')
+    created_at = models.DateTimeField(editable=False, auto_now_add=True)
+
 
 class Fleet(PolymorphicModel):
     name = models.CharField(max_length=255)
@@ -537,11 +555,11 @@ class Client(User):
 
 
 class DriverManager(User):
-    driver_id = models.ManyToManyField(Driver, null=True, blank=True, verbose_name='Driver')
+    driver_id = models.ManyToManyField(Driver, blank=True, verbose_name='Driver')
     role = models.CharField(max_length=50, choices=User.Role.choices, default=User.Role.DRIVER_MANAGER)
 
     class Meta:
-        verbose_name ='Менеджер водія'
+        verbose_name = 'Менеджер водія'
         verbose_name_plural = 'Менеджер водіїв'
 
     def __str__(self):
@@ -651,6 +669,7 @@ class UklonFleet(Fleet):
 
 
 class NewUklonFleet(Fleet):
+    token = models.CharField(max_length=40, default=None, null=True, verbose_name="Код автопарку")
     def download_weekly_report(self, week_number=None, driver=True, sleep=5, headless=True):
         return NewUklon.download_weekly_report(week_number=week_number, driver=driver, sleep=sleep, headless=headless)
 
@@ -674,7 +693,7 @@ class Vehicle(models.Model):
     deleted_at = models.DateTimeField(null=True, blank=True, verbose_name='Видалено')
 
     class Meta:
-        verbose_name ='Автомобіль'
+        verbose_name = 'Автомобіль'
         verbose_name_plural = 'Автомобілі'
 
     def __str__(self) -> str:
@@ -686,7 +705,7 @@ class Vehicle(models.Model):
             vehicle = Vehicle.objects.get(licence_plate=licence_plate)
             return vehicle
         except Vehicle.DoesNotExist:
-            pass
+            return None
 
     @staticmethod
     def name_validator(name):
@@ -713,6 +732,13 @@ class Vehicle(models.Model):
     def vin_code_validator(vin_code):
         if len(vin_code) <= 17:
             return vin_code.upper()
+        else:
+            return None
+
+    @staticmethod
+    def gps_imei_validator(gps_imei):
+        if len(gps_imei) <= 100:
+            return gps_imei.upper()
         else:
             return None
 
@@ -745,6 +771,7 @@ class DriverRateLevels(models.Model):
         verbose_name = 'Рівень рейтингу водія'
         verbose_name_plural = 'Рівень рейтингу водіїв'
 
+
 class RawGPS(models.Model):
     imei = models.CharField(max_length=100)
     client_ip = models.CharField(max_length=100)
@@ -755,6 +782,9 @@ class RawGPS(models.Model):
     class Meta:
         verbose_name = 'GPS Raw'
         verbose_name_plural = 'GPS Raw'
+
+    def __str__(self):
+        return f'{self.data}'
 
 
 class GPS(PolymorphicModel):
@@ -1095,7 +1125,6 @@ class Event(models.Model):
         verbose_name_plural = 'Події'
 
 
-
 class SubscribeUsers(models.Model):
     email = models.EmailField(max_length=254, verbose_name='Електрона пошта')
     created_at = models.DateTimeField(editable=False, auto_now=True, verbose_name='Створено')
@@ -1123,10 +1152,70 @@ class JobApplication(models.Model):
     first_name = models.CharField(max_length=255, verbose_name='Ім\'я')
     last_name = models.CharField(max_length=255, verbose_name='Прізвище')
     email = models.EmailField(max_length=255, verbose_name='Електронна пошта')
+    password = models.CharField(max_length=12, verbose_name='Пароль Uklon')
     phone_number = models.CharField(max_length=20, verbose_name='Телефон')
+    license_expired = models.DateField(blank=True, verbose_name='Термін дії посвідчення')
+    driver_license_front = models.ImageField(blank=True, upload_to='job/licenses/front',
+                                             verbose_name='Лицьова сторона посвідчення')
+    driver_license_back = models.ImageField(blank=True, upload_to='job/licenses/back',
+                                            verbose_name='Тильна сторона посвідчення')
+    photo = models.ImageField(blank=True, upload_to='job/photo', verbose_name='Фото водія')
+    car_documents = models.ImageField(blank=True, upload_to='job/car', default="docs/default_car.jpg", verbose_name='Фото техпаспорту')
+    insurance = models.ImageField(blank=True, upload_to='job/insurance', default="docs/default_insurance.png", verbose_name='Автоцивілка')
+    insurance_expired = models.DateField(default=datetime.date(2023, 12, 15), verbose_name='Термін дії автоцивілки')
     role = models.CharField(max_length=255, verbose_name='Роль')
-    status_job_application = models.BooleanField(default=False, verbose_name='Опрацьована')
+    status_bolt = models.DateField(null=True, verbose_name='Опрацьована BOLT')
+    status_uklon = models.DateField(null=True, verbose_name='Опрацьована Uklon')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='Дата подачі заявки')
+
+    @staticmethod
+    def validate_date(date_str):
+        try:
+            date = datetime.datetime.strptime(date_str, '%Y-%m-%d')
+            today = datetime.datetime.today()
+            future_date = datetime.datetime(2077, 12, 31)
+            if date < today:
+                return False
+            elif date > future_date:
+                return False
+            else:
+                return True
+        except ValueError:
+            return False
+
+    def save(self, *args, **kwargs):
+        if not self.id:
+            self.password = self.generate_password()
+        super().save(*args, **kwargs)
+
+    @staticmethod
+    def generate_password(length=12):
+        chars = string.ascii_lowercase + string.digits
+        password = ''.join(random.choice(chars) for _ in range(length - 2))
+        password += random.choice(string.ascii_uppercase)
+        password += random.choice(string.digits)
+        return ''.join(random.sample(password, len(password)))
+
+    def admin_photo(self):
+        return admin_image_preview(self.photo)
+
+    def admin_front(self):
+        return admin_image_preview(self.driver_license_front)
+
+    def admin_back(self):
+        return admin_image_preview(self.driver_license_back)
+
+    def admin_insurance(self):
+        return admin_image_preview(self.insurance)
+
+    def admin_car_document(self):
+        return admin_image_preview(self.car_documents)
+
+    admin_back.short_description = 'License back'
+    admin_photo.short_description = 'Photo'
+    admin_front.short_description = 'License front'
+    admin_insurance.short_description = 'Insurance'
+    admin_car_document.short_description = 'Car document'
 
     class Meta:
         verbose_name = 'Заявка'
@@ -1134,6 +1223,50 @@ class JobApplication(models.Model):
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
+
+
+def admin_image_preview(image, default_image=None):
+    if image:
+        url = image.url
+        return mark_safe(f'<a href="{url}"><img src="{url}" width="200" height="150"></a>')
+    return None
+
+
+class UseOfCars(models.Model):
+    user_vehicle = models.CharField(max_length=255, verbose_name='Користувач автомобіля')
+    chat_id = models.CharField(blank=True, max_length=100, verbose_name='Індетифікатор чата')
+    licence_plate = models.CharField(max_length=24, verbose_name='Номерний знак')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Дата використання авто')
+    end_at = models.DateTimeField(null=True, blank=True, verbose_name='Кінець використання авто')
+
+    class Meta:
+        verbose_name = 'Користувачі автомобіля'
+        verbose_name_plural = 'Користувачі автомобілів'
+
+    def __str__(self):
+        return f"{self.user_vehicle}: {self.licence_plate}"
+
+
+class ParkSettings(models.Model):
+    key = models.CharField(max_length=255, verbose_name='Ключ')
+    value = models.CharField(max_length=255, verbose_name='Значення')
+
+
+    class Meta:
+        verbose_name = 'Налаштування автопарка'
+        verbose_name_plural = 'Налаштування автопарків'
+
+    def __str__(self):
+        return f'{self.value}'
+
+    @staticmethod
+    def get_value(key=key):
+        try:
+            value = ParkSettings.objects.get(key=key)
+            return value
+        except ParkSettings.DoesNotExist:
+            return f"<ObjectDoesNotExist> {key}"
+
 
 
 
@@ -1162,7 +1295,12 @@ from django.db import models
 from app.models import Fleet
 
 
-class SeleniumTools():
+def clickandclear(element):
+    element.click()
+    element.clear()
+
+
+class SeleniumTools:
     def __init__(self, session, week_number=None, day=None, profile=None):
         self.session_file_name = session
         self.day = day  # if not None then we work with daly reports
@@ -1441,9 +1579,9 @@ class Uber(SeleniumTools):
                 for _ in range(date_by_def.month - self.day.month):
                     self.driver.find_element(By.XPATH, f'//button[@aria-label="Previous month."]').click()
             self.driver.find_element(By.XPATH, f'//div[@aria-roledescription="button"]/div[text()={self.day.strftime("%-d")}]').click()
-            end = self.driver.find_element(By.XPATH,'(//input[@aria-describedby="datepicker--screenreader--message--input"])[2]')
+            end = self.driver.find_element(By.XPATH, '(//input[@aria-describedby="datepicker--screenreader--message--input"])[2]')
             end.send_keys(Keys.NULL)
-            self.driver.find_element(By.XPATH,f'//div[@aria-roledescription="button"]/div[text()="{self.day.strftime("%-d")}"]').click()
+            self.driver.find_element(By.XPATH, f'//div[@aria-roledescription="button"]/div[text()="{self.day.strftime("%-d")}"]').click()
         else:
             start = self.driver.find_element(By.XPATH, '(//input[@aria-describedby="datepicker--screenreader--message--input"])[1]')
             start.send_keys(Keys.NULL)
@@ -1652,16 +1790,18 @@ class Uber(SeleniumTools):
         if self.sleep:
             time.sleep(self.sleep)
 
-
     @staticmethod
     def download_weekly_report(week_number=None, driver=True, sleep=5, headless=True):
         u = Uber(week_number=week_number, driver=False, sleep=0, headless=headless)
-        if u.payments_order_file_name() not in os.listdir(os.curdir) and driver:
+        report = UberPaymentsOrder.objects.filter(report_file_name=f'Uber {u.file_patern()}.csv')
+        if not report:
             u = Uber(week_number=week_number, driver=driver, sleep=sleep, headless=headless)
             # u.login_v2()
             u.download_payments_order()
+            u.save_report()
             u.quit()
-        return u.save_report()
+            report = UberPaymentsOrder.objects.filter(report_file_name=f'Uber {u.file_patern()}.csv')
+        return list(report)
 
 
 class Bolt(SeleniumTools):    
@@ -1699,7 +1839,7 @@ class Bolt(SeleniumTools):
         xpath = '//div/div/table'
         self.get_target_page_or_login(url, xpath, self.login)
         if self.day:
-            self.driver.get(f"{self.base_url}/company/58225/reports/dayly/")
+            self.driver.get(f"{self.base_url}/company/58225/reports/daily/")
             if self.sleep:
                 time.sleep(self.sleep)
             xpath = f'//table/tbody/tr/td[text()="{self.file_patern()}"]'
@@ -1709,9 +1849,9 @@ class Bolt(SeleniumTools):
             self.driver.get(f"{self.base_url}/company/58225/reports/weekly/{self.file_patern()}")
             time.sleep(self.sleep)
             if self.remote:
-                self.get_last_downloaded_file_frome_remote()
+                self.get_last_downloaded_file_frome_remote(save_as=f'Bolt {self.file_patern()} – Kyiv Fleet 03_232 park Universal-auto.csv')
             else:
-                self.get_last_downloaded_file()
+                self.get_last_downloaded_file(save_as=f'Bolt {self.file_patern()} – Kyiv Fleet 03_232 park Universal-auto.csv')
 
     def file_patern(self):
         if self.day:
@@ -1725,6 +1865,9 @@ class Bolt(SeleniumTools):
         if self.sleep:
             time.sleep(self.sleep)
         items = []
+
+        self.logger.info(f'{self.file_patern()} – Kyiv Fleet 03_232 park Universal-auto.csv')
+
         if self.payments_order_file_name() is not None:
             with open(self.payments_order_file_name(), encoding="utf-8") as file:
                 reader = csv.reader(file)
@@ -1789,37 +1932,84 @@ class Bolt(SeleniumTools):
 
         return items
 
-    def add_driver(self, email, phone_number):
-        """phone number exmp +380.."""
+    def add_driver(self, jobapplication):
+        if not jobapplication.status_bolt:
+            url = 'https://fleets.bolt.eu/company/58225/driver/add'
+            self.driver.get(f"{url}")
+            if self.sleep:
+                time.sleep(self.sleep)
+            form_email = WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.ID, 'email')))
+            clickandclear(form_email)
+            form_email.send_keys(jobapplication.email)
+            form_phone_number = WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.ID, 'phone')))
+            clickandclear(form_phone_number)
+            form_phone_number.send_keys(jobapplication.phone_number)
+            button = WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.ID, 'ember38')))
+            button.click()
+            if self.sleep:
+                time.sleep(self.sleep)
+            self.driver.find_element(By.XPATH, '//a[text()="Продовжити реєстрацію"]').click()
+            new_window = self.driver.window_handles[1]
+            self.driver.switch_to.window(new_window)
+            form_first_name = self.driver.find_element(By.XPATH, '//input[@id="first_name"]')
+            clickandclear(form_first_name)
+            form_first_name.send_keys(jobapplication.first_name)
+            form_last_name = self.driver.find_element(By.XPATH, '//input[@id="last_name"]')
+            clickandclear(form_last_name)
+            form_last_name.send_keys(jobapplication.last_name)
+            self.driver.find_element(By.XPATH, '//button[@type="submit"]').click()
+            if self.sleep:
+                time.sleep(self.sleep)
+            elements_to_select = [str(jobapplication.license_expired).split("-")[0],
+                                  str(jobapplication.license_expired).split("-")[1],
+                                  str(jobapplication.license_expired).split("-")[2],
+                                  str(jobapplication.insurance_expired).split("-")[0],
+                                  str(jobapplication.insurance_expired).split("-")[1],
+                                  str(jobapplication.insurance_expired).split("-")[2]
+                                  ]
 
-        url = 'https://fleets.bolt.eu/company/58225/driver/add'
-        self.driver.get(f"{url}")
-        if self.sleep:
-            time.sleep(self.sleep)
-        form_email = WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.ID, 'email')))
-        form_email.click()
-        form_email.clear()
-        form_email.send_keys(email)
-        form_phone_number = WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.ID, 'phone')))
-        form_phone_number.click()
-        form_phone_number.clear()
-        form_phone_number.send_keys(phone_number)
-        button = WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.ID, 'ember38')))
-        button.click()
-        if self.sleep:
-            time.sleep(self.sleep)
+            form_fields = self.driver.find_elements(By.XPATH, "//div[@class='form-group']")
+            for i, select_elem in enumerate(elements_to_select):
+                form_fields[i].click()
+                dropdown_div = self.driver.find_element(By.XPATH,
+                '//div[@class="ember-basic-dropdown-content-wormhole-origin"]/div[contains(@id, "ember-basic-dropdown-content-")]')
+                dropdown_div.find_element(By.XPATH, f'.//a[.//span[text()="{select_elem}"]]').click()
+            upload_elements = self.driver.find_elements(By.XPATH, "//label[contains(., 'Завантажити файл')]")
+            file_paths = [
+                            os.getcwd()+f"/data/mediafiles/{jobapplication.driver_license_front}",  #license_front
+                            os.getcwd()+f"/data/mediafiles/{jobapplication.driver_license_back}", #license_back
+                            os.getcwd()+f"/data/mediafiles/{jobapplication.car_documents}", #car_document
+                            os.getcwd()+f"/data/mediafiles/{jobapplication.insurance}", #insurance
+            ]
+            for i, file_path in enumerate(file_paths):
+                upload_element = upload_elements[i]
+                upload_element.click()
+                upload_input = upload_element.find_element(By.XPATH, "./input")
+                # Execute JavaScript code to remove the display property from the element's style
+                self.driver.execute_script("arguments[0].style.removeProperty('display');", upload_input)
+                upload_input.send_keys(file_path)
+            if self.sleep:
+                time.sleep(self.sleep)
 
+            submit = self.driver.find_element(By.XPATH, "//button[@type='submit']")
+            submit.click()
+            jobapplication.status_bolt = datetime.datetime.now().date()
+            jobapplication.save()
 
     @staticmethod
     def download_weekly_report(week_number=None, day=None,  driver=True, sleep=5, headless=True):
         """Can save weekly and daily report"""
         b = Bolt(week_number=week_number, day=day, driver=False, sleep=0, headless=headless)
-        if b.payments_order_file_name() not in os.listdir(os.curdir) and driver:
+        report = BoltPaymentsOrder.objects.filter(report_file_name=f'Bolt {b.file_patern()} – Kyiv Fleet 03_232 park Universal-auto.csv')
+        if not report:
             b = Bolt(week_number=week_number, day=day, driver=driver, sleep=sleep, headless=headless)
             # b.login()
             b.download_payments_order()
             b.quit()
-        return b.save_report()
+            b.save_report()
+            report = BoltPaymentsOrder.objects.filter(
+            report_file_name=f'Bolt {b.file_patern()} – Kyiv Fleet 03_232 park Universal-auto.csv')
+        return list(report)
 
 
 class Uklon(SeleniumTools):
@@ -1832,7 +2022,6 @@ class Uklon(SeleniumTools):
 
     def quit(self):
         self.driver.quit()
-
 
     def login(self):
         self.driver.get(self.base_url)
@@ -1982,9 +2171,10 @@ class NewUklon(SeleniumTools):
         url = f'{self.base_url}/workspace/orders'
         xpath = '//flt-group-filter[1]/flt-date-range-filter/mat-form-field/div'
         self.get_target_page_or_login(url, xpath, self.login)
-
-        self.driver.find_element(By.XPATH, '//flt-group-filter[1]/flt-date-range-filter/mat-form-field/div').click()
-        self.driver.find_element(By.XPATH, '//mat-option[@id="mat-option-7"]/span').click()  #Минулий тиждень
+        self.driver.find_element(By.XPATH, xpath).click()
+        time.sleep(self.sleep)
+        self.driver.find_element(By.XPATH, '//span[text()=" Минулий тиждень "]').click()
+        time.sleep(self.sleep)
         self.driver.find_element(By.XPATH, '//flt-filter-group/div/div/button').click()  #Експорт CSV
         time.sleep(self.sleep)
         if self.remote:
@@ -2004,8 +2194,8 @@ class NewUklon(SeleniumTools):
         self.driver.find_element(By.XPATH,
                                  '//upf-order-reports/section[1]/flt-filter-group/form/flt-group-filter[1]/flt-date-range-filter/mat-form-field/div').click()
         self.driver.find_element(By.XPATH, '//mat-option/span/div[text()=" Вибрати період "]').click()
-        e = self.driver.find_element(By.XPATH, '//input').click()
-
+        e = self.driver.find_element(By.XPATH, '//input')
+        e.click()
         sh, sm, eh, em = '00', '00', '23', '59'  # s - start/e - end/h - hours/m - minutes
         e.send_keys(self.day.format("DD.MM.YYYY") + Keys.TAB + self.day.format("DD.MM.YYYY") + Keys.TAB + Keys.TAB + f'{sh}' + Keys.SPACE + f'{sm}' + Keys.TAB + f'{eh}' + Keys.SPACE + f'{em}')
 
@@ -2020,11 +2210,8 @@ class NewUklon(SeleniumTools):
             time.sleep(self.sleep)
         items = []
 
-        file = self.report_file_name('01.70.csv')
-        os.rename(file, f'Звіт по поїздкам - {self.file_patern()}.csv')
-
-        self.logger.info(self.file_patern())
-        report = open(self.report_file_name(self.file_patern()))
+        self.logger.info(f'Uklon {self.file_patern()}.csv')
+        report = open(self.report_file_name(f'Uklon {self.file_patern()}.csv'))
 
         with report as file:
             reader = csv.reader(file)
@@ -2049,8 +2236,34 @@ class NewUklon(SeleniumTools):
                     fares=float((row[10] or '0').replace(',','')),
                     comission=float((row[11] or '0').replace(',','')),
                     total_amount_without_comission=float((row[12] or '0').replace(',','')))
-                order.save()
+                try:
+                    order.save()
+                except IntegrityError:
+                    pass
                 items.append(order)
+
+        if not items:
+            order = NewUklonPaymentsOrder(
+                report_from=self.start_of_week(),
+                report_to=self.end_of_week(),
+                report_file_name='',
+                full_name='',
+                signal='',
+                total_rides=0,
+                total_distance=0,
+                total_amount_cach=0,
+                total_amount_cach_less=0,
+                total_amount_on_card=0,
+                total_amount=0,
+                tips=0,
+                bonuses=0,
+                fares=0,
+                comission=0,
+                total_amount_without_comission=0)
+            try:
+                order.save()
+            except IntegrityError:
+                pass
 
         return items
 
@@ -2086,7 +2299,6 @@ class NewUklon(SeleniumTools):
                     except IntegrityError:
                         pass
                     items.append(order)
-
 
         if not items:
             order = NewUklonPaymentsOrder(
@@ -2133,17 +2345,19 @@ class NewUklon(SeleniumTools):
         ed, ey, em = end.strftime("%d"), end.strftime("%y"), end.strftime("%m")
         return f'00.00.{sd}.{sm}.{sy} - 23.59.{ed}.{em}.{ey}'
 
-
     @staticmethod
     def download_weekly_report(week_number=None, driver=True, sleep=5, headless=True):
         u = NewUklon(week_number=week_number, driver=False, sleep=0, headless=headless)
-        if u.payments_order_file_name() not in os.listdir(os.curdir) and driver:
+        report = NewUklonPaymentsOrder.objects.filter(report_file_name=f'Uklon {u.file_patern()}.csv')
+        if not report:
             u = NewUklon(week_number=week_number, driver=driver, sleep=sleep, headless=headless)
             # u.login()
             u.download_payments_order()
             u.quit()
-        # return u.save_report()
-        return u.save_report_v2()
+            u.save_report()
+            report = NewUklonPaymentsOrder.objects.filter(report_file_name=f'Uklon {u.file_patern()}.csv')
+        return list(report)
+        #return u.save_report_v2()
 
     @staticmethod
     def download_daily_report(day=None, driver=True, sleep=5, headless=True):
@@ -2153,6 +2367,99 @@ class NewUklon(SeleniumTools):
             u.login()
             u.download_payments_day_order()
         return u.save_report()
+
+    def wait_otp_code(self, user):
+        r = redis.Redis.from_url(os.environ["REDIS_URL"])
+        p = r.pubsub()
+        p.subscribe(f'{user.phone_number} code')
+        p.ping()
+        otpa = []
+        start = time.time()
+        while True:
+            try:
+                if time.time() - start >= 180:
+                    break
+                otp = p.get_message()
+                if otp:
+                    otpa = list(f'{otp["data"]}')
+                    otpa = list(filter(lambda d: d.isdigit(), otpa))
+                    digits = [s.isdigit() for s in otpa]
+                    if not(digits) or (not all(digits)) or len(digits) != 4:
+                        continue
+                    break
+            except redis.ConnectionError as e:
+                self.logger.error(str(e))
+                p = r.pubsub()
+                p.subscribe(f'{user.phone_number} code')
+            time.sleep(1)
+        return otpa
+
+    def add_driver(self, jobapplication):
+        url = 'https://partner-registration.uklon.com.ua/registration'
+        self.driver.get(f"{url}")
+        WebDriverWait(self.driver, 5).until(
+            EC.element_to_be_clickable((By.XPATH, "//span[text()='Обрати зі списку']"))).click()
+        WebDriverWait(self.driver, 5).until(
+            EC.element_to_be_clickable((By.XPATH, "//div[@class='region-name' and contains(text(),'Київ')]"))).click()
+        WebDriverWait(self.driver, 5).until(
+            EC.element_to_be_clickable((By.XPATH, "//button[@color='accent']"))).click()
+        form_phone_number = self.driver.find_element(By.XPATH, "//input[@type='tel']")
+        clickandclear(form_phone_number)
+        form_phone_number.send_keys(jobapplication.phone_number[4:])
+        WebDriverWait(self.driver, 5).until(
+            EC.element_to_be_clickable((By.XPATH, "//button[@color='accent']"))).click()
+
+        # 2FA
+        code = self.wait_otp_code(jobapplication)
+        digits = self.driver.find_elements(By.XPATH, "//input")
+        for i, element in enumerate(digits):
+            element.send_keys(code[i])
+        WebDriverWait(self.driver, 5).until(
+            EC.element_to_be_clickable((By.XPATH, "//button[@color='accent']"))).click()
+        if self.sleep:
+            time.sleep(self.sleep)
+        self.driver.find_element(By.XPATH, "//label[@for='registration-type-fleet']").click()
+        WebDriverWait(self.driver, 5).until(
+            EC.element_to_be_clickable((By.XPATH, "//button[@color='accent']"))).click()
+        if self.sleep:
+            time.sleep(self.sleep)
+        registration_fields = {"firstName": jobapplication.first_name,
+                               "lastName": jobapplication.last_name,
+                               "email": jobapplication.email,
+                               "password": jobapplication.password}
+        for field, value in registration_fields.items():
+            element = self.driver.find_element(By.ID, field)
+            clickandclear(element)
+            element.send_keys(value)
+        WebDriverWait(self.driver, 5).until(
+            EC.element_to_be_clickable((By.XPATH, "//button[@color='accent']"))).click()
+
+        file_paths = [
+            os.getcwd() + f"/data/mediafiles/{jobapplication.photo}",
+            os.getcwd() + f"/data/mediafiles/{jobapplication.driver_license_front}",
+            os.getcwd() + f"/data/mediafiles/{jobapplication.driver_license_back}",
+
+        ]
+        for i in range(3):
+            if self.sleep:
+                time.sleep(self.sleep)
+            photo_input = self.driver.find_element(By.XPATH, "//input[@type='file']")
+            photo_input.send_keys(file_paths[i])
+            WebDriverWait(self.driver, 5).until(
+                EC.element_to_be_clickable((By.XPATH, "//button[contains(@class, 'green')]"))).click()
+            time.sleep(1)
+            WebDriverWait(self.driver, 5).until(
+                EC.element_to_be_clickable((By.XPATH, "//button[contains(@class, 'green')]"))).click()
+            WebDriverWait(self.driver, 5).until(
+                EC.element_to_be_clickable((By.XPATH, "//button[@color='accent']"))).click()
+        fleet_code = WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.ID, "mat-input-2")))
+        clickandclear(fleet_code)
+        fleet_code.send_keys(os.environ.get("UKLON_TOKEN", NewUklonFleet.token))
+        WebDriverWait(self.driver, 5).until(
+            EC.element_to_be_clickable((By.XPATH, "//button[@color='accent']"))).click()
+        self.driver.get_screenshot_as_file('uklon.png')
+        jobapplication.status_uklon = datetime.datetime.now().date()
+        jobapplication.save()
 
 
 class Privat24(SeleniumTools):
@@ -2180,7 +2487,6 @@ class Privat24(SeleniumTools):
         if self.sleep:
             time.sleep(self.sleep)
 
-
     def password(self):
         password = self.driver.find_element(By.XPATH, '//input')
         ActionChains(self.driver).move_to_element(password).send_keys('').perform()
@@ -2188,7 +2494,6 @@ class Privat24(SeleniumTools):
         ActionChains(self.driver).move_to_element(password).send_keys( Keys.TAB + Keys.TAB + Keys.ENTER).perform()
         if self.sleep:
             time.sleep(self.sleep)
-
 
     def money_transfer(self):
         if self.sleep:
@@ -2235,20 +2540,160 @@ class Privat24(SeleniumTools):
             return None
 
 
-def get_report(week_number = None, driver=True, sleep=5, headless=True):
-    driver = False
-    owner =   {"Fleet Owner": 0}
+class UaGps(SeleniumTools):
+    def __init__(self, driver=True, sleep=3, headless=False, base_url="https://uagps.net/", remote=False, profile=None):
+        super().__init__('uagps', profile=profile)
+        self.sleep = sleep
+        if driver:
+            if remote:
+                self.driver = self.build_remote_driver(headless)
+            else:
+                self.driver = self.build_driver(headless)
+        self.remote = remote
+        self.base_url = base_url
+
+    def quit(self):
+        self.driver.quit()
+        self.driver = None
+
+    def login(self):
+        self.driver.get(self.base_url)
+        if self.sleep:
+            time.sleep(self.sleep)
+        user_field = WebDriverWait(self.driver, self.sleep).until(EC.presence_of_element_located((By.ID, 'user')))
+        clickandclear(user_field)
+        user_field.send_keys(os.environ["UAGPS_LOGIN"])
+        pass_field = self.driver.find_element(By.ID, 'passw')
+        clickandclear(pass_field)
+        pass_field.send_keys(os.environ["UAGPS_PASSWORD"])
+        self.driver.find_element(By.ID, 'submit').click()
+        if self.sleep:
+            time.sleep(self.sleep)
+
+    def generate_report(self, start_time, end_time, report_object):
+
+        """
+        :param start_time: time from which we need to get report
+        :type start_time: datetime.datetime
+        :param end_time: time to which we need to get report
+        :type end_time: datetime.datetime
+        :param report_object: license plate
+        :type report_object: str
+        :return: distance and time in rent
+        """
+        xpath = "//div[@title='Reports']"
+        self.get_target_page_or_login(self.base_url, xpath, self.login)
+        self.driver.find_element(By.XPATH, xpath).click()
+        unit = WebDriverWait(self.driver, 5).until(
+            EC.element_to_be_clickable((By.XPATH, "//input[@id='report_templates_filter_units']")))
+        unit.click()
+        try:
+            self.driver.find_element(By.XPATH, f'//div[starts-with(text(), "{report_object}")]').click()
+        except:
+            return 0, datetime.timedelta()
+        from_field = self.driver.find_element(By.ID, "time_from_report_templates_filter_time")
+        clickandclear(from_field)
+        from_field.send_keys(start_time.strftime("%d %B %Y %H:%M"))
+        from_field.send_keys(Keys.ENTER)
+        to_field = WebDriverWait(self.driver, 5).until(
+                EC.element_to_be_clickable((By.ID, "time_to_report_templates_filter_time")))
+        clickandclear(to_field)
+        to_field.send_keys(end_time.strftime("%d %B %Y %H:%M"))
+        from_field.send_keys(Keys.ENTER)
+        WebDriverWait(self.driver, 5).until(
+                EC.element_to_be_clickable((By.XPATH, '//input[@value="Execute"]'))).click()
+        if self.sleep:
+            time.sleep(self.sleep)
+        road_distance = self.driver.find_element(By.XPATH, "//tr[@pos='5']/td[2]").text
+        rent_distance = float(road_distance.split(' ')[0])
+        roadtimestr = self.driver.find_element(By.XPATH, "//tr[@pos='4']/td[2]").text
+        roadtime = [int(i) for i in roadtimestr.split(':')]
+        rent_time = datetime.timedelta(hours=roadtime[0], minutes=roadtime[1], seconds=roadtime[2])
+        return rent_distance, rent_time
+
+    def get_rent_distance(self):
+        now = timezone.localtime()
+        start = timezone.datetime.combine(now, datetime.datetime.min.time()).astimezone()
+        for _driver in Driver.objects.all():
+            rent_distance = 0
+            rent_time = datetime.timedelta()
+            # car that have worked at that day
+            working_cars = UseOfCars.objects.filter(created_at__gte=start,
+                                                    created_at__lte=now)
+            vehicles = Vehicle.objects.filter(driver=_driver)
+            if vehicles:
+                for vehicle in vehicles:
+                    # check driver's car before they start work
+                    first_use = working_cars.filter(licence_plate=vehicle.licence_plate).first()
+                    if first_use:
+                        rent_before = self.generate_report(start,
+                                                           timezone.localtime(first_use.created_at),
+                                                           vehicle.licence_plate)
+                        rent_distance += rent_before[0]
+                        rent_time += rent_before[1]
+                        # check driver's car after work
+                        last_use = list(working_cars.filter(licence_plate=vehicle.licence_plate))[-1]
+                        if last_use.end_at:
+                            rent_after = self.generate_report(timezone.localtime(last_use.end_at),
+                                                              now,
+                                                              vehicle.licence_plate)
+                            rent_distance += rent_after[0]
+                            rent_time += rent_after[1]
+                    #  car not used in that day
+                    else:
+                        rent = self.generate_report(start, now, vehicle.licence_plate)
+                        rent_distance += rent[0]
+                        rent_time += rent[1]
+            # driver work at that day
+            driver_use = working_cars.filter(user_vehicle=_driver)
+            if driver_use:
+                for car in driver_use:
+                    if car.end_at:
+                        end = car.end_at
+                    else:
+                        end = now
+                    rent_statuses = StatusChange.objects.filter(driver=_driver.id,
+                                                                name__in=[Driver.ACTIVE, Driver.OFFLINE, Driver.RENT],
+                                                                start_time__gte=timezone.localtime(car.created_at),
+                                                                start_time__lte=timezone.localtime(end))
+                    for status in rent_statuses:
+                        if status.end_time:
+                            end = status.end_time
+                        else:
+                            end = now
+                        status_report = self.generate_report(timezone.localtime(status.start_time),
+                                                             timezone.localtime(end),
+                                                             car.licence_plate)
+                        rent_distance += status_report[0]
+                        rent_time += status_report[1]
+            #             update today rent in db
+            rent_today = RentInformation.objects.filter(driver_name=_driver,
+                                                        created_at__date=timezone.now().date()).first()
+            if rent_today:
+                rent_today.rent_time = rent_time
+                rent_today.rent_distance = rent_distance
+                rent_today.save()
+            else:
+                #  create rent file for today
+                RentInformation.objects.create(driver_name=_driver,
+                                               driver=_driver,
+                                               rent_time=rent_time,
+                                               rent_distance=rent_distance)
+
+
+def get_report(week_number=None, driver=True, sleep=5, headless=True):
+    owner = {"Fleet Owner": 0}
     reports = {}
-    totals =  {}
-    salary =  {}
-    fleets =  Fleet.objects.filter(deleted_at=None)
+    totals = {}
+    salary = {}
+    fleets = Fleet.objects.filter(deleted_at=None)
     for fleet in fleets:
         all_drivers_report = fleet.download_weekly_report(week_number=week_number, driver=driver, sleep=sleep, headless=headless)
         for rate in Fleets_drivers_vehicles_rate.objects.filter(fleet_id=fleet.id, deleted_at=None):
             r = list((r for r in all_drivers_report if r.driver_id() == rate.driver_external_id))
             if r:
                 r = r[0]
-                # print(r)
+                #print(r)
                 name = rate.driver.full_name()
                 reports[name] = reports.get(name, '') + r.report_text(name, float(rate.rate)) + '\n'
                 totals[name] = totals.get(name, 0) + r.kassa()
@@ -2263,10 +2708,16 @@ def get_report(week_number = None, driver=True, sleep=5, headless=True):
     return owner, totals
 
 
-
 def download_and_save_daily_report(driver=True, sleep=5, headless=True, day=None):
     fleets = Fleet.objects.filter(deleted_at=None)
     for fleet in fleets:
         fleet.download_daily_report(day=day, driver=driver, sleep=sleep, headless=headless)
+
+
+class ReportUser(models.Model):
+    chat_id = models.IntegerField(unique=True)
+
+    def __str__(self):
+        return f"{self.chat_id}"
 
 
