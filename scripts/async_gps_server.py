@@ -2,18 +2,18 @@ import asyncio
 import logging
 import os
 import re
-
+import asyncpg
 from asgiref.sync import sync_to_async
-
-from app.models import RawGPS
 from auto.tasks import raw_gps_handler
+from django.utils.timezone import now
+
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 HOST, PORT = '0.0.0.0', 44300
-PACKAGE_SIZE = 1024*4
+PACKAGE_SIZE = 1024*8
 
 
 class PackageHandler:
@@ -36,11 +36,28 @@ class PackageHandler:
             return self.answer_bad_login
 
     async def _d_handler(self, **kwargs):
-        if len(self.imei) and len(kwargs['msg']):
-            obj = await sync_to_async(RawGPS.objects.create)(imei=self.imei, client_ip=kwargs['addr'][0],
-                                                       client_port=kwargs['addr'][1], data=kwargs['msg'])
-            raw_gps_handler.delay(obj.id)
-            return self.answer_data
+        if self.imei and kwargs['msg']:
+            imei,  client_ip, client_port = self.imei, kwargs['addr'][0], kwargs['addr'][1]
+            data, created_at = kwargs['msg'], await sync_to_async(now)()
+            database_url = os.environ.get('DATABASE_URL')
+            conn = await asyncpg.connect(dsn=database_url)
+            try:
+                query = """
+                            INSERT INTO app_rawgps (imei, client_ip, client_port, data, created_at)
+                            VALUES ($1, $2, $3, $4, $5)
+                        """
+                await conn.execute(query, imei, client_ip, client_port, data, created_at)
+                obj_id = await conn.fetchval("SELECT lastval();")
+                obj_id = int(obj_id)
+                await conn.close()
+                raw_gps_handler.delay(obj_id)
+
+                return self.answer_data
+            except (Exception, asyncpg.PostgresError) as error:
+                print("Error inserting GPS data:", error)
+                return self.answer_bad_data
+            finally:
+                await conn.close()
         else:
             return self.answer_bad_data
 
@@ -77,12 +94,14 @@ async def handle_connection(reader, writer):
         # Receive
         try:
             data = await reader.read(PACKAGE_SIZE)
+            # logging.info(msg=f"{data}")
         except ConnectionError:
             logging.info(msg=f"Client suddenly closed while receiving from {addr}")
             break
         if not data:
             break
         answer = await ph.process_package(addr, data.decode('utf-8'))
+        # logging.info(msg=f"{answer}")
         try:
             writer.write(answer.encode('utf-8'))
         except ConnectionError:

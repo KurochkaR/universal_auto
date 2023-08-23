@@ -1,5 +1,5 @@
 # Universal Auto
-This repo is supposed to get statistics from Uber, Bold, Uklon to calculate performance of car cross this aggregators for fleet owners and provide reports via telegram bit for Drivers, Fleet Managers and Fleet Owners. 
+This repo is supposed to get statistics from Uber, Bolt, Uklon to calculate performance of car cross this aggregators for fleet owners and provide reports via telegram BOT for Drivers, Fleet Managers and Fleet Owners. 
 
 # How to run a project on your local machine?
 1. Install Docker https://docs.docker.com/engine/install/
@@ -13,7 +13,8 @@ If you have error /data/db: permission denied failed to solve run: `sudo chmod -
 8. Run migrations by `docker exec -it universal_auto_web python3 manage.py migrate`
 9. Run to create admin user `docker exec -it universal_auto_web python3 manage.py createsuperuser` 
 10. Open http://localhost/admin/ in browser and auth with user created at step 9
-11. `docker exec -it universal_auto_web python3 manage.py runscript seed_db`
+11. Run `docker exec -it universal_auto_web python3 manage.py runscript seed_db` to create test data
+12. Run `docker exec -it universal_auto_web python3 manage.py runscript park_settings` to create park settings
 
 # How to run report and see results in console?
 ```

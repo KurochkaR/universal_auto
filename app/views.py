@@ -1,13 +1,43 @@
 import datetime
+import json
+import logging
 
+from django.http import JsonResponse
 from django.shortcuts import render
 import folium
+from django.views import View
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.views.generic import TemplateView
+from telegram import Update
+
+# from auto.celery import app
+from auto.settings import DEBUG
+from auto_bot.dispatcher import dispatcher
+from auto_bot.main import bot
 from scripts.driversrating import DriversRatingMixin
 from app.models import VehicleGPS, Vehicle
 
+
+# @app.task(ignore_result=True)
+# def process_telegram_event(update_json):
+#     update = Update.de_json(update_json, bot)
+#     dispatcher.process_update(update)
+
+
+class TelegramBotWebhookView(View):
+    def post(self, request, *args, **kwargs):
+        update = Update.de_json(json.loads(request.body), bot)
+        dispatcher.process_update(update)
+        # if DEBUG:
+        #     process_telegram_event()
+        # else:
+        #     process_telegram_event.delay(json.loads(request.body))
+
+        return JsonResponse({"ok": "POST request processed"})
+
+    def get(self, request, *args, **kwargs):  # for debug
+        return JsonResponse({"ok": "Get request received! But nothing done"})
 
 
 class DriversRatingView(DriversRatingMixin, TemplateView):
@@ -35,6 +65,24 @@ class GpsData(APIView):
         return Response('OK')
 
 
+def drivers_total_weekly_rating(request):
+    rate = DriversRatingMixin().get_rating()
+    date = f"{rate[0]['rating'][0]['start']:%d.%m.%Y} - {rate[0]['rating'][0]['end']:%d.%m.%Y}"
+    drivers = {}
+    for fleet in DriversRatingMixin().get_rating():
+        for period in fleet['rating']:
+            if period['rating']:
+                for item in period['rating']:
+                    drivers.setdefault(item['driver'], 0)
+                    drivers[item['driver']] += round(item['amount'], 2)
+
+    drivers = dict(sorted(drivers.items(), key=lambda item: item[1], reverse=True))
+
+    context = {'date': date, 'drivers': drivers}
+
+    return render(request, 'app/drivers_total_weekly_rating.html', context)
+
+
 def gps_cars(request):
     all_gps_cars = Vehicle.objects.all()
     # Create Map Object
@@ -54,3 +102,14 @@ def gps_cars(request):
     }
     return render(request, 'map.html', context)
 
+
+from rest_framework import generics
+from app.models import Order, Payments, RentInformation, SummaryReport, Driver, Vehicle, DriverManager, Comment, \
+    CarEfficiency
+from app.serializers import OrderSerializer, PaymentsSerializer, RentInformationSerializer, SummaryReportSerializer, \
+    DriverSerializer, VehicleSerializer, DriverManagerSerializer, CommentSerializer, CarEfficiencySerializer
+
+
+class OrderListAPIView(generics.ListAPIView):
+    queryset = CarEfficiency.objects.all()
+    serializer_class = CarEfficiencySerializer

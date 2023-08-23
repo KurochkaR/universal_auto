@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/4.0/ref/settings/
 """
 
 from pathlib import Path
+from google.oauth2 import service_account
 import os
 import dj_database_url
 
@@ -44,6 +45,7 @@ INSTALLED_APPS = [
     'polymorphic',
     'fake_uber',
     'taxi_service',
+    'rest_framework',
 ]
 
 MIDDLEWARE = [
@@ -78,7 +80,7 @@ TEMPLATES = [
 WSGI_APPLICATION = 'auto.wsgi.application'
 
 DATABASES = {
-    'default': dj_database_url.parse(os.environ.get('DATABASE_URL'), conn_max_age=600),
+    'default': dj_database_url.parse(os.environ.get('DATABASE_URL'), conn_max_age=240),
 }
 
 # Password validation
@@ -120,10 +122,18 @@ STATICFILES_DIRS = [
 ]
 STATIC_ROOT = BASE_DIR / 'data/staticfiles'
 
+try:
+    GS_CREDENTIALS = service_account.Credentials.from_service_account_file(
+        os.path.join(BASE_DIR, "credentials.json"))
+except FileNotFoundError:
+    pass
 
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'data/mediafiles'
-
+DEFAULT_FILE_STORAGE = "auto.gcloud.GoogleCloudMediaFileStorage"
+GS_PROJECT_ID = "ninja-taxi-9aa7d"
+GS_BUCKET_NAME = 'jobdriver-bucket'
+MEDIA_ROOT = "media/"
+UPLOAD_ROOT = 'media/uploads/'
+MEDIA_URL = 'https://storage.googleapis.com/{}/'.format(GS_BUCKET_NAME)
 
 LOCALE_PATHS = (
     os.path.join(BASE_DIR, 'locale/'),
@@ -139,3 +149,16 @@ CELERY_RESULT_BACKEND = os.environ['CELERY_RESULT_BACKEND']
 CELERY_IMPORTS = [
     'auto.tasks',
 ]
+
+SECURE_REFERRER_POLICY = "no-referrer-when-downgrade"
+APPEND_SLASH = False
+
+
+# Налаштування для відправки листів
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_USE_TLS = True
+EMAIL_PORT = 587
+EMAIL_HOST_USER = str(os.getenv('EMAIL_USER'))
+EMAIL_HOST_PASSWORD = str(os.getenv('EMAIL_PASSWORD'))

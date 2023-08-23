@@ -1,34 +1,28 @@
 import pendulum
 from datetime import datetime
-from datetime import timezone
-
-from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 
-from app.models import UberPaymentsOrder, BoltPaymentsOrder, UklonPaymentsOrder, SeleniumTools, NewUklonPaymentsOrder, \
-    Fleets_drivers_vehicles_rate, Bolt, Fleet
-from auto.tasks import download_weekly_report
+from app.models import Payments, Fleets_drivers_vehicles_rate, Fleet
 
 from auto import celery_app
+
 i = celery_app.control.inspect()
 sc = i.scheduled()
 ac = i.active()
 
 
-
 class DriversRatingMixin:
 
     def get_rating(self, start=None, end=None):
-        st = SeleniumTools(session='')
+        current_date = pendulum.now().start_of('week').subtract(weeks=1)
         if not start:
-            start = st.start_of_week()
+            start = current_date
         if not end:
-            end = st.end_of_week()
+            end = current_date.end_of('week')
 
         # st = SeleniumTools(session='', week_number='2022-09-19')
 
         fleets = [fleet(start, end) for fleet in GenericDriversRating.get_fleets()]
-
 
         return [{'fleet': item.fleet_name, 'rating': item.get_rating()} for item in fleets]
 
@@ -57,9 +51,6 @@ class DriversRating:
                 missing_weeks.append(week.strftime('%Y-%m-%d'))
                 dct[(datetime.utcfromtimestamp(week.start_of('week').timestamp()),
                      datetime.utcfromtimestamp(week.end_of('week').timestamp()))] = {}
-        if missing_weeks:
-            download_weekly_report.delay(self.fleet_name, ';'.join(missing_weeks))
-            # download_weekly_report(self.fleet_name, ';'.join(missing_weeks))
         return dct
 
     def get_rating(self):
@@ -105,9 +96,11 @@ class DriversRating:
         except Fleets_drivers_vehicles_rate.MultipleObjectsReturned:
             raise MultipleObjectsReturned
 
-    def get_trips(self, item): return 0
+    def get_trips(self, item):
+        return 0
 
-    def get_driver_identifier(self, item): return ''
+    def get_driver_identifier(self, item):
+        return ''
 
 
 class GenericDriversRating(type):
@@ -133,7 +126,7 @@ class GenericDriversRating(type):
 class UberDriversRating(DriversRating, metaclass=GenericDriversRating):
 
     fleet_name = 'Uber'
-    model = UberPaymentsOrder
+    model = Payments
 
     def get_driver(self, item):
         try:
@@ -150,7 +143,7 @@ class UberDriversRating(DriversRating, metaclass=GenericDriversRating):
 class BoltDriversRating(DriversRating, metaclass=GenericDriversRating):
 
     fleet_name = 'Bolt'
-    model = BoltPaymentsOrder
+    model = Payments
 
     def get_driver(self, item):
         try:
@@ -161,13 +154,13 @@ class BoltDriversRating(DriversRating, metaclass=GenericDriversRating):
             return f"<MultipleObjectsReturned {self.get_driver_identifier(item)}> {item.driver_full_name}"
 
     def get_driver_identifier(self, item):
-        return item.mobile_number
+        return item.driver_full_name
 
 
 class UklonDriversRating(DriversRating, metaclass=GenericDriversRating):
 
     fleet_name = 'Uklon'
-    model = UklonPaymentsOrder
+    model = Payments
 
     def get_driver(self, item):
         try:
@@ -190,7 +183,7 @@ class UklonDriversRating(DriversRating, metaclass=GenericDriversRating):
 class NewUklonDriversRating(DriversRating, metaclass=GenericDriversRating):
 
     fleet_name = 'NewUklon'
-    model = NewUklonPaymentsOrder
+    model = Payments
 
     def get_driver(self, item):
         try:
