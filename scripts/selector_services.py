@@ -10,6 +10,10 @@ bolt_states = {
     'CHECK_LOGIN_BOLT': ('//div[@role="tablist"]', 'XPATH'),
 }
 
+states_838 = {
+    '838_BASE_URL': ("https://ms.utaxcloud.net/partner/api/v1/", 'url')
+}
+
 newuklon_states = {
     'BASE_URL': ('https://fleets.uklon.com.ua', 'url'),
     'UKLON_LOGIN_1': ('https://fleets.uklon.com.ua/auth/login', 'url'),

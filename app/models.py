@@ -1234,6 +1234,9 @@ class UberService(Service):
     pass
 
 
+class Service838(Service):
+    pass
+
 class UberSession(models.Model):
     session = models.CharField(max_length=255, verbose_name='Ідентифікатор сесії')
     cook_session = models.CharField(max_length=255, verbose_name='Ідентифікатор cookie')
