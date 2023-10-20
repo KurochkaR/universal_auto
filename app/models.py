@@ -51,6 +51,7 @@ class PaymentTypes(models.TextChoices):
 class TaskScheduler(models.Model):
     name = models.CharField(max_length=75, verbose_name="Назва задачі")
     task_time = models.TimeField(verbose_name="Час запуску задачі")
+    periodic = models.BooleanField(verbose_name="Періодичний запуск")
 
     def __str__(self):
         return self.name

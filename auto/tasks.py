@@ -17,7 +17,7 @@ from telegram.error import BadRequest
 from app.models import RawGPS, Vehicle, Order, Driver, JobApplication, ParkSettings, UseOfCars, CarEfficiency, \
     Payments, SummaryReport, Manager, Partner, DriverEfficiency, FleetOrder, ReportTelegramPayments, \
     TransactionsConversation, VehicleSpending, DriverReshuffle, DriverPayments, SalaryCalculation, CredentialPartner, \
-    PaymentTypes
+    PaymentTypes, TaskScheduler
 from django.db.models import Sum, IntegerField, FloatField, Q, DecimalField
 from django.db.models.functions import Cast, Coalesce
 from auto_bot.handlers.driver_manager.utils import get_daily_report, get_efficiency, generate_message_report, \
@@ -734,6 +734,7 @@ def order_not_accepted(self):
 
 @app.task(bind=True, queue='beat_tasks')
 def send_time_order(self):
+    print(app.conf.beat_schedule)
     accepted_orders = Order.objects.filter(status_order=Order.ON_TIME, driver__isnull=False)
     for order in accepted_orders:
         if timezone.localtime() < order.order_time < (timezone.localtime() + timedelta(minutes=int(
@@ -1056,11 +1057,23 @@ def calculate_driver_reports(self, partner_pk, daily=False):
                                               salary=salary,
                                               rent=rent_value,
                                               partner=Partner.get_partner(partner_pk))
+
+
 @app.task(bind=True, queue='beat_tasks')
 def update_schedule(self):
     for task in TaskScheduler.objects.all():
+        hours = task.task_time.strftime('%H')
+        minutes = task.task_time.strftime('%M')
+        schedule = crontab(minute=minutes, hour=f"*/{hours}") if task.periodic else crontab(minute=minutes, hour=hours)
+        task_function = globals().get(task.name)
+        existing_tasks = app.conf.beat_schedule
+        print(existing_tasks)
+        for partner in Partner.objects.all():
+            if f"update_driver_status({partner.pk})" not in existing_tasks:
+                app.add_periodic_task(20, update_driver_status.s(partner.pk))
+            app.add_periodic_task(schedule, task_function.s(partner.pk))
+            print(existing_tasks)
 
-        app.add_periodic_task()
 
 @app.on_after_finalize.connect
 def run_periodic_tasks(sender, **kwargs):
@@ -1068,8 +1081,9 @@ def run_periodic_tasks(sender, **kwargs):
     sender.add_periodic_task(crontab(minute='*/15'), auto_send_task_bot.s())
     sender.add_periodic_task(crontab(minute="*/2"), order_not_accepted.s())
     sender.add_periodic_task(crontab(minute="*/4"), check_personal_orders.s())
-    for partner in Partner.objects.all():
-        setup_periodic_tasks(partner, sender)
+    sender.add_periodic_task(crontab(minute="*/10"), update_schedule.s())
+    # for partner in Partner.objects.all():
+    #     setup_periodic_tasks(partner, sender)
 
 
 def setup_periodic_tasks(partner, sender=None):
@@ -1111,7 +1125,7 @@ def remove_periodic_tasks(partner, sender=None):
     if sender is None:
         sender = current_app
     partner_id = partner.pk
-    sender.remove_periodic_task(f"update_driver_status.s({partner_id})")
+    sender.remove_periodic_task(f"update_driver_status_{partner_id}")
     sender.remove_periodic_task(f"update_driver_data.s({partner_id})")
     sender.remove_periodic_task(f"download_daily_report.s({partner_id})")
     sender.remove_periodic_task(f"withdraw_uklon.s({partner_id})")

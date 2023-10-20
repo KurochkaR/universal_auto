@@ -1161,3 +1161,9 @@ class ParkSettingsAdmin(admin.ModelAdmin):
 
             return fieldsets
         return super().get_fieldsets(request)
+
+
+@admin.register(TaskScheduler)
+class TaskSchedulerAdmin(admin.ModelAdmin):
+    pass
+
