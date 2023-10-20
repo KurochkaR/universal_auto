@@ -1053,7 +1053,11 @@ def calculate_driver_reports(self, partner_pk, daily=False):
                                               salary=salary,
                                               rent=rent_value,
                                               partner=Partner.get_partner(partner_pk))
+@app.task(bind=True, queue='beat_tasks')
+def update_schedule(self):
+    for task in TaskScheduler.objects.all():
 
+        app.add_periodic_task()
 
 @app.on_after_finalize.connect
 def run_periodic_tasks(sender, **kwargs):
@@ -1115,3 +1119,4 @@ def remove_periodic_tasks(partner, sender=None):
     sender.remove_periodic_task(f"send_weekly_report.s({partner_id})")
     sender.remove_periodic_task(f"manager_paid_weekly.s({partner_id})")
     sender.remove_periodic_task(f"get_uber_session.s({partner_id})")
+

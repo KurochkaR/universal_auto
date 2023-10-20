@@ -48,6 +48,18 @@ class PaymentTypes(models.TextChoices):
         return payment_type_mapping.get(payment, cls.CARD)
 
 
+class TaskScheduler(models.Model):
+    name = models.CharField(max_length=75, verbose_name="Назва задачі")
+    task_time = models.TimeField(verbose_name="Час запуску задачі")
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = 'Розклад задач'
+        verbose_name_plural = 'Розклад задач'
+
+
 class Partner(models.Model):
     role = models.CharField(max_length=25, default=Role.OWNER, choices=Role.choices)
     user = models.OneToOneField(AuUser, on_delete=models.SET_NULL, null=True)
