@@ -199,7 +199,7 @@ def calculate_efficiency(vehicle, start, end):
         if total_distance:
             efficiency = float('{:.2f}'.format(total_kasa/total_distance))
         formatted_distance = float('{:.2f}'.format(total_distance)) if total_distance is not None else 0.00
-        return efficiency, formatted_distance
+        return efficiency, formatted_distance, total_kasa
 
 
 def get_efficiency(manager_id=None, start=None, end=None):
@@ -221,13 +221,18 @@ def get_efficiency(manager_id=None, start=None, end=None):
                                                                     vehicle=vehicle).first()
                 efficiency = float(yesterday_efficiency.efficiency) if yesterday_efficiency else 0
                 distance = float(yesterday_efficiency.mileage) if yesterday_efficiency else 0
+                amount = float(yesterday_efficiency.total_kasa) if yesterday_efficiency else 0
                 effective_vehicle[vehicle.licence_plate] = {'Середня ефективність(грн/км)': effect[0],
                                                             'Ефективність(грн/км)': efficiency,
                                                             'КМ всього': effect[1],
-                                                            'КМ учора': distance}
+                                                            'КМ учора': distance,
+                                                            'Загальна каса': effect[2],
+                                                            'Каса вчора': amount
+                                                            }
             else:
                 effective_vehicle[vehicle.licence_plate] = {'Середня ефективність(грн/км)': effect[0],
-                                                            'КМ всього': effect[1]}
+                                                            'КМ всього': effect[1],
+                                                            'Загальна каса': effect[2]}
     try:
         sorted_effective_driver = dict(sorted(effective_vehicle.items(),
                                        key=lambda x: x[1]['Середня ефективність(грн/км)'],
@@ -242,6 +247,10 @@ def get_efficiency(manager_id=None, start=None, end=None):
 def calculate_efficiency_driver(driver, start, end):
     efficiency_objects = DriverEfficiency.objects.filter(report_from__range=(start, end),
                                                          driver=driver)
+    driver_vehicles = []
+    for obj in efficiency_objects:
+        vehicles = obj.vehicles.all().values_list('licence_plate', flat=True)
+        driver_vehicles.extend(vehicles)
     if efficiency_objects:
         efficiency = 0
         accept_percent = 0
@@ -263,7 +272,7 @@ def calculate_efficiency_driver(driver, start, end):
         minutes, seconds = divmod(remainder, 60)
         total_hours_formatted = f"{hours:02}:{minutes:02}:{seconds:02}"
         return (efficiency, aggregations['total_orders'], accept_percent,
-                avg_price, aggregations['total_distance'], total_hours_formatted)
+                avg_price, aggregations['total_distance'], total_hours_formatted, driver_vehicles)
 
 
 def get_driver_efficiency_report(manager_id=None, start=None, end=None):
@@ -280,6 +289,7 @@ def get_driver_efficiency_report(manager_id=None, start=None, end=None):
     for driver in drivers:
         effect = calculate_efficiency_driver(driver, start, end)
         if effect:
+            licence_plates = ', '.join(effect[6])
             day_kasa, rent_daily = calculate_daily_reports(end, end, driver)
             total_kasa, total_rent = calculate_daily_reports(start, end, driver)
             if end == yesterday:
@@ -288,17 +298,21 @@ def get_driver_efficiency_report(manager_id=None, start=None, end=None):
                 accept_percent = 0
                 average_price = 0
                 distance = 0
+                car_plates = "-"
                 road_time = timedelta()
                 yesterday_efficiency = DriverEfficiency.objects.filter(report_from=yesterday,
                                                                        driver=driver).first()
                 if yesterday_efficiency:
                     efficiency = float(yesterday_efficiency.efficiency)
+                    cars = yesterday_efficiency.vehicles.all().values_list('licence_plate', flat=True)
+                    car_plates = ', '.join(cars)
                     orders = yesterday_efficiency.total_orders
                     accept_percent = yesterday_efficiency.accept_percent
                     average_price = yesterday_efficiency.average_price
                     distance = yesterday_efficiency.mileage
                     road_time = yesterday_efficiency.road_time
                 effective_driver[driver] = {
+                    'Автомобілі': f"{licence_plates} ({car_plates})",
                     'Каса': f"{total_kasa} (+{day_kasa}) грн",
                     'Оренда': f"{total_rent} (+{rent_daily}) км",
                     'Ефективність': f"{effect[0]} (+{efficiency}) грн/км",
@@ -310,6 +324,7 @@ def get_driver_efficiency_report(manager_id=None, start=None, end=None):
                                             }
             else:
                 effective_driver[driver] = {
+                    'Автомобілі': f"{licence_plates}",
                     'Каса': f"{total_kasa} грн",
                     'Оренда': f"{total_rent} км",
                     'Ефективність': f"{effect[0]} грн/км",
