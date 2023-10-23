@@ -18,7 +18,7 @@ from telegram.error import BadRequest
 from app.models import RawGPS, Vehicle, Order, Driver, JobApplication, ParkSettings, UseOfCars, CarEfficiency, \
     Payments, SummaryReport, Manager, Partner, DriverEfficiency, FleetOrder, ReportTelegramPayments, \
     TransactionsConversation, VehicleSpending, DriverReshuffle, DriverPayments, SalaryCalculation, CredentialPartner, \
-    PaymentTypes, TaskScheduler
+    PaymentTypes, TaskScheduler, Schema
 from django.db.models import Sum, IntegerField, FloatField, Q, DecimalField
 from django.db.models.functions import Cast, Coalesce
 from auto_bot.handlers.driver_manager.utils import get_daily_report, get_efficiency, generate_message_report, \
@@ -254,20 +254,26 @@ def send_notify_to_check_car(self, partner_pk):
 
 
 @app.task(bind=True, queue='beat_tasks')
-def download_daily_report(self, partner_pk, day=None):
-    day = get_day_for_task(day)
+def download_daily_report(self, partner_pk, start, end):
     settings = check_available_fleets(partner_pk)
     for setting in settings:
         request_class = fleets.get(setting.key)
         if request_class:
-            request_class(partner_pk).save_report(day)
-    save_report_to_ninja_payment(day, partner_pk)
-    fleet_reports = Payments.objects.filter(report_from=day, partner=partner_pk)
+            request_class(partner_pk).save_report(start, end)
+        if isinstance(request_class(partner_pk), BoltRequest):
+            request_class(partner_pk).generate_custom_report()
+    save_report_to_ninja_payment(start, end, partner_pk)
+
+
+@app.task(bind=True, queue='beat_tasks')
+def generate_summary_report(self, partner_pk, start, end):
+    fleet_reports = Payments.objects.filter(report_from=start, partner=partner_pk)
     for driver in Driver.objects.filter(partner=partner_pk):
         payments = [r for r in fleet_reports if r.driver_id == driver.get_driver_external_id(r.vendor_name)]
         if payments:
-            if not SummaryReport.objects.filter(report_from=day, driver=driver, partner=partner_pk):
-                report = SummaryReport(report_from=day,
+            if not SummaryReport.objects.filter(report_from=start, driver=driver, partner=partner_pk):
+                report = SummaryReport(report_from=start,
+                                       report_to=end,
                                        driver=driver,
                                        vehicle=driver.vehicle,
                                        partner=Partner.get_partner(partner_pk))
@@ -280,49 +286,6 @@ def download_daily_report(self, partner_pk, day=None):
                 for field in fields:
                     setattr(report, field, sum(getattr(payment, field, 0) or 0 for payment in payments))
                 report.save()
-
-
-# @app.task(bind=True, queue='beat_tasks')
-# def calculate_vehicle_earnings(self, partner_pk):
-#     end = timezone.localtime().date() - timedelta(days=timezone.localtime().weekday() + 1)
-#     start = end - timedelta(days=6)
-#     for vehicle in Vehicle.objects.filter(partner=partner_pk):
-#         earnings = 0
-#         week = []
-#         reports = SummaryReport.objects.filter(report_from__range=(start, end),
-#                                                vehicle=vehicle)
-#
-#         vehicle_spending = VehicleSpending.objects.filter(vehicle=vehicle,
-#                                                           created_at__range=(start, end)).aggregate(
-#             Sum('amount'))['amount__sum'] or 0
-#         for report in reports:
-#             if report.driver.salary_calculation == SalaryCalculation.WEEK:
-#                 week.append(report)
-#                 continue
-#             else:
-#                 driver_payments = DriverPayments.objects.filter(report_to=report.report_from,
-#                                                                 driver=report.driver).first()
-#                 if driver_payments:
-#                     earnings -= driver_payments.salary + driver_payments.cash
-#             if vehicle.investor_car:
-#                 earnings += report.total_amount_without_fee * (1 - vehicle.investor_percentage)
-#             else:
-#                 earnings += report.total_amount_without_fee
-#
-#         for driver_report in week:
-#             driver_salary = 0
-#             driver_payments = DriverPayments.objects.filter(report_to=end,
-#                                                             driver=driver_report.driver.id).first()
-#             if driver_payments:
-#                 rate = (driver_payments.salary + driver_payments.cash)/driver_payments.kasa
-#                 driver_salary = driver_report.total_amount_without_fee * rate
-#                 print(driver_salary)
-#             if vehicle.investor_car:
-#                 earnings += driver_report.total_amount_without_fee * (1 - vehicle.investor_percentage) - driver_salary
-#             else:
-#                 earnings += driver_report.total_amount_without_fee - driver_salary
-#         print(vehicle)
-#         print(earnings - vehicle_spending)
 
 
 @app.task(bind=True, queue='beat_tasks')
@@ -967,41 +930,41 @@ def get_driver_reshuffles(self, partner, delta=0):
             self.retry(args=[partner, delta], countdown=600)
 
 
-def save_report_to_ninja_payment(day, partner_pk, fleet_name='Ninja'):
-    reports = Payments.objects.filter(report_from=day, vendor_name=fleet_name, partner=partner_pk)
-    if reports:
-        return reports
-
-    for driver in Driver.objects.exclude(chat_id=''):
-        records = Order.objects.filter(driver__chat_id=driver.chat_id,
-                                       status_order=Order.COMPLETED,
-                                       created_at__date=day,
-                                       partner=partner_pk)
-        total_rides = records.count()
-        result = records.aggregate(
-            total=Sum(Coalesce(Cast('distance_gps', FloatField()),
-                               Cast('distance_google', FloatField()),
-                               output_field=FloatField())))
-        total_distance = result['total'] if result['total'] is not None else 0.0
-        total_amount_cash = records.filter(payment_method='Готівка').aggregate(
-            total=Coalesce(Sum(Cast('sum', output_field=IntegerField())), 0))['total']
-        total_amount_card = records.filter(payment_method='Картка').aggregate(
-            total=Coalesce(Sum(Cast('sum', output_field=IntegerField())), 0))['total']
-        total_amount = total_amount_cash + total_amount_card
-        report = Payments(
-            report_from=day,
-            full_name=str(driver),
-            driver_id=driver.chat_id,
-            total_rides=total_rides,
-            total_distance=total_distance,
-            total_amount_cash=total_amount_cash,
-            total_amount_on_card=total_amount_card,
-            total_amount_without_fee=total_amount,
-            partner=Partner.get_partner(partner_pk))
-        try:
-            report.save()
-        except IntegrityError:
-            pass
+def save_report_to_ninja_payment(start, end, partner_pk, fleet_name='Ninja'):
+    reports = Payments.objects.filter(report_from=start, vendor_name=fleet_name, partner=partner_pk)
+    if not reports:
+        for driver in Driver.objects.exclude(chat_id=''):
+            if driver.schema.pay_time == start.time() or not driver.schema.pay_time:
+                records = Order.objects.filter(driver__chat_id=driver.chat_id,
+                                               status_order=Order.COMPLETED,
+                                               created_at__range=(start, end),
+                                               partner=partner_pk)
+                total_rides = records.count()
+                result = records.aggregate(
+                    total=Sum(Coalesce(Cast('distance_gps', FloatField()),
+                                       Cast('distance_google', FloatField()),
+                                       output_field=FloatField())))
+                total_distance = result['total'] if result['total'] is not None else 0.0
+                total_amount_cash = records.filter(payment_method='Готівка').aggregate(
+                    total=Coalesce(Sum(Cast('sum', output_field=IntegerField())), 0))['total']
+                total_amount_card = records.filter(payment_method='Картка').aggregate(
+                    total=Coalesce(Sum(Cast('sum', output_field=IntegerField())), 0))['total']
+                total_amount = total_amount_cash + total_amount_card
+                report = Payments(
+                    report_from=start,
+                    report_to=end,
+                    full_name=str(driver),
+                    driver_id=driver.chat_id,
+                    total_rides=total_rides,
+                    total_distance=total_distance,
+                    total_amount_cash=total_amount_cash,
+                    total_amount_on_card=total_amount_card,
+                    total_amount_without_fee=total_amount,
+                    partner=Partner.get_partner(partner_pk))
+                try:
+                    report.save()
+                except IntegrityError:
+                    pass
 
 
 @app.task(bind=True, queue='beat_tasks')
@@ -1074,53 +1037,63 @@ def update_schedule(self):
         )
 
         for partner in Partner.objects.all():
-            periodic_task, _ = PeriodicTask.objects.get_or_create(
+            periodic_task, created = PeriodicTask.objects.get_or_create(
                 name=f'auto.tasks.{db_task.name}({partner.pk})',
                 task=f'auto.tasks.{db_task.name}',
+                queue="beat_tasks"
             )
-            periodic_task.update(crontab=schedule, args=partner.pk)
+            periodic_task.crontab = schedule
+            if created:
+                periodic_task.args = partner.pk, db_task.argument if db_task.argument else partner.pk
+            periodic_task.save()
+
 
 
 @app.on_after_finalize.connect
 def run_periodic_tasks(sender, **kwargs):
     sender.add_periodic_task(crontab(minute="*/2"), send_time_order.s())
-    # sender.add_periodic_task(crontab(minute='*/15'), auto_send_task_bot.s())
-    # sender.add_periodic_task(crontab(minute="*/2"), order_not_accepted.s())
-    # sender.add_periodic_task(crontab(minute="*/4"), check_personal_orders.s())
+    sender.add_periodic_task(crontab(minute='*/15'), auto_send_task_bot.s())
+    sender.add_periodic_task(crontab(minute="*/2"), order_not_accepted.s())
+    sender.add_periodic_task(crontab(minute="*/4"), check_personal_orders.s())
     sender.add_periodic_task(crontab(minute="*/10"), update_schedule.s())
-    for partner in Partner.objects.all():
-        setup_periodic_tasks(partner, sender)
+    for driver in Driver.objects.filter(worked=True):
+        setup_periodic_tasks(driver, sender)
 
 
-def setup_periodic_tasks(partner, sender=None):
+def setup_periodic_tasks(driver, sender=None):
     if sender is None:
         sender = current_app
-    partner_id = partner.pk
-    # sender.add_periodic_task(20, update_driver_status.s(partner_id))
-    # sender.add_periodic_task(crontab(minute="0", hour="2"), update_driver_data.s(partner_id))
+    partner_id = driver.partner
     # sender.add_periodic_task(crontab(minute="0", hour="4"), download_daily_report.s(partner_id))
-    # # sender.add_periodic_task(crontab(minute="0", hour='*/2'), withdraw_uklon.s(partner_id))
     # sender.add_periodic_task(crontab(minute="40", hour='4'), get_rent_information.s(partner_id))
-    # sender.add_periodic_task(crontab(minute="10", hour='*/4'), get_today_rent.s(partner_id))
-    # sender.add_periodic_task(crontab(minute="30", hour='1'), get_driver_reshuffles.s(partner_id, delta=1))
-    # sender.add_periodic_task(crontab(minute="2", hour='*/4'), get_driver_reshuffles.s(partner_id))
     # sender.add_periodic_task(crontab(minute="15", hour='4'), get_orders_from_fleets.s(partner_id))
     # sender.add_periodic_task(crontab(minute='20', hour='4'), check_orders_for_vehicle.s(partner_id))
+    # sender.add_periodic_task(crontab(minute="25", hour="4"), get_driver_efficiency.s(partner_id))
+    # sender.add_periodic_task(crontab(minute="30", hour="7"), get_car_efficiency.s(partner_id))
+    # sender.add_periodic_task(crontab(minute="0", hour="5"), add_money_to_vehicle.s(partner_id))
+    sender.add_periodic_task(crontab(minute="55", hour="4"), calculate_driver_reports.s(partner_id, daily=True))
+    # sender.add_periodic_task(crontab(minute="30", hour='1'), get_driver_reshuffles.s(partner_id, delta=1))
+    # sender.add_periodic_task(crontab(minute="2", hour="9"), send_driver_efficiency.s(partner_id))
+    sender.add_periodic_task(crontab(minute="0", hour="9"), send_efficiency_report.s(partner_id))
+    # sender.add_periodic_task(crontab(minute="1", hour="9"), send_daily_statistic.s(partner_id))
+    # sender.add_periodic_task(crontab(minute="56", hour="8"), send_driver_report.s(partner_id, daily=True))
+
+    # sender.add_periodic_task(20, update_driver_status.s(partner_id))
+    # sender.add_periodic_task(crontab(minute="0", hour="2"), update_driver_data.s(partner_id))
+    # # sender.add_periodic_task(crontab(minute="0", hour='*/2'), withdraw_uklon.s(partner_id))
+
+    # sender.add_periodic_task(crontab(minute="10", hour='*/4'), get_today_rent.s(partner_id))
+    # sender.add_periodic_task(crontab(minute="2", hour='*/4'), get_driver_reshuffles.s(partner_id))
     # sender.add_periodic_task(crontab(minute="0", hour='*/4'), get_today_orders.s(partner_id))
     # sender.add_periodic_task(crontab(minute="5", hour='*/4'), send_notify_to_check_car.s(partner_id))
     # sender.add_periodic_task(crontab(minute="5", hour='*/4'), check_card_cash_value.s(partner_id))
-    # sender.add_periodic_task(crontab(minute="2", hour="9"), send_driver_efficiency.s(partner_id))
-    sender.add_periodic_task(crontab(minute="0", hour="9"), send_efficiency_report.s(partner_id))
-    # sender.add_periodic_task(crontab(minute="30", hour="7"), get_car_efficiency.s(partner_id))
-    # sender.add_periodic_task(crontab(minute="0", hour="5"), add_money_to_vehicle.s(partner_id))
-    # sender.add_periodic_task(crontab(minute="25", hour="4"), get_driver_efficiency.s(partner_id))
-    # sender.add_periodic_task(crontab(minute="1", hour="9"), send_daily_statistic.s(partner_id))
-    # sender.add_periodic_task(crontab(minute="55", hour="4"), calculate_driver_reports.s(partner_id, daily=True))
+
+
     # sender.add_periodic_task(crontab(minute="55", hour="4", day_of_week="1"),
-    #                          calculate_driver_reports.s(partner_id))
+    #                          calculate_driver_reports_weekly.s(partner_id))
     # sender.add_periodic_task(crontab(minute="55", hour="8", day_of_week="1"),
     #                          send_driver_report.s(partner_id))
-    # sender.add_periodic_task(crontab(minute="56", hour="8"), send_driver_report.s(partner_id, daily=True))
+
     # # sender.add_periodic_task(crontab(minute="55", hour="11", day_of_week="1"),
     # # manager_paid_weekly.s(partner_id))
     # sender.add_periodic_task(crontab(minute="55", hour="9", day_of_week="1"),

@@ -124,35 +124,22 @@ class UberRequest(Synchronizer):
                             'worked': True})
         return drivers
 
-    def save_report(self, day):
-        reports = Payments.objects.filter(report_from=day, vendor_name=self.fleet, partner=self.partner_id)
-        if reports:
-            return list(reports)
-        start = self.report_interval(day, True) * 1000
-        end = self.report_interval(day) * 1000
+    def save_report(self, start, end):
+        format_start = self.report_interval(start) * 1000
+        format_end = self.report_interval(end) * 1000
+        uber_drivers = Fleets_drivers_vehicles_rate.objects.filter(partner=self.partner_id,
+                                                                   fleet__name=self.fleet)
+        drivers_id = [obj.driver_external_id for obj in uber_drivers]
         query = '''query GetPerformanceReport($performanceReportRequest: PerformanceReportRequest__Input!) {
                   getPerformanceReport(performanceReportRequest: $performanceReportRequest) {
                     uuid
                     totalEarnings
-                    hoursOnline
                     totalTrips
                     ... on DriverPerformanceDetail {
                       cashEarnings
-                      driverAcceptanceRate
-                      driverCancellationRate
-                    }
-                    ... on VehiclePerformanceDetail {
-                      utilization
-                      vehicleIncentiveTarget
-                      vehicleIncentiveCompleted
-                      vehicleIncentiveEnrollmentStatus
-                      vehicleIncentiveUnit
                     }
                   }
                 }'''
-        uber_drivers = Fleets_drivers_vehicles_rate.objects.filter(partner=self.partner_id,
-                                                                   fleet__name=self.fleet)
-        drivers_id = [obj.driver_external_id for obj in uber_drivers]
         variables = {
                       "performanceReportRequest": {
                         "orgUUID": self.get_uuid(),
@@ -168,45 +155,52 @@ class UberRequest(Synchronizer):
                         ],
                         "metrics": [
                           "vs:TotalEarnings",
-                          "vs:HoursOnline",
                           "vs:TotalTrips",
                           "vs:CashEarnings",
-                          "vs:DriverAcceptanceRate",
-                          "vs:DriverCancellationRate"
+                          "vs:DriverAcceptanceRate"
                         ],
                         "timeRange": {
                           "startsAt": {
-                            "value": start
+                            "value": format_start
                           },
                           "endsAt": {
-                            "value": end
+                            "value": format_end
                           }
                         }
                       }
                     }
         if uber_drivers:
-            data = self.get_payload(query, variables)
-            response = requests.post(self.base_url, headers=self.get_header(), json=data)
-            if response.status_code == 200 and response.json()['data']:
-                for report in response.json()['data']['getPerformanceReport']:
-                    if report['totalEarnings']:
-                        driver = Fleets_drivers_vehicles_rate.objects.get(driver_external_id=report['uuid'],
-                                                                          partner=self.partner_id).driver
-                        vehicle = check_vehicle(driver, day, max_time=True)[0]
-                        order = Payments(
-                            report_from=day,
-                            vendor_name=self.fleet,
-                            driver_id=report['uuid'],
-                            full_name=str(driver),
-                            total_amount=round(report['totalEarnings'], 2),
-                            total_amount_without_fee=round(report['totalEarnings'], 2),
-                            total_amount_cash=round(report['cashEarnings'], 2),
-                            total_rides=report['totalTrips'],
-                            partner=Partner.get_partner(self.partner_id),
-                            vehicle=vehicle)
-                        order.save()
-            else:
-                self.logger.error(f"Failed save uber report {self.partner_id} {response}")
+            db_driver = Fleets_drivers_vehicles_rate.objects.get(driver_external_id=drivers_id,
+                                                                 partner=self.partner_id).driver
+            if db_driver.schema.pay_time == start.time():
+                data = self.get_payload(query, variables)
+                response = requests.post(self.base_url, headers=self.get_header(), json=data)
+                if response.status_code == 200 and response.json()['data']:
+                    for report in response.json()['data']['getPerformanceReport']:
+                        if report['totalEarnings']:
+                            driver = Fleets_drivers_vehicles_rate.objects.get(driver_external_id=report['uuid'],
+                                                                              partner=self.partner_id).driver
+                            vehicle = check_vehicle(driver, end, max_time=True)[0]
+                            report = {
+                                "report_from": start,
+                                "report_to": end,
+                                "vendor_name": self.fleet,
+                                "driver_id": report['uuid'],
+                                "full_name": str(driver),
+                                "total_amount": round(report['totalEarnings'], 2),
+                                "total_amount_without_fee": round(report['totalEarnings'], 2),
+                                "total_amount_cash": round(report['cashEarnings'], 2),
+                                "total_rides": report['totalTrips'],
+                                "partner": Partner.get_partner(self.partner_id),
+                                "vehicle": vehicle
+                            }
+                            db_report = Payments.objects.filter(report_from=start,
+                                                                driver_id=report['uuid'],
+                                                                vendor_name=self.fleet,
+                                                                partner=self.partner_id)
+                            db_report.update(**report) if db_report else Payments.objects.create(**report)
+                else:
+                    self.logger.error(f"Failed save uber report {self.partner_id} {response}")
 
     def get_drivers_status(self):
         query = '''query GetDriverEvents($orgUUID: String!) {

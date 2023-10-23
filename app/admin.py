@@ -1165,5 +1165,15 @@ class ParkSettingsAdmin(admin.ModelAdmin):
 
 @admin.register(TaskScheduler)
 class TaskSchedulerAdmin(admin.ModelAdmin):
-    pass
+    list_display = ['name', 'task_time', 'periodic', 'arguments']
+    def get_fieldsets(self, request, obj=None):
+
+        fieldsets = [
+            ('Деталі', {'fields': ['name', 'task_time', 'periodic', 'arguments'
+                                   ]}),
+
+        ]
+
+        return fieldsets
+
 

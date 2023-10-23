@@ -148,6 +148,6 @@ class Synchronizer:
         driver.save()
 
     @staticmethod
-    def report_interval(day, start=None):
-        report_time = datetime.time.min if start else datetime.time.max
-        return int(datetime.datetime.combine(day, report_time).timestamp())
+    def report_interval(date_time):
+        return int(date_time.timestamp())
+

@@ -127,15 +127,12 @@ class UklonRequest(Synchronizer):
 
         return nested_data
 
-    def save_report(self, day):
-        if Payments.objects.filter(report_from=day.date(),
-                                   vendor_name=self.fleet,
-                                   partner=self.partner_id):
-            return
+    def save_report(self, start, end):
         param = self.parameters.copy()
-        param.update({'dateFrom': self.report_interval(day, start=True),
-                     'dateTo': self.report_interval(day)
-                      })
+        dates = {'dateFrom': self.report_interval(start),
+                 'dateTo': self.report_interval(end)
+                 }
+        param.update(dates)
         url = f"{Service.get_value('UKLON_3')}{self.uklon_id()}"
         url += Service.get_value('UKLON_4')
         data = self.response_data(url=url, params=param)['items']
@@ -143,30 +140,33 @@ class UklonRequest(Synchronizer):
             for i in data:
                 db_driver = Fleets_drivers_vehicles_rate.objects.get(driver_external_id=i['driver']['id'],
                                                                      partner=self.partner_id).driver
-                vehicle = check_vehicle(db_driver, day, max_time=True)[0]
-                order = Payments(
-                    report_from=day.date(),
-                    vendor_name=self.fleet,
-                    full_name=f"{i['driver']['first_name'].split()[0]} {i['driver']['last_name'].split()[0]}",
-                    driver_id=i['driver']['id'],
-                    total_rides=0 if 'total_orders_count' not in i else i['total_orders_count'],
-                    total_distance=float(
-                        0) if 'total_distance_meters' not in i else self.to_float(i['total_distance_meters'], div=1000),
-                    total_amount_cash=self.find_value(i, *('profit', 'order', 'cash', 'amount')),
-                    total_amount_on_card=self.find_value(i, *('profit', 'order', 'wallet', 'amount')),
-                    total_amount=self.find_value(i, *('profit', 'order', 'total', 'amount')),
-                    tips=self.find_value(i, *('profit', 'tips', 'amount')),
-                    bonuses=float(0),
-                    fares=float(0),
-                    fee=self.find_value(i, *('loss', 'order', 'wallet', 'amount')),
-                    total_amount_without_fee=self.find_value(i, *('profit', 'total', 'amount')),
-                    partner=Partner.get_partner(self.partner_id),
-                    vehicle=vehicle
-                )
-                try:
-                    order.save()
-                except IntegrityError:
-                    pass
+                if db_driver.schema.pay_time == start.time():
+                    vehicle = check_vehicle(db_driver, end, max_time=True)[0]
+                    report = {
+                        "report_from": start,
+                        "report_to": end,
+                        "vendor_name": self.fleet,
+                        "full_name": f"{i['driver']['first_name'].split()[0]} {i['driver']['last_name'].split()[0]}",
+                        "driver_id": i['driver']['id'],
+                        "total_rides": 0 if 'total_orders_count' not in i else i['total_orders_count'],
+                        "total_distance": float(0) if 'total_distance_meters' not in i else self.to_float(
+                            i['total_distance_meters'], div=1000),
+                        "total_amount_cash": self.find_value(i, *('profit', 'order', 'cash', 'amount')),
+                        "total_amount_on_card": self.find_value(i, *('profit', 'order', 'wallet', 'amount')),
+                        "total_amount": self.find_value(i, *('profit', 'order', 'total', 'amount')),
+                        "tips": self.find_value(i, *('profit', 'tips', 'amount')),
+                        "bonuses": float(0),
+                        "fares": float(0),
+                        "fee": self.find_value(i, *('loss', 'order', 'wallet', 'amount')),
+                        "total_amount_without_fee": self.find_value(i, *('profit', 'total', 'amount')),
+                        "partner": Partner.get_partner(self.partner_id),
+                        "vehicle": vehicle
+                    }
+                    db_report = Payments.objects.filter(report_from=start,
+                                                        driver_id=i['driver']['id'],
+                                                        vendor_name=self.fleet,
+                                                        partner=self.partner_id)
+                    db_report.update(**report) if db_report else Payments.objects.create(**report)
 
     def get_drivers_status(self):
         first_key, second_key = 'with_client', 'wait'
