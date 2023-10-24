@@ -4,7 +4,7 @@ import random
 import csv
 
 import re
-from datetime import datetime, date, time
+from datetime import datetime, date, time, timedelta
 import pendulum
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils import timezone
@@ -73,6 +73,7 @@ class Partner(models.Model):
     role = models.CharField(max_length=25, default=Role.OWNER, choices=Role.choices)
     user = models.OneToOneField(AuUser, on_delete=models.SET_NULL, null=True)
     chat_id = models.CharField(blank=True, null=True, max_length=10, verbose_name='Ідентифікатор чата')
+    pay_time = models.TimeField(null=True, verbose_name='Час розрахунку')
     calendar = models.CharField(max_length=255, verbose_name='Календар змін водіїв')
     contacts = models.BooleanField(default=False, verbose_name='Доступ до контактів')
 
@@ -456,7 +457,8 @@ class DriverReshuffle(models.Model):
 
 
 class RentInformation(models.Model):
-    report_from = models.DateField(verbose_name='Дата звіту')
+    report_from = models.DateTimeField(verbose_name='Звіт з')
+    report_to = models.DateTimeField(verbose_name='Звіт по')
     driver = models.ForeignKey(Driver, on_delete=models.SET_NULL, null=True, verbose_name='Водій')
     rent_distance = models.DecimalField(null=True, blank=True, max_digits=6,
                                         decimal_places=2, verbose_name='Орендована дистанція')
@@ -619,20 +621,7 @@ class UberFleet(Fleet):
 
 
 class NinjaFleet(Fleet):
-
-    @staticmethod
-    def start_report_interval(day):
-        return timezone.localize(datetime.combine(day, time.min))
-
-    @staticmethod
-    def end_report_interval(day):
-        return timezone.localize(datetime.combine(day, time.max))
-
-    def download_report(self, day=None):
-        report = Payments.objects.filter(report_from=self.start_report_interval(day),
-                                         report_to=self.end_report_interval(day),
-                                         vendor_name=self.name)
-        return list(report)
+    pass
 
 
 class StatusChange(models.Model):
@@ -1194,7 +1183,8 @@ def admin_image_preview(image):
 
 
 class CarEfficiency(models.Model):
-    report_from = models.DateField(verbose_name='Звіт за')
+    report_from = models.DateTimeField(verbose_name='Звіт з')
+    report_to = models.DateTimeField(verbose_name='Звіт з')
     drivers = models.ManyToManyField(Driver, through="DriverEffVehicleKasa", verbose_name='Водії', db_index=True)
     vehicle = models.ForeignKey(Vehicle, null=True, on_delete=models.CASCADE, verbose_name='Автомобіль', db_index=True)
     total_kasa = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Каса')
@@ -1218,7 +1208,8 @@ class DriverEffVehicleKasa(models.Model):
 
 
 class DriverEfficiency(models.Model):
-    report_from = models.DateField(verbose_name='Звіт за')
+    report_from = models.DateTimeField(verbose_name='Звіт з')
+    report_to = models.DateTimeField(verbose_name='Звіт по')
     driver = models.ForeignKey(Driver, null=True, on_delete=models.SET_NULL, verbose_name='Водій', db_index=True)
     vehicles = models.ManyToManyField(Vehicle, verbose_name="Автомобілі", db_index=True)
     total_kasa = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Каса')

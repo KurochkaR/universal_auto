@@ -18,7 +18,7 @@ def validate_text(text):
 
 def check_reshuffle(driver, date=timezone.localtime()):
     vehicles = {}
-    reshuffles = DriverReshuffle.objects.filter(swap_time__date=date.date(), driver_start=driver)
+    reshuffles = DriverReshuffle.objects.filter(swap_time__range=(start, end), driver_start=driver)
     if reshuffles:
         for reshuffle in reshuffles:
             vehicle = reshuffle.swap_vehicle

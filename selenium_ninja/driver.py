@@ -363,12 +363,13 @@ class SeleniumTools:
             with open(os.path.join(os.getcwd(), filename), 'wb') as f:
                 f.write(content)
 
-    def payments_order_file_name(self, fleet=None, day=None):
-        return self.report_file_name(self.file_pattern(fleet, day))
+    def payments_order_file_name(self, fleet, start, end):
+        return self.report_file_name(self.file_pattern(fleet, start, end))
 
-    def file_pattern(self, fleet, day):
-        sd, sy, sm = day.strftime("%d"), day.strftime("%Y"), day.strftime("%m")
-        return f'{fleet} {sy}{sm}{sd}-{self.partner}.csv'
+    def file_pattern(self, fleet, start, end):
+        sd, sy, sm = start.strftime("%d"), start.strftime("%Y"), start.strftime("%m")
+        ed, ey, em = end.strftime("%d"), end.strftime("%Y"), end.strftime("%m")
+        return f'{fleet} {sy}{sm}{sd}-{ey}{em}{ed}-{self.partner}.csv'
 
     def click_uber_calendar(self, month, year, day):
         self.driver.find_element(By.XPATH, UberService.get_value('UBER_CALENDAR_1')).click()
@@ -380,7 +381,7 @@ class SeleniumTools:
         self.driver.find_element(By.XPATH,
                                  f'{UberService.get_value("UBER_CALENDAR_4")}{day}]').click()
 
-    def generate_payments_order(self, fleet, day):
+    def generate_payments_order(self, fleet, start, end):
         url = f"{UberService.get_value('UBER_GENERATE_PAYMENTS_ORDER_1')}{self.get_uuid()}/reports"
         xpath = UberService.get_value('UBER_GENERATE_PAYMENTS_ORDER_2')
         self.uber_login(url=url)
@@ -392,21 +393,21 @@ class SeleniumTools:
             xpath = UberService.get_value('UBER_GENERATE_TRIPS_2')
             WebDriverWait(self.driver, self.sleep).until(ec.presence_of_element_located((By.XPATH, xpath))).click()
         self.driver.find_element(By.XPATH, UberService.get_value('UBER_GENERATE_PAYMENTS_ORDER_4')).click()
-        self.click_uber_calendar(day.strftime("%B"),
-                                 day.strftime("%Y"),
-                                 day.day)
-        self.click_uber_calendar(day.strftime("%B"),
-                                 day.strftime("%Y"),
-                                 day.day)
+        self.click_uber_calendar(start.strftime("%B"),
+                                 start.strftime("%Y"),
+                                 start.day)
+        self.click_uber_calendar(end.strftime("%B"),
+                                 end.strftime("%Y"),
+                                 end.day)
         self.driver.find_element(By.XPATH, UberService.get_value('UBER_GENERATE_PAYMENTS_ORDER_5')).click()
-        return f'{self.payments_order_file_name(fleet, day)}'
+        return f'{self.payments_order_file_name(fleet, start, end)}'
 
-    def download_payments_order(self, fleet, day):
-        if os.path.exists(f'{self.payments_order_file_name(fleet, day)}'):
+    def download_payments_order(self, fleet, start, end):
+        if os.path.exists(f'{self.payments_order_file_name(fleet, start, end)}'):
             self.logger.info('Report already downloaded')
             return
 
-        self.generate_payments_order(fleet, day)
+        self.generate_payments_order(fleet, start, end)
         download_button = f"{UberService.get_value('UBER_DOWNLOAD_PAYMENTS_ORDER_1')}"
         try:
             in_progress_text = f"{UberService.get_value('UBER_DOWNLOAD_PAYMENTS_ORDER_2')}"
@@ -416,18 +417,18 @@ class SeleniumTools:
             pass
         WebDriverWait(self.driver, 60).until(ec.element_to_be_clickable((By.XPATH, download_button))).click()
         time.sleep(self.sleep)
-        self.get_last_downloaded_file_from_remote(self.file_pattern(fleet, day))
+        self.get_last_downloaded_file_from_remote(self.file_pattern(fleet, start, end))
 
-    def save_trips_report(self, fleet, day):
+    def save_trips_report(self, fleet, start, end):
         states = {"completed": FleetOrder.COMPLETED,
                   "delivery_failed": FleetOrder.SYSTEM_CANCEL,
                   "rider_cancelled": FleetOrder.CLIENT_CANCEL,
                   "driver_cancelled": FleetOrder.DRIVER_CANCEL
                   }
 
-        self.logger.info(self.file_pattern(fleet, day))
-        if self.payments_order_file_name(fleet, day) is not None:
-            with open(self.payments_order_file_name(fleet, day), encoding="utf-8") as file:
+        self.logger.info(self.file_pattern(fleet, start, end))
+        if self.payments_order_file_name(fleet, start, end) is not None:
+            with open(self.payments_order_file_name(fleet, start, end), encoding="utf-8") as file:
                 reader = csv.reader(file)
                 next(reader)
                 for row in reader:

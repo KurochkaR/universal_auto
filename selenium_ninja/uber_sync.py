@@ -170,37 +170,34 @@ class UberRequest(Synchronizer):
                       }
                     }
         if uber_drivers:
-            db_driver = Fleets_drivers_vehicles_rate.objects.get(driver_external_id=drivers_id,
-                                                                 partner=self.partner_id).driver
-            if db_driver.schema.pay_time == start.time():
-                data = self.get_payload(query, variables)
-                response = requests.post(self.base_url, headers=self.get_header(), json=data)
-                if response.status_code == 200 and response.json()['data']:
-                    for report in response.json()['data']['getPerformanceReport']:
-                        if report['totalEarnings']:
-                            driver = Fleets_drivers_vehicles_rate.objects.get(driver_external_id=report['uuid'],
-                                                                              partner=self.partner_id).driver
-                            vehicle = check_vehicle(driver, end, max_time=True)[0]
-                            report = {
-                                "report_from": start,
-                                "report_to": end,
-                                "vendor_name": self.fleet,
-                                "driver_id": report['uuid'],
-                                "full_name": str(driver),
-                                "total_amount": round(report['totalEarnings'], 2),
-                                "total_amount_without_fee": round(report['totalEarnings'], 2),
-                                "total_amount_cash": round(report['cashEarnings'], 2),
-                                "total_rides": report['totalTrips'],
-                                "partner": Partner.get_partner(self.partner_id),
-                                "vehicle": vehicle
-                            }
-                            db_report = Payments.objects.filter(report_from=start,
-                                                                driver_id=report['uuid'],
-                                                                vendor_name=self.fleet,
-                                                                partner=self.partner_id)
-                            db_report.update(**report) if db_report else Payments.objects.create(**report)
-                else:
-                    self.logger.error(f"Failed save uber report {self.partner_id} {response}")
+            data = self.get_payload(query, variables)
+            response = requests.post(self.base_url, headers=self.get_header(), json=data)
+            if response.status_code == 200 and response.json()['data']:
+                for report in response.json()['data']['getPerformanceReport']:
+                    if report['totalEarnings']:
+                        driver = Fleets_drivers_vehicles_rate.objects.get(driver_external_id=report['uuid'],
+                                                                          partner=self.partner_id).driver
+                        vehicle = check_vehicle(driver, end, max_time=True)[0]
+                        report = {
+                            "report_from": start,
+                            "report_to": end,
+                            "vendor_name": self.fleet,
+                            "driver_id": report['uuid'],
+                            "full_name": str(driver),
+                            "total_amount": round(report['totalEarnings'], 2),
+                            "total_amount_without_fee": round(report['totalEarnings'], 2),
+                            "total_amount_cash": round(report['cashEarnings'], 2),
+                            "total_rides": report['totalTrips'],
+                            "partner": Partner.get_partner(self.partner_id),
+                            "vehicle": vehicle
+                        }
+                        db_report = Payments.objects.filter(report_from=start,
+                                                            driver_id=report['uuid'],
+                                                            vendor_name=self.fleet,
+                                                            partner=self.partner_id)
+                        db_report.update(**report) if db_report else Payments.objects.create(**report)
+            else:
+                self.logger.error(f"Failed save uber report {self.partner_id} {response}")
 
     def get_drivers_status(self):
         query = '''query GetDriverEvents($orgUUID: String!) {
@@ -267,9 +264,9 @@ class UberRequest(Synchronizer):
                     'vin_code': vehicle['vin']})
             return vehicles_list
 
-    def get_fleet_orders(self, day):
-        if not FleetOrder.objects.filter(fleet="Uber", accepted_time__date=day):
+    def get_fleet_orders(self, start, end):
+        if not FleetOrder.objects.filter(fleet="Uber", accepted_time__range=(start.date(), end.date())):
             uber_driver = SeleniumTools(self.partner_id)
-            uber_driver.download_payments_order("Uber", day)
-            uber_driver.save_trips_report("Uber", day)
+            uber_driver.download_payments_order("Uber", start, end)
+            uber_driver.save_trips_report("Uber", start, end)
             uber_driver.quit()

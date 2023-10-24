@@ -124,7 +124,7 @@ class BoltRequest(Synchronizer):
                 "total_rides": rides,
                 "vehicle": vehicle
             }
-            if db_driver.schema.pay_time != datetime.time.min:
+            if Partner.get_partner(self.partner_id).pay_time != datetime.time.min:
                 bolt_custom = BoltCustomReport.objects.filter(driver_id=driver['id'],
                                                               partner=self.partner_id,
                                                               report_from=start).first()
@@ -211,7 +211,7 @@ class BoltRequest(Synchronizer):
             time.sleep(0.5)
         return driver_list
 
-    def get_fleet_orders(self, day, pk):
+    def get_fleet_orders(self, start, end, pk):
         bolt_states = {
             "client_did_not_show": FleetOrder.CLIENT_CANCEL,
             "finished": FleetOrder.COMPLETED,
@@ -222,12 +222,13 @@ class BoltRequest(Synchronizer):
         driver = Driver.objects.get(pk=pk)
         driver_id = driver.get_driver_external_id(self.fleet)
         if driver_id:
-            format_day = day.strftime("%Y-%m-%d")
+            format_start = start.strftime("%Y-%m-%d")
+            format_end = end.strftime("%Y-%m-%d")
             payload = {
                       "offset": 0,
                       "limit": 50,
-                      "from_date": format_day,
-                      "to_date": format_day,
+                      "from_date": format_start,
+                      "to_date": format_end,
                       "driver_id": driver_id,
                       "orders_state_statuses": [
                                                 "client_did_not_show",
