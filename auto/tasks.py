@@ -18,7 +18,7 @@ from telegram.error import BadRequest
 from app.models import RawGPS, Vehicle, Order, Driver, JobApplication, ParkSettings, UseOfCars, CarEfficiency, \
     Payments, SummaryReport, Manager, Partner, DriverEfficiency, FleetOrder, ReportTelegramPayments, \
     TransactionsConversation, VehicleSpending, DriverReshuffle, DriverPayments, SalaryCalculation, CredentialPartner, \
-    PaymentTypes, TaskScheduler, Schema
+    PaymentTypes, TaskScheduler, Schema, DriverEffVehicleKasa
 from django.db.models import Sum, IntegerField, FloatField, Q, DecimalField
 from django.db.models.functions import Cast, Coalesce
 from auto_bot.handlers.driver_manager.utils import get_daily_report, get_efficiency, generate_message_report, \
@@ -295,31 +295,33 @@ def get_car_efficiency(self, partner_pk, day=None):
         efficiency = CarEfficiency.objects.filter(report_from=day,
                                                   partner=partner_pk,
                                                   vehicle=vehicle)
+        vehicle_drivers = {}
+        total_spending = VehicleSpending.objects.filter(
+            vehicle=vehicle, created_at__date=day).aggregate(Sum('amount'))['amount__sum'] or 0
+        reshuffles = DriverReshuffle.objects.filter(swap_time__date=day, swap_vehicle=vehicle)
+        drivers = [reshuffle.driver_start for reshuffle in reshuffles] if reshuffles \
+            else Driver.objects.filter(vehicle=vehicle)
         if not efficiency:
             total_kasa = 0
             total_km = UaGpsSynchronizer(partner_pk).total_per_day(vehicle.gps_id, day)
-
-            total_spending = VehicleSpending.objects.filter(
-                vehicle=vehicle, created_at__date=day).aggregate(Sum('amount'))['amount__sum'] or 0
             if total_km:
-                reshuffles = DriverReshuffle.objects.filter(swap_time__date=day, swap_vehicle=vehicle)
-                drivers = [reshuffle.driver_start for reshuffle in reshuffles] if reshuffles \
-                    else Driver.objects.filter(vehicle=vehicle)
-
                 for driver in drivers:
                     report = SummaryReport.objects.filter(report_from=day,
                                                           driver=driver).first()
                     if report:
+                        vehicle_drivers[driver] = report.total_amount_without_fee
                         total_kasa += report.total_amount_without_fee
             result = max(
                 Decimal(total_kasa) - Decimal(total_spending), Decimal(0)) / Decimal(total_km) if total_km else 0
-            CarEfficiency.objects.create(report_from=day,
-                                         vehicle=vehicle,
-                                         total_kasa=total_kasa,
-                                         total_spending=total_spending,
-                                         mileage=total_km,
-                                         efficiency=result,
-                                         partner=Partner.get_partner(partner_pk))
+            car = CarEfficiency.objects.create(report_from=day,
+                                               vehicle=vehicle,
+                                               total_kasa=total_kasa,
+                                               total_spending=total_spending,
+                                               mileage=total_km,
+                                               efficiency=result,
+                                               partner=Partner.get_partner(partner_pk))
+            for driver, kasa in vehicle_drivers.items():
+                DriverEffVehicleKasa.objects.create(driver=driver, efficiency_car=car, kasa=kasa)
 
 
 @app.task(bind=True, queue='beat_tasks')
@@ -698,7 +700,6 @@ def order_not_accepted(self):
 
 @app.task(bind=True, queue='beat_tasks')
 def send_time_order(self):
-    print(app.conf.beat_schedule)
     accepted_orders = Order.objects.filter(status_order=Order.ON_TIME, driver__isnull=False)
     for order in accepted_orders:
         if timezone.localtime() < order.order_time < (timezone.localtime() + timedelta(minutes=int(
@@ -976,7 +977,7 @@ def calculate_driver_reports(self, partner_pk, daily=False):
         end = timezone.localtime().date() - timedelta(days=timezone.localtime().weekday() + 1)
         start = end - timedelta(days=6)
         calculation = SalaryCalculation.WEEK
-    for driver in Driver.objects.filter(salary_calculation=calculation, partner=partner_pk):
+    for driver in Driver.objects.filter(schema__salary_calculation=calculation, partner=partner_pk):
         if DriverPayments.objects.filter(report_from=start,
                                          report_to=end,
                                          driver=driver).exists():
@@ -1115,4 +1116,3 @@ def remove_periodic_tasks(partner, sender=None):
     sender.remove_periodic_task(f"send_weekly_report.s({partner_id})")
     sender.remove_periodic_task(f"manager_paid_weekly.s({partner_id})")
     sender.remove_periodic_task(f"get_uber_session.s({partner_id})")
-
