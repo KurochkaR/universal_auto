@@ -88,7 +88,7 @@ class BoltRequest(Synchronizer):
         response = requests.post(url, json=json, params=params, headers=headers)
         return response.json()
 
-    def save_report(self, start, end):
+    def save_report(self, start, end, schema):
         format_start = start.strftime("%Y-%m-%d")
         format_end = end.strftime("%Y-%m-%d")
         param = self.param
@@ -100,6 +100,9 @@ class BoltRequest(Synchronizer):
         for driver in reports['data']['drivers']:
             db_driver = Fleets_drivers_vehicles_rate.objects.get(driver_external_id=driver['id'],
                                                                  partner=self.partner_id).driver
+            driver_obj = Driver.objects.get(pk=db_driver)
+            if driver_obj.schema != schema:
+                continue
             rides = FleetOrder.objects.filter(fleet=self.fleet,
                                               accepted_time__gte=start,
                                               state=FleetOrder.COMPLETED,
@@ -124,7 +127,7 @@ class BoltRequest(Synchronizer):
                 "total_rides": rides,
                 "vehicle": vehicle
             }
-            if Partner.get_partner(self.partner_id).pay_time != datetime.time.min:
+            if driver_obj.schema.shift_time != datetime.time.min:
                 bolt_custom = BoltCustomReport.objects.filter(driver_id=driver['id'],
                                                               partner=self.partner_id,
                                                               report_from=start).first()

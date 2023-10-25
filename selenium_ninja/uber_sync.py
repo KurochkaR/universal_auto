@@ -1,6 +1,6 @@
 import requests
 
-from app.models import UberService, Payments, UberSession, Fleets_drivers_vehicles_rate, Partner, FleetOrder
+from app.models import UberService, Payments, UberSession, Fleets_drivers_vehicles_rate, Partner, FleetOrder, Driver
 from auto_bot.handlers.order.utils import check_vehicle
 from selenium_ninja.driver import SeleniumTools
 
@@ -124,7 +124,7 @@ class UberRequest(Synchronizer):
                             'worked': True})
         return drivers
 
-    def save_report(self, start, end):
+    def save_report(self, start, end, schema):
         format_start = self.report_interval(start) * 1000
         format_end = self.report_interval(end) * 1000
         uber_drivers = Fleets_drivers_vehicles_rate.objects.filter(partner=self.partner_id,
@@ -177,6 +177,9 @@ class UberRequest(Synchronizer):
                     if report['totalEarnings']:
                         driver = Fleets_drivers_vehicles_rate.objects.get(driver_external_id=report['uuid'],
                                                                           partner=self.partner_id).driver
+                        driver_obj = Driver.objects.get(pk=driver)
+                        if driver_obj.schema != schema:
+                            continue
                         vehicle = check_vehicle(driver, end, max_time=True)[0]
                         report = {
                             "report_from": start,

@@ -16,7 +16,7 @@ def validate_text(text):
         return True
 
 
-def check_reshuffle(driver, date=timezone.localtime()):
+def check_reshuffle(driver, start, end):
     vehicles = {}
     reshuffles = DriverReshuffle.objects.filter(swap_time__range=(start, end), driver_start=driver)
     if reshuffles:

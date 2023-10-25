@@ -94,7 +94,7 @@ class UaGpsSynchronizer:
             road_distance = 0
             road_time = timedelta()
             completed = []
-            vehicles = check_reshuffle(driver, day)
+            vehicles = check_reshuffle(driver, start, end)
             for vehicle, reshuffles in vehicles.items():
                 if reshuffles:
                     for reshuffle in reshuffles:
@@ -153,7 +153,7 @@ class UaGpsSynchronizer:
 
     def calc_total_km(self, driver, start, end):
         total_km = 0
-        vehicles = check_reshuffle(driver, day)
+        vehicles = check_reshuffle(driver, start, end)
         for vehicle, reshuffles in vehicles.items():
             if reshuffles:
                 for reshuffle in reshuffles:
@@ -187,7 +187,7 @@ class UaGpsSynchronizer:
             total_km = 0
             if not end_time:
                 end_time = timezone.localtime()
-            vehicles = check_reshuffle(driver)
+            vehicles = check_reshuffle(driver, start, end)
             for vehicle, reshuffles in vehicles.items():
                 if reshuffles:
                     for reshuffle in reshuffles:

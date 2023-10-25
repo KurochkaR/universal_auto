@@ -240,7 +240,9 @@ class SchemaAdmin(filter_queryset_by_group('Partner')(admin.ModelAdmin)):
 
     def save_model(self, request, obj, form, change):
         schema_field = form.cleaned_data.get('schema')
-
+        calc_field = form.cleaned_data.get('salary_calculation')
+        if calc_field == SalaryCalculation.WEEK:
+            obj.shift_time = time.min
         if schema_field == 'HALF':
             obj.rate = 0.5
             obj.rental = obj.plan * obj.rate
@@ -277,7 +279,6 @@ class DriverRateLevelsAdmin(filter_queryset_by_group('Partner')(admin.ModelAdmin
                 (None, {'fields': ['period', 'threshold', 'rate']}),
             ]
             return fieldsets
-
 
 
 @admin.register(RawGPS)

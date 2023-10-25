@@ -127,7 +127,7 @@ class UklonRequest(Synchronizer):
 
         return nested_data
 
-    def save_report(self, start, end):
+    def save_report(self, start, end, schema):
         param = self.parameters.copy()
         dates = {'dateFrom': self.report_interval(start),
                  'dateTo': self.report_interval(end)
@@ -140,6 +140,9 @@ class UklonRequest(Synchronizer):
             for i in data:
                 db_driver = Fleets_drivers_vehicles_rate.objects.get(driver_external_id=i['driver']['id'],
                                                                      partner=self.partner_id).driver
+                driver_obj = Driver.objects.get(pk=db_driver)
+                if driver_obj.schema != schema:
+                    continue
                 vehicle = check_vehicle(db_driver, end, max_time=True)[0]
                 report = {
                     "report_from": start,

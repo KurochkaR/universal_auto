@@ -111,7 +111,7 @@ def get_daily_report(manager_id):
     return sort_report, day_values, total_rent, rent_daily
 
 
-def generate_message_report(chat_id, daily=False):
+def generate_message_report(chat_id, schema):
     if daily:
         start = end = timezone.localtime().date() - timedelta(days=1)
         calculation = SalaryCalculation.DAY
@@ -123,7 +123,7 @@ def generate_message_report(chat_id, daily=False):
     drivers_dict = {}
     balance = 0
     drivers, user = get_drivers_vehicles_list(chat_id, Driver)
-    for driver in drivers.filter(schema__salary_calculation=calculation):
+    for driver in drivers.filter(schema=schema):
         payment = DriverPayments.objects.filter(report_from=start, report_to=end, driver=driver).first()
         driver_message = ''
 

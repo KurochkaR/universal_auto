@@ -4,7 +4,7 @@ import random
 import csv
 
 import re
-from datetime import datetime, date, time, timedelta
+from datetime import datetime, date, time
 import pendulum
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils import timezone
@@ -73,7 +73,6 @@ class Partner(models.Model):
     role = models.CharField(max_length=25, default=Role.OWNER, choices=Role.choices)
     user = models.OneToOneField(AuUser, on_delete=models.SET_NULL, null=True)
     chat_id = models.CharField(blank=True, null=True, max_length=10, verbose_name='Ідентифікатор чата')
-    pay_time = models.TimeField(null=True, verbose_name='Час розрахунку')
     calendar = models.CharField(max_length=255, verbose_name='Календар змін водіїв')
     contacts = models.BooleanField(default=False, verbose_name='Доступ до контактів')
 
@@ -564,7 +563,7 @@ class SummaryReport(models.Model):
     report_to = models.DateTimeField(verbose_name='Звіт по')
     driver = models.ForeignKey(Driver, on_delete=models.CASCADE, null=True, verbose_name='Водій')
     total_amount_without_fee = models.DecimalField(decimal_places=2, max_digits=10,
-                                                   verbose_name='Чистий дохід', db_index=True)
+                                                   verbose_name='Чистий дохід')
     total_amount_cash = models.DecimalField(decimal_places=2, max_digits=10, verbose_name='Готівкою')
     total_amount_on_card = models.DecimalField(null=True, decimal_places=2, max_digits=10, verbose_name='На картку')
     total_amount = models.DecimalField(null=True, decimal_places=2, max_digits=10, verbose_name='Загальна сума')
