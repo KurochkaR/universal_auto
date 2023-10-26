@@ -255,12 +255,11 @@ class SchemaAdmin(filter_queryset_by_group('Partner')(admin.ModelAdmin)):
         super().save_model(request, obj, form, change)
 
     def get_fieldsets(self, request, obj=None):
-        if request.user.groups.filter(name='Partner').exists():
-            fieldsets = [
-                ('Деталі', {'fields': ['title', 'schema', 'rate', 'plan', 'rental', 'rent_price', 'limit_distance']}),
-            ]
-            return fieldsets
-        return super().get_fieldsets(request)
+        fieldsets = [
+            ('Деталі', {'fields': ['title', 'schema', 'rate', 'plan', 'rental', 'rent_price', 'limit_distance',
+                                   'shift_time']}),
+        ]
+        return fieldsets
 
 
 @admin.register(DriverSchemaRate)
@@ -1170,7 +1169,7 @@ class TaskSchedulerAdmin(admin.ModelAdmin):
     def get_fieldsets(self, request, obj=None):
 
         fieldsets = [
-            ('Деталі', {'fields': ['name', 'task_time', 'periodic', 'arguments'
+            ('Деталі', {'fields': ['name', 'task_time', 'periodic', 'weekly', 'interval', 'arguments'
                                    ]}),
 
         ]

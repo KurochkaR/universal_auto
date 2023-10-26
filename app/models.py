@@ -59,6 +59,8 @@ class TaskScheduler(models.Model):
     name = models.CharField(max_length=75, verbose_name="Назва задачі")
     task_time = models.TimeField(verbose_name="Час запуску задачі")
     periodic = models.BooleanField(verbose_name="Періодичний запуск")
+    weekly = models.BooleanField(verbose_name="Тижнева задача")
+    interval = models.IntegerField(blank=True, verbose_name="Інтервал запуску")
     arguments = models.IntegerField(null=True, blank=True, verbose_name="Аргументи")
 
     def __str__(self):
@@ -113,7 +115,7 @@ class Schema(models.Model):
     limit_distance = models.IntegerField(default=400, verbose_name='Ліміт пробігу за період')
     salary_calculation = models.CharField(max_length=25, choices=SalaryCalculation.choices,
                                           default=SalaryCalculation.WEEK, verbose_name='Період розрахунку зарплати')
-    shift_time = models.TimeField(null=True, verbose_name="Час проведення розрахунку")
+    shift_time = models.TimeField(default=time.min, verbose_name="Час проведення розрахунку")
     shift_period = models.IntegerField(null=True, choices=ShiftTypes.choices)
     partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
 
@@ -457,7 +459,7 @@ class DriverReshuffle(models.Model):
 
 class RentInformation(models.Model):
     report_from = models.DateTimeField(verbose_name='Звіт з')
-    report_to = models.DateTimeField(verbose_name='Звіт по')
+    report_to = models.DateTimeField(null=True, verbose_name='Звіт по')
     driver = models.ForeignKey(Driver, on_delete=models.SET_NULL, null=True, verbose_name='Водій')
     rent_distance = models.DecimalField(null=True, blank=True, max_digits=6,
                                         decimal_places=2, verbose_name='Орендована дистанція')
@@ -520,7 +522,7 @@ class SupportManager(User):
 
 class Payments(models.Model):
     report_from = models.DateTimeField(verbose_name='Звіт з')
-    report_to = models.DateTimeField(verbose_name='Звіт по')
+    report_to = models.DateTimeField(null=True, verbose_name='Звіт по')
     vendor_name = models.CharField(max_length=30, default='Ninja', verbose_name='Агрегатор')
     full_name = models.CharField(null=True, max_length=255, verbose_name='ПІ водія')
     driver_id = models.CharField(null=True, max_length=50, verbose_name='Унікальний індифікатор водія')
@@ -560,7 +562,7 @@ class Payments(models.Model):
 
 class SummaryReport(models.Model):
     report_from = models.DateTimeField(verbose_name='Звіт з')
-    report_to = models.DateTimeField(verbose_name='Звіт по')
+    report_to = models.DateTimeField(null=True, verbose_name='Звіт по')
     driver = models.ForeignKey(Driver, on_delete=models.CASCADE, null=True, verbose_name='Водій')
     total_amount_without_fee = models.DecimalField(decimal_places=2, max_digits=10,
                                                    verbose_name='Чистий дохід')
@@ -1183,7 +1185,7 @@ def admin_image_preview(image):
 
 class CarEfficiency(models.Model):
     report_from = models.DateTimeField(verbose_name='Звіт з')
-    report_to = models.DateTimeField(verbose_name='Звіт з')
+    report_to = models.DateTimeField(null=True, verbose_name='Звіт з')
     drivers = models.ManyToManyField(Driver, through="DriverEffVehicleKasa", verbose_name='Водії', db_index=True)
     vehicle = models.ForeignKey(Vehicle, null=True, on_delete=models.CASCADE, verbose_name='Автомобіль', db_index=True)
     total_kasa = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Каса')
@@ -1208,7 +1210,7 @@ class DriverEffVehicleKasa(models.Model):
 
 class DriverEfficiency(models.Model):
     report_from = models.DateTimeField(verbose_name='Звіт з')
-    report_to = models.DateTimeField(verbose_name='Звіт по')
+    report_to = models.DateTimeField(null=True, verbose_name='Звіт по')
     driver = models.ForeignKey(Driver, null=True, on_delete=models.SET_NULL, verbose_name='Водій', db_index=True)
     vehicles = models.ManyToManyField(Vehicle, verbose_name="Автомобілі", db_index=True)
     total_kasa = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Каса')

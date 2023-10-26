@@ -11,7 +11,7 @@ from django.db import IntegrityError
 from django.utils import timezone
 from celery.schedules import crontab
 from celery.utils.log import get_task_logger
-from django_celery_beat.models import CrontabSchedule, PeriodicTask
+from django_celery_beat.models import IntervalSchedule, PeriodicTask
 from telegram import ParseMode
 from telegram.error import BadRequest
 
@@ -21,6 +21,8 @@ from app.models import RawGPS, Vehicle, Order, Driver, JobApplication, ParkSetti
     PaymentTypes, TaskScheduler, DriverEffVehicleKasa, Schema
 from django.db.models import Sum, IntegerField, FloatField, Q, DecimalField
 from django.db.models.functions import Cast, Coalesce
+
+from app.utils import get_schedule, create_task
 from auto_bot.handlers.driver_manager.utils import get_daily_report, get_efficiency, generate_message_report, \
     get_driver_efficiency_report, calculate_by_rate, calculate_rent
 from auto_bot.handlers.order.keyboards import inline_markup_accept, inline_search_kb, inline_client_spot, \
@@ -268,12 +270,12 @@ def download_daily_report(self, partner_pk, schema):
             request_class(partner_pk).save_report(start, end, schema)
         if isinstance(request_class(partner_pk), BoltRequest):
             request_class(partner_pk).generate_custom_report()
-    save_report_to_ninja_payment(start, end, partner_pk)
+    save_report_to_ninja_payment(start, end, partner_pk, schema)
 
 
 @app.task(bind=True, queue='beat_tasks')
-def generate_summary_report(self, partner_pk, pay_time=None):
-    start, end = get_time_for_task(pay_time)
+def generate_summary_report(self, partner_pk, schema):
+    start, end = get_time_for_task(schema)
     fleet_reports = Payments.objects.filter(report_from=start, partner=partner_pk)
     for driver in Driver.objects.filter(partner=partner_pk):
         payments = [r for r in fleet_reports if r.driver_id == driver.get_driver_external_id(r.vendor_name)]
@@ -1035,28 +1037,68 @@ def calculate_driver_reports(self, partner_pk, schema):
 
 
 @app.task(bind=True, queue='beat_tasks')
-def update_schedule(self):
-    for db_task in TaskScheduler.objects.all():
-        hours = f"*/{db_task.task_time.strftime('%H')}" if db_task.periodic else db_task.task_time.strftime('%H')
-        minutes = db_task.task_time.strftime('%M')
-        schedule, _ = CrontabSchedule.objects.get_or_create(
-            minute=minutes,
-            hour=hours,
-            day_of_week='*',
-            day_of_month='*',
-            month_of_year='*',
-        )
+def get_information_from_fleets(self, partner_pk, schema):
+    download_daily_report(partner_pk, schema)
+    get_orders_from_fleets(partner_pk, schema)
+    get_driver_efficiency(partner_pk, schema)
+    get_rent_information(partner_pk, schema)
+    get_car_efficiency(partner_pk, schema)
 
-        for partner in Partner.objects.all():
-            periodic_task, created = PeriodicTask.objects.get_or_create(
-                name=f'auto.tasks.{db_task.name}({partner.pk})',
-                task=f'auto.tasks.{db_task.name}',
-                queue="beat_tasks"
+
+@app.task(bind=True, queue='beat_tasks')
+def send_from_db(self, partner_pk, schema):
+    calculate_driver_reports(partner_pk, schema)
+    send_daily_statistic(partner_pk, schema)
+    send_efficiency_report(partner_pk, schema)
+    send_driver_efficiency(partner_pk, schema)
+    send_driver_report(partner_pk, schema)
+
+
+@app.task(bind=True, queue='beat_tasks')
+def update_schedule(self):
+    tasks = TaskScheduler.objects.all()
+    partners = Partner.objects.all()
+    work_schemas = Schema.objects.all()
+    for db_task in tasks:
+        print(db_task.name)
+        if db_task.interval:
+            next_execution_datetime = datetime.now() + timedelta(days=db_task.interval)
+            interval_schedule, _ = IntervalSchedule.objects.get_or_create(
+                every=db_task.interval,
+                period=IntervalSchedule.DAYS,
             )
-            periodic_task.crontab = schedule
-            if created:
-                periodic_task.args = partner.pk, db_task.argument if db_task.argument else partner.pk
-            periodic_task.save()
+            for partner in partners:
+                task, _ = PeriodicTask.objects.get_or_create(
+                    name=f'auto.tasks.{db_task.name}({partner.pk})',
+                    task=f'auto.tasks.{db_task.name}',
+                    interval=interval_schedule,
+                    start_time=next_execution_datetime,
+                )
+                task.args = partner.pk
+                task.save()
+        else:
+            day = '1' if db_task.weekly else '*'
+            hours = f"*/{db_task.task_time.strftime('%H')}" if db_task.periodic else db_task.task_time.strftime('%H')
+            minutes = db_task.task_time.strftime('%M')
+            schedule = get_schedule(hours, minutes, day)
+
+            for partner in partners:
+                create_task(db_task.name, partner.pk, schedule, db_task.arguments)
+    for schema in work_schemas:
+        tasks = ['get_information_from_fleets', 'send_from_db']
+        for num, task in enumerate(tasks):
+            if schema.shift_time != time.min:
+                shift_time_minutes = schema.shift_time.hour * 60 + schema.shift_time.minute
+            else:
+                shift_time_minutes = 8 * 60
+            task_time_minutes = shift_time_minutes + num
+            task_hours, task_minutes = divmod(task_time_minutes, 60)
+            task_time = time(task_hours, task_minutes)
+            hours = task_time.strftime('%H')
+            minutes = task_time.strftime('%M')
+            schedule = get_schedule(hours, minutes)
+
+            create_task(task, schema.partner.pk, schedule, schema.pk)
 
 
 @app.on_after_finalize.connect
@@ -1065,26 +1107,18 @@ def run_periodic_tasks(sender, **kwargs):
     sender.add_periodic_task(crontab(minute='*/15'), auto_send_task_bot.s())
     sender.add_periodic_task(crontab(minute="*/2"), order_not_accepted.s())
     sender.add_periodic_task(crontab(minute="*/4"), check_personal_orders.s())
-    sender.add_periodic_task(crontab(minute="*/10"), update_schedule.s())
-    for driver in Driver.objects.filter(worked=True):
-        setup_periodic_tasks(driver, sender)
+    sender.add_periodic_task(crontab(minute="0", hour="*/1"), update_schedule.s())
 
 
 def setup_periodic_tasks(driver, sender=None):
     if sender is None:
         sender = current_app
     partner_id = driver.partner
-    sender.add_periodic_task(crontab(minute="0", hour="4"), download_daily_report.s(partner_id))
-    # sender.add_periodic_task(crontab(minute="40", hour='4'), get_rent_information.s(partner_id))
-    sender.add_periodic_task(crontab(minute="15", hour='4'), get_orders_from_fleets.s(partner_id))
-    # sender.add_periodic_task(crontab(minute='20', hour='4'), check_orders_for_vehicle.s(partner_id))
-    # sender.add_periodic_task(crontab(minute="25", hour="4"), get_driver_efficiency.s(partner_id))
-    # sender.add_periodic_task(crontab(minute="30", hour="7"), get_car_efficiency.s(partner_id))
-    # sender.add_periodic_task(crontab(minute="0", hour="5"), add_money_to_vehicle.s(partner_id))
-    sender.add_periodic_task(crontab(minute="55", hour="4"), calculate_driver_reports.s(partner_id, daily=True))
+    sender.add_periodic_task(crontab(minute="0", hour="5"), add_money_to_vehicle.s(partner_id))
+    # sender.add_periodic_task(crontab(minute="55", hour="4"), calculate_driver_reports.s(partner_id, daily=True))
     # sender.add_periodic_task(crontab(minute="30", hour='1'), get_driver_reshuffles.s(partner_id, delta=1))
     # sender.add_periodic_task(crontab(minute="2", hour="9"), send_driver_efficiency.s(partner_id))
-    sender.add_periodic_task(crontab(minute="0", hour="9"), send_efficiency_report.s(partner_id))
+    # sender.add_periodic_task(crontab(minute="0", hour="9"), send_efficiency_report.s(partner_id))
     # sender.add_periodic_task(crontab(minute="1", hour="9"), send_daily_statistic.s(partner_id))
     # sender.add_periodic_task(crontab(minute="56", hour="8"), send_driver_report.s(partner_id, daily=True))
 
@@ -1099,10 +1133,10 @@ def setup_periodic_tasks(driver, sender=None):
     # sender.add_periodic_task(crontab(minute="5", hour='*/4'), check_card_cash_value.s(partner_id))
 
 
-    # sender.add_periodic_task(crontab(minute="55", hour="4", day_of_week="1"),
-    #                          calculate_driver_reports_weekly.s(partner_id))
-    # sender.add_periodic_task(crontab(minute="55", hour="8", day_of_week="1"),
-    #                          send_driver_report.s(partner_id))
+    sender.add_periodic_task(crontab(minute="55", hour="4", day_of_week="1"),
+                             calculate_driver_reports_weekly.s(partner_id))
+    sender.add_periodic_task(crontab(minute="55", hour="8", day_of_week="1"),
+                             send_driver_report.s(partner_id))
 
     # # sender.add_periodic_task(crontab(minute="55", hour="11", day_of_week="1"),
     # # manager_paid_weekly.s(partner_id))
