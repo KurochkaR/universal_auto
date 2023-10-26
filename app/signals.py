@@ -1,12 +1,15 @@
+from celery.result import AsyncResult
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import F
 from django.utils import timezone
+from django_celery_beat.models import PeriodicTask
 
 from auto.tasks import send_on_job_application_on_driver, check_time_order, setup_periodic_tasks, \
     remove_periodic_tasks, search_driver_for_order, detaching_the_driver_from_the_car
-from django.db.models.signals import pre_save, post_save, post_delete
+from django.db.models.signals import pre_save, post_save, post_delete, pre_delete
 from django.dispatch import receiver
-from app.models import Driver, StatusChange, JobApplication, ParkSettings, Partner, Order, UseOfCars, DriverSchemaRate
+from app.models import Driver, StatusChange, JobApplication, ParkSettings, Partner, Order, UseOfCars, DriverSchemaRate, \
+    Schema
 from auto_bot.handlers.order.keyboards import inline_reject_order
 from auto_bot.handlers.order.static_text import client_order_info, client_personal_info
 from auto_bot.main import bot
@@ -62,6 +65,17 @@ def create_status_change(sender, instance, **kwargs):
         )
         status_change.save()
 
+
+@receiver(pre_delete, sender=Schema)
+def remove_tasks_for_deleted_schema(sender, instance, **kwargs):
+    # Get the associated partner
+    partner = instance.partner
+
+    # Get and delete associated tasks for the deleted schema
+    tasks = PeriodicTask.objects.filter(args__contains=[partner, instance.schema.pk])
+    for task in tasks:
+        AsyncResult(task.celery_task_id).revoke(terminate=True)  # Revoke and terminate the task
+        task.delete()
 
 @receiver(post_save, sender=JobApplication)
 def run_add_drivers_task(sender, instance, created, **kwargs):

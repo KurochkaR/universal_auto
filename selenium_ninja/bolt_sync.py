@@ -101,7 +101,7 @@ class BoltRequest(Synchronizer):
             db_driver = Fleets_drivers_vehicles_rate.objects.get(driver_external_id=driver['id'],
                                                                  partner=self.partner_id).driver
             driver_obj = Driver.objects.get(pk=db_driver)
-            if driver_obj.schema != schema:
+            if driver_obj.schema.pk != schema:
                 continue
             rides = FleetOrder.objects.filter(fleet=self.fleet,
                                               accepted_time__gte=start,
@@ -109,8 +109,8 @@ class BoltRequest(Synchronizer):
                                               driver=db_driver).count()
             vehicle = check_vehicle(db_driver, end, max_time=True)[0]
             report = {
-                "report_from": start,
-                "report_to": end,
+                "report_from": timezone.make_aware(start),
+                "report_to": timezone.make_aware(end),
                 "vendor_name": self.fleet,
                 "full_name": driver['name'],
                 "driver_id": driver['id'],
@@ -130,34 +130,40 @@ class BoltRequest(Synchronizer):
             if driver_obj.schema.shift_time != datetime.time.min:
                 bolt_custom = BoltCustomReport.objects.filter(driver_id=driver['id'],
                                                               partner=self.partner_id,
-                                                              report_from=start).first()
-                report.update({"total_amount_cash": driver['cash_in_hand'] - bolt_custom.total_amount_cash,
-                               "total_amount": driver['gross_revenue'] - bolt_custom.total_amount,
-                               "tips": driver['tips'] - bolt_custom.tips,
-                               "bonuses": driver['bonuses'] - bolt_custom.bonuses,
-                               "cancels": driver['cancellation_fees'] - bolt_custom.cancels,
-                               "fee": -(driver['gross_revenue'] - driver['net_earnings']) + bolt_custom.fee,
-                               "total_amount_without_fee": driver['net_earnings'] - bolt_custom.total_amount_without_fee,
-                               "compensations": driver['compensations'] - - bolt_custom.compensations,
-                               "refunds": driver['expense_refunds'] - bolt_custom.refunds,
-                               "total_rides": rides - bolt_custom.rides})
-            db_report = Payments.objects.filter(report_from=start,
+                                                              report_from__date=start.date()).first()
+                if bolt_custom:
+                    report.update(
+                        {"total_amount_cash": driver['cash_in_hand'] - bolt_custom.total_amount_cash,
+                         "total_amount": driver['gross_revenue'] - bolt_custom.total_amount,
+                         "tips": driver['tips'] - bolt_custom.tips,
+                         "bonuses": driver['bonuses'] - bolt_custom.bonuses,
+                         "cancels": driver['cancellation_fees'] - bolt_custom.cancels,
+                         "fee": -(driver['gross_revenue'] - driver['net_earnings']) + bolt_custom.fee,
+                         "total_amount_without_fee": driver['net_earnings'] - bolt_custom.total_amount_without_fee,
+                         "compensations": driver['compensations'] - - bolt_custom.compensations,
+                         "refunds": driver['expense_refunds'] - bolt_custom.refunds,
+                         "total_rides": rides - bolt_custom.rides})
+            db_report = Payments.objects.filter(report_from=timezone.make_aware(start),
                                                 driver_id=driver['id'],
                                                 vendor_name=self.fleet,
                                                 partner=self.partner_id)
             db_report.update(**report) if db_report else Payments.objects.create(**report)
 
-    def generate_custom_report(self):
-        start = timezone.localtime().strftime("%Y-%m-%d")
+    def generate_custom_report(self, schema):
+        start = timezone.localtime()
+        format_start = start.strftime("%Y-%m-%d")
         param = self.param
-        param.update({"start_date": start,
-                      "end_date": start,
+        param.update({"start_date": format_start,
+                      "end_date": format_start,
                       "offset": 0,
                       "limit": 50})
         reports = self.get_target_url(f'{self.base_url}getDriverEarnings/dateRange', param)
         for driver in reports['data']['drivers']:
             db_driver = Fleets_drivers_vehicles_rate.objects.get(driver_external_id=driver['id'],
                                                                  partner=self.partner_id).driver
+            driver_obj = Driver.objects.get(pk=db_driver)
+            if driver_obj.schema.pk != schema:
+                continue
             rides = FleetOrder.objects.filter(fleet=self.fleet,
                                               accepted_time__gte=start,
                                               state=FleetOrder.COMPLETED,
@@ -177,9 +183,8 @@ class BoltRequest(Synchronizer):
                 "refunds": driver['expense_refunds'],
                 "total_rides": rides,
             }
-            db_report = BoltCustomReport.objects.filter(report_from=start,
+            db_report = BoltCustomReport.objects.filter(report_from__date=start.date(),
                                                         driver_id=driver['id'],
-                                                        vendor_name=self.fleet,
                                                         partner=self.partner_id)
             db_report.update(**report) if db_report else BoltCustomReport.objects.create(**report)
 

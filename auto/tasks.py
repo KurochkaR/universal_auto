@@ -72,7 +72,7 @@ def get_time_for_task(schema=None):
     day = timezone.localtime() - timedelta(days=1)
     if schema:
         schema_obj = Schema.objects.get(pk=schema)
-        end = timezone.localtime(schema_obj.shift_time)
+        end = datetime.combine(timezone.localtime().date(), schema_obj.shift_time)
         start = end - timedelta(days=1)
     else:
         start = timezone.make_aware(datetime.combine(day, time.min))
@@ -268,8 +268,8 @@ def download_daily_report(self, partner_pk, schema):
         request_class = fleets.get(setting.key)
         if request_class:
             request_class(partner_pk).save_report(start, end, schema)
-        if isinstance(request_class(partner_pk), BoltRequest):
-            request_class(partner_pk).generate_custom_report()
+            if isinstance(request_class(partner_pk), BoltRequest):
+                request_class(partner_pk).generate_custom_report(schema)
     save_report_to_ninja_payment(start, end, partner_pk, schema)
 
 
@@ -335,9 +335,9 @@ def get_car_efficiency(self, partner_pk, pay_time=None):
 
 
 @app.task(bind=True, queue='beat_tasks')
-def get_driver_efficiency(self, partner_pk, pay_time=None):
-    start, end = get_time_for_task(pay_time)
-    for driver in Driver.objects.filter(partner=partner_pk, worked=True):
+def get_driver_efficiency(self, partner_pk, schema=None):
+    start, end = get_time_for_task(schema)
+    for driver in Driver.objects.filter(partner=partner_pk, schema=schema, worked=True):
         efficiency = DriverEfficiency.objects.filter(report_from=start,
                                                      partner=partner_pk,
                                                      driver=driver)
@@ -922,17 +922,17 @@ def get_driver_reshuffles(self, partner, delta=0):
                                                      Q(name=second_name, second_name=name)).first()
                 vehicle = Vehicle.objects.filter(licence_plate=licence_plate.split()[0]).first()
                 try:
-                    swap_time = timezone.make_aware(datetime.strptime(event['start']['date'], "%Y-%m-%d"))
-                    end_time = timezone.make_aware(datetime.combine(swap_time, time.max))
+                    swap_time = datetime.strptime(event['start']['date'], "%Y-%m-%d")
+                    end_time = datetime.combine(swap_time, time.max)
                 except KeyError:
-                    swap_time = datetime.strptime(event['start']['dateTime'], "%Y-%m-%dT%H:%M:%S%z").astimezone()
-                    end_time = datetime.strptime(event['end']['dateTime'], "%Y-%m-%dT%H:%M:%S%z").astimezone()
+                    swap_time = datetime.strptime(event['start']['dateTime'], "%Y-%m-%dT%H:%M:%S%z")
+                    end_time = datetime.strptime(event['end']['dateTime'], "%Y-%m-%dT%H:%M:%S%z")
                 obj_data = {
                     "calendar_event_id": calendar_event_id,
                     "swap_vehicle": vehicle,
                     "driver_start": driver_start,
-                    "swap_time": swap_time,
-                    "end_time": end_time
+                    "swap_time": timezone.make_aware(swap_time),
+                    "end_time": timezone.make_aware(end_time)
                 }
                 reshuffle = DriverReshuffle.objects.filter(calendar_event_id=calendar_event_id)
                 reshuffle.update(**obj_data) if reshuffle else DriverReshuffle.objects.create(**obj_data)
@@ -1039,6 +1039,7 @@ def calculate_driver_reports(self, partner_pk, schema):
 @app.task(bind=True, queue='beat_tasks')
 def get_information_from_fleets(self, partner_pk, schema):
     download_daily_report(partner_pk, schema)
+    generate_summary_report(partner_pk, schema)
     get_orders_from_fleets(partner_pk, schema)
     get_driver_efficiency(partner_pk, schema)
     get_rent_information(partner_pk, schema)
@@ -1060,7 +1061,6 @@ def update_schedule(self):
     partners = Partner.objects.all()
     work_schemas = Schema.objects.all()
     for db_task in tasks:
-        print(db_task.name)
         if db_task.interval:
             next_execution_datetime = datetime.now() + timedelta(days=db_task.interval)
             interval_schedule, _ = IntervalSchedule.objects.get_or_create(
@@ -1068,14 +1068,15 @@ def update_schedule(self):
                 period=IntervalSchedule.DAYS,
             )
             for partner in partners:
-                task, _ = PeriodicTask.objects.get_or_create(
+                PeriodicTask.objects.get_or_create(
                     name=f'auto.tasks.{db_task.name}({partner.pk})',
                     task=f'auto.tasks.{db_task.name}',
-                    interval=interval_schedule,
-                    start_time=next_execution_datetime,
+                    defaults={
+                        'interval': interval_schedule,
+                        'start_time': next_execution_datetime,
+                        'args': partner.pk
+                    }
                 )
-                task.args = partner.pk
-                task.save()
         else:
             day = '1' if db_task.weekly else '*'
             hours = f"*/{db_task.task_time.strftime('%H')}" if db_task.periodic else db_task.task_time.strftime('%H')
