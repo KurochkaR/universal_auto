@@ -22,10 +22,6 @@ class UberRequest(Synchronizer):
         }
         return headers
 
-    def get_uuid(self):
-        obj_session = UberSession.objects.filter(partner=self.partner_id).latest('created_at')
-        return str(obj_session.uber_uuid)
-
     @staticmethod
     def remove_dup(text):
         if 'DUP' in text:
@@ -88,7 +84,7 @@ class UberRequest(Synchronizer):
           }
         '''
         variables = {
-                    "orgUUID": self.get_uuid(),
+                    "orgUUID": str(self.session.uber_uuid),
                     "pagingOptions": {
                         "pageSize": 25
                                     },
@@ -142,7 +138,7 @@ class UberRequest(Synchronizer):
                 }'''
         variables = {
                       "performanceReportRequest": {
-                        "orgUUID": self.get_uuid(),
+                        "orgUUID": str(self.session.uber_uuid),
                         "dimensions": [
                           "vs:driver"
                         ],
@@ -212,7 +208,7 @@ class UberRequest(Synchronizer):
                       }
                     }'''
         variables = {
-                    "orgUUID": self.get_uuid()
+                    "orgUUID": str(self.session.uber_uuid)
                      }
         with_client = []
         wait = []
@@ -252,7 +248,7 @@ class UberRequest(Synchronizer):
                       vin
                     }'''
         variables = {
-            "orgUUID": self.get_uuid(),
+            "orgUUID": str(self.session.uber_uuid),
             "pageSize": 25
         }
         data = self.get_payload(query, variables)
