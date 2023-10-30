@@ -117,11 +117,11 @@ class CarEfficiencyListView(CombinedPermissionsMixin,
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
         aggregated_data = queryset.aggregate(
-            total_kasa=Sum('total_kasa'),
-            total_mileage=Sum('mileage')
+            total_kasa=Coalesce(Sum('total_kasa'), Decimal(0)),
+            total_mileage=Coalesce(Sum('mileage', Decimal(0)))
         )
-        kasa = aggregated_data.get('total_kasa', 0)
-        total_mileage = aggregated_data.get('total_mileage', 0)
+        kasa = aggregated_data.get('total_kasa')
+        total_mileage = aggregated_data.get('total_mileage')
         serialized_data = [{
                 "report_from": item.report_from.strftime('%Y-%m-%d'),
                 "licence_plate": item.vehicle.licence_plate,

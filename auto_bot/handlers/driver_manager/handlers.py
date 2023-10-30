@@ -180,7 +180,7 @@ def create_driver_eff(update, context):
         if start > end:
             start, end = end, start
         msg = update.message.reply_text(generate_text)
-        result = get_driver_efficiency_report(update.message.chat_id, start, end)
+        result = get_driver_efficiency_report(update.message.chat_id, start=start, end=end)
         message = ''
         if result:
             for k, v in result.items():
@@ -198,7 +198,7 @@ def get_weekly_report(update, context):
     query = update.callback_query
     query.edit_message_text(generate_text)
     daily = True if query.data == "Daily_payment" else False
-    messages = generate_message_report(query.from_user.id, daily)
+    messages = generate_message_report(query.from_user.id, daily=daily)
     owner_message = messages.get(str(query.from_user.id))
     query.edit_message_text(owner_message)
     query.edit_message_reply_markup(back_to_main_menu())

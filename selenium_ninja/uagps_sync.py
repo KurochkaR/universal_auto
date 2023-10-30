@@ -86,9 +86,11 @@ class UaGpsSynchronizer:
     def get_timestamp(timeframe):
         return int(timeframe.timestamp())
 
-    def get_road_distance(self, partner_id, start, end):
+    def get_road_distance(self, partner_id, start, end, schema=None):
         road_dict = {}
-        for driver in Driver.objects.filter(partner=partner_id):
+        drivers = Driver.objects.filter(
+            partner=partner_id, schema=schema) if schema else Driver.objects.filter(partner=partner_id)
+        for driver in drivers:
             if RentInformation.objects.filter(report_from=start, driver=driver):
                 continue
             road_distance = 0
@@ -164,8 +166,8 @@ class UaGpsSynchronizer:
                 total_km = self.total_per_day(driver.vehicle.gps_id, start, end)
         return total_km
 
-    def save_daily_rent(self, start, end):
-        in_road = self.get_road_distance(self.partner_id, start, end)
+    def save_daily_rent(self, start, end, schema):
+        in_road = self.get_road_distance(self.partner_id, start, end, schema)
         for driver, result in in_road.items():
             distance, road_time = result[0], result[1]
             total_km = self.calc_total_km(driver, start, end)
@@ -199,7 +201,6 @@ class UaGpsSynchronizer:
                             total_km += self.total_per_day(reshuffle.swap_vehicle.gps_id,
                                                            reshuffle.swap_time,
                                                            end_time)
-
                         else:
                             continue
                 elif vehicle:

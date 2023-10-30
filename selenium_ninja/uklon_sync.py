@@ -202,33 +202,35 @@ class UklonRequest(Synchronizer):
         url_2 = url + Service.get_value('UKLON_2')
 
         all_drivers = self.response_data(url=url_1, params=param)
+        if all_drivers.get('items', 0):
+            for driver in all_drivers['items']:
+                pay_cash, vehicle_name, vin_code = True, '', ''
+                if driver['restrictions']:
+                    pay_cash = False if 'Cash' in driver['restrictions'][0]['restriction_types'] else True
+                elif self.find_value_str(driver, *('selected_vehicle',)):
+                    vehicle_name = f"{driver['selected_vehicle']['make']} {driver['selected_vehicle']['model']}"
+                    vin_code = self.response_data(f"{url_2}/{driver['selected_vehicle']['vehicle_id']}")
+                    vin_code = vin_code.get('vin_code', '')
 
-        for driver in all_drivers['items']:
-            pay_cash, vehicle_name, vin_code = True, '', ''
-            if driver['restrictions']:
-                pay_cash = False if 'Cash' in driver['restrictions'][0]['restriction_types'] else True
-            elif self.find_value_str(driver, *('selected_vehicle',)):
-                vehicle_name = f"{driver['selected_vehicle']['make']} {driver['selected_vehicle']['model']}"
-                vin_code = self.response_data(f"{url_2}/{driver['selected_vehicle']['vehicle_id']}")
-                vin_code = vin_code.get('vin_code', '')
+                email = self.response_data(url=f"{url_1}/{driver['id']}")
 
-            email = self.response_data(url=f"{url_1}/{driver['id']}")
+                drivers.append({
+                    'fleet_name': self.fleet,
+                    'name': driver['first_name'].split()[0],
+                    'second_name': driver['last_name'].split()[0],
+                    'email': email.get('email'),
+                    'phone_number': f"+{driver['phone']}",
+                    'driver_external_id': driver['id'],
+                    'pay_cash': pay_cash,
+                    'licence_plate': self.find_value_str(driver, *('selected_vehicle', 'license_plate')),
+                    'vehicle_name': vehicle_name,
+                    'vin_code': vin_code,
+                    'worked': True,
+                })
 
-            drivers.append({
-                'fleet_name': self.fleet,
-                'name': driver['first_name'].split()[0],
-                'second_name': driver['last_name'].split()[0],
-                'email': email.get('email'),
-                'phone_number': f"+{driver['phone']}",
-                'driver_external_id': driver['id'],
-                'pay_cash': pay_cash,
-                'licence_plate': self.find_value_str(driver, *('selected_vehicle', 'license_plate')),
-                'vehicle_name': vehicle_name,
-                'vin_code': vin_code,
-                'worked': True,
-            })
-
-        return drivers
+            return drivers
+        else:
+            print(all_drivers)
 
     def get_fleet_orders(self, start, end, pk):
         states = {"completed": FleetOrder.COMPLETED,
