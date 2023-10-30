@@ -1,3 +1,4 @@
+from collections import defaultdict
 from datetime import timedelta
 
 from _decimal import Decimal
@@ -110,28 +111,23 @@ class CarEfficiencyListView(CombinedPermissionsMixin,
         manager_queryset = ManagerFilterMixin.get_queryset(self, CarEfficiency)
         if manager_queryset:
             queryset = manager_queryset
-        filtered_qs = queryset.filter(report_from__range=(start, end))
+        filtered_qs = queryset.filter(report_from__range=(start, end)).select_related("vehicle")
         return filtered_qs
 
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
-        grouped_data = {}
-        kasa = queryset.aggregate(kasa_sum=Sum('total_kasa'))['kasa_sum'] or 0
-        total_mileage = queryset.aggregate(total_mileage=Sum('mileage'))['total_mileage'] or 0
-        for item in queryset:
-            report_from = item.report_from.strftime('%Y-%m-%d')
-            item_data = {
+        aggregated_data = queryset.aggregate(
+            total_kasa=Sum('total_kasa'),
+            total_mileage=Sum('mileage')
+        )
+        kasa = aggregated_data.get('total_kasa', 0)
+        total_mileage = aggregated_data.get('total_mileage', 0)
+        serialized_data = [{
+                "report_from": item.report_from.strftime('%Y-%m-%d'),
                 "licence_plate": item.vehicle.licence_plate,
-                "mileage": str(item.mileage),
-                "efficiency": str(item.efficiency)
-            }
-            if report_from not in grouped_data:
-                grouped_data[report_from] = []
-            grouped_data[report_from].append(item_data)
-        serialized_data = []
-
-        for report_from, records in grouped_data.items():
-            serialized_data.append({report_from: records})
+                "mileage": item.mileage,
+                "efficiency": item.efficiency
+            } for item in queryset]
 
         response_data = {
             "efficiency": serialized_data,
