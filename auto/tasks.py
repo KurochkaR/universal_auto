@@ -432,7 +432,7 @@ def update_driver_status(self, partner_pk):
                                              partner=Partner.get_partner(partner_pk),
                                              licence_plate=vehicle.licence_plate,
                                              chat_id=driver.chat_id)
-                logger.warning(f'{driver}: {current_status}')
+                logger.info(f'{driver}: {current_status}')
             else:
                 if work_ninja:
                     work_ninja.end_at = timezone.localtime()
@@ -922,8 +922,8 @@ def get_driver_reshuffles(self, partner, delta=0):
                                                      Q(name=second_name, second_name=name)).first()
                 vehicle = Vehicle.objects.filter(licence_plate=licence_plate.split()[0]).first()
                 try:
-                    swap_time = datetime.strptime(event['start']['date'], "%Y-%m-%d")
-                    end_time = datetime.combine(swap_time, time.max)
+                    swap_time = timezone.make_aware(datetime.strptime(event['start']['date'], "%Y-%m-%d"))
+                    end_time = timezone.make_aware(datetime.combine(swap_time, time.max))
                 except KeyError:
                     swap_time = datetime.strptime(event['start']['dateTime'], "%Y-%m-%dT%H:%M:%S%z")
                     end_time = datetime.strptime(event['end']['dateTime'], "%Y-%m-%dT%H:%M:%S%z")
@@ -931,8 +931,8 @@ def get_driver_reshuffles(self, partner, delta=0):
                     "calendar_event_id": calendar_event_id,
                     "swap_vehicle": vehicle,
                     "driver_start": driver_start,
-                    "swap_time": timezone.make_aware(swap_time),
-                    "end_time": timezone.make_aware(end_time)
+                    "swap_time": swap_time,
+                    "end_time": end_time
                 }
                 reshuffle = DriverReshuffle.objects.filter(calendar_event_id=calendar_event_id)
                 reshuffle.update(**obj_data) if reshuffle else DriverReshuffle.objects.create(**obj_data)
@@ -1048,11 +1048,11 @@ def get_information_from_fleets(self, partner_pk, schema):
 
 @app.task(bind=True, queue='beat_tasks')
 def send_from_db(self, partner_pk, schema):
-    calculate_driver_reports(partner_pk, schema)
-    send_daily_statistic(partner_pk, schema)
-    send_efficiency_report(partner_pk, schema)
-    send_driver_efficiency(partner_pk, schema)
-    send_driver_report(partner_pk, schema)
+    calculate_driver_reports(self, partner_pk, schema)
+    send_daily_statistic(self, partner_pk, schema)
+    send_efficiency_report(self, partner_pk, schema)
+    send_driver_efficiency(self, partner_pk, schema)
+    send_driver_report(self, partner_pk, schema)
 
 
 @app.task(bind=True, queue='beat_tasks')
