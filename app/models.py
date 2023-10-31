@@ -415,7 +415,7 @@ class Driver(User):
     vehicle = models.ForeignKey(Vehicle, on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Автомобіль')
     worked = models.BooleanField(default=True, verbose_name='Працює')
     driver_status = models.CharField(max_length=35, null=False, default=OFFLINE, verbose_name='Статус водія')
-    schema = models.ForeignKey(Schema, null=True, on_delete=models.CASCADE, verbose_name='Схема роботи')
+    schema = models.ForeignKey(Schema, null=True, on_delete=models.SET_NULL, verbose_name='Схема роботи')
 
     class Meta:
         verbose_name = 'Водія'
@@ -591,6 +591,8 @@ class SummaryReport(models.Model):
 
 class BoltCustomReport(models.Model):
     report_from = models.DateTimeField(verbose_name='Звіт з')
+    report_to = models.DateTimeField(null=True, verbose_name='Звіт по')
+    vendor_name = models.CharField(max_length=30, default='Ninja', verbose_name='Агрегатор')
     driver_id = models.CharField(null=True, max_length=50, verbose_name='Унікальний індифікатор водія')
     total_amount_without_fee = models.DecimalField(decimal_places=2, max_digits=10, verbose_name='Чистий дохід')
     total_amount_cash = models.DecimalField(decimal_places=2, max_digits=10, verbose_name='Готівкою')
@@ -626,7 +628,7 @@ class NinjaFleet(Fleet):
 
 
 class StatusChange(models.Model):
-    driver = models.ForeignKey(Driver, null=True, on_delete=models.SET_NULL)
+    driver = models.ForeignKey(Driver, null=True, on_delete=models.CASCADE)
     vehicle = models.ForeignKey(Vehicle, null=True, on_delete=models.CASCADE)
     name = models.CharField(max_length=255, verbose_name='Назва статусу')
     start_time = models.DateTimeField(auto_now_add=True)
@@ -636,7 +638,7 @@ class StatusChange(models.Model):
 
 class Fleets_drivers_vehicles_rate(models.Model):
     fleet = models.ForeignKey(Fleet, on_delete=models.CASCADE, verbose_name='Агрегатор')
-    driver = models.ForeignKey(Driver, null=True, on_delete=models.SET_NULL, verbose_name='Водій')
+    driver = models.ForeignKey(Driver, null=True, on_delete=models.CASCADE, verbose_name='Водій')
     driver_external_id = models.CharField(max_length=255, verbose_name='Унікальний індифікатор по автопарку')
     partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
     created_at = models.DateTimeField(editable=False, auto_now_add=True, verbose_name='Створено')
@@ -1185,7 +1187,7 @@ def admin_image_preview(image):
 
 class CarEfficiency(models.Model):
     report_from = models.DateTimeField(verbose_name='Звіт з')
-    report_to = models.DateTimeField(null=True, verbose_name='Звіт з')
+    report_to = models.DateTimeField(null=True, verbose_name='Звіт по')
     drivers = models.ManyToManyField(Driver, through="DriverEffVehicleKasa", verbose_name='Водії', db_index=True)
     vehicle = models.ForeignKey(Vehicle, null=True, on_delete=models.CASCADE, verbose_name='Автомобіль', db_index=True)
     total_kasa = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Каса')

@@ -72,10 +72,11 @@ def remove_tasks_for_deleted_schema(sender, instance, **kwargs):
     partner = instance.partner
 
     # Get and delete associated tasks for the deleted schema
-    tasks = PeriodicTask.objects.filter(args__contains=[partner, instance.schema.pk])
+    tasks = PeriodicTask.objects.filter(args__contains=[partner, instance.pk])
     for task in tasks:
         AsyncResult(task.celery_task_id).revoke(terminate=True)  # Revoke and terminate the task
         task.delete()
+
 
 @receiver(post_save, sender=JobApplication)
 def run_add_drivers_task(sender, instance, created, **kwargs):

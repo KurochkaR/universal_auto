@@ -11,17 +11,20 @@ from app.models import CarEfficiency, Driver, SummaryReport, Manager, \
     DriverPayments, Schema
 
 
-def get_time_for_task(schema=None):
-    end_date = timezone.localtime().date() - timedelta(days=timezone.localtime().weekday() + 1)
-    start_date = end_date - timedelta(days=6)
-    if schema:
-        schema_obj = Schema.objects.get(pk=schema)
-        end = timezone.make_aware(datetime.combine(timezone.localtime().date(), schema_obj.shift_time))
-        start = end - timedelta(days=1)
-    else:
-        start = timezone.make_aware(datetime.combine(start_date, time.min))
-        end = timezone.make_aware(datetime.combine(end_date, time.max))
-    return start, end
+def get_time_for_task(schema):
+    """
+    Returns time periods
+    :param schema: pk of the schema
+    :type schema: int
+    :return: start, end, previous_start, previous_end
+    """
+    schema_obj = Schema.objects.get(pk=schema)
+    end = timezone.make_aware(datetime.combine(timezone.localtime().date(), schema_obj.shift_time))
+    start = timezone.make_aware(datetime.combine(timezone.localtime().date(), time.min))
+    yesterday = timezone.localtime() - timedelta(days=1)
+    previous_start = timezone.make_aware(datetime.combine(yesterday, schema_obj.shift_time))
+    previous_end = timezone.make_aware(datetime.combine(yesterday, time.max))
+    return start, end, previous_start, previous_end
 
 
 def validate_date(date_str):
@@ -128,12 +131,15 @@ def get_daily_report(manager_id, schema_obj=None):
 
 
 def generate_message_report(chat_id, schema_obj=None, daily=None):
-    start, end = get_time_for_task()
+    end_date = timezone.localtime().date() - timedelta(days=timezone.localtime().weekday() + 1)
+    start_date = end_date - timedelta(days=6)
+    start = timezone.make_aware(datetime.combine(start_date, time.min))
+    end = timezone.make_aware(datetime.combine(end_date, time.max))
     drivers, user = get_drivers_vehicles_list(chat_id, Driver)
     if schema_obj:
         drivers = drivers.filter(schema=schema_obj)
         if schema_obj.salary_calculation == SalaryCalculation.DAY:
-            start, end = get_time_for_task(schema_obj)
+            end, start = get_time_for_task(schema_obj)[1:3]
     elif daily:
         start = timezone.localtime()
         end = start - timedelta(days=1)

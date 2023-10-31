@@ -106,7 +106,7 @@ class CarEfficiencyListView(CombinedPermissionsMixin,
         queryset = self.get_queryset()
         aggregated_data = queryset.aggregate(
             total_kasa=Coalesce(Sum('total_kasa'), Decimal(0)),
-            total_mileage=Coalesce(Sum('mileage', Decimal(0)))
+            total_mileage=Coalesce(Sum('mileage'), Decimal(0))
         )
         kasa = aggregated_data.get('total_kasa')
         total_mileage = aggregated_data.get('total_mileage')

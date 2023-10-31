@@ -159,7 +159,7 @@ def get_gps_session(self, partner_pk, login=None, password=None):
 @app.task(bind=True, queue='beat_tasks')
 def get_orders_from_fleets(self, partner_pk, schema=None):
     settings = check_available_fleets(partner_pk)
-    start, end = get_time_for_task(schema)
+    end, start = get_time_for_task(schema)[1:3]
     drivers = Driver.objects.filter(partner=partner_pk, schema=schema)
     for setting in settings:
         request_class = fleets.get(setting.key)
@@ -176,7 +176,7 @@ def get_orders_from_fleets(self, partner_pk, schema=None):
 
 @app.task(bind=True, queue='beat_tasks')
 def check_orders_for_vehicle(self, partner_pk, schema):
-    start, end = get_time_for_task(schema)
+    end, start = get_time_for_task(schema)[1:3]
     orders = FleetOrder.objects.filter(accepted_time__range=(start, end), partner=partner_pk)
     for driver in Driver.objects.filter(partner=partner_pk, schema=schema):
         driver_orders = orders.filter(driver=driver)
@@ -250,21 +250,33 @@ def send_notify_to_check_car(self, partner_pk):
 
 @app.task(bind=True, queue='beat_tasks')
 def download_daily_report(self, partner_pk, schema):
-    start, end = get_time_for_task(schema)
+    start, end = get_time_for_task(schema)[:2]
     settings = check_available_fleets(partner_pk)
     for setting in settings:
         request_class = fleets.get(setting.key)
         if request_class:
             request_class(partner_pk).save_report(start, end, schema)
+    save_report_to_ninja_payment(start, end, partner_pk, schema)
+
+
+@app.task(bind=True, queue='beat_tasks')
+def download_nightly_report(self, partner_pk, schema):
+    start, end = get_time_for_task(schema)[2:]
+    settings = check_available_fleets(partner_pk)
+    for setting in settings:
+        request_class = fleets.get(setting.key)
+        if request_class:
             if isinstance(request_class(partner_pk), BoltRequest):
-                request_class(partner_pk).generate_custom_report(schema)
+                request_class(partner_pk).save_report(start, end, schema, custom=True)
+            else:
+                request_class(partner_pk).save_report(start, end, schema)
     save_report_to_ninja_payment(start, end, partner_pk, schema)
 
 
 @app.task(bind=True, queue='beat_tasks')
 def generate_summary_report(self, partner_pk, schema):
-    start, end = get_time_for_task(schema)
-    fleet_reports = Payments.objects.filter(report_from=start, partner=partner_pk)
+    end, start = get_time_for_task(schema)[1:3]
+    fleet_reports = Payments.objects.filter(report_from=start, report_to=end, partner=partner_pk)
     for driver in Driver.objects.filter(partner=partner_pk):
         payments = [r for r in fleet_reports if r.driver_id == driver.get_driver_external_id(r.vendor_name)]
         if payments:
@@ -286,8 +298,9 @@ def generate_summary_report(self, partner_pk, schema):
 
 
 @app.task(bind=True, queue='beat_tasks')
-def get_car_efficiency(self, partner_pk, pay_time=None):
-    start, end = get_time_for_task(pay_time)
+def get_car_efficiency(self, partner_pk):
+    end = timezone.make_aware(datetime.combine(timezone.localtime().date(), time.min))
+    start = end - timedelta(days=1)
     for vehicle in Vehicle.objects.filter(partner=partner_pk):
         efficiency = CarEfficiency.objects.filter(report_from=start,
                                                   partner=partner_pk,
@@ -295,7 +308,7 @@ def get_car_efficiency(self, partner_pk, pay_time=None):
         vehicle_drivers = {}
         total_spending = VehicleSpending.objects.filter(
             vehicle=vehicle, created_at__range=(start, end)).aggregate(Sum('amount'))['amount__sum'] or 0
-        reshuffles = DriverReshuffle.objects.filter(swap_time__range=(start, end), swap_vehicle=vehicle)
+        reshuffles = DriverReshuffle.objects.filter(end_time__range=(start, end), swap_vehicle=vehicle)
         drivers = [reshuffle.driver_start for reshuffle in reshuffles] if reshuffles \
             else Driver.objects.filter(vehicle=vehicle)
         if not efficiency:
@@ -324,7 +337,7 @@ def get_car_efficiency(self, partner_pk, pay_time=None):
 
 @app.task(bind=True, queue='beat_tasks')
 def get_driver_efficiency(self, partner_pk, schema=None):
-    start, end = get_time_for_task(schema)
+    end, start = get_time_for_task(schema)[1:3]
     for driver in Driver.objects.filter(partner=partner_pk, schema=schema, worked=True):
         efficiency = DriverEfficiency.objects.filter(report_from=start,
                                                      partner=partner_pk,
@@ -472,7 +485,7 @@ def detaching_the_driver_from_the_car(self, partner_pk, licence_plate):
 @app.task(bind=True, queue='beat_tasks')
 def get_rent_information(self, partner_pk, schema=None):
     try:
-        start, end = get_time_for_task(schema)
+        end, start = get_time_for_task(schema)[1:3]
         UaGpsSynchronizer(partner_pk).save_daily_rent(start, end, schema)
         logger.info('write rent report')
     except Exception as e:
@@ -976,7 +989,7 @@ def calculate_driver_reports(self, partner_pk, schema):
         report_type = driver.schema.salary_calculation
         if report_type == SalaryCalculation.WEEK:
             schema = None
-        start, end = get_time_for_task(schema)
+        end, start = get_time_for_task(schema)[1:3]
         if DriverPayments.objects.filter(report_from=start,
                                          report_to=end,
                                          driver=driver).exists():
