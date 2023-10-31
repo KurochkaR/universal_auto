@@ -179,8 +179,8 @@ class UberRequest(Synchronizer):
                             continue
                         vehicle = check_vehicle(driver, end, max_time=True)[0]
                         payment = {
-                            "report_from": timezone.make_aware(start),
-                            "report_to": timezone.make_aware(end),
+                            "report_from": start,
+                            "report_to": end,
                             "vendor_name": self.fleet,
                             "driver_id": report['uuid'],
                             "full_name": str(driver),
@@ -191,7 +191,7 @@ class UberRequest(Synchronizer):
                             "partner": Partner.get_partner(self.partner_id),
                             "vehicle": vehicle
                         }
-                        db_report = Payments.objects.filter(report_from=timezone.make_aware(start),
+                        db_report = Payments.objects.filter(report_from=start,
                                                             driver_id=report['uuid'],
                                                             vendor_name=self.fleet,
                                                             partner=self.partner_id)

@@ -15,9 +15,10 @@ def get_schedule(hours, minutes, day='*'):
 
 
 def create_task(task, partner, schedule, param=None):
+    task_args = [partner, param] if param else [partner]
     try:
         periodic_task = PeriodicTask.objects.get(
-            name=f'auto.tasks.{task}({partner})',
+            name=f'auto.tasks.{task}({task_args})',
             task=f'auto.tasks.{task}',
             queue="beat_tasks"
         )
@@ -25,9 +26,8 @@ def create_task(task, partner, schedule, param=None):
             periodic_task.crontab = schedule
             periodic_task.save()
     except ObjectDoesNotExist:
-        task_args = [partner, param] if param else [partner]
         PeriodicTask.objects.create(
-            name=f'auto.tasks.{task}({partner})',
+            name=f'auto.tasks.{task}({task_args})',
             task=f'auto.tasks.{task}',
             queue="beat_tasks",
             crontab=schedule,

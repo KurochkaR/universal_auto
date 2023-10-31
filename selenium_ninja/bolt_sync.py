@@ -109,8 +109,8 @@ class BoltRequest(Synchronizer):
                                               driver=db_driver).count()
             vehicle = check_vehicle(db_driver, end, max_time=True)[0]
             report = {
-                "report_from": timezone.make_aware(start),
-                "report_to": timezone.make_aware(end),
+                "report_from": start,
+                "report_to": end,
                 "vendor_name": self.fleet,
                 "full_name": driver['name'],
                 "driver_id": driver['id'],

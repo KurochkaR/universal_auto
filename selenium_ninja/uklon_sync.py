@@ -97,6 +97,7 @@ class UklonRequest(Synchronizer):
                                        method=method)
         if response.status_code in (401, 403):
             self.create_session()
+            return self.response_data(url, params, headers, pjson, data, method)
         return response.json()
 
     @staticmethod
@@ -147,8 +148,8 @@ class UklonRequest(Synchronizer):
                     continue
                 vehicle = check_vehicle(db_driver, end, max_time=True)[0]
                 report = {
-                    "report_from": timezone.make_aware(start),
-                    "report_to": timezone.make_aware(end),
+                    "report_from": start,
+                    "report_to": end,
                     "vendor_name": self.fleet,
                     "full_name": f"{i['driver']['first_name'].split()[0]} {i['driver']['last_name'].split()[0]}",
                     "driver_id": i['driver']['id'],
@@ -166,7 +167,7 @@ class UklonRequest(Synchronizer):
                     "partner": Partner.get_partner(self.partner_id),
                     "vehicle": vehicle
                 }
-                db_report = Payments.objects.filter(report_from=timezone.make_aware(start),
+                db_report = Payments.objects.filter(report_from=start,
                                                     driver_id=i['driver']['id'],
                                                     vendor_name=self.fleet,
                                                     partner=self.partner_id)
