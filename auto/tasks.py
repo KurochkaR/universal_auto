@@ -634,7 +634,6 @@ def send_efficiency_report(self, partner_pk):
     if not managers:
         managers = [Partner.objects.filter(pk=partner_pk).values('chat_id').first()]
     for manager in managers:
-        print(manager)
         result = get_efficiency(manager_id=manager['chat_id'])
         if result:
             for k, v in result.items():
@@ -1168,6 +1167,8 @@ def update_schedule(self):
             schedule = get_schedule(hours, minutes)
 
             create_task(task, schema.partner.pk, schedule, schema.pk)
+        night_schedule = get_schedule("03", "59")
+        create_task("download_nightly_report", schema.partner.pk, night_schedule, schema.pk)
 
 
 @app.on_after_finalize.connect
