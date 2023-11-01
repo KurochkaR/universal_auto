@@ -7,7 +7,7 @@ import requests
 from django.utils import timezone
 
 from app.models import ParkSettings, Fleets_drivers_vehicles_rate, Driver, Payments, Service, Partner, FleetOrder, \
-    CredentialPartner, Vehicle, PaymentTypes
+    CredentialPartner, Vehicle, PaymentTypes, CustomReport
 from auto_bot.handlers.order.utils import check_vehicle
 from auto_bot.main import bot
 from scripts.redis_conn import redis_instance
@@ -137,7 +137,6 @@ class UklonRequest(Synchronizer):
         url = f"{Service.get_value('UKLON_3')}{self.uklon_id()}"
         url += Service.get_value('UKLON_4')
         resp = self.response_data(url=url, params=param)
-        print(resp)
         data = resp['items']
         if data:
             for i in data:
@@ -168,11 +167,11 @@ class UklonRequest(Synchronizer):
                         "partner": Partner.get_partner(self.partner_id),
                         "vehicle": vehicle
                     }
-                    db_report = Payments.objects.filter(report_from=start,
-                                                        driver_id=i['driver']['id'],
-                                                        vendor_name=self.fleet,
-                                                        partner=self.partner_id)
-                    db_report.update(**report) if db_report else Payments.objects.create(**report)
+                    db_report = CustomReport.objects.filter(report_from=start,
+                                                                driver_id=i['driver']['id'],
+                                                                vendor_name=self.fleet,
+                                                                partner=self.partner_id)
+                    db_report.update(**report) if db_report else CustomReport.objects.create(**report)
 
     def get_drivers_status(self):
         first_key, second_key = 'with_client', 'wait'

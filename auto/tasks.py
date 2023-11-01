@@ -18,8 +18,8 @@ from telegram.error import BadRequest
 from app.models import RawGPS, Vehicle, Order, Driver, JobApplication, ParkSettings, UseOfCars, CarEfficiency, \
     Payments, SummaryReport, Manager, Partner, DriverEfficiency, FleetOrder, ReportTelegramPayments, \
     TransactionsConversation, VehicleSpending, DriverReshuffle, DriverPayments, SalaryCalculation, CredentialPartner, \
-    PaymentTypes, TaskScheduler, DriverEffVehicleKasa, Schema
-from django.db.models import Sum, IntegerField, FloatField, Q, DecimalField
+    PaymentTypes, TaskScheduler, DriverEffVehicleKasa, Schema, CustomReport, Fleets_drivers_vehicles_rate
+from django.db.models import Sum, IntegerField, FloatField, Q, DecimalField, Value
 from django.db.models.functions import Cast, Coalesce
 
 from app.utils import get_schedule, create_task
@@ -273,6 +273,53 @@ def download_nightly_report(self, partner_pk, schema):
     save_report_to_ninja_payment(start, end, partner_pk, schema)
 
 
+def generate_payments(partner_pk, schema):
+    end, start = get_time_for_task(schema)[1:3]
+    settings = check_available_fleets(partner_pk)
+    for setting in settings:
+        request_class = fleets.get(setting.key)
+        if request_class:
+            reports = CustomReport.objects.filter(
+                report_from__range=(start, end),
+                vendor_name=request_class(partner_pk).fleet).values('driver_id', 'full_name', 'vehicle').annotate(
+                without_fee=Sum('total_amount_without_fee'),
+                cash=Sum('total_amount_cash'),
+                amount=Sum('total_amount'),
+                card=Sum('total_amount_on_card') or 0,
+                tips=Sum('tips') or 0,
+                bonuses=Sum('bonuses') or 0,
+                fee=Sum('fee') or 0,
+                fares=Sum('fares') or 0,
+                cancels=Sum('cancels') or 0,
+                compensations=Sum('compensations'),
+                refunds=Sum('refunds') or 0,
+                distance=Sum('total_distance') or 0,
+                rides=Sum('total_rides'))
+            for report in reports:
+                auto = Vehicle.objects.get(pk=report["vehicle"]) if report["vehicle"] else None
+                data = {
+                    "total_rides": report["rides"],
+                    "total_distance": report["distance"],
+                    "total_amount_cash": report["cash"],
+                    "total_amount_on_card": report["card"],
+                    "total_amount": report["amount"],
+                    "tips": report["tips"],
+                    "bonuses": report["bonuses"],
+                    "fares": report["fares"],
+                    "fee": report["fee"],
+                    "total_amount_without_fee": report["without_fee"],
+                    "partner": Partner.get_partner(partner_pk),
+                    "vehicle": auto
+                }
+                Payments.objects.get_or_create(report_from=start,
+                                               report_to=end,
+                                               vendor_name=request_class(partner_pk).fleet,
+                                               driver_id=report["driver_id"],
+                                               full_name=report["full_name"],
+                                               partner=partner_pk,
+                                               defaults={**data})
+
+
 @app.task(bind=True, queue='beat_tasks')
 def generate_summary_report(self, partner_pk, schema):
     end, start = get_time_for_task(schema)[1:3]
@@ -316,11 +363,15 @@ def get_car_efficiency(self, partner_pk):
             total_km = UaGpsSynchronizer(partner_pk).total_per_day(vehicle.gps_id, start, end)
             if total_km:
                 for driver in drivers:
-                    report = SummaryReport.objects.filter(report_from=start,
-                                                          driver=driver).first()
-                    if report:
-                        vehicle_drivers[driver] = report.total_amount_without_fee
-                        total_kasa += report.total_amount_without_fee
+                    driver_ids = Fleets_drivers_vehicles_rate.objects.filter(
+                        driver=driver,
+                        partner=partner_pk).values_list('driver_external_id', flat=True)
+                    driver_kasa = CustomReport.objects.filter(
+                        report_from__date=start,
+                        driver_id__in=driver_ids).aggregate(
+                        kasa=Coalesce(Sum("total_amount_without_fee"), Decimal(0)))['kasa']
+                    vehicle_drivers[driver] = driver_kasa
+                    total_kasa += driver_kasa
             result = max(
                 Decimal(total_kasa) - Decimal(total_spending), Decimal(0)) / Decimal(total_km) if total_km else 0
             car = CarEfficiency.objects.create(report_from=start,
@@ -571,6 +622,7 @@ def send_efficiency_report(self, partner_pk):
     if not managers:
         managers = [Partner.objects.filter(pk=partner_pk).values('chat_id').first()]
     for manager in managers:
+        print(manager)
         result = get_efficiency(manager_id=manager['chat_id'])
         if result:
             for k, v in result.items():
@@ -1039,8 +1091,9 @@ def calculate_driver_reports(self, partner_pk, schema):
 @app.task(bind=True, queue='beat_tasks')
 def get_information_from_fleets(self, partner_pk, schema):
     download_daily_report(partner_pk, schema)
-    generate_summary_report(partner_pk, schema)
     get_orders_from_fleets(partner_pk, schema)
+    generate_payments(partner_pk, schema)
+    generate_summary_report(partner_pk, schema)
     get_driver_efficiency(partner_pk, schema)
     get_rent_information(partner_pk, schema)
     get_car_efficiency(partner_pk, schema)
@@ -1048,12 +1101,12 @@ def get_information_from_fleets(self, partner_pk, schema):
 
 @app.task(bind=True, queue='beat_tasks')
 def send_from_db(self, partner_pk, schema):
-    # send_efficiency_report(partner_pk, driver_schema)
     task_chain = chain(
         calculate_driver_reports.si(partner_pk, schema),
         send_daily_statistic.si(partner_pk, schema),
         send_driver_efficiency.si(partner_pk, schema),
-        send_driver_report.si(partner_pk, schema)
+        send_driver_report.si(partner_pk, schema),
+        send_efficiency_report.si(partner_pk)
     )
     task_chain()
 

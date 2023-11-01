@@ -216,6 +216,9 @@ def generate_report_period(chat_id, start, end):
 def calculate_efficiency(vehicle, start, end):
     efficiency_objects = CarEfficiency.objects.filter(report_from__range=(start, end),
                                                       vehicle=vehicle)
+    print(vehicle)
+    print(start, end)
+    print(efficiency_objects)
     vehicle_drivers = []
     driver_kasa_totals = defaultdict(float)
     for obj in efficiency_objects:
@@ -248,8 +251,10 @@ def get_efficiency(manager_id=None, start=None, end=None):
     effective_vehicle = {}
     report = {}
     vehicles = get_drivers_vehicles_list(manager_id, Vehicle)[0]
+    print(vehicles)
     for vehicle in vehicles:
         effect = calculate_efficiency(vehicle, start, end)
+        print(effect)
         if effect:
             drivers = ", ".join(effect[3])
             if end == yesterday:

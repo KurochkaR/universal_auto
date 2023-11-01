@@ -589,25 +589,32 @@ class SummaryReport(models.Model):
         verbose_name_plural = 'Зведені звіти'
 
 
-class BoltCustomReport(models.Model):
+class CustomReport(models.Model):
     report_from = models.DateTimeField(verbose_name='Звіт з')
     report_to = models.DateTimeField(null=True, verbose_name='Звіт по')
     vendor_name = models.CharField(max_length=30, default='Ninja', verbose_name='Агрегатор')
+    full_name = models.CharField(null=True, max_length=255, verbose_name='ПІ водія')
     driver_id = models.CharField(null=True, max_length=50, verbose_name='Унікальний індифікатор водія')
     total_amount_without_fee = models.DecimalField(decimal_places=2, max_digits=10, verbose_name='Чистий дохід')
     total_amount_cash = models.DecimalField(decimal_places=2, max_digits=10, verbose_name='Готівкою')
+    total_amount_on_card = models.DecimalField(null=True, default=0, decimal_places=2, max_digits=10,
+                                               verbose_name='На картку')
     total_amount = models.DecimalField(null=True, default=0, decimal_places=2, max_digits=10,
                                        verbose_name='Загальна сума')
     tips = models.DecimalField(null=True, default=0, decimal_places=2, max_digits=10, verbose_name='Чайові')
     total_rides = models.PositiveIntegerField(null=True, default=0, verbose_name='Кількість поїздок')
+    total_distance = models.DecimalField(null=True, default=0, decimal_places=2,
+                                         max_digits=10, verbose_name='Пробіг під замовленням')
     bonuses = models.DecimalField(null=True, default=0, decimal_places=2, max_digits=10, verbose_name='Бонуси')
     fee = models.DecimalField(null=True, default=0, decimal_places=2, max_digits=10, verbose_name='Комісія')
+    fares = models.DecimalField(null=True, default=0, decimal_places=2, max_digits=10, verbose_name='Штрафи')
     cancels = models.DecimalField(null=True, default=0, decimal_places=2, max_digits=10,
                                   verbose_name='Плата за скасування')
     compensations = models.DecimalField(null=True, default=0, decimal_places=2, max_digits=10,
                                         verbose_name='Компенсації')
     refunds = models.DecimalField(null=True, default=0, decimal_places=2, max_digits=10,
                                   verbose_name='Повернення коштів')
+    vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Автомобіль')
     partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
 
 

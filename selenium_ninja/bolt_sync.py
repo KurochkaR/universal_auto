@@ -10,7 +10,7 @@ from django.db import IntegrityError
 from django.utils import timezone
 
 from app.models import BoltService, Driver, Fleets_drivers_vehicles_rate, Payments, Partner, FleetOrder, \
-    CredentialPartner, Vehicle, PaymentTypes, BoltCustomReport
+    CredentialPartner, Vehicle, PaymentTypes, CustomReport
 from auto import settings
 from auto_bot.handlers.order.utils import check_vehicle
 from selenium_ninja.synchronizer import Synchronizer, AuthenticationError
@@ -130,7 +130,7 @@ class BoltRequest(Synchronizer):
                     "vehicle": vehicle
                 }
                 if custom:
-                    bolt_custom = Payments.objects.filter(report_from__date=start,
+                    bolt_custom = CustomReport.objects.filter(report_from__date=start,
                                                           driver_id=driver['id'],
                                                           partner=self.partner_id).last()
                     if bolt_custom:
@@ -146,7 +146,11 @@ class BoltRequest(Synchronizer):
                              "compensations": Decimal(driver['compensations']) - bolt_custom.compensations,
                              "refunds": Decimal(driver['expense_refunds']) - bolt_custom.refunds,
                              "total_rides": rides - bolt_custom.total_rides})
-                Payments.objects.create(**report)
+                db_report = CustomReport.objects.filter(report_from=start,
+                                                            driver_id=driver['id'],
+                                                            vendor_name=self.fleet,
+                                                            partner=self.partner_id)
+                db_report.update(**report) if db_report else CustomReport.objects.create(**report)
 
 
     def get_drivers_table(self):
