@@ -19,7 +19,7 @@ from app.models import RawGPS, Vehicle, Order, Driver, JobApplication, ParkSetti
     Payments, SummaryReport, Manager, Partner, DriverEfficiency, FleetOrder, ReportTelegramPayments, \
     TransactionsConversation, VehicleSpending, DriverReshuffle, DriverPayments, SalaryCalculation, CredentialPartner, \
     PaymentTypes, TaskScheduler, DriverEffVehicleKasa, Schema, CustomReport, Fleets_drivers_vehicles_rate
-from django.db.models import Sum, IntegerField, FloatField, Q, DecimalField, Value
+from django.db.models import Sum, IntegerField, FloatField, Q, DecimalField
 from django.db.models.functions import Cast, Coalesce
 
 from app.utils import get_schedule, create_task
@@ -360,24 +360,36 @@ def get_car_efficiency(self, partner_pk):
             else Driver.objects.filter(vehicle=vehicle)
         if not efficiency:
             total_kasa = 0
+            clean_kasa = 0
             total_km = UaGpsSynchronizer(partner_pk).total_per_day(vehicle.gps_id, start, end)
             if total_km:
                 for driver in drivers:
                     driver_ids = Fleets_drivers_vehicles_rate.objects.filter(
                         driver=driver,
                         partner=partner_pk).values_list('driver_external_id', flat=True)
-                    driver_kasa = CustomReport.objects.filter(
+                    reports = CustomReport.objects.filter(
                         report_from__date=start,
-                        driver_id__in=driver_ids).aggregate(
+                        driver_id__in=driver_ids)
+                    driver_kasa = reports.aggregate(
                         kasa=Coalesce(Sum("total_amount_without_fee"), Decimal(0)))['kasa']
                     vehicle_drivers[driver] = driver_kasa
                     total_kasa += driver_kasa
+                    if driver.schema.schema == "DYNAMIC":
+                        last_payment = DriverPayments.objects.filter(driver=driver).last()
+                        car_percent = 1 - (last_payment.kasa / (last_payment.salary + last_payment.cash))
+                        clean_kasa += driver_kasa * car_percent
+                    elif driver.schema.schema in ("CUSTOM", "HALF"):
+                        clean_kasa += driver_kasa * (1 - driver.schema.rate)
+                    else:
+                        continue
+
             result = max(
                 Decimal(total_kasa) - Decimal(total_spending), Decimal(0)) / Decimal(total_km) if total_km else 0
             car = CarEfficiency.objects.create(report_from=start,
                                                report_to=end,
                                                vehicle=vehicle,
                                                total_kasa=total_kasa,
+                                               clean_kasa=clean_kasa,
                                                total_spending=total_spending,
                                                mileage=total_km,
                                                efficiency=result,
@@ -992,7 +1004,7 @@ def get_driver_reshuffles(self, partner, delta=0):
                 reshuffle.update(**obj_data) if reshuffle else DriverReshuffle.objects.create(**obj_data)
             if delta:
                 deleted_reshuffles = DriverReshuffle.objects.exclude(calendar_event_id__in=list_events)
-                for reshuffle in deleted_reshuffles.filter(swap_time__date=day.date()):
+                for reshuffle in deleted_reshuffles.filter(swap_time__date=day):
                     reshuffle.delete()
         except socket.timeout:
             self.retry(args=[partner, delta], countdown=600)
@@ -1096,7 +1108,7 @@ def get_information_from_fleets(self, partner_pk, schema):
     generate_summary_report(partner_pk, schema)
     get_driver_efficiency(partner_pk, schema)
     get_rent_information(partner_pk, schema)
-    get_car_efficiency(partner_pk, schema)
+    get_car_efficiency(partner_pk)
 
 
 @app.task(bind=True, queue='beat_tasks')

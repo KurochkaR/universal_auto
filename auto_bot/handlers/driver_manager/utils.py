@@ -61,7 +61,7 @@ def get_drivers_vehicles_list(chat_id, cls):
 
 
 def calculate_rent(start, end, driver):
-    end_time = datetime.combine(end, datetime.max.time())
+    end_time = timezone.make_aware(datetime.combine(end, datetime.max.time()))
     rent_report = RentInformation.objects.filter(
         rent_distance__gt=driver.schema.limit_distance,
         report_from__range=(start, end_time),
