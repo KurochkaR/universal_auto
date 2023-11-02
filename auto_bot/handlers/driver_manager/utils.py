@@ -18,13 +18,16 @@ def get_time_for_task(schema):
     :type schema: int
     :return: start, end, previous_start, previous_end
     """
-    schema_obj = Schema.objects.get(pk=schema)
-    end = timezone.make_aware(datetime.combine(timezone.localtime().date(), schema_obj.shift_time))
     start = timezone.make_aware(datetime.combine(timezone.localtime().date(), time.min))
     yesterday = timezone.localtime() - timedelta(days=1)
-    previous_start = timezone.make_aware(datetime.combine(yesterday, schema_obj.shift_time))
     previous_end = timezone.make_aware(datetime.combine(yesterday, time.max))
-    return start, end, previous_start, previous_end
+    if schema:
+        schema_obj = Schema.objects.get(pk=schema)
+        end = timezone.make_aware(datetime.combine(timezone.localtime().date(), schema_obj.shift_time))
+        previous_start = timezone.make_aware(datetime.combine(yesterday, schema_obj.shift_time))
+        return start, end, previous_start, previous_end
+    else:
+        return None, previous_end, start, None
 
 
 def validate_date(date_str):

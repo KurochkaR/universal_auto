@@ -131,8 +131,9 @@ class BoltRequest(Synchronizer):
                 }
                 if custom:
                     bolt_custom = CustomReport.objects.filter(report_from__date=start,
-                                                          driver_id=driver['id'],
-                                                          partner=self.partner_id).last()
+                                                              driver_id=driver['id'],
+                                                              vendor_name=self.fleet,
+                                                              partner=self.partner_id).last()
                     if bolt_custom:
                         report.update(
                             {"total_amount_cash": driver['cash_in_hand'] - bolt_custom.total_amount_cash,
@@ -147,11 +148,10 @@ class BoltRequest(Synchronizer):
                              "refunds": Decimal(driver['expense_refunds']) - bolt_custom.refunds,
                              "total_rides": rides - bolt_custom.total_rides})
                 db_report = CustomReport.objects.filter(report_from=start,
-                                                            driver_id=driver['id'],
-                                                            vendor_name=self.fleet,
-                                                            partner=self.partner_id)
+                                                        driver_id=driver['id'],
+                                                        vendor_name=self.fleet,
+                                                        partner=self.partner_id)
                 db_report.update(**report) if db_report else CustomReport.objects.create(**report)
-
 
     def get_drivers_table(self):
         driver_list = []

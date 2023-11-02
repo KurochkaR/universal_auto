@@ -35,11 +35,11 @@ class TransactionInvestorUserFilter(admin.SimpleListFilter):
 
     def lookups(self, request, model_admin):
         user = request.user
-        queryset = TransactionsConversation.objects.all()
+        queryset = TransactionsConversation.objects.all().select_related("vehicle")
         vehicle_choices = []
         if user.groups.filter(name='Investor').exists():
             vehicles = Vehicle.objects.filter(investor_car__user=user)
-            queryset.filter(vehicle__in=vehicles)
+            queryset.filter(vehicle__in=vehicles).select_related('vehicle')
         if user.groups.filter(name='Partner').exists():
             queryset = TransactionsConversation.objects.filter(investor__partner__user=user)
         vehicle_choices.extend(queryset.values_list('vehicle_id', 'vehicle__licence_plate'))
@@ -58,9 +58,8 @@ class VehicleManagerFilter(admin.SimpleListFilter):
     def lookups(self, request, model_admin):
         user = request.user
         queryset = Vehicle.objects.exclude(manager__isnull=True)
-        if not user.groups.filter(name__in=('Manager', 'Investor')).exists():
-            if user.groups.filter(name='Partner').exists():
-                queryset = queryset.filter(partner__user=user)
+        if user.groups.filter(name='Partner').exists():
+            queryset = queryset.filter(partner__user=user)
             manager_ids = queryset.values_list('manager_id', flat=True)
             manager_labels = [f'{item.manager.first_name} {item.manager.last_name}' for item in queryset]
             return set(zip(manager_ids, manager_labels))
@@ -68,8 +67,7 @@ class VehicleManagerFilter(admin.SimpleListFilter):
     def queryset(self, request, queryset):
         value = self.value()
         if value:
-            if not request.user.groups.filter(name__in=('Manager', 'Investor')).exists():
-                return queryset.filter(manager__id=value)
+            return queryset.filter(manager__id=value)
 
 
 class DriverRelatedFilter(admin.SimpleListFilter):

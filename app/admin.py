@@ -91,14 +91,14 @@ def filter_queryset_by_group(*groups, field_to_filter=None):
                     try:
                         queryset = queryset.filter(manager__user=request.user)
                         if field_to_filter is not None:
-                            queryset = queryset.filter(**{field_to_filter: True})
+                            queryset = queryset.filter(**{field_to_filter: True}).select_related("vehicle", "schema")
                     except FieldError:
                         pass
 
                 if request.user.groups.filter(name='Partner').exists():
                     queryset = queryset.filter(partner__user=request.user)
                     if field_to_filter is not None:
-                        queryset = queryset.filter(**{field_to_filter: True})
+                        queryset = queryset.filter(**{field_to_filter: True}).select_related("vehicle", "schema")
 
                 return queryset
 
@@ -1061,7 +1061,7 @@ class FleetOrderAdmin(admin.ModelAdmin):
 
 
 @admin.register(Fleets_drivers_vehicles_rate)
-class Fleets_drivers_vehicles_rateAdmin(filter_queryset_by_group('Partner', field_to_filter='driver__worked')(admin.ModelAdmin)):
+class Fleets_drivers_vehicles_rateAdmin(admin.ModelAdmin):
     list_filter = ('fleet',)
     readonly_fields = ('fleet', 'driver_external_id')
     list_per_page = 25
@@ -1085,6 +1085,16 @@ class Fleets_drivers_vehicles_rateAdmin(filter_queryset_by_group('Partner', fiel
 
             return fieldsets
         return super().get_fieldsets(request)
+
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request).select_related("driver", "fleet")
+        if request.user.groups.filter(name='Partner').exists():
+            queryset = queryset.filter(partner__user=request.user,
+                                       driver__worked=True)
+        elif request.user.groups.filter(name='Manager').exists():
+            queryset = queryset.filter(driver__manager__user=request.user,
+                                       driver__worked=True)
+        return queryset
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == "driver":
