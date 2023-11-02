@@ -345,60 +345,59 @@ def generate_summary_report(self, partner_pk, schema):
 
 
 @app.task(bind=True, queue='beat_tasks')
-def get_car_efficiency(self, partner_pk, schema):
+def get_car_efficiency(self, partner_pk):
     end = timezone.make_aware(datetime.combine(timezone.localtime().date(), time.min))
     start = end - timedelta(days=1)
     for vehicle in Vehicle.objects.filter(partner=partner_pk):
         efficiency = CarEfficiency.objects.filter(report_from=start,
                                                   partner=partner_pk,
                                                   vehicle=vehicle)
-        vehicle_drivers = {}
-        total_spending = VehicleSpending.objects.filter(
-            vehicle=vehicle, created_at__range=(start, end)).aggregate(Sum('amount'))['amount__sum'] or 0
-        reshuffles = DriverReshuffle.objects.filter(end_time__range=(start, end), swap_vehicle=vehicle)
-        drivers = [reshuffle.driver_start for reshuffle in reshuffles] if reshuffles \
-            else Driver.objects.filter(vehicle=vehicle)
-        total_kasa = 0
-        clean_kasa = 0
-        total_km = UaGpsSynchronizer(partner_pk).total_per_day(vehicle.gps_id, start, end)
-        if total_km:
-            for driver in drivers:
-                driver_ids = Fleets_drivers_vehicles_rate.objects.filter(
-                    driver=driver,
-                    partner=partner_pk).values_list('driver_external_id', flat=True)
-                reports = CustomReport.objects.filter(
-                    report_from__date=start,
-                    driver_id__in=driver_ids)
-                driver_kasa = reports.aggregate(
-                    kasa=Coalesce(Sum("total_amount_without_fee"), Decimal(0)))['kasa']
-                vehicle_drivers[driver] = driver_kasa
-                total_kasa += driver_kasa
-                if driver.schema == schema:
-                    if driver.schema.schema == "DYNAMIC":
-                        last_payment = DriverPayments.objects.filter(driver=driver).last()
-                        car_percent = 1 - (last_payment.kasa / (last_payment.salary + last_payment.cash))
-                        clean_kasa += driver_kasa * car_percent
-                    elif driver.schema.schema in ("CUSTOM", "HALF"):
-                        clean_kasa += driver_kasa * (1 - driver.schema.rate)
-                    else:
-                        continue
         if not efficiency:
-            result = max(
-                Decimal(total_kasa) - Decimal(total_spending), Decimal(0)) / Decimal(total_km) if total_km else 0
-            car = CarEfficiency.objects.create(report_from=start,
-                                               report_to=end,
-                                               vehicle=vehicle,
-                                               total_kasa=total_kasa,
-                                               clean_kasa=clean_kasa,
-                                               total_spending=total_spending,
-                                               mileage=total_km,
-                                               efficiency=result,
-                                               partner=Partner.get_partner(partner_pk))
-            for driver, kasa in vehicle_drivers.items():
-                DriverEffVehicleKasa.objects.create(driver=driver, efficiency_car=car, kasa=kasa)
-        else:
-            efficiency.clean_kasa += clean_kasa
-            efficiency.save()
+            vehicle_drivers = {}
+            total_spending = VehicleSpending.objects.filter(
+                vehicle=vehicle, created_at__range=(start, end)).aggregate(Sum('amount'))['amount__sum'] or 0
+            reshuffles = DriverReshuffle.objects.filter(end_time__range=(start, end), swap_vehicle=vehicle)
+            drivers = [reshuffle.driver_start for reshuffle in reshuffles] if reshuffles \
+                else Driver.objects.filter(vehicle=vehicle)
+            total_kasa = 0
+            total_km = UaGpsSynchronizer(partner_pk).total_per_day(vehicle.gps_id, start, end)
+            if total_km:
+                for driver in drivers:
+                    driver_ids = Fleets_drivers_vehicles_rate.objects.filter(
+                        driver=driver,
+                        partner=partner_pk).values_list('driver_external_id', flat=True)
+                    reports = CustomReport.objects.filter(
+                        report_from__date=start,
+                        driver_id__in=driver_ids)
+                    driver_kasa = reports.aggregate(
+                        kasa=Coalesce(Sum("total_amount_without_fee"), Decimal(0)))['kasa']
+                    vehicle_drivers[driver] = driver_kasa
+                    total_kasa += driver_kasa
+                result = max(
+                    Decimal(total_kasa) - Decimal(total_spending), Decimal(0)) / Decimal(total_km) if total_km else 0
+                car = CarEfficiency.objects.create(report_from=start,
+                                                   report_to=end,
+                                                   vehicle=vehicle,
+                                                   total_kasa=total_kasa,
+                                                   total_spending=total_spending,
+                                                   mileage=total_km,
+                                                   efficiency=result,
+                                                   partner=Partner.get_partner(partner_pk))
+                for driver, kasa in vehicle_drivers.items():
+                    DriverEffVehicleKasa.objects.create(driver=driver, efficiency_car=car, kasa=kasa)
+
+# @app.task(bind=True, queue='beat_tasks')
+# def calculate_clean_kasa(self, partner_pk):
+#     for driver in Driver.objects.filter(partner=partner_pk):
+#     if driver.schema == schema:
+#         if driver.schema.schema == "DYNAMIC":
+#             last_payment = DriverPayments.objects.filter(driver=driver).last()
+#             car_percent = 1 - (last_payment.kasa / (last_payment.salary + last_payment.cash))
+#             clean_kasa += driver_kasa * car_percent
+#         elif driver.schema.schema in ("CUSTOM", "HALF"):
+#             clean_kasa += driver_kasa * (1 - driver.schema.rate)
+#         else:
+#             continue
 
 
 @app.task(bind=True, queue='beat_tasks')
@@ -594,13 +593,12 @@ def manager_paid_weekly(self, partner_pk):
 @app.task(bind=True, queue='beat_tasks')
 def send_driver_report(self, partner_pk, schema):
     result = []
-    driver_schema = Schema.objects.get(pk=schema)
     managers = list(Manager.objects.filter(
         partner=partner_pk, chat_id__isnull=False).exclude(chat_id='').values('chat_id'))
     managers.append(Partner.objects.filter(
         pk=partner_pk, chat_id__isnull=False).exclude(chat_id='').values('chat_id').first())
     for manager in managers:
-        result.append(generate_message_report(manager['chat_id'], driver_schema))
+        result.append(generate_message_report(manager['chat_id'], schema))
     return result
 
 
@@ -1050,12 +1048,16 @@ def save_report_to_ninja_payment(start, end, partner_pk, schema, fleet_name='Nin
 
 @app.task(bind=True, queue='beat_tasks')
 def calculate_driver_reports(self, partner_pk, schema):
-
     for driver in Driver.objects.filter(partner=partner_pk, schema=schema):
         report_type = driver.schema.salary_calculation
         if report_type == SalaryCalculation.WEEK:
-            schema = None
-        end, start = get_time_for_task(schema)[1:3]
+            if timezone.localtime().weekday():
+                start = timezone.localtime().date() - timedelta(days=timezone.localtime().weekday())
+            else:
+                start = timezone.localtime().date() - timedelta(weeks=1)
+            end = timezone.localtime().date() - timedelta(days=1)
+        else:
+            end, start = get_time_for_task(schema)[1:3]
         if DriverPayments.objects.filter(report_from=start,
                                          report_to=end,
                                          driver=driver).exists():
@@ -1110,7 +1112,6 @@ def get_information_from_fleets(self, partner_pk, schema):
     generate_summary_report(partner_pk, schema)
     get_driver_efficiency(partner_pk, schema)
     get_rent_information(partner_pk, schema)
-    get_car_efficiency(partner_pk, schema)
 
 
 @app.task(bind=True, queue='beat_tasks')

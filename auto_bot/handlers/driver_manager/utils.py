@@ -21,13 +21,10 @@ def get_time_for_task(schema):
     start = timezone.make_aware(datetime.combine(timezone.localtime().date(), time.min))
     yesterday = timezone.localtime() - timedelta(days=1)
     previous_end = timezone.make_aware(datetime.combine(yesterday, time.max))
-    if schema:
-        schema_obj = Schema.objects.get(pk=schema)
-        end = timezone.make_aware(datetime.combine(timezone.localtime().date(), schema_obj.shift_time))
-        previous_start = timezone.make_aware(datetime.combine(yesterday, schema_obj.shift_time))
-        return start, end, previous_start, previous_end
-    else:
-        return None, previous_end, start, None
+    schema_obj = Schema.objects.get(pk=schema)
+    end = timezone.make_aware(datetime.combine(timezone.localtime().date(), schema_obj.shift_time))
+    previous_start = timezone.make_aware(datetime.combine(yesterday, schema_obj.shift_time))
+    return start, end, previous_start, previous_end
 
 
 def validate_date(date_str):

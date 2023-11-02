@@ -146,7 +146,7 @@ class BoltRequest(Synchronizer):
                                  driver['net_earnings']) - bolt_custom.total_amount_without_fee,
                              "compensations": Decimal(driver['compensations']) - bolt_custom.compensations,
                              "refunds": Decimal(driver['expense_refunds']) - bolt_custom.refunds,
-                             "total_rides": rides - bolt_custom.total_rides})
+                             })
                 db_report = CustomReport.objects.filter(report_from=start,
                                                         driver_id=driver['id'],
                                                         vendor_name=self.fleet,
