@@ -257,7 +257,7 @@ class SchemaAdmin(filter_queryset_by_group('Partner')(admin.ModelAdmin)):
     def get_fieldsets(self, request, obj=None):
         fieldsets = [
             ('Деталі', {'fields': ['title', 'schema', 'rate', 'plan', 'rental', 'rent_price', 'limit_distance',
-                                   'shift_time', 'salary_calculation']}),
+                                   'salary_calculation']}),
         ]
         return fieldsets
 

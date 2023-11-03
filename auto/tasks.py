@@ -274,50 +274,53 @@ def download_nightly_report(self, partner_pk, schema):
 
 
 def generate_payments(partner_pk, schema):
-    end, start = get_time_for_task(schema)[1:3]
+
     settings = check_available_fleets(partner_pk)
     for setting in settings:
         request_class = fleets.get(setting.key)
         if request_class:
-            reports = CustomReport.objects.filter(
-                report_from__range=(start, end),
-                vendor_name=request_class(partner_pk).fleet).values('driver_id', 'full_name', 'vehicle').annotate(
-                without_fee=Sum('total_amount_without_fee'),
-                cash=Sum('total_amount_cash'),
-                amount=Sum('total_amount'),
-                card=Sum('total_amount_on_card') or 0,
-                tips=Sum('tips') or 0,
-                bonuses=Sum('bonuses') or 0,
-                fee=Sum('fee') or 0,
-                fares=Sum('fares') or 0,
-                cancels=Sum('cancels') or 0,
-                compensations=Sum('compensations'),
-                refunds=Sum('refunds') or 0,
-                distance=Sum('total_distance') or 0,
-                rides=Sum('total_rides'))
-            for report in reports:
-                auto = Vehicle.objects.get(pk=report["vehicle"]) if report["vehicle"] else None
-                data = {
-                    "total_rides": report["rides"],
-                    "total_distance": report["distance"],
-                    "total_amount_cash": report["cash"],
-                    "total_amount_on_card": report["card"],
-                    "total_amount": report["amount"],
-                    "tips": report["tips"],
-                    "bonuses": report["bonuses"],
-                    "fares": report["fares"],
-                    "fee": report["fee"],
-                    "total_amount_without_fee": report["without_fee"],
-                    "partner": Partner.get_partner(partner_pk),
-                    "vehicle": auto
-                }
-                Payments.objects.get_or_create(report_from=start,
-                                               report_to=end,
-                                               vendor_name=request_class(partner_pk).fleet,
-                                               driver_id=report["driver_id"],
-                                               full_name=report["full_name"],
-                                               partner=partner_pk,
-                                               defaults={**data})
+            for driver in Driver.objects.filter(schema=schema):
+                end, start = get_time_for_task(schema)[1:3]
+                driver_id = driver.get_driver_external_id(request_class(partner_pk).fleet)
+                reports = CustomReport.objects.filter(
+                    report_from__range=(start, end),
+                    driver_id=driver_id).values('full_name', 'vehicle').annotate(
+                    without_fee=Sum('total_amount_without_fee'),
+                    cash=Sum('total_amount_cash'),
+                    amount=Sum('total_amount'),
+                    card=Sum('total_amount_on_card') or 0,
+                    tips=Sum('tips') or 0,
+                    bonuses=Sum('bonuses') or 0,
+                    fee=Sum('fee') or 0,
+                    fares=Sum('fares') or 0,
+                    cancels=Sum('cancels') or 0,
+                    compensations=Sum('compensations'),
+                    refunds=Sum('refunds') or 0,
+                    distance=Sum('total_distance') or 0,
+                    rides=Sum('total_rides'))
+                for report in reports:
+                    auto = Vehicle.objects.get(pk=report["vehicle"]) if report["vehicle"] else None
+                    data = {
+                        "total_rides": report["rides"],
+                        "total_distance": report["distance"],
+                        "total_amount_cash": report["cash"],
+                        "total_amount_on_card": report["card"],
+                        "total_amount": report["amount"],
+                        "tips": report["tips"],
+                        "bonuses": report["bonuses"],
+                        "fares": report["fares"],
+                        "fee": report["fee"],
+                        "total_amount_without_fee": report["without_fee"],
+                        "partner": Partner.get_partner(partner_pk),
+                        "vehicle": auto
+                    }
+                    Payments.objects.get_or_create(report_from=start,
+                                                   report_to=end,
+                                                   vendor_name=request_class(partner_pk).fleet,
+                                                   driver_id=report["driver_id"],
+                                                   full_name=report["full_name"],
+                                                   partner=partner_pk,
+                                                   defaults={**data})
 
 
 @app.task(bind=True, queue='beat_tasks')
