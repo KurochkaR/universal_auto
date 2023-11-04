@@ -317,7 +317,7 @@ def generate_payments(partner_pk, schema):
                     Payments.objects.get_or_create(report_from=start,
                                                    report_to=end,
                                                    vendor_name=request_class(partner_pk).fleet,
-                                                   driver_id=report["driver_id"],
+                                                   driver_id=driver_id,
                                                    full_name=report["full_name"],
                                                    partner=partner_pk,
                                                    defaults={**data})

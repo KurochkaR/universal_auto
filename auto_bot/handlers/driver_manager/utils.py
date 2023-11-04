@@ -130,14 +130,15 @@ def get_daily_report(manager_id, schema_obj=None):
     return sort_report, day_values, total_rent, rent_daily
 
 
-def generate_message_report(chat_id, schema_obj=None, daily=None):
+def generate_message_report(chat_id, schema, daily=None):
     end_date = timezone.localtime().date() - timedelta(days=timezone.localtime().weekday() + 1)
     start_date = end_date - timedelta(days=6)
     start = timezone.make_aware(datetime.combine(start_date, time.min))
     end = timezone.make_aware(datetime.combine(end_date, time.max))
     drivers, user = get_drivers_vehicles_list(chat_id, Driver)
-    if schema_obj:
-        drivers = drivers.filter(schema=schema_obj)
+    if schema:
+        drivers = drivers.filter(schema=schema)
+        schema_obj = Schema.objects.get(pk=schema)
         if schema_obj.salary_calculation == SalaryCalculation.DAY:
             end, start = get_time_for_task(schema_obj)[1:3]
     elif daily:
