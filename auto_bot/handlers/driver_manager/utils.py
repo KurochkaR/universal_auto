@@ -140,7 +140,7 @@ def generate_message_report(chat_id, schema, daily=None):
         drivers = drivers.filter(schema=schema)
         schema_obj = Schema.objects.get(pk=schema)
         if schema_obj.salary_calculation == SalaryCalculation.DAY:
-            end, start = get_time_for_task(schema_obj)[1:3]
+            end, start = get_time_for_task(schema)[1:3]
     elif daily:
         start = timezone.localtime()
         end = start - timedelta(days=1)
@@ -217,9 +217,6 @@ def generate_report_period(chat_id, start, end):
 def calculate_efficiency(vehicle, start, end):
     efficiency_objects = CarEfficiency.objects.filter(report_from__range=(start, end),
                                                       vehicle=vehicle)
-    print(vehicle)
-    print(start, end)
-    print(efficiency_objects)
     vehicle_drivers = []
     driver_kasa_totals = defaultdict(float)
     for obj in efficiency_objects:
