@@ -194,12 +194,13 @@ def get_today_orders(self, partner_pk):
     settings = check_available_fleets(partner_pk)
     start = datetime.combine(timezone.localtime().date(), time.min)
     end = timezone.localtime()
-    drivers = Driver.objects.filter(partner=partner_pk)
-    for setting in settings:
-        request_class = fleets.get(setting.key)
-        if request_class and not isinstance(request_class(partner_pk), UberRequest):
-            for driver in drivers:
-                request_class(partner_pk).get_fleet_orders(start, end, driver.pk)
+    if start != end:
+        drivers = Driver.objects.filter(partner=partner_pk)
+        for setting in settings:
+            request_class = fleets.get(setting.key)
+            if request_class and not isinstance(request_class(partner_pk), UberRequest):
+                for driver in drivers:
+                    request_class(partner_pk).get_fleet_orders(start, end, driver.pk)
 
 
 @app.task(bind=True, queue='beat_tasks')
