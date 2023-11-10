@@ -7,7 +7,7 @@ from django.db.models.functions import Coalesce
 from django.utils import timezone
 
 from app.models import CarEfficiency, Driver, SummaryReport, Manager, \
-    Vehicle, RentInformation, ParkSettings, DriverEfficiency, Partner, Role, DriverSchemaRate, SalaryCalculation, \
+    Vehicle, RentInformation, DriverEfficiency, Partner, Role, DriverSchemaRate, SalaryCalculation, \
     DriverPayments, Schema
 
 
@@ -130,20 +130,25 @@ def get_daily_report(manager_id, schema_obj=None):
     return sort_report, day_values, total_rent, rent_daily
 
 
-def generate_message_report(chat_id, schema, daily=None):
-    end_date = timezone.localtime().date() - timedelta(days=timezone.localtime().weekday() + 1)
-    start_date = end_date - timedelta(days=6)
-    start = timezone.make_aware(datetime.combine(start_date, time.min))
-    end = timezone.make_aware(datetime.combine(end_date, time.max))
+def generate_message_report(chat_id, schema_id=None, daily=None):
     drivers, user = get_drivers_vehicles_list(chat_id, Driver)
-    if schema:
-        drivers = drivers.filter(schema=schema)
-        schema_obj = Schema.objects.get(pk=schema)
-        if schema_obj.salary_calculation == SalaryCalculation.DAY:
+    if schema_id:
+        schema = Schema.objects.get(pk=schema_id)
+        if schema.salary_calculation == SalaryCalculation.WEEK:
+            if not timezone.localtime().weekday():
+                start = timezone.localtime().date() - timedelta(weeks=1)
+                end = timezone.localtime().date() - timedelta(days=1)
+            else:
+                return
+        else:
             end, start = get_time_for_task(schema)[1:3]
+        drivers = drivers.filter(schema=schema)
     elif daily:
-        start = timezone.localtime()
+        start = timezone.localtime().date()
         end = start - timedelta(days=1)
+    else:
+        end = timezone.localtime().date() - timedelta(days=timezone.localtime().weekday() + 1)
+        start = end - timedelta(days=6)
     message = ''
     drivers_dict = {}
     balance = 0
@@ -177,9 +182,10 @@ def generate_message_report(chat_id, schema, daily=None):
             message += driver_message
         if driver_message:
             message += "*" * 39 + '\n'
-    manager_message = f'Ваш баланс:%.2f\n' % balance
-    manager_message += message
-    if user:
+    if message and user:
+        manager_message = "Звіт з {0} по {1}\n".format(start.date(), end.date())
+        manager_message += f'Ваш баланс:%.2f\n' % balance
+        manager_message += message
         drivers_dict[user.chat_id] = manager_message
     return drivers_dict
 

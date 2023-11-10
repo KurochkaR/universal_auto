@@ -111,12 +111,21 @@ class UaGpsSynchronizer:
                                                           state=FleetOrder.COMPLETED,
                                                           accepted_time__gte=start,
                                                           accepted_time__lt=end).order_by('accepted_time')
+                    first_order = FleetOrder.objects.filter(driver=driver,
+                                                            finish_time__gt=start,
+                                                            accepted_time__lte=start).first()
+                    if first_order:
+                        completed += first_order
                 else:
                     continue
                 previous_finish_time = None
                 for order in completed:
                     end_report = order.finish_time if order.finish_time < end else end
-                    if previous_finish_time is None or order.accepted_time >= previous_finish_time:
+                    if order.accepted_time < start:
+                        report = self.generate_report(self.get_timestamp(timezone.localtime(start)),
+                                                      self.get_timestamp(timezone.localtime(end_report)),
+                                                      order.vehicle.gps_id)
+                    elif previous_finish_time is None or order.accepted_time >= previous_finish_time:
                         report = self.generate_report(self.get_timestamp(timezone.localtime(order.accepted_time)),
                                                       self.get_timestamp(timezone.localtime(end_report)),
                                                       order.vehicle.gps_id)
