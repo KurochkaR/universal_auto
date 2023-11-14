@@ -1,28 +1,35 @@
+import uuid
+from datetime import datetime, timedelta
 import requests
+from django.db import models
 from django.utils import timezone
 
 from app.models import UberService, Payments, UberSession, Fleets_drivers_vehicles_rate, Partner, FleetOrder, Driver, \
-    CustomReport
+    CustomReport, Fleet
 from auto_bot.handlers.order.utils import check_vehicle
 from selenium_ninja.driver import SeleniumTools
-
 from selenium_ninja.synchronizer import Synchronizer
 
 
-class UberRequest(Synchronizer):
-
-    def __init__(self, partner_id=None, fleet="Uber"):
-        super().__init__(partner_id, fleet)
-        self.base_url = UberService.get_value('REQUEST_UBER_BASE_URL')
+class UberRequest(Fleet, Synchronizer):
+    base_url = models.URLField(default=UberService.get_value('REQUEST_UBER_BASE_URL'))
 
     def get_header(self):
-        obj_session = UberSession.objects.filter(partner=self.partner_id).latest('created_at')
+        obj_session = UberSession.objects.filter(partner=self.partner).latest('created_at')
         headers = {
             "content-type": "application/json",
             "x-csrf-token": "x",
             "cookie": f"sid={obj_session.session}; csid={obj_session.cook_session}"
         }
         return headers
+
+    def get_uuid(self):
+        obj_session = UberSession.objects.filter(partner=self.partner).latest('created_at')
+        return str(obj_session.uber_uuid)
+
+    @staticmethod
+    def create_session(partner, login, password):
+        SeleniumTools(partner).create_uber_session(login, password)
 
     @staticmethod
     def remove_dup(text):
@@ -68,6 +75,7 @@ class UberRequest(Synchronizer):
                   firstName
                   lastName
                 }
+                pictureUrl
                 email
                 phone {
                   countryCode
@@ -86,7 +94,7 @@ class UberRequest(Synchronizer):
           }
         '''
         variables = {
-                    "orgUUID": str(self.session.uber_uuid),
+                    "orgUUID": self.get_uuid(),
                     "pagingOptions": {
                         "pageSize": 25
                                     },
@@ -98,7 +106,7 @@ class UberRequest(Synchronizer):
                     }
         drivers = []
         data = self.get_payload(query, variables)
-        response = requests.post(self.base_url, headers=self.get_header(), json=data)
+        response = requests.post(str(self.base_url), headers=self.get_header(), json=data)
         drivers_data = response.json()['data']['getDrivers']['drivers']
         for driver in drivers_data:
             licence_plate = ''
@@ -109,7 +117,7 @@ class UberRequest(Synchronizer):
                 vehicle_name = driver['associatedVehicles'][0]['make']
                 vin_code = driver['associatedVehicles'][0]['vin']
             phone = driver['member']['user']['phone']
-            drivers.append({'fleet_name': self.fleet,
+            drivers.append({'fleet_name': self.name,
                             'name': self.remove_dup(driver['member']['user']['name']['firstName']),
                             'second_name': self.remove_dup(driver['member']['user']['name']['lastName']),
                             'email': driver['member']['user']['email'],
@@ -117,6 +125,7 @@ class UberRequest(Synchronizer):
                             'driver_external_id': driver['member']['user']['uuid'],
                             'licence_plate': licence_plate,
                             'pay_cash': True,
+                            'photo': driver['member']['user']['pictureUrl'],
                             'vehicle_name': vehicle_name,
                             'vin_code': vin_code,
                             'worked': True})
@@ -125,8 +134,8 @@ class UberRequest(Synchronizer):
     def save_report(self, start, end, schema):
         format_start = self.report_interval(start) * 1000
         format_end = self.report_interval(end) * 1000
-        uber_drivers = Fleets_drivers_vehicles_rate.objects.filter(partner=self.partner_id,
-                                                                   fleet__name=self.fleet)
+        uber_drivers = Fleets_drivers_vehicles_rate.objects.filter(partner=self.partner,
+                                                                   fleet=self)
         drivers_id = [obj.driver_external_id for obj in uber_drivers]
         query = '''query GetPerformanceReport($performanceReportRequest: PerformanceReportRequest__Input!) {
                   getPerformanceReport(performanceReportRequest: $performanceReportRequest) {
@@ -140,7 +149,7 @@ class UberRequest(Synchronizer):
                 }'''
         variables = {
                       "performanceReportRequest": {
-                        "orgUUID": str(self.session.uber_uuid),
+                        "orgUUID": self.get_uuid(),
                         "dimensions": [
                           "vs:driver"
                         ],
@@ -169,12 +178,12 @@ class UberRequest(Synchronizer):
                     }
         if uber_drivers:
             data = self.get_payload(query, variables)
-            response = requests.post(self.base_url, headers=self.get_header(), json=data)
+            response = requests.post(str(self.base_url), headers=self.get_header(), json=data)
             if response.status_code == 200 and response.json()['data']:
                 for report in response.json()['data']['getPerformanceReport']:
                     if report['totalEarnings']:
                         driver = Fleets_drivers_vehicles_rate.objects.get(driver_external_id=report['uuid'],
-                                                                          partner=self.partner_id).driver
+                                                                          partner=self.partner).driver
                         driver_obj = Driver.objects.get(pk=driver)
                         if driver_obj.schema:
                             if driver_obj.schema.pk != schema:
@@ -183,7 +192,7 @@ class UberRequest(Synchronizer):
                             payment = {
                                 "report_from": start,
                                 "report_to": end,
-                                "vendor_name": self.fleet,
+                                "vendor_name": self.name,
                                 "driver_id": report['uuid'],
                                 "full_name": str(driver),
                                 "total_amount": round(report['totalEarnings'], 2),
@@ -199,7 +208,7 @@ class UberRequest(Synchronizer):
                                                                 partner=self.partner_id)
                             db_report.update(**payment) if db_report else CustomReport.objects.create(**payment)
             else:
-                self.logger.error(f"Failed save uber report {self.partner_id} {response}")
+                self.logger.error(f"Failed save uber report {self.partner} {response}")
 
     def get_drivers_status(self):
         query = '''query GetDriverEvents($orgUUID: String!) {
@@ -211,12 +220,12 @@ class UberRequest(Synchronizer):
                       }
                     }'''
         variables = {
-                    "orgUUID": str(self.session.uber_uuid)
+                    "orgUUID": self.get_uuid()
                      }
         with_client = []
         wait = []
         data = self.get_payload(query, variables)
-        response = requests.post(self.base_url, headers=self.get_header(), json=data)
+        response = requests.post(str(self.base_url), headers=self.get_header(), json=data)
         if response.status_code == 200:
             drivers = response.json()['data']['getDriverEvents']['driverEvents']
             if drivers:
@@ -251,11 +260,11 @@ class UberRequest(Synchronizer):
                       vin
                     }'''
         variables = {
-            "orgUUID": str(self.session.uber_uuid),
+            "orgUUID": self.get_uuid(),
             "pageSize": 25
         }
         data = self.get_payload(query, variables)
-        response = requests.post(self.base_url, headers=self.get_header(), json=data)
+        response = requests.post(str(self.base_url), headers=self.get_header(), json=data)
         if response.status_code == 200:
             vehicles_list = []
             vehicles = response.json()["data"]["getSupplierVehicles"]["vehicles"]
@@ -268,7 +277,52 @@ class UberRequest(Synchronizer):
 
     def get_fleet_orders(self, start, end):
         if not FleetOrder.objects.filter(fleet="Uber", accepted_time__range=(start.date(), end.date())):
-            uber_driver = SeleniumTools(self.partner_id)
-            uber_driver.download_payments_order("Uber", start, end)
-            uber_driver.save_trips_report("Uber", start, end)
+            uber_driver = SeleniumTools(self.partner.id)
+            uber_driver.download_payments_order(start, end)
+            uber_driver.save_trips_report(start, end)
             uber_driver.quit()
+
+    def disable_cash(self, driver_id, enable):
+        date = datetime.now()
+        period = date.isoformat() + "Z"
+        block_query = '''mutation EnableCashBlocks($supplierUuid: UberDataSchemasBasicProtoUuidInput!,
+         $earnerUuid: UberDataSchemasBasicProtoUuidInput!) {
+                    enableCashBlock(
+                        supplierUuid: $supplierUuid
+                        earnerUuid: $earnerUuid
+                      ) { 
+                      cashBlockOverride {
+                        earnerUuid {
+                        value
+                        __typename
+                        }
+                      }
+                      __typename
+                    }
+        }'''
+        unblock_query = '''mutation DisableCashBlocks(
+                            $supplierUuid: UberDataSchemasBasicProtoUuidInput!,
+                             $earnerUuid: UberDataSchemasBasicProtoUuidInput!,
+                              $effectiveAt: UberDataSchemasTimeProtoDateTimeInput!) {
+                              disableCashBlock(
+                                supplierUuid: $supplierUuid
+                                earnerUuid: $earnerUuid
+                                effectiveAt: $effectiveAt
+                              ) {
+                                cashBlockOverride {
+                                  earnerUuid {
+                                    value
+                                    __typename
+                                  }
+                                }
+                                __typename
+                              }
+                            }'''
+        variables = {
+                    "supplierUuid": {"value": self.get_uuid()},
+                    "earnerUuid": {"value": driver_id},
+                    "effectiveAt": {"value": period}
+        }
+        query = unblock_query if enable == 'true' else block_query
+        data = self.get_payload(query, variables)
+        requests.post(str(self.base_url), headers=self.get_header(), json=data)

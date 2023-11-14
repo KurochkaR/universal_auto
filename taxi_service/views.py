@@ -16,6 +16,7 @@ from django.utils.decorators import method_decorator
 from api.views import CarsInformationListView
 from taxi_service.forms import SubscriberForm, MainOrderForm
 from taxi_service.handlers import PostRequestHandler, GetRequestHandler
+from taxi_service.seo_keywords import seo_index, seo_park_page
 from app.models import ParkSettings, Driver
 from auto_bot.main import bot
 
@@ -25,6 +26,7 @@ class IndexView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        context["seo_keywords"] = seo_index
         context["subscribe_form"] = SubscriberForm()
         return context
 
@@ -42,14 +44,8 @@ class PostRequestView(View):
             "user_opt_out": handler.handler_update_order,
             "increase_price": handler.handler_restarting_order,
             "continue_search": handler.handler_restarting_order,
-            "uber": handler.handler_success_login,
-            "uber_logout": handler.handler_handler_logout,
-            "uklon": handler.handler_success_login,
-            "uklon_logout": handler.handler_handler_logout,
-            "bolt": handler.handler_success_login,
-            "bolt_logout": handler.handler_handler_logout,
-            "gps": handler.handler_success_login,
-            "gps_logout": handler.handler_handler_logout,
+            "login": handler.handler_success_login,
+            "logout": handler.handler_handler_logout,
             "login_invest": handler.handler_success_login_investor,
             "logout_invest": handler.handler_logout_investor,
             "change_password": handler.handler_change_password,
@@ -89,6 +85,7 @@ class AutoParkView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        context["seo_keywords"] = seo_park_page
         context["subscribe_form"] = SubscriberForm()
         return context
 

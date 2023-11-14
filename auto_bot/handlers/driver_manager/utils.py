@@ -62,14 +62,15 @@ def get_drivers_vehicles_list(chat_id, cls):
 
 def calculate_rent(start, end, driver):
     end_time = timezone.make_aware(datetime.combine(end, datetime.max.time()))
-    rent_report = RentInformation.objects.filter(
-        rent_distance__gt=driver.schema.limit_distance,
-        report_from__range=(start, end_time),
-        driver=driver)
-    if rent_report:
-        overall_rent = ExpressionWrapper(F('rent_distance') - driver.schema.limit_distance,
-                                         output_field=DecimalField())
-        total_rent = rent_report.aggregate(distance=Sum(overall_rent))['distance']
+    if driver.schema:
+        rent_report = RentInformation.objects.filter(
+            rent_distance__gt=driver.schema.limit_distance,
+            report_from__range=(start, end_time),
+            driver=driver)
+        if rent_report:
+            overall_rent = ExpressionWrapper(F('rent_distance') - driver.schema.limit_distance,
+                                             output_field=DecimalField())
+            total_rent = rent_report.aggregate(distance=Sum(overall_rent))['distance']
     else:
         total_rent = 0
     return total_rent
@@ -155,7 +156,6 @@ def generate_message_report(chat_id, schema_id=None, daily=None):
     for driver in drivers:
         payment = DriverPayments.objects.filter(report_from=start, report_to=end, driver=driver).first()
         driver_message = ''
-
         if payment:
             driver_message += f"{driver} каса: {payment.kasa}\n"
             if payment.rent:
@@ -255,10 +255,8 @@ def get_efficiency(manager_id=None, start=None, end=None):
     effective_vehicle = {}
     report = {}
     vehicles = get_drivers_vehicles_list(manager_id, Vehicle)[0]
-    print(vehicles)
     for vehicle in vehicles:
         effect = calculate_efficiency(vehicle, start, end)
-        print(effect)
         if effect:
             drivers = ", ".join(effect[3])
             if end == yesterday:
@@ -396,4 +394,3 @@ def get_driver_efficiency_report(manager_id, schema=None, start=None, end=None):
     for k, v in sorted_effective_driver.items():
         report[k] = [f"{vk}: {vv}\n" for vk, vv in v.items()]
     return report
-
