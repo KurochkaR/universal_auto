@@ -5,11 +5,10 @@ from urllib import parse
 import requests
 from _decimal import Decimal
 from django.core.exceptions import ObjectDoesNotExist
-from django.db import IntegrityError
 from django.utils import timezone
 
 from django.db import models
-from app.models import BoltService, Driver, Fleets_drivers_vehicles_rate, Payments, FleetOrder, \
+from app.models import BoltService, Driver, Fleets_drivers_vehicles_rate, FleetOrder, \
     CredentialPartner, Vehicle, PaymentTypes, Fleet, CustomReport
 from auto import settings
 from auto_bot.handlers.order.utils import check_vehicle
@@ -140,7 +139,7 @@ class BoltRequest(Fleet, Synchronizer):
                     bolt_custom = CustomReport.objects.filter(report_from__date=start,
                                                               driver_id=driver['id'],
                                                               vendor_name=self.fleet,
-                                                              partner=self.partner_id).last()
+                                                              partner=self.partner).last()
                     if bolt_custom:
                         report.update(
                             {"total_amount_cash": driver['cash_in_hand'] - bolt_custom.total_amount_cash,
@@ -157,7 +156,7 @@ class BoltRequest(Fleet, Synchronizer):
                 db_report = CustomReport.objects.filter(report_from=start,
                                                         driver_id=driver['id'],
                                                         vendor_name=self.fleet,
-                                                        partner=self.partner_id)
+                                                        partner=self.partner)
                 db_report.update(**report) if db_report else CustomReport.objects.create(**report)
 
     def get_drivers_table(self):

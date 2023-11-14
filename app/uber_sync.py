@@ -1,10 +1,10 @@
-import uuid
-from datetime import datetime, timedelta
+
+from datetime import datetime
 import requests
 from django.db import models
-from django.utils import timezone
 
-from app.models import UberService, Payments, UberSession, Fleets_drivers_vehicles_rate, Partner, FleetOrder, Driver, \
+
+from app.models import UberService, UberSession, Fleets_drivers_vehicles_rate, Partner, FleetOrder, Driver, \
     CustomReport, Fleet
 from auto_bot.handlers.order.utils import check_vehicle
 from selenium_ninja.driver import SeleniumTools
@@ -203,9 +203,9 @@ class UberRequest(Fleet, Synchronizer):
                                 "vehicle": vehicle
                             }
                             db_report = CustomReport.objects.filter(report_from=start,
-                                                                driver_id=report['uuid'],
-                                                                vendor_name=self.fleet,
-                                                                partner=self.partner_id)
+                                                                    driver_id=report['uuid'],
+                                                                    vendor_name=self.fleet,
+                                                                    partner=self.partner)
                             db_report.update(**payment) if db_report else CustomReport.objects.create(**payment)
             else:
                 self.logger.error(f"Failed save uber report {self.partner} {response}")

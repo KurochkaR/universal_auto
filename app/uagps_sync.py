@@ -79,7 +79,7 @@ class UaGpsSynchronizer(Fleet):
         report = requests.get(f"{self.partner.gps_url}wialon/ajax.html", params=params)
         raw_time = report.json()['reportResult']['stats'][4][1]
         clean_time = [int(i) for i in raw_time.split(':')]
-        road_time = datetime.timedelta(hours=clean_time[0], minutes=clean_time[1], seconds=clean_time[2])
+        road_time = timedelta(hours=clean_time[0], minutes=clean_time[1], seconds=clean_time[2])
         raw_distance = report.json()['reportResult']['stats'][5][1]
         road_distance = Decimal(raw_distance.split(' ')[0])
         return road_distance, road_time
@@ -89,7 +89,6 @@ class UaGpsSynchronizer(Fleet):
         return int(timeframe.timestamp())
 
     def get_road_distance(self, start, end, schema=None):
-        day = timezone.localtime() - datetime.timedelta(days=delta)
         road_dict = {}
         drivers = Driver.objects.filter(
             partner=self.partner, schema=schema) if schema else Driver.objects.filter(partner=self.partner)
