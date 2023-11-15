@@ -1,14 +1,17 @@
 from datetime import datetime, timedelta
 from auto.tasks import get_orders_from_fleets
+from app.models import FleetOrder
 
 
-def run(partner_id):
-    start = datetime.now().date() - timedelta(days=15)
-    end = datetime.now().date() - timedelta(days=1)
-    while start <= end:
-        day = datetime.strftime(start, "%Y-%m-%d")
-        get_orders_from_fleets.delay(partner_id, day)
-        start += timedelta(days=1)
+def run():
+    start = datetime.now() - timedelta(days=60)
+    orders = FleetOrder.objects.filter(fleet="Uklon", accepted_time__gte=start, state=FleetOrder.COMPLETED)
+    for order in orders:
+        try:
+            if order.price / order.distance < 10:
+                print(order.id)
+        except:
+            pass
 
 
  

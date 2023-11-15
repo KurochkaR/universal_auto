@@ -17,7 +17,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver import DesiredCapabilities
 from selenium.common import TimeoutException, NoSuchElementException, InvalidArgumentException
 
-from app.models import FleetOrder, Partner, Vehicle, Fleets_drivers_vehicles_rate, UberService, UberSession, \
+from app.models import FleetOrder, Partner, Vehicle, FleetsDriversVehiclesRate, UberService, UberSession, \
     UaGpsService, NewUklonService
 from app.uklon_sync import UklonRequest
 from auto import settings
@@ -357,7 +357,7 @@ class SeleniumTools:
                         finish = timezone.make_aware(datetime.strptime(row[8], "%Y-%m-%d %H:%M:%S"))
                     except ValueError:
                         finish = None
-                    driver = Fleets_drivers_vehicles_rate.objects.filter(driver_external_id=row[1]).first()
+                    driver = FleetsDriversVehiclesRate.objects.filter(driver_external_id=row[1]).first()
                     if driver:
                         vehicle = Vehicle.objects.get(licence_plate=row[5])
                         order = {"order_id": row[0],

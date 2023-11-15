@@ -11,18 +11,21 @@ from app.models import CarEfficiency, Driver, SummaryReport, Manager, \
     DriverPayments, Schema
 
 
-def get_time_for_task(schema):
+def get_time_for_task(schema, day=None):
     """
     Returns time periods
     :param schema: pk of the schema
+    :param day: report day if needed
     :type schema: int
     :return: start, end, previous_start, previous_end
     """
-    start = timezone.make_aware(datetime.combine(timezone.localtime().date(), time.min))
-    yesterday = timezone.localtime() - timedelta(days=1)
-    previous_end = timezone.make_aware(datetime.combine(yesterday, time.max))
     schema_obj = Schema.objects.get(pk=schema)
-    end = timezone.make_aware(datetime.combine(timezone.localtime().date(), schema_obj.shift_time))
+    date = day.strftime("%Y-%m-%d") if day else timezone.localtime()
+    start = timezone.make_aware(datetime.combine(date.date(), time.min))
+    yesterday = date - timedelta(days=1)
+    previous_end = timezone.make_aware(datetime.combine(yesterday, time.max))
+
+    end = timezone.make_aware(datetime.combine(date.date(), schema_obj.shift_time))
     previous_start = timezone.make_aware(datetime.combine(yesterday, schema_obj.shift_time))
     return start, end, previous_start, previous_end
 
@@ -62,6 +65,7 @@ def get_drivers_vehicles_list(chat_id, cls):
 
 def calculate_rent(start, end, driver):
     end_time = timezone.make_aware(datetime.combine(end, datetime.max.time()))
+    total_rent = 0
     if driver.schema:
         rent_report = RentInformation.objects.filter(
             rent_distance__gt=driver.schema.limit_distance,
@@ -71,8 +75,6 @@ def calculate_rent(start, end, driver):
             overall_rent = ExpressionWrapper(F('rent_distance') - driver.schema.limit_distance,
                                              output_field=DecimalField())
             total_rent = rent_report.aggregate(distance=Sum(overall_rent))['distance']
-    else:
-        total_rent = 0
     return total_rent
 
 
@@ -133,8 +135,8 @@ def get_daily_report(manager_id, schema_obj=None):
 
 def generate_message_report(chat_id, schema_id=None, daily=None):
     drivers, user = get_drivers_vehicles_list(chat_id, Driver)
+    schema = Schema.objects.get(pk=schema_id)
     if schema_id:
-        schema = Schema.objects.get(pk=schema_id)
         if schema.salary_calculation == SalaryCalculation.WEEK:
             if not timezone.localtime().weekday():
                 start = timezone.localtime().date() - timedelta(weeks=1)
@@ -142,7 +144,7 @@ def generate_message_report(chat_id, schema_id=None, daily=None):
             else:
                 return
         else:
-            end, start = get_time_for_task(schema)[1:3]
+            end, start = get_time_for_task(schema_id)[1:3]
         drivers = drivers.filter(schema=schema)
     elif daily:
         start = timezone.localtime().date()

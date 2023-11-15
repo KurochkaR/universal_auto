@@ -1,5 +1,5 @@
 import pytest
-from app.models import Fleets_drivers_vehicles_rate, Fleet, Driver, Vehicle
+from app.models import FleetsDriversVehiclesRate, Fleet, Driver, Vehicle
 
 
 # Check write data to Fleets_drivers_vehicles_rate model
@@ -31,7 +31,7 @@ def test_fleets_drivers_vehicles_rate_create(fleet_name, full_name, vehicle, dri
             licence_plate='АА 0880 ВР',
             vin_code='JH4DA9340LS003571')
 
-    fleets_drivers_vehicles = Fleets_drivers_vehicles_rate.objects.create(
+    fleets_drivers_vehicles = FleetsDriversVehiclesRate.objects.create(
         fleet=fleet,
         driver=driver,
         vehicle=vehicle,
@@ -43,4 +43,4 @@ def test_fleets_drivers_vehicles_rate_create(fleet_name, full_name, vehicle, dri
     assert fleets_drivers_vehicles.vehicle == vehicle
     assert fleets_drivers_vehicles.driver_external_id == driver_external_id
     assert fleets_drivers_vehicles.rate == rate
-    assert Fleets_drivers_vehicles_rate.objects.count() == 1
+    assert FleetsDriversVehiclesRate.objects.count() == 1

@@ -143,7 +143,7 @@ def get_dates(period=None):
             start_date = current_date - timedelta(days=weekday)
         end_date = current_date
 
-    return start_date, end_date
+    return timezone.make_aware(start_date), timezone.make_aware(end_date)
 
 
 def update_park_set(partner, key, value, description=None, check_value=True, park=True):

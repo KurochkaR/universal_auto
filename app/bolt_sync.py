@@ -8,7 +8,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.utils import timezone
 
 from django.db import models
-from app.models import BoltService, Driver, Fleets_drivers_vehicles_rate, FleetOrder, \
+from app.models import BoltService, Driver, FleetsDriversVehiclesRate, FleetOrder, \
     CredentialPartner, Vehicle, PaymentTypes, Fleet, CustomReport
 from auto import settings
 from auto_bot.handlers.order.utils import check_vehicle
@@ -102,8 +102,8 @@ class BoltRequest(Fleet, Synchronizer):
         reports = self.get_target_url(f'{self.base_url}getDriverEarnings/dateRange', param)
         for driver in reports['data']['drivers']:
             try:
-                db_driver = Fleets_drivers_vehicles_rate.objects.get(driver_external_id=driver['id'],
-                                                                     partner=self.partner).driver
+                db_driver = FleetsDriversVehiclesRate.objects.get(driver_external_id=driver['id'],
+                                                                  partner=self.partner).driver
             except ObjectDoesNotExist:
                 get_logger().error(self, driver['id'])
                 continue
@@ -111,7 +111,7 @@ class BoltRequest(Fleet, Synchronizer):
             if driver_obj.schema:
                 if driver_obj.schema.pk != schema:
                     continue
-                rides = FleetOrder.objects.filter(fleet=self.fleet,
+                rides = FleetOrder.objects.filter(fleet=self.name,
                                                   accepted_time__gte=start,
                                                   state=FleetOrder.COMPLETED,
                                                   driver=db_driver).count()
@@ -138,7 +138,7 @@ class BoltRequest(Fleet, Synchronizer):
                 if custom:
                     bolt_custom = CustomReport.objects.filter(report_from__date=start,
                                                               driver_id=driver['id'],
-                                                              vendor_name=self.fleet,
+                                                              vendor_name=self.name,
                                                               partner=self.partner).last()
                     if bolt_custom:
                         report.update(
@@ -155,7 +155,7 @@ class BoltRequest(Fleet, Synchronizer):
                              })
                 db_report = CustomReport.objects.filter(report_from=start,
                                                         driver_id=driver['id'],
-                                                        vendor_name=self.fleet,
+                                                        vendor_name=self.name,
                                                         partner=self.partner)
                 db_report.update(**report) if db_report else CustomReport.objects.create(**report)
 
@@ -273,7 +273,7 @@ class BoltRequest(Fleet, Synchronizer):
         }
         self.post_target_url(f'{self.base_url}driver/toggleCash', self.param(), payload)
         pay_cash = True if enable == 'true' else False
-        Fleets_drivers_vehicles_rate.objects.filter(driver_external_id=driver_id).update(pay_cash=pay_cash)
+        FleetsDriversVehiclesRate.objects.filter(driver_external_id=driver_id).update(pay_cash=pay_cash)
 
     def add_driver(self, job_application):
         headers = {

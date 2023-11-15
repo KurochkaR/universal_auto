@@ -205,7 +205,7 @@ class ServiceStationManagerFleetInline(admin.TabularInline):
 
 
 class Fleets_drivers_vehicles_rateInline(admin.TabularInline):
-    model = Fleets_drivers_vehicles_rate
+    model = FleetsDriversVehiclesRate
     extra = 0
     verbose_name = 'Fleets Drivers Vehicles Rate'
     verbose_name_plural = 'Fleets Drivers Vehicles Rate'
@@ -389,7 +389,7 @@ class ServiceStationManagerAdmin(admin.ModelAdmin):
     ]
 
 
-@admin.register(Report_of_driver_debt)
+@admin.register(ReportDriveDebt)
 class ReportOfDriverDebtAdmin(admin.ModelAdmin):
     list_display = ('driver', 'image', 'created_at')
     list_filter = ('driver', 'created_at')
@@ -917,14 +917,14 @@ class DriverAdmin(filter_queryset_by_group('Partner', field_to_filter='worked')(
     def save_model(self, request, obj, form, change):
         fleet = Fleet.objects.get(name='Ninja')
         chat_id = form.cleaned_data.get('chat_id')
-        driver_fleet = Fleets_drivers_vehicles_rate.objects.filter(fleet=fleet,
-                                                                   driver_external_id=chat_id)
+        driver_fleet = FleetsDriversVehiclesRate.objects.filter(fleet=fleet,
+                                                                driver_external_id=chat_id)
         if chat_id and not driver_fleet:
-            Fleets_drivers_vehicles_rate.objects.create(fleet=fleet,
-                                                        driver_external_id=chat_id,
-                                                        driver=obj,
-                                                        partner=obj.partner,
-                                                        )
+            FleetsDriversVehiclesRate.objects.create(fleet=fleet,
+                                                     driver_external_id=chat_id,
+                                                     driver=obj,
+                                                     partner=obj.partner,
+                                                     )
 
         super().save_model(request, obj, form, change)
 
@@ -1094,7 +1094,7 @@ class FleetOrderAdmin(admin.ModelAdmin):
         return fieldsets
 
 
-@admin.register(Fleets_drivers_vehicles_rate)
+@admin.register(FleetsDriversVehiclesRate)
 class Fleets_drivers_vehicles_rateAdmin(admin.ModelAdmin):
     list_filter = (FleetRelatedFilter,)
     readonly_fields = ('fleet', 'driver_external_id')
@@ -1195,6 +1195,8 @@ class ParkSettingsAdmin(admin.ModelAdmin):
 @admin.register(TaskScheduler)
 class TaskSchedulerAdmin(admin.ModelAdmin):
     list_display = ['name', 'task_time', 'periodic', 'arguments']
+    list_editable = ['task_time', 'periodic']
+
     def get_fieldsets(self, request, obj=None):
 
         fieldsets = [

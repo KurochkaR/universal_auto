@@ -57,7 +57,7 @@ class TaskScheduler(models.Model):
     task_time = models.TimeField(verbose_name="Час запуску задачі")
     periodic = models.BooleanField(verbose_name="Періодичний запуск")
     weekly = models.BooleanField(verbose_name="Тижнева задача")
-    interval = models.IntegerField(blank=True, verbose_name="Інтервал запуску")
+    interval = models.IntegerField(blank=True, null=True, verbose_name="Інтервал запуску")
     arguments = models.IntegerField(null=True, blank=True, verbose_name="Аргументи")
 
     def __str__(self):
@@ -418,9 +418,9 @@ class Driver(User):
 
     def get_driver_external_id(self, vendor: str):
         try:
-            return Fleets_drivers_vehicles_rate.objects.get(fleet__name=vendor, driver=self,
-                                                            partner=self.partner,
-                                                            deleted_at=None).driver_external_id
+            return FleetsDriversVehiclesRate.objects.get(fleet__name=vendor, driver=self,
+                                                         partner=self.partner,
+                                                         deleted_at=None).driver_external_id
         except ObjectDoesNotExist:
             return
 
@@ -483,8 +483,6 @@ class NinjaFleet(Fleet):
                                          report_to=self.end_report_interval(day),
                                          vendor_name=self.name)
         return list(report)
-
-
 
 
 class Client(User):
@@ -589,7 +587,6 @@ class SummaryReport(models.Model):
         verbose_name_plural = 'Зведені звіти'
 
 
-
 class CustomReport(models.Model):
     report_from = models.DateTimeField(verbose_name='Звіт з')
     report_to = models.DateTimeField(null=True, verbose_name='Звіт по')
@@ -619,7 +616,6 @@ class CustomReport(models.Model):
     partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
 
 
-
 class StatusChange(models.Model):
     driver = models.ForeignKey(Driver, null=True, on_delete=models.CASCADE)
     vehicle = models.ForeignKey(Vehicle, null=True, on_delete=models.CASCADE)
@@ -629,7 +625,7 @@ class StatusChange(models.Model):
     duration = models.DurationField(null=True, blank=True)
 
 
-class Fleets_drivers_vehicles_rate(models.Model):
+class FleetsDriversVehiclesRate(models.Model):
     fleet = models.ForeignKey(Fleet, on_delete=models.CASCADE, verbose_name='Агрегатор')
     driver = models.ForeignKey(Driver, null=True, on_delete=models.CASCADE, verbose_name='Водій')
     driver_external_id = models.CharField(max_length=255, verbose_name='Унікальний індифікатор по автопарку')
@@ -843,7 +839,7 @@ class FleetOrder(models.Model):
         verbose_name_plural = 'Замовлення в агрегаторах'
 
 
-class Report_of_driver_debt(models.Model):
+class ReportDriveDebt(models.Model):
     driver = models.CharField(max_length=255, verbose_name='Водій')
     image = models.ImageField(upload_to='.', verbose_name='Фото')
     created_at = models.DateTimeField(editable=False, auto_now_add=True, verbose_name='Створено')
@@ -884,7 +880,7 @@ class SubscribeUsers(models.Model):
     @staticmethod
     def get_by_email(email):
         """
-        Returns subscriber by email
+        Returns subscriber by field
         :param email: email by which we need to find the subscriber
         :type email: str
         :return: subscriber object or None if a subscriber with such email does not exist

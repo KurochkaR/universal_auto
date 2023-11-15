@@ -5,7 +5,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.core.files import File
 from django.db.models import Q
 from django.utils import timezone
-from app.models import Fleet, Fleets_drivers_vehicles_rate, Driver, Vehicle, Role, JobApplication, \
+from app.models import Fleet, FleetsDriversVehiclesRate, Driver, Vehicle, Role, JobApplication, \
     DriverReshuffle
 import datetime
 
@@ -40,15 +40,15 @@ class Synchronizer:
         print(f'Finished {self} drivers: {len(drivers)}')
 
     def create_driver(self, **kwargs):
-        driver = Fleets_drivers_vehicles_rate.objects.filter(fleet=self,
-                                                             driver_external_id=kwargs['driver_external_id'],
-                                                             partner=self.partner).first()
+        driver = FleetsDriversVehiclesRate.objects.filter(fleet=self,
+                                                          driver_external_id=kwargs['driver_external_id'],
+                                                          partner=self.partner).first()
         if not driver:
-            Fleets_drivers_vehicles_rate.objects.create(fleet=self,
-                                                        driver_external_id=kwargs['driver_external_id'],
-                                                        driver=self.get_or_create_driver(**kwargs),
-                                                        pay_cash=kwargs['pay_cash'],
-                                                        partner=self.partner)
+            FleetsDriversVehiclesRate.objects.create(fleet=self,
+                                                     driver_external_id=kwargs['driver_external_id'],
+                                                     driver=self.get_or_create_driver(**kwargs),
+                                                     pay_cash=kwargs['pay_cash'],
+                                                     partner=self.partner)
         else:
             self.update_driver_fields(driver.driver, **kwargs)
             driver.pay_cash = kwargs["pay_cash"]
@@ -79,10 +79,10 @@ class Synchronizer:
                 driver.chat_id = client.chat_id
                 driver.save()
                 fleet = Fleet.objects.get(name='Ninja')
-                Fleets_drivers_vehicles_rate.objects.get_or_create(fleet=fleet,
-                                                                   driver_external_id=driver.chat_id,
-                                                                   driver=driver,
-                                                                   partner=self.partner)
+                FleetsDriversVehiclesRate.objects.get_or_create(fleet=fleet,
+                                                                driver_external_id=driver.chat_id,
+                                                                driver=driver,
+                                                                partner=self.partner)
             except ObjectDoesNotExist:
                 pass
         else:

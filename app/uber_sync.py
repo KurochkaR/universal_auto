@@ -1,10 +1,7 @@
-
 from datetime import datetime
 import requests
 from django.db import models
-
-
-from app.models import UberService, UberSession, Fleets_drivers_vehicles_rate, Partner, FleetOrder, Driver, \
+from app.models import UberService, UberSession, FleetsDriversVehiclesRate, FleetOrder, Driver, \
     CustomReport, Fleet
 from auto_bot.handlers.order.utils import check_vehicle
 from selenium_ninja.driver import SeleniumTools
@@ -134,8 +131,8 @@ class UberRequest(Fleet, Synchronizer):
     def save_report(self, start, end, schema):
         format_start = self.report_interval(start) * 1000
         format_end = self.report_interval(end) * 1000
-        uber_drivers = Fleets_drivers_vehicles_rate.objects.filter(partner=self.partner,
-                                                                   fleet=self)
+        uber_drivers = FleetsDriversVehiclesRate.objects.filter(partner=self.partner,
+                                                                fleet=self)
         drivers_id = [obj.driver_external_id for obj in uber_drivers]
         query = '''query GetPerformanceReport($performanceReportRequest: PerformanceReportRequest__Input!) {
                   getPerformanceReport(performanceReportRequest: $performanceReportRequest) {
@@ -182,8 +179,8 @@ class UberRequest(Fleet, Synchronizer):
             if response.status_code == 200 and response.json()['data']:
                 for report in response.json()['data']['getPerformanceReport']:
                     if report['totalEarnings']:
-                        driver = Fleets_drivers_vehicles_rate.objects.get(driver_external_id=report['uuid'],
-                                                                          partner=self.partner).driver
+                        driver = FleetsDriversVehiclesRate.objects.get(driver_external_id=report['uuid'],
+                                                                       partner=self.partner).driver
                         driver_obj = Driver.objects.get(pk=driver)
                         if driver_obj.schema:
                             if driver_obj.schema.pk != schema:
@@ -199,12 +196,12 @@ class UberRequest(Fleet, Synchronizer):
                                 "total_amount_without_fee": round(report['totalEarnings'], 2),
                                 "total_amount_cash": round(report['cashEarnings'], 2),
                                 "total_rides": report['totalTrips'],
-                                "partner": Partner.get_partner(self.partner_id),
+                                "partner": self.partner,
                                 "vehicle": vehicle
                             }
                             db_report = CustomReport.objects.filter(report_from=start,
                                                                     driver_id=report['uuid'],
-                                                                    vendor_name=self.fleet,
+                                                                    vendor_name=self.name,
                                                                     partner=self.partner)
                             db_report.update(**payment) if db_report else CustomReport.objects.create(**payment)
             else:
@@ -230,7 +227,7 @@ class UberRequest(Fleet, Synchronizer):
             drivers = response.json()['data']['getDriverEvents']['driverEvents']
             if drivers:
                 for rider in drivers:
-                    rate = Fleets_drivers_vehicles_rate.objects.filter(driver_external_id=rider['driverUUID']).first()
+                    rate = FleetsDriversVehiclesRate.objects.filter(driver_external_id=rider['driverUUID']).first()
                     if rate:
                         name, second_name = rate.driver.name, rate.driver.second_name
                         if rider["driverStatus"] == "online":
@@ -276,7 +273,7 @@ class UberRequest(Fleet, Synchronizer):
             return vehicles_list
 
     def get_fleet_orders(self, start, end):
-        if not FleetOrder.objects.filter(fleet="Uber", accepted_time__range=(start.date(), end.date())):
+        if not FleetOrder.objects.filter(fleet="Uber", accepted_time__range=(start, end)):
             uber_driver = SeleniumTools(self.partner.id)
             uber_driver.download_payments_order(start, end)
             uber_driver.save_trips_report(start, end)
