@@ -4,6 +4,7 @@ from django.db import models
 from app.models import UberService, UberSession, FleetsDriversVehiclesRate, FleetOrder, Driver, \
     CustomReport, Fleet
 from auto_bot.handlers.order.utils import check_vehicle
+from scripts.redis_conn import get_logger
 from selenium_ninja.driver import SeleniumTools
 from selenium_ninja.synchronizer import Synchronizer
 
@@ -205,7 +206,7 @@ class UberRequest(Fleet, Synchronizer):
                                                                     partner=self.partner)
                             db_report.update(**payment) if db_report else CustomReport.objects.create(**payment)
             else:
-                self.logger.error(f"Failed save uber report {self.partner} {response}")
+                get_logger().error(f"Failed save uber report {self.partner} {response.json()}")
 
     def get_drivers_status(self):
         query = '''query GetDriverEvents($orgUUID: String!) {

@@ -101,12 +101,16 @@ class UklonRequest(Fleet, Synchronizer):
     def to_float(number: int, div=100) -> float:
         return float("{:.2f}".format(number / div))
 
-    def find_value(self, key) -> float:
-        try:
-            value = key
-        except KeyError:
-            value = 0
-        return self.to_float(value)
+    def find_value(self, data: dict, *args) -> float:
+        """Search value if args not False and return float"""
+        nested_data = data
+        for key in args:
+            if key in nested_data:
+                nested_data = nested_data[key]
+            else:
+                return float(0)
+
+        return self.to_float(nested_data)
 
     @staticmethod
     def find_value_str(data: dict, *args) -> str:
@@ -154,14 +158,14 @@ class UklonRequest(Fleet, Synchronizer):
                         "driver_id": i['driver']['id'],
                         "total_rides": i.get('total_orders_count', 0),
                         "total_distance": self.to_float(distance, div=1000),
-                        "total_amount_cash": self.find_value(i['profit']['order']['cash']['amount']),
-                        "total_amount_on_card": self.find_value(i['profit']['order']['wallet']['amount']),
-                        "total_amount": self.find_value(i['profit']['order']['total']['amount']),
-                        "tips": self.find_value(i['profit']['tips']['amount']),
+                        "total_amount_cash": self.find_value(i, *('profit', 'order', 'cash', 'amount')),
+                        "total_amount_on_card": self.find_value(i, *('profit', 'order', 'wallet', 'amount')),
+                        "total_amount": self.find_value(i, *('profit', 'order', 'total', 'amount')),
+                        "tips": self.find_value(i, *('profit', 'tips', 'amount')),
                         "bonuses": float(0),
                         "fares": float(0),
-                        "fee": self.find_value(i['loss']['order']['wallet']['amount']),
-                        "total_amount_without_fee": self.find_value(i['profit']['total']['amount']),
+                        "fee": self.find_value(i, *('loss', 'order', 'wallet', 'amount')),
+                        "total_amount_without_fee": self.find_value(i, *('profit', 'total', 'amount')),
                         "partner": self.partner,
                         "vehicle": vehicle
                     }
@@ -174,18 +178,18 @@ class UklonRequest(Fleet, Synchronizer):
                             report.update({
                                 "total_rides": i.get('total_orders_count', 0) - uklon_custom['total_rides'],
                                 "total_distance": self.to_float(distance, div=1000) - uklon_custom['total_distance'],
-                                "total_amount_cash": (self.find_value(i['profit']['order']['cash']['amount']) -
+                                "total_amount_cash": (self.find_value(i, *('profit', 'order', 'cash', 'amount')) -
                                                       uklon_custom['total_amount_cash']),
-                                "total_amount_on_card": (self.find_value(i['profit']['order']['wallet']['amount'] -
-                                                                         uklon_custom["total_amount_on_card"])),
-                                "total_amount": (self.find_value(i['profit']['order']['total']['amount']) -
+                                "total_amount_on_card": (self.find_value(i, *('profit', 'order', 'wallet', 'amount')) -
+                                                         uklon_custom["total_amount_on_card"]),
+                                "total_amount": (self.find_value(i, *('profit', 'order', 'total', 'amount')) -
                                                  uklon_custom["total_amount"]),
-                                "tips": self.find_value(i['profit']['tips']['amount']) - uklon_custom["tips"],
-                                "fee": self.find_value(i['loss']['order']['wallet']['amount']) - uklon_custom["fee"],
-                                "total_amount_without_fee": (self.find_value(i['profit']['total']['amount']) -
+                                "tips": self.find_value(i, *('profit', 'tips', 'amount')) - uklon_custom["tips"],
+                                "fee": self.find_value(i, *('loss', 'order', 'wallet', 'amount')) - uklon_custom["fee"],
+                                "total_amount_without_fee": (self.find_value(i, *('profit', 'total', 'amount')) -
                                                              uklon_custom["total_amount_without_fee"]),
                             })
-                    db_report = CustomReport.objects.filter(report_from=start,
+                    db_report = CustomReport.objects.filter(report_to=end,
                                                             driver_id=i['driver']['id'],
                                                             vendor_name=self.name,
                                                             partner=self.partner)
