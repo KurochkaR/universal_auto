@@ -93,7 +93,7 @@ class UaGpsSynchronizer(Fleet):
         drivers = Driver.objects.filter(
             partner=self.partner, schema=schema) if schema else Driver.objects.filter(partner=self.partner)
         for driver in drivers:
-            if RentInformation.objects.filter(report_from=start, driver=driver):
+            if RentInformation.objects.filter(report_to=end, driver=driver):
                 continue
             road_distance = 0
             road_time = timedelta()
@@ -115,9 +115,10 @@ class UaGpsSynchronizer(Fleet):
                                                           accepted_time__lt=end).order_by('accepted_time')
                     first_order = FleetOrder.objects.filter(driver=driver,
                                                             finish_time__gt=start,
+                                                            state=FleetOrder.COMPLETED,
                                                             accepted_time__lte=start).first()
                     if first_order:
-                        completed += first_order
+                        completed = completed.union(FleetOrder.objects.filter(pk=first_order.pk))
                 else:
                     continue
                 previous_finish_time = None
@@ -149,6 +150,7 @@ class UaGpsSynchronizer(Fleet):
                 if start.time == time.min:
                     yesterday_order = FleetOrder.objects.filter(driver=driver,
                                                                 finish_time__gt=start,
+                                                                state=FleetOrder.COMPLETED,
                                                                 accepted_time__lte=start).first()
                     if yesterday_order:
                         try:

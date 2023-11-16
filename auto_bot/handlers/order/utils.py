@@ -42,14 +42,11 @@ def check_vehicle(driver, date_time=timezone.localtime(), max_time=False):
 
 
 def buttons_addresses(address):
-    center_lat, center_lng = ParkSettings.get_value('CENTRE_CITY_LAT'), ParkSettings.get_value('CENTRE_CITY_LNG')
-    center_radius = int(ParkSettings.get_value('CENTRE_CITY_RADIUS'))
-    dict_addresses = get_addresses_by_radius(address, center_lat, center_lng,
-                                             center_radius, ParkSettings.get_value('GOOGLE_API_KEY'))
-    if dict_addresses is not None:
-        return dict_addresses
-    else:
-        return None
+    dict_addresses = get_addresses_by_radius(address,
+                                             ParkSettings.get_value('CENTRE_CITY_COORD'),
+                                             int(ParkSettings.get_value('CENTRE_CITY_RADIUS')),
+                                             ParkSettings.get_value('GOOGLE_API_KEY'))
+    return dict_addresses
 
 
 def get_geocoding_address(chat_id: str, addresses_key: str, address_key: str):

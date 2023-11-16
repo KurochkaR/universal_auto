@@ -411,10 +411,9 @@ class EventAdmin(admin.ModelAdmin):
 
 
 @admin.register(UseOfCars)
-class UseofCarsAdmin(admin.ModelAdmin):
+class UseOfCarsAdmin(admin.ModelAdmin):
     list_display = [f.name for f in UseOfCars._meta.fields]
     list_per_page = 25
-
 
 
 @admin.register(JobApplication)
@@ -514,6 +513,7 @@ class DriverEfficiencyAdmin(filter_queryset_by_group('Partner')(admin.ModelAdmin
     list_per_page = 25
     raw_id_fields = ['driver', 'partner']
     list_select_related = ['driver', 'partner']
+
     def get_list_display(self, request):
         if request.user.is_superuser:
             return [f.name for f in self.model._meta.fields]
@@ -867,7 +867,6 @@ class DriverAdmin(filter_queryset_by_group('Partner', field_to_filter='worked')(
                     'driver_status'
                     ]
 
-
     def get_fieldsets(self, request, obj=None):
         if request.user.is_superuser:
             fieldsets = (
@@ -1013,7 +1012,7 @@ class VehicleAdmin(filter_queryset_by_group('Partner')(admin.ModelAdmin)):
             if db_field.name in ('manager', 'investor_car', 'gps'):
                 kwargs['queryset'] = db_field.related_model.objects.filter(partner__user=request.user)
         if request.user.groups.filter(name='Manager').exists():
-            manager = Manager.objects.filter(user=request.user)
+            manager = Manager.objects.filter(user=request.user).first()
             if db_field.name == 'gps':
                 kwargs['queryset'] = db_field.related_model.objects.filter(partner=manager.partner)
 
@@ -1095,7 +1094,7 @@ class FleetOrderAdmin(admin.ModelAdmin):
 
 
 @admin.register(FleetsDriversVehiclesRate)
-class Fleets_drivers_vehicles_rateAdmin(admin.ModelAdmin):
+class FleetsDriversVehiclesRateAdmin(admin.ModelAdmin):
     list_filter = (FleetRelatedFilter,)
     readonly_fields = ('fleet', 'driver_external_id')
     list_per_page = 25
@@ -1206,5 +1205,3 @@ class TaskSchedulerAdmin(admin.ModelAdmin):
         ]
 
         return fieldsets
-
-

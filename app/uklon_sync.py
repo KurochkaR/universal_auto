@@ -2,6 +2,7 @@ import json
 import secrets
 from datetime import datetime, time
 import requests
+from _decimal import Decimal
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils import timezone
 from django.db import models
@@ -98,17 +99,17 @@ class UklonRequest(Fleet, Synchronizer):
         return response.json()
 
     @staticmethod
-    def to_float(number: int, div=100) -> float:
-        return float("{:.2f}".format(number / div))
+    def to_float(number: int, div=100) -> Decimal:
+        return Decimal("{:.2f}".format(number / div))
 
-    def find_value(self, data: dict, *args) -> float:
+    def find_value(self, data: dict, *args) -> Decimal:
         """Search value if args not False and return float"""
         nested_data = data
         for key in args:
             if key in nested_data:
                 nested_data = nested_data[key]
             else:
-                return float(0)
+                return Decimal(0)
 
         return self.to_float(nested_data)
 
@@ -176,18 +177,18 @@ class UklonRequest(Fleet, Synchronizer):
                                                                    partner=self.partner).last()
                         if uklon_custom:
                             report.update({
-                                "total_rides": i.get('total_orders_count', 0) - uklon_custom['total_rides'],
-                                "total_distance": self.to_float(distance, div=1000) - uklon_custom['total_distance'],
+                                "total_rides": i.get('total_orders_count', 0) - uklon_custom.total_rides,
+                                "total_distance": self.to_float(distance, div=1000) - uklon_custom.total_distance,
                                 "total_amount_cash": (self.find_value(i, *('profit', 'order', 'cash', 'amount')) -
-                                                      uklon_custom['total_amount_cash']),
+                                                      uklon_custom.total_amount_cash),
                                 "total_amount_on_card": (self.find_value(i, *('profit', 'order', 'wallet', 'amount')) -
-                                                         uklon_custom["total_amount_on_card"]),
+                                                         uklon_custom.total_amount_on_card),
                                 "total_amount": (self.find_value(i, *('profit', 'order', 'total', 'amount')) -
-                                                 uklon_custom["total_amount"]),
-                                "tips": self.find_value(i, *('profit', 'tips', 'amount')) - uklon_custom["tips"],
-                                "fee": self.find_value(i, *('loss', 'order', 'wallet', 'amount')) - uklon_custom["fee"],
+                                                 uklon_custom.total_amount),
+                                "tips": self.find_value(i, *('profit', 'tips', 'amount')) - uklon_custom.tips,
+                                "fee": self.find_value(i, *('loss', 'order', 'wallet', 'amount')) - uklon_custom.fee,
                                 "total_amount_without_fee": (self.find_value(i, *('profit', 'total', 'amount')) -
-                                                             uklon_custom["total_amount_without_fee"]),
+                                                             uklon_custom.total_amount_without_fee),
                             })
                     db_report = CustomReport.objects.filter(report_to=end,
                                                             driver_id=i['driver']['id'],
@@ -253,8 +254,6 @@ class UklonRequest(Fleet, Synchronizer):
         return drivers
 
     def get_fleet_orders(self, start, end, pk):
-        if end < start:
-            return
         states = {"completed": FleetOrder.COMPLETED,
                   "Rider": FleetOrder.CLIENT_CANCEL,
                   "Driver": FleetOrder.DRIVER_CANCEL,

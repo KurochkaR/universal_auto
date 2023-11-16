@@ -21,11 +21,10 @@ def get_time_for_task(schema, day=None):
     """
     schema_obj = Schema.objects.get(pk=schema)
     date = day.strftime("%Y-%m-%d") if day else timezone.localtime()
-    start = timezone.make_aware(datetime.combine(date.date(), time.min))
+    start = timezone.make_aware(datetime.combine(date, time.min))
     yesterday = date - timedelta(days=1)
     previous_end = timezone.make_aware(datetime.combine(yesterday, time.max))
-
-    end = timezone.make_aware(datetime.combine(date.date(), schema_obj.shift_time))
+    end = timezone.make_aware(datetime.combine(date, schema_obj.shift_time))
     previous_start = timezone.make_aware(datetime.combine(yesterday, schema_obj.shift_time))
     return start, end, previous_start, previous_end
 

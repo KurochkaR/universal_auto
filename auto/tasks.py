@@ -10,25 +10,22 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db import IntegrityError
 from django.utils import timezone
 from celery.schedules import crontab
-from celery.utils.log import get_task_logger
 from django_celery_beat.models import IntervalSchedule, PeriodicTask
 from telegram import ParseMode
 from telegram.error import BadRequest
-
 from app.models import RawGPS, Vehicle, Order, Driver, JobApplication, ParkSettings, UseOfCars, CarEfficiency, \
     Payments, SummaryReport, Manager, Partner, DriverEfficiency, FleetOrder, ReportTelegramPayments, \
     TransactionsConversation, VehicleSpending, DriverReshuffle, DriverPayments, SalaryCalculation, \
-    PaymentTypes, TaskScheduler, DriverEffVehicleKasa, Schema, CustomReport, FleetsDriversVehiclesRate, Fleet
+    PaymentTypes, TaskScheduler, DriverEffVehicleKasa, Schema, CustomReport, FleetsDriversVehiclesRate, Fleet, \
+    VehicleGPS
 from django.db.models import Sum, IntegerField, FloatField, Q, DecimalField
 from django.db.models.functions import Cast, Coalesce
-
 from app.utils import get_schedule, create_task
 from auto_bot.handlers.driver_manager.utils import get_daily_report, get_efficiency, generate_message_report, \
     get_driver_efficiency_report, calculate_by_rate, calculate_rent, get_time_for_task
 from auto_bot.handlers.order.keyboards import inline_markup_accept, inline_search_kb, inline_client_spot, \
     inline_spot_keyboard, inline_second_payment_kb, inline_reject_order, personal_order_end_kb, \
     personal_driver_end_kb
-
 from auto_bot.handlers.order.static_text import decline_order, order_info, search_driver_1, \
     search_driver_2, no_driver_in_radius, driver_arrived, driver_complete_text, \
     order_customer_text, search_driver, personal_time_route_end, personal_order_info, \
@@ -38,7 +35,7 @@ from auto_bot.main import bot
 from scripts.conversion import convertion, haversine, get_location_from_db
 from auto.celery import app
 from scripts.google_calendar import GoogleCalendar
-from scripts.redis_conn import redis_instance
+from scripts.redis_conn import redis_instance, get_logger
 from app.bolt_sync import BoltRequest
 from selenium_ninja.synchronizer import AuthenticationError
 from app.uagps_sync import UaGpsSynchronizer
@@ -47,13 +44,12 @@ from app.uklon_sync import UklonRequest
 from scripts.nbu_conversion import convert_to_currency
 from taxi_service.utils import login_in
 
-logger = get_task_logger(__name__)
-
 
 @app.task(queue='bot_tasks')
 def raw_gps_handler(pk):
     try:
         raw = RawGPS.objects.get(id=pk)
+        vehicle = Vehicle.objects.filter(gps_imei=raw.imei)
     except ObjectDoesNotExist:
         return f'{ObjectDoesNotExist}: id={pk}'
     data = raw.data.split(';')
@@ -61,20 +57,33 @@ def raw_gps_handler(pk):
         lat, lon = convertion(data[2]), convertion(data[4])
     except ValueError:
         lat, lon = 0, 0
-
     try:
         date_time = timezone.datetime.strptime(data[0] + data[1], '%d%m%y%H%M%S')
         date_time = timezone.make_aware(date_time)
     except ValueError as err:
         return f'Error converting date and time: {err}'
-    updated = Vehicle.objects.filter(gps_imei=raw.imei).update(lat=lat, lon=lon, coord_time=date_time)
-    if not updated:
-        return f'No vehicle found with gps_imei={raw.imei}'
+    try:
+        kwa = {
+            'date_time': date_time,
+            'vehicle': vehicle.first(),
+            'lat': lat,
+            'lat_zone': data[3],
+            'lon': lon,
+            'lon_zone': data[5],
+            'speed': float(data[6]),
+            'course': float(data[7]),
+            'height': float(data[8]),
+            'raw_data': raw,
+        }
+    except ValueError as err:
+        return f'{ValueError} {err}'
+    VehicleGPS.objects.create(**kwa)
+    vehicle.update(lat=lat, lon=lon, coord_time=date_time)
 
 
 @app.task(bind=True, queue='bot_tasks')
 def health_check(self):
-    logger.info("Celery OK")
+    get_logger().info("Celery OK")
 
 
 @app.task(bind=True, queue='beat_tasks')
@@ -97,7 +106,7 @@ def get_session(self, partner_pk, aggregator='Uber', login=None, password=None):
         success = login_in(aggregator=aggregator, partner_id=partner_pk,
                            login_name=login, password=password, token=token)
     except AuthenticationError as e:
-        logger.error(e)
+        get_logger().error(e)
         success = False
     return partner_pk, success
 
@@ -112,7 +121,7 @@ def get_orders_from_fleets(self, partner_pk, schema=None, day=None):
             try:
                 fleet.get_fleet_orders(start, end)
             except Exception as e:
-                logger.error(e)
+                get_logger().error(e)
         else:
             for driver in drivers:
                 fleet.get_fleet_orders(start, end, driver.pk)
@@ -136,10 +145,12 @@ def check_orders_for_vehicle(self, partner_pk, schema):
 @app.task(bind=True, queue='beat_tasks')
 def get_today_orders(self, partner_pk):
     fleets = Fleet.objects.filter(partner=partner_pk).exclude(name__in=('Gps', 'Uber'))
-    start = datetime.combine(timezone.localtime().date(), time.min)
     end = timezone.localtime()
+    start = timezone.make_aware(datetime.combine(end, time.min))
     drivers = Driver.objects.filter(partner=partner_pk)
     for fleet in fleets:
+        if isinstance(fleet, UklonRequest) and end <= start:
+            continue
         for driver in drivers:
             fleet.get_fleet_orders(start, end, driver.pk)
 
@@ -305,7 +316,7 @@ def get_car_efficiency(self, partner_pk):
             try:
                 total_km = UaGpsSynchronizer(partner_pk).total_per_day(vehicle.gps_id, start, end)
             except AttributeError as e:
-                logger.error(e)
+                get_logger().error(e)
                 continue
             if total_km:
                 for driver in drivers:
@@ -375,7 +386,7 @@ def get_driver_efficiency(self, partner_pk, schema, day=None):
                     else:
                         continue
                 except AttributeError as e:
-                    logger.error(e)
+                    get_logger().error(e)
                     continue
             if driver_vehicles:
                 report = SummaryReport.objects.filter(report_from=start, driver=driver).first()
@@ -425,7 +436,7 @@ def update_driver_status(self, partner_pk):
         fleets = Fleet.objects.filter(partner=partner_pk).exclude(name='Gps')
         for fleet in fleets:
             statuses = fleet.get_drivers_status()
-            logger.info(f"{fleet} {statuses}")
+            get_logger().info(f"{fleet} {statuses}")
             status_online = status_online.union(set(statuses['wait']))
             status_with_client = status_with_client.union(set(statuses['with_client']))
         drivers = Driver.objects.filter(partner=partner_pk)
@@ -448,13 +459,13 @@ def update_driver_status(self, partner_pk):
                                              partner=Partner.get_partner(partner_pk),
                                              licence_plate=vehicle.licence_plate,
                                              chat_id=driver.chat_id)
-                logger.info(f'{driver}: {current_status}')
+                get_logger().info(f'{driver}: {current_status}')
             else:
                 if work_ninja:
                     work_ninja.end_at = timezone.localtime()
                     work_ninja.save()
     except Exception as e:
-        logger.error(e)
+        get_logger().error(e)
 
 
 @app.task(bind=True, queue='bot_tasks')
@@ -467,7 +478,7 @@ def update_driver_data(self, partner_pk, manager_id=None):
             synchronization_class.synchronize()
         success = True
     except Exception as e:
-        logger.error(e)
+        get_logger().error(e)
         success = False
     return manager_id, success
 
@@ -478,9 +489,9 @@ def send_on_job_application_on_driver(self, job_id):
         candidate = JobApplication.objects.get(id=job_id)
         UklonRequest.add_driver(candidate)
         BoltRequest.add_driver(candidate)
-        logger.info('The job application has been sent')
+        get_logger().info('The job application has been sent')
     except Exception as e:
-        logger.error(e)
+        get_logger().error(e)
 
 
 @app.task(bind=True, queue='bot_tasks')
@@ -488,9 +499,9 @@ def detaching_the_driver_from_the_car(self, partner_pk, licence_plate):
     try:
         fleet = UklonRequest.objects.get(partner=partner_pk)
         fleet.detaching_the_driver_from_the_car(licence_plate)
-        logger.info(f'Car {licence_plate} was detached')
+        get_logger().info(f'Car {licence_plate} was detached')
     except Exception as e:
-        logger.error(e)
+        get_logger().error(e)
 
 
 @app.task(bind=True, queue='beat_tasks')
@@ -499,9 +510,9 @@ def get_rent_information(self, partner_pk, schema, day=None):
         end, start = get_time_for_task(schema, day)[1:3]
         gps = UaGpsSynchronizer.objects.get(partner=partner_pk)
         gps.save_daily_rent(start, end, schema)
-        logger.info('write rent report')
+        get_logger().info('write rent report')
     except Exception as e:
-        logger.error(e)
+        get_logger().error(e)
 
 
 @app.task(bind=True, queue='beat_tasks')
@@ -510,7 +521,7 @@ def get_today_rent(self, partner_pk):
         gps = UaGpsSynchronizer.objects.get(partner=partner_pk)
         gps.check_today_rent()
     except Exception as e:
-        logger.error(e)
+        get_logger().error(e)
 
 
 @app.task(bind=True, queue='bot_tasks')
@@ -523,9 +534,9 @@ def fleets_cash_trips(self, partner_pk, pk, enable):
             if driver_id:
                 fleet.disable_cash(driver_id, enable)
         message = f"Cash enabled for {driver}" if enable == 'true' else f"Cash disabled for {driver}"
-        logger.info(message)
+        get_logger().info(message)
     except Exception as e:
-        logger.error(e)
+        get_logger().error(e)
 
 
 @app.task(bind=True, queue='beat_tasks')
@@ -534,12 +545,12 @@ def withdraw_uklon(self, partner_pk):
         fleet = UklonRequest.objects.get(partner=partner_pk)
         fleet.withdraw_money()
     except Exception as e:
-        logger.error(e)
+        get_logger().error(e)
 
 
 @app.task(bind=True, queue='beat_tasks')
 def manager_paid_weekly(self, partner_pk):
-    logger.info('send message to manager')
+    get_logger().info('send message to manager')
     return partner_pk
 
 
@@ -838,7 +849,7 @@ def search_driver_for_order(self, order_pk):
                 continue
         self.retry(args=[order_pk], countdown=30)
     except ObjectDoesNotExist as e:
-        logger.error(e)
+        get_logger().error(e)
 
 
 @app.task(bind=True, max_retries=90, queue='bot_tasks')
@@ -873,7 +884,7 @@ def send_map_to_client(self, order_pk, licence, message, chat):
         except StopIteration:
             pass
         except Exception as e:
-            logger.error(msg=str(e))
+            get_logger().error(msg=str(e))
             self.retry(args=[order_pk, licence, message, chat], countdown=30)
         if self.request.retries >= self.max_retries:
             bot.stopMessageLiveLocation(chat, message)
@@ -916,7 +927,7 @@ def get_distance_trip(self, order, start_trip_with_client, end, gps_id):
                          text=payment_text,
                          reply_markup=inline_second_payment_kb(instance.pk))
     except Exception as e:
-        logger.info(e)
+        get_logger().info(e)
 
 
 @app.task(bind=True, max_retries=10, queue='beat_tasks')
