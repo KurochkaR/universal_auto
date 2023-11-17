@@ -466,7 +466,7 @@ class VehicleSpendingAdmin(admin.ModelAdmin):
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
 
-@admin.register(TransactionsConversation)
+@admin.register(InvestorPayments)
 class TransactionsConversationAdmin(admin.ModelAdmin):
     list_filter = (TransactionInvestorUserFilter, )
 

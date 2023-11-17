@@ -8,7 +8,9 @@ from django.utils import timezone
 
 from app.models import CarEfficiency, Driver, SummaryReport, Manager, \
     Vehicle, RentInformation, DriverEfficiency, Partner, Role, DriverSchemaRate, SalaryCalculation, \
-    DriverPayments
+    DriverPayments, FleetOrder, InvestorPayments
+from app.uber_sync import UberRequest
+from auto_bot.handlers.order.utils import check_reshuffle
 
 
 def validate_date(date_str):
@@ -358,3 +360,48 @@ def get_driver_efficiency_report(manager_id=None, start=None, end=None):
     for k, v in sorted_effective_driver.items():
         report[k] = [f"{vk}: {vv}\n" for vk, vv in v.items()]
     return report
+
+
+def get_vehicle_income(driver, start, end, spending_rate, kasa):
+    vehicle_income = {}
+    while start < end:
+        vehicles = check_reshuffle(driver, start)
+        for vehicle, reshuffles in vehicles.items():
+            if reshuffles:
+                for reshuffle in reshuffles:
+                    vehicle = reshuffle.swap_vehicle
+                    investor_payments = InvestorPayments.objects.filter(
+                        vehicle=vehicle, report_from=start).aggregate(
+                        total_payment=Sum("sum_before_transaction"))['total_payment']
+                    bolt_income = FleetOrder.objects.filter(
+                        fleet="Bolt",
+                        state=FleetOrder.COMPLETED,
+                        finish_time__date=start,
+                        vehicle=vehicle).aggregate(total_price=Sum('price'))['total_price']
+                    uklon_income = FleetOrder.objects.filter(
+                        fleet="Uklon",
+                        state=FleetOrder.COMPLETED,
+                        finish_time__date=start,
+                        vehicle=vehicle).aggregate(total_price=Sum('price'))['total_price']
+                    uber_income = UberRequest.objects.get(
+                        partner=driver.partner).get_earnings_per_driver(driver.get_driver_external_id(vendor="Uber"),
+                                                                        reshuffle.swap_time,
+                                                                        reshuffle.end_time)
+                    total_income = (bolt_income * 0.75 + uklon_income + uber_income) * spending_rate - investor_payments
+                    if not vehicle_income[vehicle]:
+                        vehicle_income[vehicle] = total_income
+                    else:
+                        vehicle_income[vehicle] += total_income
+            elif vehicle:
+                investor_payments = InvestorPayments.objects.filter(
+                    vehicle=vehicle, report_from=start).aggregate(
+                    total_payment=Sum("sum_before_transaction"))['total_payment']
+                total_income = kasa * spending_rate - investor_payments
+                if not vehicle_income[vehicle]:
+                    vehicle_income[vehicle] = total_income
+                else:
+                    vehicle_income[vehicle] += total_income
+            else:
+                continue
+        start += timedelta(days=1)
+    return vehicle_income

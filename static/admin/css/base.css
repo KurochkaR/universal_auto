@@ -6,28 +6,28 @@
 
 /* VARIABLE DEFINITIONS */
 :root {
-  --primary: #79aec8;
-  --secondary: #417690;
-  --accent: #f5dd5d;
+  --primary: #A1E8B9;
+  --secondary: #EC6323;
+  --accent: #ffffff;
   --primary-fg: #fff;
 
   --body-fg: #333;
   --body-bg: #fff;
-  --body-quiet-color: #666;
+  --body-quiet-color: #26392C;
   --body-loud-color: #000;
 
-  --header-color: #ffc;
+  --header-color: #ffffff;
   --header-branding-color: var(--accent);
   --header-bg: var(--secondary);
   --header-link-color: var(--primary-fg);
 
-  --breadcrumbs-fg: #c4dce8;
+  --breadcrumbs-fg: #fff;
   --breadcrumbs-link-fg: var(--body-bg);
   --breadcrumbs-bg: var(--primary);
 
-  --link-fg: #447e9b;
-  --link-hover-color: #036;
-  --link-selected-fg: #5b80b2;
+  --link-fg: #26392C;
+  --link-hover-color: #EC6323;
+  --link-selected-fg: #EC6323;
 
   --hairline-color: #e8e8e8;
   --border-color: #ccc;
@@ -44,9 +44,9 @@
 
   --button-fg: #fff;
   --button-bg: var(--primary);
-  --button-hover-bg: #609ab6;
-  --default-button-bg: var(--secondary);
-  --default-button-hover-bg: #205067;
+  --button-hover-bg: #EC6323;
+  --default-button-bg: #A1E8B9;
+  --default-button-hover-bg: #EC6323;
   --close-button-bg: #888; /* Previously #bbb, contrast 1.92 */
   --close-button-hover-bg: #747474;
   --delete-button-bg: #ba2121;
@@ -453,6 +453,10 @@ textarea {
     vertical-align: top;
 }
 
+option:focus {
+      background-color: green;
+    }
+
 input[type=text], input[type=password], input[type=email], input[type=url],
 input[type=number], input[type=tel], textarea, select, .vTextField {
     border: 1px solid var(--border-color);
@@ -483,7 +487,7 @@ select[multiple] {
 
 .button, input[type=submit], input[type=button], .submit-row input, a.button {
     background: var(--button-bg);
-    padding: 10px 15px;
+    padding: 13px 160px;
     border: none;
     border-radius: 4px;
     color: var(--button-fg);

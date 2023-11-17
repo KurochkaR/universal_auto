@@ -253,11 +253,25 @@ function fetchSummaryReportData(period, start, end) {
 				$('#bar-chart').show();
 				const driversData = data[0]['drivers'];
 				const categories = driversData.map(driver => driver.full_name);
+				const formattedNamesList = [];
+				categories.forEach(name => {
+					if (name.includes('-')) {
+							const formattedName = name.replace('-', '-\n');
+							formattedNamesList.push(formattedName);
+					} else if (name.length > 15) {
+							const halfLength = Math.floor(name.length / 2);
+							const formattedName = name.substring(0, halfLength) + '-\n' + name.substring(halfLength);
+							formattedNamesList.push(formattedName);
+					} else {
+							formattedNamesList.push(name);
+					}
+			});
+				console.log(formattedNamesList);
 				const total_card = driversData.map(driver => driver.total_card);
 				const total_cash = driversData.map(driver => driver.total_cash);
 				barChartOptions.series[0].data = total_card;
 				barChartOptions.series[1].data = total_cash;
-				barChartOptions.xAxis.data = categories;
+				barChartOptions.xAxis.data = formattedNamesList;
 				barChart.setOption(barChartOptions);
 			} else {
 				$(".noDataMessage1").show();

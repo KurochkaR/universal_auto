@@ -4,6 +4,7 @@ import random
 import re
 from datetime import datetime, date, time
 from django.core.exceptions import ObjectDoesNotExist
+from django.core.validators import MaxLengthValidator, EmailValidator, RegexValidator
 from django.utils import timezone
 from django.db import models, ProgrammingError
 from django.utils.safestring import mark_safe
@@ -101,11 +102,6 @@ class Schema(models.Model):
     shift_period = models.IntegerField(null=True, choices=ShiftTypes.choices)
     partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
 
-    @classmethod
-    def get_half_schema_id(cls, title="HALF"):
-        schema = cls.objects.filter(schema=title, partner__isnull=True).first()
-        return schema
-
     def __str__(self):
         return self.title if self.title else ''
 
@@ -125,11 +121,13 @@ class UberTrips(models.Model):
 
 
 class User(models.Model):
-    name = models.CharField(max_length=255, blank=True, null=True, verbose_name="Ім'я")
-    second_name = models.CharField(max_length=255, blank=True, null=True, verbose_name='Прізвище')
-    email = models.EmailField(blank=True, null=True, max_length=254, verbose_name='Електронна пошта')
+    name = models.CharField(validators=[MaxLengthValidator(255)], blank=True, null=True, verbose_name="Ім'я")
+    second_name = models.CharField(validators=[MaxLengthValidator(255)], blank=True, null=True, verbose_name='Прізвище')
+    email = models.EmailField(blank=True, null=True, max_length=254, verbose_name='Електронна пошта',
+                              validators=[EmailValidator()])
     role = models.CharField(max_length=25, default=Role.CLIENT, choices=Role.choices)
-    phone_number = models.CharField(blank=True, null=True, max_length=13, verbose_name='Номер телефона')
+    phone_number = models.CharField(blank=True, null=True, max_length=13, verbose_name='Номер телефона',
+                                    validators=[RegexValidator(r"^(\+380|380|80|0)+\d{9}$")])
     chat_id = models.CharField(blank=True, max_length=10, verbose_name='Ідентифікатор чата')
     created_at = models.DateTimeField(editable=False, auto_now_add=True, verbose_name='Створено')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='Оновлено')
@@ -169,35 +167,6 @@ class User(models.Model):
         user.deleted_at = timezone.localtime()
         user.save()
         return user
-
-    @staticmethod
-    def name_and_second_name_validator(name) -> str:
-        """This func validator for name and second name"""
-        if len(name) <= 255:
-            return name.title()
-
-    @staticmethod
-    def email_validator(email) -> str:
-        pattern = r"^([a-zA-Z0-9]+\.?[a-zA-Z0-9]+)+@([a-zA-Z0-9]+\.)+[a-zA-Z0-9]{2,4}$"
-        if re.match(pattern, email) is not None:
-            return email
-
-    @staticmethod
-    def phone_number_validator(phone_number) -> str:
-
-        pattern = r"^(\+380|380|80|0)+\d{9}$"
-        if re.match(pattern, phone_number) is not None:
-            if len(phone_number) == 13:
-                return phone_number
-            elif len(phone_number) == 10:
-                valid_phone_number = f'+38{phone_number}'
-                return valid_phone_number
-            elif len(phone_number) == 12:
-                valid_phone_number = f'+{phone_number}'
-                return valid_phone_number
-            elif len(phone_number) == 11:
-                valid_phone_number = f'+3{phone_number}'
-                return valid_phone_number
 
 
 class Manager(models.Model):
@@ -268,15 +237,15 @@ class Vehicle(models.Model):
         USD = 'USD', 'Долар',
         EUR = 'EUR', 'Євро',
 
-    name = models.CharField(max_length=255, verbose_name='Назва')
+    name = models.CharField(validators=[MaxLengthValidator(200)], verbose_name='Назва')
     type = models.CharField(max_length=20, default='Електро', verbose_name='Тип')
-    licence_plate = models.CharField(max_length=24, unique=True, verbose_name='Номерний знак', db_index=True)
+    licence_plate = models.CharField(validators=[MaxLengthValidator(24)], unique=True, verbose_name='Номерний знак')
     registration = models.CharField(null=True, max_length=12, unique=True, verbose_name='Номер документа')
     purchase_date = models.DateField(null=True, verbose_name='Дата початку роботи')
-    vin_code = models.CharField(max_length=17, blank=True)
+    vin_code = models.CharField(validators=[MaxLengthValidator(17)], blank=True)
     chat_id = models.CharField(max_length=15, blank=True, null=True, verbose_name="Група автомобіля телеграм")
     gps = models.ForeignKey(GPSNumber, on_delete=models.CASCADE, null=True, blank=True, verbose_name="Назва авто в Gps")
-    gps_imei = models.CharField(max_length=100, blank=True, default='')
+    gps_imei = models.CharField(validators=[MaxLengthValidator(50)], blank=True, default='')
     coord_time = models.DateTimeField(null=True, verbose_name="Час отримання координат")
     lat = models.DecimalField(null=True, decimal_places=6, max_digits=10, default=0, verbose_name="Широта")
     lon = models.DecimalField(null=True, decimal_places=6, max_digits=10, default=0, verbose_name="Довгота")
@@ -306,43 +275,9 @@ class Vehicle(models.Model):
     def __str__(self) -> str:
         return f'{self.licence_plate}'
 
-    @staticmethod
-    def name_validator(name):
-        if len(name) <= 255:
-            return name.title()
-        else:
-            return None
 
-    @staticmethod
-    def model_validator(model):
-        if len(model) <= 50:
-            return model.title()
-        else:
-            return None
-
-    @staticmethod
-    def licence_plate_validator(licence_plate):
-        if len(licence_plate) <= 24:
-            return licence_plate.upper()
-        else:
-            return None
-
-    @staticmethod
-    def vin_code_validator(vin_code):
-        if len(vin_code) <= 17:
-            return vin_code.upper()
-        else:
-            return None
-
-    @staticmethod
-    def gps_imei_validator(gps_imei):
-        if len(gps_imei) <= 100:
-            return gps_imei.upper()
-        else:
-            return None
-
-
-class TransactionsConversation(models.Model):
+class InvestorPayments(models.Model):
+    report_from = models.DateField(verbose_name="Виплата за")
     vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Автомобіль')
     investor = models.ForeignKey(Investor, on_delete=models.SET_NULL, null=True, verbose_name='Інвестор')
     sum_before_transaction = models.DecimalField(decimal_places=2, max_digits=10, verbose_name="Сума в гривні")
@@ -356,6 +291,18 @@ class TransactionsConversation(models.Model):
 
     def __str__(self) -> str:
         return f'{self.vehicle} {self.sum_before_transaction} {self.currency}'
+
+
+class PartnerEarnings(models.Model):
+    report_from = models.DateField(verbose_name="Дохід з")
+    report_to = models.DateField(verbose_name="Дохід по")
+    vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Автомобіль'),
+    partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
+    earning = models.DecimalField(decimal_places=2, max_digits=10, verbose_name='Сума доходу')
+
+    class Meta:
+        verbose_name = 'Дохід'
+        verbose_name_plural = 'Доходи'
 
 
 class VehicleSpending(models.Model):
@@ -468,8 +415,6 @@ class NinjaFleet(Fleet):
         return list(report)
 
 
-
-
 class Client(User):
 
     class Meta:
@@ -488,10 +433,6 @@ class ServiceStationManager(User):
 
     def __str__(self):
         return self.full_name()
-
-    @staticmethod
-    def save_name_of_service_station(name_of_service_station):
-        ServiceStationManager.objects.create(name_of_service_station=name_of_service_station)
 
 
 class SupportManager(User):
@@ -568,9 +509,6 @@ class SummaryReport(models.Model):
     class Meta:
         verbose_name = 'Зведений звіт'
         verbose_name_plural = 'Зведені звіти'
-
-
-
 
 
 class StatusChange(models.Model):

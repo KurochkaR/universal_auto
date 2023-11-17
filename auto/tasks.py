@@ -17,12 +17,12 @@ from telegram.error import BadRequest
 
 from app.models import RawGPS, Vehicle, Order, Driver, JobApplication, ParkSettings, UseOfCars, CarEfficiency, \
     Payments, SummaryReport, Manager, Partner, DriverEfficiency, FleetOrder, ReportTelegramPayments, \
-    TransactionsConversation, VehicleSpending, DriverReshuffle, DriverPayments, SalaryCalculation, \
-    PaymentTypes, DriverEffVehicleKasa, Fleet
+    InvestorPayments, VehicleSpending, DriverReshuffle, DriverPayments, SalaryCalculation, \
+    PaymentTypes, DriverEffVehicleKasa, Fleet, PartnerEarnings
 from django.db.models import Sum, IntegerField, FloatField, Q, DecimalField
 from django.db.models.functions import Cast, Coalesce
 from auto_bot.handlers.driver_manager.utils import get_daily_report, get_efficiency, generate_message_report, \
-    get_driver_efficiency_report, calculate_by_rate, calculate_rent
+    get_driver_efficiency_report, calculate_by_rate, calculate_rent, get_vehicle_income
 from auto_bot.handlers.order.keyboards import inline_markup_accept, inline_search_kb, inline_client_spot, \
     inline_spot_keyboard, inline_second_payment_kb, inline_reject_order, personal_order_end_kb, \
     personal_driver_end_kb
@@ -609,7 +609,8 @@ def add_money_to_vehicle(self, partner_pk):
             else:
                 car_earnings = total_kasa
                 rate = 0.00
-            TransactionsConversation.objects.create(
+            InvestorPayments.objects.create(
+                report_from=day.date(),
                 vehicle=vehicle,
                 investor=vehicle.investor_car,
                 sum_before_transaction=total_kasa,
@@ -970,6 +971,28 @@ def calculate_driver_reports(self, partner_pk, daily=False):
                                               salary=salary,
                                               rent=rent_value,
                                               partner=Partner.get_partner(partner_pk))
+
+
+@app.task(bind=True, queue='beat_tasks')
+def calculate_vehicle_earnings(self, partner_pk, day=None):
+    if not day:
+        day = timezone.localtime() - timedelta(days=1)
+    drivers = Driver.objects.filter(partner=partner_pk, schema__isnull=False)
+    for driver in drivers:
+        payment = DriverPayments.objects.filter(report_to=day, driver=driver)
+        spending_rate = 1 - payment.kasa / (payment.salary + payment.cash)
+        vehicles_income = get_vehicle_income(driver, payment.report_from, payment.report_to,
+                                             spending_rate, payment.kasa)
+        for vehicle, income in vehicles_income.items():
+            PartnerEarnings.objects.get_or_create(
+                report_from=payment.report_from,
+                report_to=payment.report_to,
+                vehicle=vehicle,
+                partner=Partner.get_partner(driver.partner),
+                defaults={
+                    "earning": income,
+                }
+            )
 
 
 @app.on_after_finalize.connect

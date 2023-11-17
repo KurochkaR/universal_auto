@@ -213,6 +213,66 @@ class UberRequest(Fleet, Synchronizer):
             else:
                 self.logger.error(f"Failed save uber report {self.partner} {response}")
 
+    def get_earnings_per_driver(self, driver_id, start_time, end_time):
+        start = int(start_time.timestamp()) * 1000
+        end = int(end_time.timestamp()) * 1000
+        query = '''query GetPerformanceReport($performanceReportRequest: PerformanceReportRequest__Input!) {
+                          getPerformanceReport(performanceReportRequest: $performanceReportRequest) {
+                            uuid
+                            totalEarnings
+                            hoursOnline
+                            totalTrips
+                            ... on DriverPerformanceDetail {
+                              cashEarnings
+                              driverAcceptanceRate
+                              driverCancellationRate
+                            }
+                            ... on VehiclePerformanceDetail {
+                              utilization
+                              vehicleIncentiveTarget
+                              vehicleIncentiveCompleted
+                              vehicleIncentiveEnrollmentStatus
+                              vehicleIncentiveUnit
+                            }
+                          }
+                        }'''
+        variables = {
+            "performanceReportRequest": {
+                "orgUUID": self.get_uuid(),
+                "dimensions": [
+                    "vs:driver"
+                ],
+                "dimensionFilterClause": [
+                    {
+                        "dimensionName": "vs:driver",
+                        "operator": "OPERATOR_IN",
+                        "expressions": driver_id
+                    }
+                ],
+                "metrics": [
+                    "vs:TotalEarnings",
+                    "vs:HoursOnline",
+                    "vs:TotalTrips",
+                    "vs:CashEarnings",
+                    "vs:DriverAcceptanceRate",
+                    "vs:DriverCancellationRate"
+                ],
+                "timeRange": {
+                    "startsAt": {
+                        "value": start
+                    },
+                    "endsAt": {
+                        "value": end
+                    }
+                }
+            }
+        }
+        data = self.get_payload(query, variables)
+        response = requests.post(str(self.base_url), headers=self.get_header(), json=data)
+        if response.status_code == 200 and response.json()['data']:
+            return response.json()['data']['getPerformanceReport'][0]['totalEarnings']
+
+
     def get_drivers_status(self):
         query = '''query GetDriverEvents($orgUUID: String!) {
                       getDriverEvents(orgUUID: $orgUUID) {

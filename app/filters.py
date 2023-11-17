@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 from app.models import CarEfficiency, Vehicle, DriverEfficiency, Driver, RentInformation, \
-    TransactionsConversation, SummaryReport, Payments, FleetOrder, Fleets_drivers_vehicles_rate
+    InvestorPayments, SummaryReport, Payments, FleetOrder, Fleets_drivers_vehicles_rate
 
 
 class VehicleEfficiencyUserFilter(admin.SimpleListFilter):
@@ -35,13 +35,13 @@ class TransactionInvestorUserFilter(admin.SimpleListFilter):
 
     def lookups(self, request, model_admin):
         user = request.user
-        queryset = TransactionsConversation.objects.all()
+        queryset = InvestorPayments.objects.all()
         vehicle_choices = []
         if user.groups.filter(name='Investor').exists():
             vehicles = Vehicle.objects.filter(investor_car__user=user)
             queryset.filter(vehicle__in=vehicles)
         if user.groups.filter(name='Partner').exists():
-            queryset = TransactionsConversation.objects.filter(investor__partner__user=user)
+            queryset = InvestorPayments.objects.filter(investor__partner__user=user)
         vehicle_choices.extend(queryset.values_list('vehicle_id', 'vehicle__licence_plate'))
         return sorted(set(vehicle_choices), key=lambda x: x[1])
 

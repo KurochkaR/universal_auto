@@ -16,9 +16,4 @@ class Migration(migrations.Migration):
             name='contacts',
             field=models.BooleanField(default=False, verbose_name='Доступ до контактів'),
         ),
-        migrations.AlterField(
-            model_name='driver',
-            name='schema',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='app.schema', verbose_name='Схема роботи'),
-        ),
     ]
