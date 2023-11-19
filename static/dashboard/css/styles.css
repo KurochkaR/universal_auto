@@ -1298,3 +1298,12 @@ select:focus {
 .custom-dropdown i.fas.fa-angle-down.icon-visible {
     display: inline-block;
 }
+
+.charts-card .weekly-income-dates {
+	float: right;
+	color: #EC6323;
+	font-size: 30px;
+	font-style: normal;
+	font-weight: 700;
+	line-height: normal;
+}

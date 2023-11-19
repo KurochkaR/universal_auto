@@ -100,7 +100,7 @@ class CarEfficiencyListView(CombinedPermissionsMixin,
 
         queryset = ManagerFilterMixin.get_queryset(self, CarEfficiency)
         filtered_qs = queryset.filter(
-            report_from__range=(start, end)).select_related("vehicle").order_by("report_from")
+            report_from__range=(start, end))
         return filtered_qs
 
     def list(self, request, *args, **kwargs):
@@ -109,7 +109,9 @@ class CarEfficiencyListView(CombinedPermissionsMixin,
             total_kasa=Coalesce(Sum('total_kasa'), Decimal(0)),
             total_mileage=Coalesce(Sum('mileage'), Decimal(0)),
         )
-        queryset = queryset.filter(vehicle=self.kwargs['vehicle'])
+        efficiency_qs = queryset.values('vehicle__licence_plate').distinct().filter(mileage__gt=0).annotate(
+            average_vehicle=Coalesce(Sum('total_kasa') / Sum('mileage'), Decimal(0)))
+        queryset = queryset.filter(vehicle=self.kwargs['vehicle']).order_by("report_from")
         kasa = aggregated_data.get('total_kasa')
         total_mileage = aggregated_data.get('total_mileage')
         average = kasa / total_mileage if total_mileage else Decimal(0)
@@ -118,12 +120,12 @@ class CarEfficiencyListView(CombinedPermissionsMixin,
         for date in dates:
             new_date = date.strftime("%d.%m")
             format_dates.append(new_date)
-
         efficiency_dict = {
             "mileage": list(queryset.values_list("mileage", flat=True)),
-            "efficiency": list(queryset.values_list("efficiency", flat=True))
+            "efficiency": list(queryset.values_list("efficiency", flat=True)),
+            "average_eff": {item['vehicle__licence_plate']: round(item['average_vehicle'], 2) for item in
+                            efficiency_qs},
         }
-
         response_data = {
             "vehicles": efficiency_dict,
             "dates": format_dates,
