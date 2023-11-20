@@ -59,7 +59,7 @@ class VehicleManagerFilter(admin.SimpleListFilter):
         user = request.user
         queryset = Vehicle.objects.exclude(manager__isnull=True)
         if user.groups.filter(name='Partner').exists():
-            queryset = queryset.filter(partner__user=user)
+            queryset = queryset.filter(partner__user=user).select_related('manager')
             manager_ids = queryset.values_list('manager_id', flat=True)
             manager_labels = [f'{item.manager.first_name} {item.manager.last_name}' for item in queryset]
             return set(zip(manager_ids, manager_labels))

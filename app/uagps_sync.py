@@ -89,6 +89,7 @@ class UaGpsSynchronizer(Fleet):
         return int(timeframe.timestamp())
 
     def get_road_distance(self, start, end, schema=None):
+        print(start, end)
         road_dict = {}
         drivers = Driver.objects.filter(
             partner=self.partner, schema=schema) if schema else Driver.objects.filter(partner=self.partner)
@@ -113,23 +114,14 @@ class UaGpsSynchronizer(Fleet):
                                                           state=FleetOrder.COMPLETED,
                                                           accepted_time__gte=start,
                                                           accepted_time__lt=end).order_by('accepted_time')
-                    first_order = FleetOrder.objects.filter(driver=driver,
-                                                            finish_time__gt=start,
-                                                            state=FleetOrder.COMPLETED,
-                                                            accepted_time__lte=start).first()
-                    if first_order:
-                        completed = completed.union(FleetOrder.objects.filter(pk=first_order.pk))
                 else:
                     continue
                 previous_finish_time = None
                 for order in completed:
                     try:
+                        print(order.finish_time)
                         end_report = order.finish_time if order.finish_time < end else end
-                        if order.accepted_time < start:
-                            report = self.generate_report(self.get_timestamp(timezone.localtime(start)),
-                                                          self.get_timestamp(timezone.localtime(end_report)),
-                                                          order.vehicle.gps.gps_id)
-                        elif previous_finish_time is None or order.accepted_time >= previous_finish_time:
+                        if previous_finish_time is None or order.accepted_time >= previous_finish_time:
                             report = self.generate_report(self.get_timestamp(timezone.localtime(order.accepted_time)),
                                                           self.get_timestamp(timezone.localtime(end_report)),
                                                           order.vehicle.gps.gps_id)
@@ -205,10 +197,10 @@ class UaGpsSynchronizer(Fleet):
                                            partner=self.partner,
                                            rent_distance=rent_distance)
 
-    def check_today_rent(self):
+    def check_today_rent(self, schema):
         start = timezone.make_aware(datetime.combine(timezone.localtime(), time.min))
         end = timezone.make_aware(datetime.combine(timezone.localtime(), time.max))
-        in_road = self.get_road_distance(start, end)
+        in_road = self.get_road_distance(start, end, schema)
         for driver, result in in_road.items():
             distance, road_time, end_time = result
             total_km = 0

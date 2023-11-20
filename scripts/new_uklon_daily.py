@@ -14,6 +14,7 @@ def run(*args):
                 address = order.destination
                 lat, lon = get_coordinates_from_place(address, api_key)
                 coordinates = VehicleGPS.objects.filter(vehicle=order.vehicle, created_at__gte=order.accepted_time)
+                print(lat, lon)
                 for coordinate in coordinates:
                     distance = haversine(float(coordinate.lat), float(coordinate.lon),
                                          float(lat), float(lon))
