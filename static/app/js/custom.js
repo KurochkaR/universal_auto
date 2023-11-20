@@ -406,4 +406,14 @@ $(document).ready(function() {
 	} );
 
 	investmentSlider.mount();
+
+	var investmentParkSlider = new Splide( '.investment-park-slider', {
+		type    : 'loop',
+		perPage : 1,
+		autoplay: true,
+		arrows   : false,
+  	pagination: false
+	} );
+
+	investmentParkSlider.mount();
 });

@@ -97,10 +97,6 @@
     <div class="consultation-button">
       <button>Проконсультуватися</button>
     </div>
-    <div class="slider-arrows">
-      <div class="arrow left-arrow">&#9665;</div>
-      <div class="arrow right-arrow">&#9665;</div>
-    </div>
   </div>
 </section>
 <!-- end investment slider section -->
@@ -180,10 +176,115 @@
       <img src="{% static 'app/images/invest-img/invest-number.webp' %}" alt="img">
     </div>
   </div>
-
 </section>
 
 <!-- end investment in numbers -->
 
+<!--investment car park-->
+
+<section class="investment-park-section">
+  <div class="container">
+    <div class="title-slider">
+      <h2>{% trans 'Наш автопарк' %}</h2>
+    </div>
+    <section class="splide investment-park-slider" aria-label="Варіанти співпраці">
+      <div class="splide__track">
+        <ul class="splide__list">
+          <li class="splide__slide">
+            <div class="investment-park-slider">
+              <h3 class="slider-title-1">{% trans "BYD E2" %}</h3>
+              <h4 class="slider-description-1">
+                {% trans "Міський електромобіль. Він має дальність на одному заряді до 305 км." %}
+                {% trans "Акумулятор літій-залізо-фосфатний та вміщує до 5 пасажирів." %}
+              </h4>
+              <div class="img-box">
+                <img src="{% static 'app/images/invest-img/invest-car-1.webp' %}" alt="img">
+              </div>
+            </div>
+          </li>
+          <li class="splide__slide">
+            <div class="investment-park-slider">
+              <h3 class="slider-title-2">{% trans "BYD Yuan Pro" %}</h3>
+              <h4 class="slider-description-2">
+                {% trans "Міський компактний електрокросовер." %}
+                {% trans "Завдяки літій-залізо-фосфатному акумулятору, " %}
+                {% trans "він пропонує дальність до 400 км на одному заряді." %}
+              </h4>
+              <div class="img-box">
+                <img src="{% static 'app/images/invest-img/invest-car-2.webp' %}" alt="img">
+              </div>
+            </div>
+          </li>
+          <li class="splide__slide">
+            <div class="investment-park-slider">
+              <h3 class="slider-title-3">{% trans "Changan Eado EV300" %}</h3>
+              <h4 class="slider-description-3">
+                {% trans " Міський середньорозмірний електричний седан. З акумулятором літій-залізо-фосфатного типу." %}
+              </h4>
+              <div class="img-box">
+                <img src="{% static 'app/images/invest-img/invest-car-3.webp' %}" alt="img">
+              </div>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </section>
+  </div>
+</section>
+
+<section class="auto-park-seven-section">
+  <div class="container">
+    <h2 class="title-block">{% trans "Ninja блог" %}</h2>
+    <div class="blog-cards">
+      <div class="blog-card">
+        <img src="{% static 'app/images/auto-park-img/park-block-7-1.webp' %}" alt="img-blog">
+        <h2 class="title-blog">
+          {% trans "Дизайн майбутнього: інноваційні концепції в електротаксі" %}
+        </h2>
+        <p class="description-blog">
+          {% trans "У світі, де екологічні питання стають все більш актуальними, " %}
+          {% trans "електрокари не просто є перевізниками, вони - це майбутнє транспорту." %}</p>
+        <a class="btn-blog" href="#">{% trans "Читати більше" %}</a>
+      </div>
+      <div class="blog-card">
+        <img src="{% static 'app/images/auto-park-img/park-block-7-2.webp' %}" alt="img-blog">
+        <h2 class="title-blog">
+          {% trans "Технології в дії: як електротаксі змінюють правила гри" %}
+        </h2>
+        <p class="description-blog">
+          {% trans "Електротаксі - це новий вимір мобільності, " %}
+          {% trans "який змінює правила гри в транспортній індустрії." %}
+        </p>
+        <a class="btn-blog" href="#">{% trans "Читати більше" %}</a>
+      </div>
+    </div>
+    <div class="blog-cards">
+      <div class="blog-card">
+        <img src="{% static 'app/images/auto-park-img/park-block-7-1.webp' %}" alt="img-blog">
+        <h2 class="title-blog">
+          {% trans "Поруч і завжди доступні: " %}
+          {% trans "Важливість ефективної підтримки в електротаксі" %}
+        </h2>
+        <p class="description-blog">
+          {% trans "Електротаксі - це не просто транспортний засіб; це мобільний сервіс, " %}
+          {% trans "який змінює наше сприйняття громадського транспорту." %}
+        </p>
+        <a class="btn-blog" href="#">{% trans "Читати більше" %}</a>
+      </div>
+      <div class="blog-card">
+        <img src="{% static 'app/images/auto-park-img/park-block-7-2.webp' %}" alt="img-blog">
+        <h2 class="title-blog">
+          {% trans "Зарядні станції для електромобілів: Технологічна Революція " %}
+        </h2>
+        <p class="description-blog">
+          {% trans "Успіх електромобільної революції залежить від наявності надійної та " %}
+          {% trans "зручної інфраструктури зарядних станцій." %}</p>
+        <a class="btn-blog" href="#">{% trans "Читати більше" %}</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!--investment end car park -->
 <!-- investment  -->
 {% endblock %}
