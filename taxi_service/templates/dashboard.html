@@ -260,12 +260,13 @@
       {% else %}
       <div class="charts-card">
         <h2 class="chart-title">{% trans 'Доходи водіїв' %}</h2>
+        <span class="weekly-income-dates"></span>
         <div class="noDataMessage1" style="display: none;">{% trans "За обраний період відсутні дані." %}</div>
         <div id="bar-chart" style="width: 100%; height: 600px;"></div>
       </div>
       <div class="charts-card">
         <h2 class="chart-title">{% trans 'Ефективність автомобіля' %}</h2>
-
+        <span class="weekly-income-dates"></span>
         <div class="car-select">
           <div class="custom-dropdown">
             <div class="selected-option" id="selected-vehicle">
@@ -282,6 +283,12 @@
 
         <div class="noDataMessage2" style="display: none;">{% trans "За обраний період відсутні дані." %}</div>
         <div id="area-chart" style="width: 100%; height: 600px;"></div>
+      </div>
+      <div class="charts-card">
+        <h2 class="chart-title">{% trans 'Середня ефективність автомобіля' %}</h2>
+        <span class="weekly-income-dates"></span>
+        <div class="noDataMessage1" style="display: none;">{% trans "За обраний період відсутні дані." %}</div>
+        <div id="bar-three-chart" style="width: 100%; height: 600px;"></div>
       </div>
       {% endif %}
     </div>

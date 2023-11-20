@@ -231,6 +231,64 @@ let areaChartOptions = {
 
 areaChart.setOption(areaChartOptions);
 
+// BAR CHART 2
+var threeChart = echarts.init(document.getElementById('bar-three-chart'));
+
+let threeChartOptions = {
+	xAxis: {
+  type: 'category',
+  data: []
+  },
+  yAxis: {
+    type: 'value'
+  },
+  dataZoom: [
+    {
+      type: 'slider',
+      start: 1,
+      end: 30,
+      showDetail: false,
+      backgroundColor: 'white',
+      dataBackground: {
+        lineStyle: {
+          color: 'orange',
+          width: 5
+        }
+      },
+      selectedDataBackground: {
+        lineStyle: {
+          color: 'rgb(255, 69, 0)',
+          width: 5
+        }
+      },
+      handleStyle: {
+        color: 'orange',
+        borderWidth: 0
+      },
+    }
+  ],
+  series: [
+    {
+      data: [],
+      type: 'bar'
+    }
+  ],
+  tooltip: {
+    show: true,
+    trigger: 'axis',
+    axisPointer: {
+      type: 'shadow'
+    },
+    formatter: function (params) {
+      return 'Автомобіль: ' + params[0].name + '<br/>Ефективність: ' + params[0].value;
+    }
+  }
+}
+
+threeChart.setOption(threeChartOptions);
+
+// ---------- END CHARTS ---------- //
+
 function fetchSummaryReportData(period, start, end) {
 	let apiUrl;
 	if (period === 'custom') {
@@ -294,6 +352,7 @@ function fetchCarEfficiencyData(period, vehicleId, vehicle_lc, start, end) {
 			if (data['dates'].length !== 0) {
 				$(".noDataMessage2").hide();
 				$('#area-chart').show();
+				$('#bar-three-chart').show();
 				$('.car-select').show();
 
 				let firstVehicleData = {
@@ -307,9 +366,17 @@ function fetchCarEfficiencyData(period, vehicleId, vehicle_lc, start, end) {
 				areaChartOptions.xAxis.data = data['dates'];
 				areaChart.setOption(areaChartOptions);
 
+				let averageEff = data['vehicles'].average_eff;
+				let vehicleNames = Object.keys(averageEff);
+				let vehicleEff = Object.values(averageEff);
+
+				threeChartOptions.series[0].data = vehicleEff;
+				threeChartOptions.xAxis.data = vehicleNames;
+				threeChart.setOption(threeChartOptions);
 			} else {
 				$(".noDataMessage2").show();
 				$('#area-chart').hide();
+				$('#bar-three-chart').hide();
 				$('.car-select').hide();
 			};
 			$('.weekly-income-amount').text(data["kasa"] + ' ' + gettext('грн'));
