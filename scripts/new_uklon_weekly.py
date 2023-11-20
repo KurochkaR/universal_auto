@@ -1,8 +1,8 @@
-from auto.drivers import NewUklon
+from django.utils import timezone
+
+from app.bolt_sync import BoltRequest
 
 
 def run():
-    b = NewUklon(driver=True, sleep=5, headless=True)
-    b.login()
-    b.download_payments_order()
-    b.save_report()
+    day = timezone.localtime()
+    BoltRequest.objects.get(partner=1).save_report(day, day, 2)

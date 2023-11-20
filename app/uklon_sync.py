@@ -128,8 +128,10 @@ class UklonRequest(Fleet, Synchronizer):
 
     def save_report(self, start, end, schema, custom=None):
         if custom:
-            start = datetime.combine(start, time.min)
-        param = {'dateFrom': self.report_interval(start),
+            start_time = datetime.combine(start, time.min)
+        else:
+            start_time = start
+        param = {'dateFrom': self.report_interval(start_time),
                  'dateTo': self.report_interval(end),
                  'limit': '50', 'offset': '0'
                  }
@@ -171,7 +173,7 @@ class UklonRequest(Fleet, Synchronizer):
                         "vehicle": vehicle
                     }
                     if custom:
-                        uklon_custom = CustomReport.objects.filter(report_from__date=start,
+                        uklon_custom = CustomReport.objects.filter(report_from__date=start_time,
                                                                    driver_id=i['driver']['id'],
                                                                    vendor_name=self.name,
                                                                    partner=self.partner).last()
@@ -190,7 +192,7 @@ class UklonRequest(Fleet, Synchronizer):
                                 "total_amount_without_fee": (self.find_value(i, *('profit', 'total', 'amount')) -
                                                              uklon_custom.total_amount_without_fee),
                             })
-                    db_report = CustomReport.objects.filter(report_to=end,
+                    db_report = CustomReport.objects.filter(report_from=start,
                                                             driver_id=i['driver']['id'],
                                                             vendor_name=self.name,
                                                             partner=self.partner)

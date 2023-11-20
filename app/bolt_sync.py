@@ -95,11 +95,17 @@ class BoltRequest(Fleet, Synchronizer):
         format_start = start.strftime("%Y-%m-%d")
         format_end = end.strftime("%Y-%m-%d")
         param = self.param()
-        param.update({"start_date": format_start,
-                      "end_date": format_end,
-                      "offset": 0,
-                      "limit": 50})
-        reports = self.get_target_url(f'{self.base_url}getDriverEarnings/dateRange', param)
+        if not custom:
+            param.update({"period": "ongoing_day",
+                          "offset": 0,
+                          "limit": 50})
+            reports = self.get_target_url(f'{self.base_url}getDriverEarnings/recent', param)
+        else:
+            param.update({"start_date": format_start,
+                          "end_date": format_end,
+                          "offset": 0,
+                          "limit": 50})
+            reports = self.get_target_url(f'{self.base_url}getDriverEarnings/dateRange', param)
         for driver in reports['data']['drivers']:
             try:
                 db_driver = FleetsDriversVehiclesRate.objects.get(driver_external_id=driver['id'],
