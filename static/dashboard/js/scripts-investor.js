@@ -50,7 +50,7 @@ let investorBarChartOptions = {
     {
       type: 'slider',
       start: 1,
-      end: 20,
+      end: 100,
       showDetail: false,
       backgroundColor: 'white',
       dataBackground: {
