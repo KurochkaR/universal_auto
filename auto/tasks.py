@@ -977,22 +977,26 @@ def calculate_driver_reports(self, partner_pk, daily=False):
 def calculate_vehicle_earnings(self, partner_pk, day=None):
     if not day:
         day = timezone.localtime() - timedelta(days=1)
-    drivers = Driver.objects.filter(partner=partner_pk, schema__isnull=False)
+    drivers = Driver.objects.filter(partner=partner_pk, schema__isnull=False).select_related('partner')
     for driver in drivers:
-        payment = DriverPayments.objects.filter(report_to=day, driver=driver)
-        spending_rate = 1 - payment.kasa / (payment.salary + payment.cash)
-        vehicles_income = get_vehicle_income(driver, payment.report_from, payment.report_to,
-                                             spending_rate, payment.kasa)
-        for vehicle, income in vehicles_income.items():
-            PartnerEarnings.objects.get_or_create(
-                report_from=payment.report_from,
-                report_to=payment.report_to,
-                vehicle=vehicle,
-                partner=Partner.get_partner(driver.partner),
-                defaults={
-                    "earning": income,
-                }
-            )
+        payment = DriverPayments.objects.filter(report_to=day, driver=driver, partner=driver.partner).first()
+        if payment:
+            spending_rate = 1 - (payment.salary + payment.cash) / payment.kasa
+            print(spending_rate)
+            print(payment)
+            vehicles_income = get_vehicle_income(driver, payment.report_from, payment.report_to,
+                                                 spending_rate, payment.kasa)
+            print(vehicles_income)
+            for vehicle, income in vehicles_income.items():
+                PartnerEarnings.objects.get_or_create(
+                    report_from=payment.report_from,
+                    report_to=payment.report_to,
+                    vehicle_id=vehicle.id,
+                    partner=driver.partner,
+                    defaults={
+                        "earning": income,
+                    }
+                )
 
 
 @app.on_after_finalize.connect

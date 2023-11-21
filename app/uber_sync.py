@@ -271,7 +271,7 @@ class UberRequest(Fleet, Synchronizer):
         response = requests.post(str(self.base_url), headers=self.get_header(), json=data)
         if response.status_code == 200 and response.json()['data']:
             return response.json()['data']['getPerformanceReport'][0]['totalEarnings']
-
+        return 0
 
     def get_drivers_status(self):
         query = '''query GetDriverEvents($orgUUID: String!) {

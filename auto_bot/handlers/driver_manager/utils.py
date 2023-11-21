@@ -1,8 +1,8 @@
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 
 from _decimal import Decimal
-from django.db.models import Sum, Avg, DecimalField, ExpressionWrapper, F
+from django.db.models import Sum, Avg, DecimalField, ExpressionWrapper, F, Value
 from django.db.models.functions import Coalesce
 from django.utils import timezone
 
@@ -365,39 +365,70 @@ def get_driver_efficiency_report(manager_id=None, start=None, end=None):
 def get_vehicle_income(driver, start, end, spending_rate, kasa):
     vehicle_income = {}
     while start < end:
-        vehicles = check_reshuffle(driver, start)
+        start_time = timezone.make_aware(datetime.combine(start, time.min))
+        vehicles = check_reshuffle(driver, start_time)
         for vehicle, reshuffles in vehicles.items():
             if reshuffles:
                 for reshuffle in reshuffles:
                     vehicle = reshuffle.swap_vehicle
                     investor_payments = InvestorPayments.objects.filter(
                         vehicle=vehicle, report_from=start).aggregate(
-                        total_payment=Sum("sum_before_transaction"))['total_payment']
+                        total_payment=Coalesce(Sum("sum_before_transaction"), Decimal(0)))['total_payment'] or 0
+                    print(f"investor {investor_payments}")
                     bolt_income = FleetOrder.objects.filter(
                         fleet="Bolt",
                         state=FleetOrder.COMPLETED,
                         finish_time__date=start,
-                        vehicle=vehicle).aggregate(total_price=Sum('price'))['total_price']
+                        vehicle=vehicle).aggregate(total_price=Coalesce(Sum('price'), 0))['total_price']
+                    print(f"bolt={bolt_income}{start}")
                     uklon_income = FleetOrder.objects.filter(
                         fleet="Uklon",
                         state=FleetOrder.COMPLETED,
                         finish_time__date=start,
-                        vehicle=vehicle).aggregate(total_price=Sum('price'))['total_price']
-                    uber_income = UberRequest.objects.get(
-                        partner=driver.partner).get_earnings_per_driver(driver.get_driver_external_id(vendor="Uber"),
-                                                                        reshuffle.swap_time,
-                                                                        reshuffle.end_time)
-                    total_income = (bolt_income * 0.75 + uklon_income + uber_income) * spending_rate - investor_payments
-                    if not vehicle_income[vehicle]:
+                        vehicle=vehicle).aggregate(total_price=Coalesce(Sum('price'), 0))['total_price']
+                    print(f"uklon={uklon_income}{start}")
+                    if start_time > reshuffle.swap_time:
+                        uber_income = UberRequest.objects.get(partner=driver.partner).get_earnings_per_driver(
+                            driver.get_driver_external_id(vendor="Uber"),
+                            start_time,
+                            reshuffle.end_time)
+                    else:
+                        uber_income = UberRequest.objects.get(partner=driver.partner).get_earnings_per_driver(
+                            driver.get_driver_external_id(vendor="Uber"),
+                            reshuffle.swap_time,
+                            timezone.make_aware(datetime.combine(start, time.max)))
+                    total_income = (Decimal((bolt_income * 0.75 + uklon_income + uber_income)) * spending_rate
+                                    - investor_payments)
+                    if not vehicle_income.get(vehicle):
                         vehicle_income[vehicle] = total_income
                     else:
                         vehicle_income[vehicle] += total_income
+
             elif vehicle:
                 investor_payments = InvestorPayments.objects.filter(
                     vehicle=vehicle, report_from=start).aggregate(
-                    total_payment=Sum("sum_before_transaction"))['total_payment']
-                total_income = kasa * spending_rate - investor_payments
-                if not vehicle_income[vehicle]:
+                    total_payment=Sum("sum_before_transaction"))['total_payment'] or 0
+                print(f"investor {investor_payments}")
+                bolt_income = FleetOrder.objects.filter(
+                    fleet="Bolt",
+                    state=FleetOrder.COMPLETED,
+                    finish_time__date=start,
+                    vehicle=vehicle).aggregate(total_price=Coalesce(Sum('price'), 0))['total_price']
+                print(f"bolt={bolt_income}{start}")
+                uklon_income = FleetOrder.objects.filter(
+                    fleet="Uklon",
+                    state=FleetOrder.COMPLETED,
+                    finish_time__date=start,
+                    vehicle=vehicle).aggregate(total_price=Coalesce(Sum('price'), 0))['total_price']
+                print(f"uklon={uklon_income}{start}")
+                uber_income = UberRequest.objects.get(partner=driver.partner).get_earnings_per_driver(
+                    driver.get_driver_external_id(vendor="Uber"),
+                    start_time,
+                    timezone.make_aware(datetime.combine(start, time.max)))
+                total_income = (Decimal((bolt_income * 0.75 + uklon_income + uber_income)) * spending_rate
+                                - investor_payments)
+                print(f"total{total_income}")
+                if not vehicle_income.get(vehicle):
                     vehicle_income[vehicle] = total_income
                 else:
                     vehicle_income[vehicle] += total_income

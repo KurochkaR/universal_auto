@@ -1,8 +1,6 @@
-from auto.drivers import NewUklon
+
+from auto.tasks import calculate_vehicle_earnings
 
 
 def run():
-    b = NewUklon(driver=True, sleep=5, headless=True)
-    b.login()
-    b.download_payments_order()
-    b.save_report()
+    calculate_vehicle_earnings.delay(1, "2023-11-12")

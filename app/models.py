@@ -121,8 +121,10 @@ class UberTrips(models.Model):
 
 
 class User(models.Model):
-    name = models.CharField(validators=[MaxLengthValidator(255)], blank=True, null=True, verbose_name="Ім'я")
-    second_name = models.CharField(validators=[MaxLengthValidator(255)], blank=True, null=True, verbose_name='Прізвище')
+    name = models.CharField(validators=[MaxLengthValidator(255)], max_length=255,
+                            blank=True, null=True, verbose_name="Ім'я")
+    second_name = models.CharField(validators=[MaxLengthValidator(255)], max_length=255,
+                                   blank=True, null=True, verbose_name='Прізвище')
     email = models.EmailField(blank=True, null=True, max_length=254, verbose_name='Електронна пошта',
                               validators=[EmailValidator()])
     role = models.CharField(max_length=25, default=Role.CLIENT, choices=Role.choices)
@@ -237,15 +239,16 @@ class Vehicle(models.Model):
         USD = 'USD', 'Долар',
         EUR = 'EUR', 'Євро',
 
-    name = models.CharField(validators=[MaxLengthValidator(200)], verbose_name='Назва')
+    name = models.CharField(validators=[MaxLengthValidator(200)], max_length=200, verbose_name='Назва')
     type = models.CharField(max_length=20, default='Електро', verbose_name='Тип')
-    licence_plate = models.CharField(validators=[MaxLengthValidator(24)], unique=True, verbose_name='Номерний знак')
+    licence_plate = models.CharField(validators=[MaxLengthValidator(24)], max_length=24,
+                                     unique=True, verbose_name='Номерний знак')
     registration = models.CharField(null=True, max_length=12, unique=True, verbose_name='Номер документа')
     purchase_date = models.DateField(null=True, verbose_name='Дата початку роботи')
-    vin_code = models.CharField(validators=[MaxLengthValidator(17)], blank=True)
+    vin_code = models.CharField(validators=[MaxLengthValidator(17)], max_length=17, blank=True)
     chat_id = models.CharField(max_length=15, blank=True, null=True, verbose_name="Група автомобіля телеграм")
     gps = models.ForeignKey(GPSNumber, on_delete=models.CASCADE, null=True, blank=True, verbose_name="Назва авто в Gps")
-    gps_imei = models.CharField(validators=[MaxLengthValidator(50)], blank=True, default='')
+    gps_imei = models.CharField(validators=[MaxLengthValidator(50)], max_length=50, blank=True, default='')
     coord_time = models.DateTimeField(null=True, verbose_name="Час отримання координат")
     lat = models.DecimalField(null=True, decimal_places=6, max_digits=10, default=0, verbose_name="Широта")
     lon = models.DecimalField(null=True, decimal_places=6, max_digits=10, default=0, verbose_name="Довгота")
@@ -296,7 +299,7 @@ class InvestorPayments(models.Model):
 class PartnerEarnings(models.Model):
     report_from = models.DateField(verbose_name="Дохід з")
     report_to = models.DateField(verbose_name="Дохід по")
-    vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Автомобіль'),
+    vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Автомобіль')
     partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
     earning = models.DecimalField(decimal_places=2, max_digits=10, verbose_name='Сума доходу')
 
@@ -365,6 +368,7 @@ class DriverReshuffle(models.Model):
     driver_start = models.ForeignKey(Driver, on_delete=models.SET_NULL, null=True, verbose_name="Водій")
     swap_time = models.DateTimeField(verbose_name="Час початку зміни")
     end_time = models.DateTimeField(verbose_name="Час завершення зміни")
+    partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
 
 
 class RentInformation(models.Model):
