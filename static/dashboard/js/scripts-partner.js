@@ -82,7 +82,7 @@ let barChartOptions = {
     {
       type: 'slider',
       start: 1,
-      end: 20,
+      end: 100,
       showDetail: false,
       backgroundColor: 'white',
       dataBackground: {
@@ -182,7 +182,7 @@ let areaChartOptions = {
     {
       type: 'slider',
       start: 1,
-      end: 30,
+      end: 100,
       showDetail: false,
       backgroundColor: 'white',
       dataBackground: {

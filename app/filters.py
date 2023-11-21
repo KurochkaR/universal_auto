@@ -57,7 +57,7 @@ class VehicleManagerFilter(admin.SimpleListFilter):
 
     def lookups(self, request, model_admin):
         user = request.user
-        queryset = Vehicle.objects.exclude(manager__isnull=True)
+        queryset = Vehicle.objects.exclude(manager__isnull=True).select_related('manager', 'gps')
         if not user.groups.filter(name__in=('Manager', 'Investor')).exists():
             if user.groups.filter(name='Partner').exists():
                 queryset = queryset.filter(partner__user=user)
