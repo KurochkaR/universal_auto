@@ -173,7 +173,8 @@
       </p>
     </div>
     <div class="img-box">
-      <img src="{% static 'app/images/invest-img/invest-number.webp' %}" alt="img">
+      <img class="img-laptop" src="{% static 'app/images/invest-img/invest-number-1.webp' %}" alt="img">
+      <img class="img-phone" src="{% static 'app/images/invest-img/invest-number-2.webp' %}" alt="img">
     </div>
   </div>
 </section>
@@ -198,7 +199,8 @@
                 {% trans "Акумулятор літій-залізо-фосфатний та вміщує до 5 пасажирів." %}
               </h4>
               <div class="img-box">
-                <img src="{% static 'app/images/invest-img/invest-car-1.webp' %}" alt="img">
+                <img class="slid-img-laptop" src="{% static 'app/images/invest-img/invest-car-1.webp' %}" alt="img">
+                <img class="slid-img-phone" src="{% static 'app/images/invest-img/invest-car-4.webp' %}" alt="img">
               </div>
             </div>
           </li>
@@ -211,7 +213,8 @@
                 {% trans "він пропонує дальність до 400 км на одному заряді." %}
               </h4>
               <div class="img-box">
-                <img src="{% static 'app/images/invest-img/invest-car-2.webp' %}" alt="img">
+                <img class="slid-img-laptop" src="{% static 'app/images/invest-img/invest-car-2.webp' %}" alt="img">
+                <img class="slid-img-phone" src="{% static 'app/images/invest-img/invest-car-5.webp' %}" alt="img">
               </div>
             </div>
           </li>
@@ -222,7 +225,8 @@
                 {% trans " Міський середньорозмірний електричний седан. З акумулятором літій-залізо-фосфатного типу." %}
               </h4>
               <div class="img-box">
-                <img src="{% static 'app/images/invest-img/invest-car-3.webp' %}" alt="img">
+                <img class="slid-img-laptop" src="{% static 'app/images/invest-img/invest-car-3.webp' %}" alt="img">
+                <img class="slid-img-phone" src="{% static 'app/images/invest-img/invest-car-6.webp' %}" alt="img">
               </div>
             </div>
           </li>
@@ -284,6 +288,20 @@
     </div>
   </div>
 </section>
+
+<div id="InvestModal" class="invest-modal">
+  <div class="container">
+    <div class="invest-modal-content">
+      <button id="close-form-access" class="close-button">×</button>
+      <h2>Бажаєте дізнатися детальніше про інвестиції в Ninja Taxi?</h2>
+      <form class="invest-modal-form" id="investModalForm">
+        {% csrf_token %}
+        <input type="email" placeholder="Електронна адреса" id="email-input">
+        <button class="learn-more-button" onclick="submitForm()">Дізнатися більше</button>
+      </form>
+    </div>
+  </div>
+</div>
 
 <!--investment end car park -->
 <!-- investment  -->

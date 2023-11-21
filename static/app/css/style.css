@@ -3696,6 +3696,15 @@ span.error-name {
 		margin-top: 30px;
 	}
 
+	.auto-park-seven-section .title-block {
+		color: #141E17;
+		font-size: 15px;
+		font-style: normal;
+		font-weight: 600;
+		line-height: normal;
+		text-transform: uppercase;
+	}
+
 	.auto-park-seven-section .blog-cards {
 		display: grid;
 		grid-template-columns: repeat(1, 1fr);
@@ -3726,18 +3735,18 @@ span.error-name {
 	}
 
 	.auto-park-seven-section .blog-cards .blog-card h2 {
-		top: 10%;
+		top: 20%;
 		color: #141E17;
-		font-size: 20px;
+		font-size: 15px;
 		font-style: normal;
 		font-weight: 700;
 		line-height: normal;
 	}
 
 	.auto-park-seven-section .blog-cards .blog-card p {
-		top: 45%;
+		top: 43%;
 		color: #53785E;
-		font-size: 15px;
+		font-size: 12px;
 		font-style: normal;
 		font-weight: 400;
 		line-height: normal;
@@ -4600,7 +4609,8 @@ span.error-name {
 	margin-top: 20px;
 }
 
-.invest-btn-box .email-input {
+.invest-btn-box .email-input,
+.invest-modal-form #email-input {
   border-radius: 20px;
 	background: #EC6323;
 	border: 0px solid #EC6323;
@@ -4608,7 +4618,8 @@ span.error-name {
 	padding: 15px 20px;
 }
 
-.invest-btn-box .email-input::placeholder {
+.invest-btn-box .email-input::placeholder,
+.invest-modal-form #email-input::placeholder {
 	color: rgba(255, 255, 255, 0.50);
 	font-family: Montserrat;
 	font-size: 16px;
@@ -4617,7 +4628,8 @@ span.error-name {
 	line-height: normal;
 }
 
-.invest-btn-box .free-access-button {
+.invest-btn-box .free-access-button,
+.invest-modal-form .learn-more-button {
 	margin-left: 10px;
 	background-color: #fff;
 	color: #EC6323;
@@ -4883,6 +4895,10 @@ span.error-name {
 	bottom: 205px;
 }
 
+.investment-in-numbers-section .container .img-box .img-phone {
+	display: none;
+}
+
 /* block 5 */
 
 .investment-park-section {
@@ -4957,6 +4973,348 @@ span.error-name {
 	width: 100%;
 }
 
+
+/* modal */
+
+.invest-modal {
+	display: none;
+	position: fixed;
+	z-index: 1;
+	left: 0;
+	top: 0;
+	width: 100%;
+	height: 100%;
+	background-color: rgba(0, 0, 0, 0.4);
+}
+
+.invest-modal-content {
+	text-align: center;
+	background-color: #A1E8B9;
+	margin: 15% auto;
+	padding: 20px;
+	width: 65%;
+	height: 50%;
+	border-radius: 62px;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+}
+
+
+.invest-modal-content h2 {
+	color: #EC6323;
+	text-align: center;
+	font-size: 25px;
+	font-style: normal;
+	font-weight: 700;
+	line-height: normal;
+}
+
+.invest-modal-content .close-button {
+	background: none;
+	color: black;
+	float: right;
+	font-size: 28px;
+	font-weight: bold;
+	border: none;
+	margin-left: 0px;
+	position: relative;
+	right: -330px;
+	bottom: 10px;
+}
+
+#investModalForm {
+	margin-top: 45px;
+	margin-bottom: 50px;
+}
+
+
+/* adaptive for phone */
+
+@media screen and (max-width: 767px) {
+	/*block 1*/
+	.investment_section .container {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: space-between;
+	}
+
+	.investment-left img {
+    width: 100%;
+    margin-top: 20px;
+	}
+
+	.investment-right {
+    margin-top: 100px;
+    height: 305px;
+	}
+
+	.investment-right .decorate-img {
+  	right: 15px;
+  }
+
+  .investment-right .decorate-img img {
+    width: 110%;
+    height: 305px;
+	}
+
+	.invest-one-info {
+    width: 90%;
+    top: 36%;
+    left: 60%;
+	}
+
+	.invest-one-info h2 {
+		font-size: 20px;
+		margin-bottom: 10px;
+	}
+
+	.invest-one-info p {
+		font-size: 15px;
+		margin-bottom: 10px;
+	}
+
+	.invest-btn-box {
+		width: 100%;
+		right: 0;
+		margin-top: 0;
+		top: -105px;
+		flex-direction: column;
+		bottom: 120px;
+		gap: 10px;
+	}
+
+	.invest-btn-box .email-input, .invest-modal-form #email-input {
+		font-size: 15px;
+    width: 100%;
+    padding: 10px 10px;
+    text-align: center;
+	}
+
+	.invest-btn-box .free-access-button {
+		font-size: 15px;
+		width: 100%;
+    padding: 10px 10px;
+    margin-left: 0;
+  }
+
+  /*block 2*/
+
+  .investment-slider-section h2 {
+		font-size: 20px;
+		margin-top: 12px;
+  }
+
+  .investment-slider-section .investment-slider {
+    margin-top: 20px;
+	}
+
+	.investment-slider-section .investment-slider h3 {
+    font-size: 15px;
+    margin-top: 15px;
+	}
+
+	.investment-slider-section .investment-slider li,
+	.investment-slider-section .investment-slider p {
+    font-size: 12px;
+	}
+
+	.splide__arrow {
+    z-index: -1 !important;
+	}
+
+	.investment-slider ul {
+  	padding-left: 0;
+	}
+
+	.investment-slider-section .consultation-button button {
+    width: 100%;
+    font-size: 10px;
+  }
+
+  /*block 3*/
+
+  .investment-offer-section {
+    margin-top: 30px;
+	}
+
+	.investment-offer-section .container h2 {
+		text-align: left;
+    font-size: 15px;
+    margin-left: 20px;
+	}
+
+	.investment-offer-section .cards {
+    margin-top: 20px;
+	}
+
+	.cards .card img {
+		display: none;
+	}
+
+	.investment-offer-section .cards {
+		flex-direction: column;
+	}
+
+	.investment-offer-section .card h3 {
+    margin-top: 0;
+    text-align: left;
+    font-size: 12px;
+	}
+
+	.investment-offer-section .card p {
+    margin-top: 0;
+    text-align: left;
+    font-size: 12px;
+	}
+
+	.investment-offer-section .container button {
+    margin-top: 0;
+    font-size: 10px;
+    width: 100%;
+	}
+
+	/*block 4*/
+
+	.investment-in-numbers-section {
+		margin-top: 30px;
+	}
+
+	.investment-in-numbers-section .container {
+		margin-left: 20px;
+    height: auto;
+	}
+
+	.investment-in-numbers-section .container h2 {
+		text-align: left;
+		font-size: 15px;
+	}
+
+	.investment-in-numbers-section .container .durations {
+		counter-reset: paragraph-counter;
+	}
+
+	.investment-in-numbers-section .container .durations p {
+		font-size: 12px;
+		position: relative;
+	}
+
+	.investment-in-numbers-section .container .durations p::before {
+    content: counter(paragraph-counter);
+    counter-increment: paragraph-counter;
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    background-color: #A1E8B9;
+    color: #141E17;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 20px;
+    position: absolute;
+    left: 30px;
+	}
+
+	.investment-in-numbers-section .container .durations {
+		flex-direction: column;
+	}
+
+	.investment-in-numbers-section .container .durations p:nth-child(1) {
+    position: static;
+    flex: 0 0 0;
+    text-align: left;
+	}
+
+	.investment-in-numbers-section .container .durations p:nth-child(2) {
+    position: static;
+    text-align: left;
+    flex: 0 0 0;
+    margin-top: 0;
+	}
+
+	.investment-in-numbers-section .container .durations p:nth-child(3) {
+    position: static;
+    flex: 0;
+    text-align: left;
+    flex: 0 0 0;
+	}
+
+	.investment-in-numbers-section .container .durations p:nth-child(4) {
+		position: static;
+		flex: 0;
+		text-align: left;
+		flex: 0 0 0;
+		margin-top: 0;
+	}
+
+	.investment-in-numbers-section .container .durations p:nth-child(5) {
+		position: static;
+		flex: 0;
+		text-align: left;
+		flex: 0 0 0;
+	}
+
+	.investment-in-numbers-section .container .img-box {
+		position: static;
+	}
+
+	.investment-in-numbers-section .container .img-box .img-laptop {
+		display: none;
+	}
+
+	.investment-in-numbers-section .container .img-box .img-phone {
+		display: block;
+    width: 200% !important;
+    position: relative;
+    right: 270px;
+	}
+
+	/*block 5*/
+
+	.investment-park-section {
+		margin-top: 30px;
+	}
+
+	.investment-park-section .container h2{
+		font-size: 15px;
+		text-align: left;
+	}
+
+	.investment-park-slider .img-box .slid-img-laptop {
+		display: none;
+	}
+
+	.investment-park-slider h3 {
+		font-size: 15px;
+	}
+
+	.investment-park-slider h4 {
+		font-size: 12px;
+	}
+
+	.investment-park-slider h3.slider-title-1,
+	.investment-park-slider h3.slider-title-2,
+	.investment-park-slider h3.slider-title-3 {
+    position: absolute;
+    margin-top: 45px;
+    left: 45px;
+	}
+
+	.investment-park-slider {
+    position: relative;
+    height: 270px;
+  }
+
+	.investment-park-slider h4.slider-description-1,
+	.investment-park-slider h4.slider-description-2,
+	.investment-park-slider h4.slider-description-3 {
+    position: absolute;
+    margin-top: 205px;
+    left: 0;
+    width: 100%;
+	}
+}
 
 
 /* << Drivers page >> */
