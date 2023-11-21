@@ -1,7 +1,6 @@
 import os
 import string
 import random
-import re
 from datetime import datetime, date, time
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.validators import MaxLengthValidator, EmailValidator, RegexValidator
@@ -296,18 +295,6 @@ class InvestorPayments(models.Model):
         return f'{self.vehicle} {self.sum_before_transaction} {self.currency}'
 
 
-class PartnerEarnings(models.Model):
-    report_from = models.DateField(verbose_name="Дохід з")
-    report_to = models.DateField(verbose_name="Дохід по")
-    vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Автомобіль')
-    partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
-    earning = models.DecimalField(decimal_places=2, max_digits=10, verbose_name='Сума доходу')
-
-    class Meta:
-        verbose_name = 'Дохід'
-        verbose_name_plural = 'Доходи'
-
-
 class VehicleSpending(models.Model):
     class Category(models.TextChoices):
         FUEL = 'FUEL', 'Паливо'
@@ -362,6 +349,19 @@ class Driver(User):
         return f'{self.name} {self.second_name}'
 
 
+class PartnerEarnings(models.Model):
+    report_from = models.DateField(verbose_name="Дохід з")
+    report_to = models.DateField(verbose_name="Дохід по")
+    vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Автомобіль')
+    driver = models.ForeignKey(Driver, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Водій')
+    partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
+    earning = models.DecimalField(decimal_places=2, max_digits=10, verbose_name='Сума доходу')
+
+    class Meta:
+        verbose_name = 'Дохід'
+        verbose_name_plural = 'Доходи'
+
+
 class DriverReshuffle(models.Model):
     calendar_event_id = models.CharField(max_length=100)
     swap_vehicle = models.ForeignKey(Vehicle, on_delete=models.SET_NULL, null=True, verbose_name="Автомобіль")
@@ -374,7 +374,6 @@ class DriverReshuffle(models.Model):
 class RentInformation(models.Model):
     report_from = models.DateField(verbose_name='Дата звіту')
     driver = models.ForeignKey(Driver, on_delete=models.SET_NULL, null=True, verbose_name='Водій')
-    # vehicle
     rent_distance = models.DecimalField(null=True, blank=True, max_digits=6,
                                         decimal_places=2, verbose_name='Орендована дистанція')
     partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
@@ -383,6 +382,16 @@ class RentInformation(models.Model):
     class Meta:
         verbose_name = 'Інформацію по оренді'
         verbose_name_plural = 'Інформація по орендах'
+
+
+class VehicleRent(models.Model):
+    report_from = models.DateTimeField(verbose_name='Звіт з')
+    report_to = models.DateTimeField(verbose_name='Звіт по')
+    rent_distance = models.DecimalField(null=True, blank=True, max_digits=6,
+                                        decimal_places=2, verbose_name='Орендована дистанція')
+    driver = models.ForeignKey(Driver, on_delete=models.SET_NULL, null=True, verbose_name='Водій')
+    vehicle = models.ForeignKey(Vehicle, on_delete=models.SET_NULL, null=True, verbose_name="Автомобіль")
+    partner = models.ForeignKey(Partner, null=True, on_delete=models.CASCADE, verbose_name='Партнери')
 
 
 class Fleet(PolymorphicModel):

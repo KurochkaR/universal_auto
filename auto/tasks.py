@@ -234,21 +234,47 @@ def get_car_efficiency(self, partner_pk, day=None):
         vehicle_drivers = {}
         total_spending = VehicleSpending.objects.filter(
             vehicle=vehicle, created_at__date=day).aggregate(Sum('amount'))['amount__sum'] or 0
-        reshuffles = DriverReshuffle.objects.filter(swap_time__date=day, swap_vehicle=vehicle)
-        drivers = [reshuffle.driver_start for reshuffle in reshuffles] if reshuffles \
-            else Driver.objects.filter(vehicle=vehicle)
+        reshuffles = DriverReshuffle.objects.filter(
+            swap_time__date=day, swap_vehicle=vehicle).select_related('driver_start')
         total_kasa = 0
         try:
             total_km = UaGpsSynchronizer.objects.get(partner=partner_pk).total_per_day(vehicle.gps.gps_id, day)
         except AttributeError as e:
             logger.error(e)
             continue
-        for driver in drivers:
+        if reshuffles:
+            for reshuffle in reshuffles:
+                bolt_income = FleetOrder.objects.filter(
+                    fleet="Bolt",
+                    accepted_time__date=day,
+                    driver=reshuffle.driver_start,
+                    vehicle=vehicle).aggregate(total_price=Coalesce(Sum('price'), 0))['total_price']
+                uklon_income = FleetOrder.objects.filter(
+                    fleet="Uklon",
+                    state=FleetOrder.COMPLETED,
+                    accepted_time__date=day,
+                    driver=reshuffle.driver_start,
+                    vehicle=vehicle).aggregate(total_price=Coalesce(Sum('price'), 0))['total_price']
+                uber_income = UberRequest.objects.get(partner=partner_pk).get_earnings_per_driver(
+                    reshuffle.driver_start.get_driver_external_id(vendor="Uber"),
+                    reshuffle.swap_time,
+                    reshuffle.end_time)
+                total_income = Decimal(bolt_income * 0.75 + uklon_income * 0.81 + uber_income)
+                if vehicle_drivers.get(reshuffle.driver_start):
+                    vehicle_drivers[reshuffle.driver_start] += total_income
+                else:
+                    vehicle_drivers[reshuffle.driver_start] = total_income
+                total_kasa += total_income
+        else:
+            driver = Driver.objects.filter(vehicle=vehicle)
             report = SummaryReport.objects.filter(
                 report_from=day,
                 driver=driver).aggregate(
                 clean_amount=Coalesce(Sum('total_amount_without_fee'), Decimal(0)))['clean_amount']
-            vehicle_drivers[driver] = report
+            if vehicle_drivers.get(driver.id):
+                vehicle_drivers[driver.id] += report
+            else:
+                vehicle_drivers[driver.id] = report
             total_kasa += report
         result = max(
             Decimal(total_kasa) - Decimal(total_spending), Decimal(0)) / Decimal(total_km) if total_km else 0
@@ -981,7 +1007,7 @@ def calculate_vehicle_earnings(self, partner_pk, day=None):
     for driver in drivers:
         payment = DriverPayments.objects.filter(report_to=day, driver=driver, partner=driver.partner).first()
         if payment:
-            spending_rate = 1 - (payment.salary + payment.cash) / payment.kasa
+            spending_rate = 1 - (payment.salary + payment.cash + payment.rent) / payment.kasa
             print(spending_rate)
             print(payment)
             vehicles_income = get_vehicle_income(driver, payment.report_from, payment.report_to,
@@ -992,6 +1018,7 @@ def calculate_vehicle_earnings(self, partner_pk, day=None):
                     report_from=payment.report_from,
                     report_to=payment.report_to,
                     vehicle_id=vehicle.id,
+                    driver=driver,
                     partner=driver.partner,
                     defaults={
                         "earning": income,

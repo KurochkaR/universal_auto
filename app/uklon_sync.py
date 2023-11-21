@@ -252,8 +252,7 @@ class UklonRequest(Fleet, Synchronizer):
                 orders = self.response_data(url=f"{Service.get_value('UKLON_1')}orders", params=params)
                 try:
                     for order in orders['items']:
-                        if (FleetOrder.objects.filter(order_id=order['id']) or
-                                order['status'] in ("running", "accepted", "arrived")):
+                        if order['status'] in ("running", "accepted", "arrived"):
                             continue
                         detail = self.response_data(url=f"{Service.get_value('UKLON_1')}orders/{order['id']}",
                                                     params={"driverId": str_driver_id})
@@ -285,7 +284,10 @@ class UklonRequest(Fleet, Synchronizer):
                                 }
                         if check_vehicle(driver)[0] != vehicle:
                             redis_instance().hset(f"wrong_vehicle_{self.partner}", pk, order['vehicle']['licencePlate'])
-                        FleetOrder.objects.create(**data)
+                        try:
+                            FleetOrder.objects.filter(order_id=order['order_id']).update(**data)
+                        except ObjectDoesNotExist:
+                            FleetOrder.objects.create(**data)
                 except KeyError:
                     bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"), text=f"{orders}")
 
