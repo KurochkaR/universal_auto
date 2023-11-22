@@ -435,20 +435,22 @@ def detaching_the_driver_from_the_car(self, partner_pk, licence_plate):
 
 
 @app.task(bind=True, queue='beat_tasks')
-def get_rent_information(self, partner_pk, delta=1):
+def get_rent_information(self, partner_pk, day=None):
+    day = get_day_for_task(day)
     try:
         gps = UaGpsSynchronizer.objects.get(partner=partner_pk)
-        gps.save_daily_rent(delta)
+        gps.save_daily_rent(day)
         logger.info('write rent report')
     except Exception as e:
         logger.error(e)
 
 
 @app.task(bind=True, queue='beat_tasks')
-def get_today_rent(self, partner_pk):
+def get_today_rent(self, partner_pk, day=None):
+    day = get_day_for_task(day)
     try:
         gps = UaGpsSynchronizer.objects.get(partner=partner_pk)
-        gps.check_today_rent()
+        gps.check_today_rent(day)
     except Exception as e:
         logger.error(e)
 
@@ -1007,11 +1009,11 @@ def calculate_vehicle_earnings(self, partner_pk, day=None):
     for driver in drivers:
         payment = DriverPayments.objects.filter(report_to=day, driver=driver, partner=driver.partner).first()
         if payment:
-            spending_rate = 1 - (payment.salary + payment.cash + payment.rent) / payment.kasa
+            spending_rate = 1 - round((payment.salary + payment.cash + payment.rent) / payment.kasa, 6)
             print(spending_rate)
             print(payment)
             vehicles_income = get_vehicle_income(driver, payment.report_from, payment.report_to,
-                                                 spending_rate, payment.kasa)
+                                                 spending_rate, payment.rent_price)
             print(vehicles_income)
             for vehicle, income in vehicles_income.items():
                 PartnerEarnings.objects.get_or_create(

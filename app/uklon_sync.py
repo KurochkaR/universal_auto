@@ -126,7 +126,7 @@ class UklonRequest(Fleet, Synchronizer):
 
         return nested_data
 
-    def save_report(self, day):
+    def save_report(self, day, save=True):
         if Payments.objects.filter(report_from=day.date(),
                                    vendor_name=self.name,
                                    partner=self.partner):
@@ -170,6 +170,21 @@ class UklonRequest(Fleet, Synchronizer):
                     order.save()
                 except IntegrityError:
                     get_logger().error(f"{self}, {db_driver} report not saved")
+
+    def get_earnings_per_driver(self, driver, start, end):
+        driver_id = driver.get_driver_external_id(vendor=self.name)
+        total_amount_without_fee = 0
+        param = {'dateFrom': int(start.timestamp()),
+                 'dateTo': int(end.timestamp()),
+                 'limit': '50', 'offset': '0',
+                 'driverId': driver_id
+                 }
+        url = f"{Service.get_value('UKLON_3')}{self.uklon_id()}"
+        url += Service.get_value('UKLON_4')
+        data = self.response_data(url=url, params=param)
+        if data.get("items"):
+            total_amount_without_fee = self.find_value(data["items"][0], *('profit', 'total', 'amount'))
+        return total_amount_without_fee
 
     def get_drivers_status(self):
         first_key, second_key = 'with_client', 'wait'
@@ -285,7 +300,7 @@ class UklonRequest(Fleet, Synchronizer):
                         if check_vehicle(driver)[0] != vehicle:
                             redis_instance().hset(f"wrong_vehicle_{self.partner}", pk, order['vehicle']['licencePlate'])
                         try:
-                            FleetOrder.objects.filter(order_id=order['order_id']).update(**data)
+                            FleetOrder.objects.filter(order_id=order['id']).update(**data)
                         except ObjectDoesNotExist:
                             FleetOrder.objects.create(**data)
                 except KeyError:

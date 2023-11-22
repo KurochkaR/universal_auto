@@ -213,7 +213,8 @@ class UberRequest(Fleet, Synchronizer):
             else:
                 self.logger.error(f"Failed save uber report {self.partner} {response}")
 
-    def get_earnings_per_driver(self, driver_id, start_time, end_time):
+    def get_earnings_per_driver(self, driver, start_time, end_time):
+        driver_id = driver.get_driver_external_id(vendor=self.name)
         start = int(start_time.timestamp()) * 1000
         end = int(end_time.timestamp()) * 1000
         query = '''query GetPerformanceReport($performanceReportRequest: PerformanceReportRequest__Input!) {

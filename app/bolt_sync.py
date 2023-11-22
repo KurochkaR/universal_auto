@@ -3,6 +3,7 @@ import mimetypes
 import time
 from urllib import parse
 import requests
+from _decimal import Decimal
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import IntegrityError
 from django.utils import timezone
@@ -138,6 +139,24 @@ class BoltRequest(Fleet, Synchronizer):
             except IntegrityError:
                 pass
 
+    def get_bonuses_info(self, driver, start, end):
+        bonuses = 0
+        compensations = 0
+        format_start = start.strftime("%Y-%m-%d")
+        format_end = end.strftime("%Y-%m-%d")
+        param = self.param()
+        param.update({"start_date": format_start,
+                      "end_date": format_end,
+                      "offset": 0,
+                      "search": str(driver),
+                      "limit": 50})
+        reports = self.get_target_url(f'{self.base_url}getDriverEarnings/dateRange', param)
+        if reports['data']['drivers']:
+            report_driver = reports['data']['drivers'][0]
+            bonuses = report_driver['bonuses']
+            compensations = report_driver['compensations']
+        return bonuses, compensations
+
     def get_drivers_table(self):
         driver_list = []
         start = end = datetime.now().strftime('%Y-%m-%d')
@@ -220,6 +239,7 @@ class BoltRequest(Fleet, Synchronizer):
                             "destination": order['order_stops'][-1]['address'],
                             "vehicle": vehicle,
                             "price": price,
+                            "tips": order["tip"],
                             "partner": self.partner
                             }
                     if check_vehicle(driver)[0] != vehicle:
