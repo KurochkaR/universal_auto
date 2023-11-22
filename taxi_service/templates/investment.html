@@ -20,6 +20,7 @@
         </div>
       </div>
       <div class="invest-btn-box" id="open-form">
+        <span class="email-error">{% trans "Введіть коректну email-адресу" %}</span>
         <input type="email" placeholder="Електронна адреса" class="email-input">
         <button class="free-access-button">{% trans "Дізнатись більше" %}</button>
       </div>
@@ -302,6 +303,7 @@
       <h2>Бажаєте дізнатися детальніше про інвестиції в Ninja Taxi?</h2>
       <form class="invest-modal-form" id="investModalForm">
         {% csrf_token %}
+        <span class="modal-email-error">{% trans "Введіть коректну email-адресу" %}</span>
         <input type="email" placeholder="Електронна адреса" id="email-input">
         <button class="learn-more-button">Дізнатися більше</button>
       </form>
