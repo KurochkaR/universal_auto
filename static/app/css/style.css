@@ -5034,7 +5034,7 @@ span.error-name {
 }
 
 
-/* adaptive for phone */
+/* adaptive vertical for phone */
 
 @media screen and (max-width: 479px) {
 	/*block 1*/
@@ -5162,12 +5162,7 @@ span.error-name {
 		flex-direction: column;
 	}
 
-	.investment-offer-section .card h3 {
-    margin-top: 0;
-    text-align: left;
-    font-size: 12px;
-	}
-
+	.investment-offer-section .card h3,
 	.investment-offer-section .card p {
     margin-top: 0;
     text-align: left;
@@ -5328,6 +5323,322 @@ span.error-name {
     margin-top: 10px;
     order: 1;
     width: 100%;
+	}
+}
+
+/* adaptive horizontal for phone */
+
+@media screen and (min-width: 480px) and (max-width: 767px) {
+
+	/*block 1*/
+	.investment_section .container {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: space-between;
+	}
+
+	.investment-left img {
+		width: 100%;
+		margin-top: 20px;
+	}
+
+	.investment-right {
+		margin-top: 100px;
+		height: 305px;
+	}
+
+	.investment-right .decorate-img {
+		right: 15px;
+	}
+
+	.investment-right .decorate-img img {
+		width: 110%;
+		height: 362px;
+	}
+
+	.invest-one-info {
+		width: 90%;
+		top: 36%;
+		left: 60%;
+	}
+
+	.invest-one-info h2 {
+		font-size: 25px;
+		margin-bottom: 10px;
+	}
+
+	.invest-one-info p {
+		font-size: 20px;
+		margin-bottom: 10px;
+	}
+
+	.invest-btn-box {
+		width: 100%;
+		right: 0;
+		margin-top: 0;
+		top: -125px;
+		flex-direction: column;
+		bottom: 120px;
+		gap: 10px;
+	}
+
+	.invest-btn-box .email-input, .invest-modal-form #email-input {
+		font-size: 16px;
+		width: 100%;
+		padding: 10px 10px;
+		text-align: center;
+	}
+
+	.invest-btn-box .free-access-button {
+		font-size: 16px;
+		width: 100%;
+		padding: 10px 10px;
+		margin-left: 0;
+	}
+
+
+	/*block 2*/
+
+	.investment-slider-section {
+		margin-top: 100px;
+	}
+
+	.investment-slider-section h2 {
+		font-size: 20px;
+		margin-top: 12px;
+	}
+
+	.investment-slider-section .investment-slider {
+		margin-top: 20px;
+	}
+
+	.investment-slider-section .investment-slider h3 {
+		font-size: 15px;
+		margin-top: 15px;
+	}
+
+	.investment-slider-section .investment-slider li,
+	.investment-slider-section .investment-slider p {
+		font-size: 12px;
+	}
+
+	.splide__arrow {
+		z-index: -1 !important;
+	}
+
+	.investment-slider ul {
+		padding-left: 0;
+	}
+
+	.investment-slider-section .consultation-button button {
+		width: 100%;
+		font-size: 16px;
+	}
+
+	/*block 3*/
+
+	.investment-offer-section {
+		margin-top: 30px;
+	}
+
+	.investment-offer-section .container h2 {
+		text-align: left;
+		font-size: 15px;
+		margin-left: 20px;
+	}
+
+	.investment-offer-section .cards {
+		margin-top: 20px;
+		flex-direction: column;
+	}
+
+	.investment-offer-section .card {
+    display: flex;
+    flex-direction: row-reverse;
+    align-items: center;
+	}
+
+	.investment-offer-section .card img {
+			width: 100%;
+			max-width: 200px;
+			margin-left: 5px;
+	}
+
+	.investment-offer-section .card h3,
+	.investment-offer-section .card p {
+			text-align: left;
+			font-size: 12px;
+			margin-top: 0;
+	}
+
+	.investment-offer-section .container button {
+		margin-top: 0;
+		font-size: 16px;
+		width: 100%;
+	}
+
+	/*block 4*/
+
+	.investment-in-numbers-section {
+		margin-top: 30px;
+		display: flex;
+    flex-direction: column;
+    align-items: center;
+	}
+
+	.investment-in-numbers-section .container {
+		height: auto;
+	}
+
+	.investment-in-numbers-section .container h2 {
+		text-align: left;
+		font-size: 15px;
+	}
+
+	.investment-in-numbers-section .container .durations {
+		counter-reset: paragraph-counter;
+	}
+
+	.investment-in-numbers-section .container .durations p {
+		font-size: 12px;
+		position: relative;
+	}
+
+	.investment-in-numbers-section .container .durations p::before {
+		content: counter(paragraph-counter);
+		counter-increment: paragraph-counter;
+		display: inline-block;
+		width: 20px;
+		height: 20px;
+		background-color: #A1E8B9;
+		color: #141E17;
+		border-radius: 50%;
+		text-align: center;
+		line-height: 20px;
+		position: absolute;
+		margin-left: -25px;
+	}
+
+	.investment-in-numbers-section .container .durations {
+		flex-direction: column;
+	}
+
+	.investment-in-numbers-section .container .durations p:nth-child(1) {
+		position: static;
+		flex: 0 0 0;
+		text-align: left;
+	}
+
+	.investment-in-numbers-section .container .durations p:nth-child(2) {
+		position: static;
+		text-align: left;
+		flex: 0 0 0;
+		margin-top: 0;
+	}
+
+	.investment-in-numbers-section .container .durations p:nth-child(3) {
+		position: static;
+		flex: 0;
+		text-align: left;
+		flex: 0 0 0;
+	}
+
+	.investment-in-numbers-section .container .durations p:nth-child(4) {
+		position: static;
+		flex: 0;
+		text-align: left;
+		flex: 0 0 0;
+		margin-top: 0;
+	}
+
+	.investment-in-numbers-section .container .durations p:nth-child(5) {
+		position: static;
+		flex: 0;
+		text-align: left;
+		flex: 0 0 0;
+	}
+
+	.investment-in-numbers-section .container .img-box {
+		position: static;
+	}
+
+	.investment-in-numbers-section .container .img-box .img-laptop {
+		display: none;
+	}
+
+	.investment-in-numbers-section .container .img-box .img-phone {
+		display: block;
+    width: 100% !important;
+    position: relative;
+    right: 15px;
+	}
+
+	/*block 5*/
+
+	.investment-park-section {
+		margin-top: 30px;
+	}
+
+	.investment-park-section .container h2{
+		font-size: 15px;
+		text-align: left;
+	}
+
+	.investment-park-slider .img-box {
+		width: 100%;
+		height: auto;
+		left: 0;
+		margin-top: 0;
+	}
+
+	.investment-park-slider .img-box .slid-img-laptop {
+		display: none;
+	}
+
+	.investment-park-slider .img-box .slid-img-phone {
+		display: block;
+	}
+
+	.investment-park-slider h3 {
+		font-size: 15px;
+	}
+
+	.investment-park-slider h4 {
+		font-size: 12px;
+	}
+
+	.investment-park-slider h3.slider-title-1,
+	.investment-park-slider h3.slider-title-2,
+	.investment-park-slider h3.slider-title-3 {
+		position: absolute;
+		margin-top: 14%;
+		left: 18%;
+	}
+
+	.investment-park-slider {
+		display: flex;
+		flex-direction: column;
+	}
+
+	.investment-park-slider h4.slider-description-1,
+	.investment-park-slider h4.slider-description-2,
+	.investment-park-slider h4.slider-description-3 {
+		position: static;
+		margin-top: 10px;
+		order: 1;
+		width: 100%;
+	}
+
+	/* 6 block */
+
+	.auto-park-seven-section .blog-cards .blog-card img {
+    display: block;
+    margin: 0;
+    width: 110%;
+    height: 240px;
+    max-height: max-content;
+    object-fit: fill;
 	}
 }
 
