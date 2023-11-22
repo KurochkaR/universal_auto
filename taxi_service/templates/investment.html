@@ -147,7 +147,6 @@
         </div>
       </div>
     </div>
-
     <button>{% trans "Дізнатися як стати інвестором" %}</button>
   </div>
 </section>
@@ -304,11 +303,30 @@
       <form class="invest-modal-form" id="investModalForm">
         {% csrf_token %}
         <input type="email" placeholder="Електронна адреса" id="email-input">
-        <button class="learn-more-button" onclick="submitForm()">Дізнатися більше</button>
+        <button class="learn-more-button">Дізнатися більше</button>
       </form>
     </div>
   </div>
 </div>
+
+<section class="thank-you-message" id="thank-you-message">
+  <div class="container">
+    <div class="message-box">
+      <h2>{% trans "Дякуємо! Ми відправили на Вашу електронну адресу детальну інформацію!" %}</h2>
+    </div>
+  </div>
+</section>
+
+<!-- end thank you message -->
+
+<!--existing number message-->
+<section class="existing-you-message" id="existing-you-message">
+  <div class="container">
+    <div class="message-box">
+      <h2>{% trans "Ви вже залишили заявку. На Вашу електронну адресу була надіслана інформація." %}</h2>
+    </div>
+  </div>
+</section>
 
 <!--investment end car park -->
 <!-- investment  -->

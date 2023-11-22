@@ -416,4 +416,64 @@ $(document).ready(function() {
 	} );
 
 	investmentParkSlider.mount();
+
+
+	$(".learn-more-button").click(function (e) {
+		sendData("#email-input");
+		e.preventDefault();
+	});
+
+	$(".free-access-button").click(function (e) {
+		sendData(".email-input");
+		e.preventDefault();
+	});
+
+	function sendData(emailInputSelector) {
+		var email = $(emailInputSelector).val();
+
+		$.ajax({
+			type: "POST",
+			url: ajaxPostUrl,
+			data: {
+				email: email,
+				sender: 'investment',
+				action: 'subscribe',
+				csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
+			},
+			success: function (response) {
+			console.log(response.success);
+				if (response.success === true) {
+					$("#thank-you-message").show();
+					$("#InvestModal").hide();
+					setTimeout(function () {
+						$("#thank-you-message").hide();
+					}, 5000);
+				} else {
+					$("#existing-you-message").show();
+					$("#InvestModal").hide();
+					setTimeout(function () {
+						$("#existing-you-message").hide();
+					}, 5000);
+				}
+			},
+		});
+	}
+});
+
+$(document).ready(function () {
+	var consultationButton = $(".consultation-button button");
+	var learnMoreButton = $(".investment-offer-section button");
+	var investModal = $("#InvestModal");
+
+	function openInvestModal() {
+		investModal.show();
+	}
+
+	consultationButton.on("click", openInvestModal);
+	learnMoreButton.on("click", openInvestModal);
+
+	var closeFormAccessButton = $("#close-form-access");
+	closeFormAccessButton.on("click", function () {
+		investModal.hide();
+	});
 });

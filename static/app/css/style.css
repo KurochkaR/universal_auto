@@ -4621,7 +4621,6 @@ span.error-name {
 .invest-btn-box .email-input::placeholder,
 .invest-modal-form #email-input::placeholder {
 	color: rgba(255, 255, 255, 0.50);
-	font-family: Montserrat;
 	font-size: 16px;
 	font-style: normal;
 	font-weight: 500;
@@ -5323,6 +5322,34 @@ span.error-name {
     margin-top: 10px;
     order: 1;
     width: 100%;
+	}
+
+
+	/* modal */
+
+	.invest-modal-content {
+    width: 100%;
+    height: 50%;
+    margin-top: 100px;
+	}
+
+	.invest-modal-content h2 {
+    font-size: 20px;
+	}
+
+	#investModalForm {
+    margin-top: 20px;
+    margin-bottom: 35px;
+	}
+
+	.invest-modal-form .learn-more-button {
+    width: 100%;
+    margin-left: 0;
+    padding: 10px 20px;
+	}
+
+	#email-input {
+  margin-bottom: 10px;
 	}
 }
 

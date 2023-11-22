@@ -33,12 +33,13 @@ class PostRequestHandler:
             return JsonResponse(order_form.errors, status=400)
 
     def handler_subscribe_form(self, request):
-        sub_form = SubscriberForm(request.POST)
-        if sub_form.is_valid():
-            sub_form.save()
-            return JsonResponse({}, status=200)
-        else:
-            return JsonResponse(sub_form.errors, status=400)
+        email = request.POST.get('email')
+
+        obj, created = SubscribeUsers.objects.get_or_create(email=email)
+
+        if created:
+            return JsonResponse({'success': True})
+        return JsonResponse({'success': False})
 
     def handler_comment_form(self, request):
         comment_form = CommentForm(request.POST)
