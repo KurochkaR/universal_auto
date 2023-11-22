@@ -3753,7 +3753,7 @@ span.error-name {
 	}
 
 	.auto-park-seven-section .blog-cards .blog-card a {
-		font-size: 12px;
+		font-size: 10px;
 		padding: 10px 10px;
 		width: 85%;
     bottom: 25px;
@@ -3761,6 +3761,7 @@ span.error-name {
     background-color: #EC6323;
     color: #fff;
     margin-top: 0px;
+    font-weight: bold;
 	}
 
 	.auto-park-seven-section .blog-cards:nth-child(3) {
@@ -4641,7 +4642,10 @@ span.error-name {
 /* block 2 */
 
 .investment-slider-section {
-	background-color: #A1E8B9;
+	background-image: url('/static/app/images/invest-img/investment-slider-background.png');
+	background-size: cover;
+	background-position: center;
+	background-repeat: no-repeat;
 	margin-top: 40px;
 }
 
@@ -4657,7 +4661,6 @@ span.error-name {
 	font-style: normal;
 	font-weight: 700;
 	line-height: normal;
-	font-variant: small-caps;
 }
 
 .investment-slider-section .investment-slider {
@@ -5090,17 +5093,19 @@ span.error-name {
 	}
 
 	.invest-btn-box .email-input, .invest-modal-form #email-input {
-		font-size: 15px;
+		font-size: 14px;
     width: 100%;
     padding: 10px 10px;
     text-align: center;
+    font-weight: 500;
 	}
 
 	.invest-btn-box .free-access-button {
-		font-size: 15px;
+		font-size: 16px;
 		width: 100%;
     padding: 10px 10px;
     margin-left: 0;
+    font-weight: bold;
   }
 
   /*block 2*/
@@ -5135,6 +5140,7 @@ span.error-name {
 	.investment-slider-section .consultation-button button {
     width: 100%;
     font-size: 10px;
+    font-weight: bold;
   }
 
   /*block 3*/
@@ -5172,6 +5178,7 @@ span.error-name {
     margin-top: 0;
     font-size: 10px;
     width: 100%;
+    font-weight: bold;
 	}
 
 	/*block 4*/
