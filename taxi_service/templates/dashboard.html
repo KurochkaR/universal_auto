@@ -114,11 +114,11 @@
       <!-- Модальне вікно -->
       <div id="loadingModal" class="modal">
         <div class="modal-content">
-            <div class="loading-content">
-              <p id="loadingMessage">{% trans 'Зачекайте, будь ласка, поки оновлюється база даних...' %}</p>
-              <div id="loader" class="loader"></div>
-              <div id="checkmark" class="checkmark"></div>
-            </div>
+          <div class="loading-content">
+            <p id="loadingMessage">{% trans 'Зачекайте, будь ласка, поки оновлюється база даних...' %}</p>
+            <div id="loader" class="loader"></div>
+            <div id="checkmark" class="checkmark"></div>
+          </div>
         </div>
       </div>
       {% endif %}
@@ -274,9 +274,9 @@
               <i class="fas fa-angle-down"></i>
             </div>
             <ul class="dropdown-options" id="vehicle-options">
-                {% for vehicle in get_all_vehicle %}
-                    <li data-value="{{ vehicle.id }}">{{ vehicle }}</li>
-                {% endfor %}
+              {% for vehicle in get_all_vehicle %}
+              <li data-value="{{ vehicle.id }}">{{ vehicle }}</li>
+              {% endfor %}
             </ul>
           </div>
         </div>
@@ -339,7 +339,8 @@
         <input type="date" id="start_report" name="start_date">
         <label for="end_date">{% trans 'Кінцева дата:' %}</label>
         <input type="date" id="end_report" name="end_date">
-        <input class="apply-filter-button" type="button" onclick="applyCustomDateRange()" value={% trans 'Фільтрувати'%}>
+        <input class="apply-filter-button" type="button" onclick="applyCustomDateRange()"
+               value={% trans 'Фільтрувати'%}>
       </div>
       <table class="driver-table">
         <thead>
@@ -383,12 +384,56 @@
         </div>
       </div>
     </div>
+
+    <!--    {% for car in car_piggy_bank %}-->
+    <!--    <div class="driver-calendar">-->
+    <!--      <div class="calendar-container">-->
+    <!--        <div class="car-image">-->
+    <!--          <img src="{% static 'app/images/index-one-block-2.webp' %}" alt="Зображення авто">-->
+    <!--          <p>{{ car.licence_plate }}</p>-->
+    <!--        </div>-->
+    <!--        <div class="calendar-detail">-->
+    <!--          <ul>-->
+    <!--            <li></li>-->
+    <!--            <li></li>-->
+    <!--            <li></li>-->
+    <!--            <li></li>-->
+    <!--            <li></li>-->
+    <!--            <li></li>-->
+    <!--            <li></li>-->
+    <!--            <li></li>-->
+    <!--            <li></li>-->
+    <!--            <li></li>-->
+    <!--            <li></li>-->
+    <!--            <li></li>-->
+    <!--            <li></li>-->
+    <!--            <li></li>-->
+    <!--          </ul>-->
+    <!--        </div>-->
+    <!--      </div>-->
+    <!--    </div>-->
+    <!--    {% endfor %}-->
+    {% for car in car_piggy_bank %}
+    <div class="driver-calendar">
+      <div class="calendar-container">
+        <div class="car-image">
+          <img src="{% static 'app/images/index-one-block-2.webp' %}" alt="Зображення авто">
+          <p>{{ car.licence_plate }}</p>
+        </div>
+        <div id="investPrevButton">&lt;</div>
+        <div class="calendar-detail" id="calendarDetail"></div>
+        <div id="investNextButton">&gt;</div>
+      </div>
+    </div>
+    {% endfor %}
+
   </main>
   <!-- End Main Manager-->
 </div>
 
 <!-- Scripts -->
 <script>
+  const logoImageUrl = "{% static 'app/images/logo-2.svg' %}";
   let ajaxPostUrl = "{% url 'post_request' %}";
   let ajaxGetUrl = "{% url 'get_request' %}";
 </script>

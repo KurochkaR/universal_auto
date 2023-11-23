@@ -246,7 +246,7 @@ let threeChartOptions = {
     {
       type: 'slider',
       start: 1,
-      end: 30,
+      end: 100,
       showDetail: false,
       backgroundColor: 'white',
       dataBackground: {
@@ -837,3 +837,72 @@ $(document).ready(function () {
 		}
 	});
 });
+
+
+
+$(document).ready(function () {
+    const calendarDetail = $('#calendarDetail');
+    const today = new Date();
+    const daysToShow = 14; // Кількість днів, яку ви хочете відображати
+
+    function renderCalendar(startDate) {
+        calendarDetail.empty();
+
+        for (let i = 0; i < daysToShow; i++) {
+            const day = new Date(startDate);
+            day.setDate(startDate.getDate() + i);
+
+            const card = $('<div>').addClass('calendar-card');
+
+            const dayOfWeek = day.toLocaleDateString('uk-UA', { weekday: 'short' });
+            const dayOfWeekElement = $('<div>').text(dayOfWeek);
+            card.append(dayOfWeekElement);
+
+            const dateElement = $('<div>').text(day.toLocaleDateString());
+            card.append(dateElement);
+
+            for (let j = 1; j <= 2; j++) {
+                const driverPhoto = $('<div>').addClass('driver-photo');
+                const driverImage = $('<img>').attr('src', logoImageUrl).attr('alt', `Фото водія ${j}`);
+                driverPhoto.append(driverImage);
+                card.append(driverPhoto);
+            }
+
+            // Перевірка чи дата є сьогоднішньою
+            if (isToday(day)) {
+                card.addClass('today'); // Додавання класу для виділення
+            }
+
+            calendarDetail.append(card);
+        }
+    }
+
+    // Початкова відправна дата (сьогодні)
+    let currentDate = today;
+
+    // Відображення календаря при завантаженні сторінки
+    renderCalendar(currentDate);
+
+    // Стрілка для переміщення календаря вперед
+    $('#investNextButton').click(function () {
+        currentDate.setDate(currentDate.getDate() + 7);
+        renderCalendar(currentDate);
+    });
+
+    // Стрілка для переміщення календаря назад
+    $('#investPrevButton').click(function () {
+        currentDate.setDate(currentDate.getDate() - 7);
+        renderCalendar(currentDate);
+    });
+
+    // Функція, яка перевіряє, чи дата є сьогоднішньою
+    function isToday(someDate) {
+        const todayDate = new Date();
+        return (
+            someDate.getDate() === todayDate.getDate() &&
+            someDate.getMonth() === todayDate.getMonth() &&
+            someDate.getFullYear() === todayDate.getFullYear()
+        );
+    }
+});
+
