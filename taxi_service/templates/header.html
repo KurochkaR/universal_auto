@@ -53,21 +53,23 @@
   <script
       src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
   <script src="{% url 'javascript-catalog' %}"></script>
+
+  <link href="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.1.4/dist/css/splide.min.css" rel="stylesheet">
 </head>
 
 <body>
-<div class="loader word-spacing">
-  <span>N</span>
-  <span>I</span>
-  <span>N</span>
-  <span>J</span>
-  <span>A </span>
-  <span> T</span>
-  <span>A</span>
-  <span>X</span>
-  <span>I</span>
-  <span>!</span>
-</div>
+<!--<div class="loader word-spacing">-->
+<!--  <span>N</span>-->
+<!--  <span>I</span>-->
+<!--  <span>N</span>-->
+<!--  <span>J</span>-->
+<!--  <span>A </span>-->
+<!--  <span> T</span>-->
+<!--  <span>A</span>-->
+<!--  <span>X</span>-->
+<!--  <span>I</span>-->
+<!--  <span>!</span>-->
+<!--</div>-->
 <header class="header_section navbar navbar-expand-sm">
   <div class="container">
     <nav class="container navbar navbar-expand-lg custom_nav-container navbar navbar-expand-sm">
@@ -89,7 +91,7 @@
             <li><a href="#">{% trans "Персональний водій для дитини" %}</a></li>
             <li><a href="#">{% trans "Доставка" %}</a></li>
             <li><a href="#">{% trans "Замовлення на певний час" %}</a></li>
-            <li><a href="#">{% trans "Інвестори" %}</a></li>
+            <li><a href="{% url 'investment' %}">{% trans "Інвестори" %}</a></li>
             <li><a href="{% url 'auto-park' %}">{% trans "Власникам автопарків" %}</a></li>
             <li><a href="#">{% trans "Блог" %}</a></li>
             <li class="icon"><a href="https://www.instagram.com/ninja.taxi/"><i class="fa-brands fa-instagram"></i></a>
@@ -124,7 +126,7 @@
           <li class="nav-item">
             <span class="nav-link">{% trans "Для бізнесу" %}</span>
             <ul class="sub-menu">
-              <li><a href="#">{% trans "Інвестори" %}</a></li>
+              <li><a href="{% url 'investment' %}">{% trans "Інвестори" %}</a></li>
               <li><a href="{% url 'auto-park' %}">{% trans "Власникам автопарків" %}</a></li>
               <li><a href="#">{% trans "Ninja блог" %}</a></li>
             </ul>

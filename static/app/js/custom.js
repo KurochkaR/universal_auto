@@ -29,9 +29,9 @@ $(document).ready(function () {
 	});
 });
 
-$(window).on('load', function () {
-	$('.loader').remove();
-});
+//$(window).on('load', function () {
+//	$('.loader').remove();
+//});
 
 $(document).ready(function () {
 
@@ -302,13 +302,11 @@ $(document).ready(function () {
 
     if (success) {
 			thankYouMessage.show();
-			$(".header_section").show();
 			setTimeout(function () {
 				thankYouMessage.hide();
 			}, 5000);
     } else {
 			existingYouMessage.show();
-			$(".header_section").show();
 			setTimeout(function () {
 				existingYouMessage.hide();
 			}, 5000);
@@ -336,7 +334,6 @@ $(document).ready(function () {
 		$("#free-access-form h2").text(gettext("Отримати безкоштовний доступ на місяць"));
 		$("#access-form input[type='submit']").val(gettext("Отримати безкоштовний доступ"));
 		formSectionFree.show();
-		$(".header_section").hide();
 		thankYouMessage.hide();
 	});
 
@@ -344,7 +341,6 @@ $(document).ready(function () {
 		$("#free-access-form h2").text(gettext("Зв’язатися з нами"));
     $("#access-form input[type='submit']").val(gettext("Зв’язатися з нами"));
 		formSectionFree.show();
-		$(".header_section").hide();
 		thankYouMessage.hide();
 	});
 
@@ -352,13 +348,11 @@ $(document).ready(function () {
 		$("#free-access-form h2").text(gettext("Проконсультуватися"));
 		$("#access-form input[type='submit']").val(gettext("Проконсультуватися"));
 		formSectionFree.show();
-		$(".header_section").hide();
 		thankYouMessage.hide();
 	});
 
 	closeButtonAccess.on("click", function () {
 		formSectionFree.hide();
-		$(".header_section").show();
 	});
 
 	accessForm.on("submit", function (e) {
@@ -396,4 +390,100 @@ function intlTelInit(phoneEl) {
 
 $(document).ready(function() {
   intlTelInit('#phone');
+
+//  js investment page
+
+	var investmentSlider = new Splide( '.investment-slider', {
+		type    : 'loop',
+		perPage : 1,
+		autoplay: true,
+	} );
+
+	investmentSlider.mount();
+
+	var investmentParkSlider = new Splide( '.investment-park-slider', {
+		type    : 'loop',
+		perPage : 1,
+		autoplay: true,
+		arrows   : false,
+  	pagination: false
+	} );
+
+	investmentParkSlider.mount();
+
+
+	$(".learn-more-button").click(function (e) {
+		sendData("#email-input");
+		e.preventDefault();
+	});
+
+	$(".free-access-button").click(function (e) {
+		sendData(".email-input");
+		e.preventDefault();
+	});
+
+	function isValidEmail(email) {
+    var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+	}
+
+	function sendData(emailInputSelector) {
+		var email = $(emailInputSelector).val();
+		var emailError = $(".invest-btn-box .email-error");
+		var modalEmailError= $(".modal-email-error");
+
+		if (!isValidEmail(email)) {
+			emailError.show();
+			modalEmailError.show();
+			return;
+		}
+
+		emailError.hide();
+		modalEmailError.hide();
+
+		$.ajax({
+			type: "POST",
+			url: ajaxPostUrl,
+			data: {
+				email: email,
+				sender: 'investment',
+				action: 'subscribe',
+				csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
+			},
+			success: function (response) {
+			console.log(response.success);
+				if (response.success === true) {
+					$("#thank-you-message").show();
+					$("#InvestModal").hide();
+					setTimeout(function () {
+						$("#thank-you-message").hide();
+					}, 5000);
+				} else {
+					$("#existing-you-message").show();
+					$("#InvestModal").hide();
+					setTimeout(function () {
+						$("#existing-you-message").hide();
+					}, 5000);
+				}
+			},
+		});
+	}
+});
+
+$(document).ready(function () {
+	var consultationButton = $(".consultation-button button");
+	var learnMoreButton = $(".investment-offer-section button");
+	var investModal = $("#InvestModal");
+
+	function openInvestModal() {
+		investModal.show();
+	}
+
+	consultationButton.on("click", openInvestModal);
+	learnMoreButton.on("click", openInvestModal);
+
+	var closeFormAccessButton = $("#close-form-access");
+	closeFormAccessButton.on("click", function () {
+		investModal.hide();
+	});
 });

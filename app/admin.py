@@ -929,12 +929,12 @@ class DriverAdmin(filter_queryset_by_group('Partner', field_to_filter='worked')(
 
 
 @admin.register(Vehicle)
-class VehicleAdmin(filter_queryset_by_group('Partner')(admin.ModelAdmin)):
+class VehicleAdmin(admin.ModelAdmin):
     search_fields = ('name', 'licence_plate', 'vin_code',)
     ordering = ('name',)
     exclude = ('deleted_at',)
     list_display_links = ('licence_plate',)
-    list_per_page = 25
+    list_per_page = 10
     list_filter = (VehicleManagerFilter,)
     readonly_fields = ('licence_plate',)
 
@@ -1010,13 +1010,22 @@ class VehicleAdmin(filter_queryset_by_group('Partner')(admin.ModelAdmin)):
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if request.user.groups.filter(name='Partner').exists():
             if db_field.name in ('manager', 'investor_car', 'gps'):
-                kwargs['queryset'] = db_field.related_model.objects.filter(partner__user=request.user)
-        if request.user.groups.filter(name='Manager').exists():
+                kwargs['queryset'] = db_field.related_model.objects.filter(partner__user=request.user).select_related('partner')
+        elif request.user.groups.filter(name='Manager').exists():
             manager = Manager.objects.filter(user=request.user).first()
             if db_field.name == 'gps':
-                kwargs['queryset'] = db_field.related_model.objects.filter(partner=manager.partner)
+                kwargs['queryset'] = db_field.related_model.objects.filter(partner=manager.partner).select_related('partner')
 
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if request.user.groups.filter(name='Manager').exists():
+            return qs.filter(manager__user=request.user).select_related('gps')
+        if request.user.groups.filter(name='Partner').exists():
+            return qs.filter(partner__user=request.user).select_related(
+                'partner', 'manager', 'gps', 'investor_car')
+        return qs
 
 
 @admin.register(Order)
