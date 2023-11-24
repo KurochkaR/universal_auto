@@ -286,6 +286,7 @@ class InvestorPayments(models.Model):
     currency = models.CharField(max_length=4, verbose_name='Валюта покупки')
     currency_rate = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name="Курс валюти")
     sum_after_transaction = models.DecimalField(decimal_places=2, max_digits=10, verbose_name="Сума у валюті")
+    partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
 
     class Meta:
         verbose_name = 'Виплату інвестору'

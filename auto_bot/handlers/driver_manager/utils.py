@@ -10,8 +10,6 @@ from app.bolt_sync import BoltRequest
 from app.models import CarEfficiency, Driver, SummaryReport, Manager, \
     Vehicle, RentInformation, DriverEfficiency, Partner, Role, DriverSchemaRate, SalaryCalculation, \
     DriverPayments, FleetOrder, InvestorPayments, VehicleRent, Fleet
-from app.uber_sync import UberRequest
-from app.uklon_sync import UklonRequest
 from auto_bot.handlers.order.utils import check_reshuffle
 
 

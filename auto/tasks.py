@@ -266,16 +266,17 @@ def get_car_efficiency(self, partner_pk, day=None):
                     vehicle_drivers[reshuffle.driver_start] = total_income
                 total_kasa += total_income
         else:
-            driver = Driver.objects.filter(vehicle=vehicle)
-            report = SummaryReport.objects.filter(
-                report_from=day,
-                driver=driver).aggregate(
-                clean_amount=Coalesce(Sum('total_amount_without_fee'), Decimal(0)))['clean_amount']
-            if vehicle_drivers.get(driver.id):
-                vehicle_drivers[driver.id] += report
-            else:
-                vehicle_drivers[driver.id] = report
-            total_kasa += report
+            driver = Driver.objects.filter(vehicle=vehicle).first()
+            if driver:
+                report = SummaryReport.objects.filter(
+                    report_from=day,
+                    driver=driver).aggregate(
+                    clean_amount=Coalesce(Sum('total_amount_without_fee'), Decimal(0)))['clean_amount']
+                if vehicle_drivers.get(driver.id):
+                    vehicle_drivers[driver.id] += report
+                else:
+                    vehicle_drivers[driver.id] = report
+                total_kasa += report
         result = max(
             Decimal(total_kasa) - Decimal(total_spending), Decimal(0)) / Decimal(total_km) if total_km else 0
         car = CarEfficiency.objects.create(report_from=day,
@@ -284,9 +285,9 @@ def get_car_efficiency(self, partner_pk, day=None):
                                            total_spending=total_spending,
                                            mileage=total_km,
                                            efficiency=result,
-                                           partner=Partner.get_partner(partner_pk))
+                                           partner_id=partner_pk)
         for driver, kasa in vehicle_drivers.items():
-            DriverEffVehicleKasa.objects.create(driver=driver, efficiency_car=car, kasa=kasa)
+            DriverEffVehicleKasa.objects.create(driver_id=driver, efficiency_car=car, kasa=kasa)
 
 
 @app.task(bind=True, queue='beat_tasks')
@@ -354,7 +355,7 @@ def get_driver_efficiency(self, partner_pk, day=None):
                                                                     mileage=total_km or 0,
                                                                     online_time=hours_online,
                                                                     efficiency=result,
-                                                                    partner=Partner.get_partner(partner_pk))
+                                                                    partner_id=partner_pk)
                 driver_efficiency.vehicles.add(*driver_vehicles)
 
 
@@ -386,7 +387,7 @@ def update_driver_status(self, partner_pk):
                 vehicle = check_vehicle(driver)[0]
                 if not work_ninja and vehicle and driver.chat_id:
                     UseOfCars.objects.create(user_vehicle=driver,
-                                             partner=Partner.get_partner(partner_pk),
+                                             partner_id=partner_pk,
                                              licence_plate=vehicle.licence_plate,
                                              chat_id=driver.chat_id)
                 logger.info(f'{driver}: {current_status}')
@@ -622,29 +623,28 @@ def check_personal_orders(self):
 
 
 @app.task(bind=True, queue='beat_tasks')
-def add_money_to_vehicle(self, partner_pk):
-    day = timezone.localtime() - timedelta(days=1)
-    car_efficiency_records = CarEfficiency.objects.filter(report_from=day.date(), partner=partner_pk)
-    sum_by_plate = car_efficiency_records.values('vehicle__licence_plate').annotate(total_sum=Sum('total_kasa'))
-    for result in sum_by_plate:
-        vehicle = Vehicle.objects.filter(licence_plate=result['vehicle__licence_plate'],
-                                         partner=partner_pk).first()
-        if vehicle.investor_car:
-            currency = vehicle.currency_back
-            total_kasa = result['total_sum'] * vehicle.investor_percentage
-            if currency != Vehicle.Currency.UAH:
-                car_earnings, rate = convert_to_currency(float(total_kasa), currency)
-            else:
-                car_earnings = total_kasa
-                rate = 0.00
-            InvestorPayments.objects.create(
-                report_from=day.date(),
-                vehicle=vehicle,
-                investor=vehicle.investor_car,
-                sum_before_transaction=total_kasa,
-                currency=currency,
-                currency_rate=rate,
-                sum_after_transaction=car_earnings)
+def add_money_to_vehicle(self, partner_pk, day=None):
+    day = get_day_for_task(day)
+    for vehicle in Vehicle.objects.filter(partner=partner_pk, investor_car__isnull=False):
+        efficiency = CarEfficiency.objects.filter(report_from=day.date(), vehicle=vehicle).first()
+        kasa = efficiency.total_kasa if efficiency else 0
+        currency = vehicle.currency_back
+        total_kasa = kasa * vehicle.investor_percentage
+        if currency != Vehicle.Currency.UAH:
+            car_earnings, rate = convert_to_currency(float(total_kasa), currency)
+        else:
+            car_earnings = total_kasa
+            rate = 0.00
+        InvestorPayments.objects.get_or_create(
+            report_from=day.date(),
+            vehicle=vehicle,
+            investor=vehicle.investor_car,
+            partner_id=partner_pk,
+            defaults={
+                "sum_before_transaction": total_kasa,
+                "currency": currency,
+                "currency_rate": rate,
+                "sum_after_transaction": car_earnings})
 
 
 @app.task(bind=True, queue='beat_tasks')
@@ -894,7 +894,8 @@ def get_driver_reshuffles(self, partner, delta=0):
                     "swap_vehicle": vehicle,
                     "driver_start": driver_start,
                     "swap_time": swap_time,
-                    "end_time": end_time
+                    "end_time": end_time,
+                    "partner_id": partner
                 }
                 reshuffle = DriverReshuffle.objects.filter(calendar_event_id=calendar_event_id)
                 reshuffle.update(**obj_data) if reshuffle else DriverReshuffle.objects.create(**obj_data)
@@ -938,7 +939,7 @@ def save_report_to_ninja_payment(day, partner_pk, fleet_name='Ninja'):
             total_amount_cash=total_amount_cash,
             total_amount_on_card=total_amount_card,
             total_amount_without_fee=total_amount,
-            partner=Partner.get_partner(partner_pk))
+            partner_id=partner_pk)
         try:
             report.save()
         except IntegrityError:
