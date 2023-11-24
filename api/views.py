@@ -163,9 +163,15 @@ class DriverEfficiencyListView(CombinedPermissionsMixin,
             average_price=Avg('average_price'),
             accept_percent=Avg('accept_percent'),
             road_time=Coalesce(Sum('road_time'), timedelta()),
-            efficiency=ExpressionWrapper(F('total_kasa') / F('mileage') or 0, output_field=FloatField()),
             mileage=Sum('mileage'),
-
+            efficiency=ExpressionWrapper(
+                Case(
+                    When(mileage__gt=0, then=F('total_kasa') / F('mileage')),
+                    default=Value(0),
+                    output_field=FloatField()
+                ),
+                output_field=FloatField()
+            ),
         )
 
         return [{'start': format_start, 'end': format_end, 'drivers_efficiency': qs}]
