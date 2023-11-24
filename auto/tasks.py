@@ -315,50 +315,36 @@ def get_car_efficiency(self, partner_pk):
         reshuffles = DriverReshuffle.objects.filter(end_time__range=(start, end), swap_vehicle=vehicle)
         drivers = [reshuffle.driver_start for reshuffle in reshuffles] if reshuffles \
             else Driver.objects.filter(vehicle=vehicle)
-        if not efficiency:
-            total_kasa = 0
-            try:
-                total_km = UaGpsSynchronizer(partner_pk).total_per_day(vehicle.gps_id, start, end)
-            except AttributeError as e:
-                logger.error(e)
-                continue
-            if total_km:
-                for driver in drivers:
-                    driver_ids = FleetsDriversVehiclesRate.objects.filter(
-                        driver=driver,
-                        partner=partner_pk).values_list('driver_external_id', flat=True)
-                    reports = CustomReport.objects.filter(
-                        report_from__date=start,
-                        driver_id__in=driver_ids)
-                    driver_kasa = reports.aggregate(
-                        kasa=Coalesce(Sum("total_amount_without_fee"), Decimal(0)))['kasa']
-                    vehicle_drivers[driver] = driver_kasa
-                    total_kasa += driver_kasa
-            result = max(
-                Decimal(total_kasa) - Decimal(total_spending), Decimal(0)) / Decimal(total_km) if total_km else 0
-            car = CarEfficiency.objects.create(report_from=start,
-                                               report_to=end,
-                                               vehicle=vehicle,
-                                               total_kasa=total_kasa,
-                                               total_spending=total_spending,
-                                               mileage=total_km,
-                                               efficiency=result,
-                                               partner=Partner.get_partner(partner_pk))
-            for driver, kasa in vehicle_drivers.items():
-                DriverEffVehicleKasa.objects.create(driver=driver, efficiency_car=car, kasa=kasa)
-
-# @app.task(bind=True, queue='beat_tasks')
-# def calculate_clean_kasa(self, partner_pk):
-#     for driver in Driver.objects.filter(partner=partner_pk):
-#     if driver.schema == schema:
-#         if driver.schema.schema == "DYNAMIC":
-#             last_payment = DriverPayments.objects.filter(driver=driver).last()
-#             car_percent = 1 - (last_payment.kasa / (last_payment.salary + last_payment.cash))
-#             clean_kasa += driver_kasa * car_percent
-#         elif driver.schema.schema in ("CUSTOM", "HALF"):
-#             clean_kasa += driver_kasa * (1 - driver.schema.rate)
-#         else:
-#             continue
+        total_kasa = 0
+        try:
+            total_km = UaGpsSynchronizer.objects.get(partner=partner_pk).total_per_day(vehicle.gps.gps_id, start, end)
+        except AttributeError as e:
+            logger.error(e)
+            continue
+        if total_km:
+            for driver in drivers:
+                driver_ids = FleetsDriversVehiclesRate.objects.filter(
+                    driver=driver,
+                    partner=partner_pk).values_list('driver_external_id', flat=True)
+                reports = CustomReport.objects.filter(
+                    report_from__date=start,
+                    driver_id__in=driver_ids)
+                driver_kasa = reports.aggregate(
+                    kasa=Coalesce(Sum("total_amount_without_fee"), Decimal(0)))['kasa']
+                vehicle_drivers[driver] = driver_kasa
+                total_kasa += driver_kasa
+        result = max(
+            Decimal(total_kasa) - Decimal(total_spending), Decimal(0)) / Decimal(total_km) if total_km else 0
+        car = CarEfficiency.objects.create(report_from=start,
+                                           report_to=end,
+                                           vehicle=vehicle,
+                                           total_kasa=total_kasa,
+                                           total_spending=total_spending,
+                                           mileage=total_km,
+                                           efficiency=result,
+                                           partner_id=partner_pk)
+        for driver, kasa in vehicle_drivers.items():
+            DriverEffVehicleKasa.objects.create(driver=driver, efficiency_car=car, kasa=kasa)
 
 
 @app.task(bind=True, queue='beat_tasks')
@@ -1084,14 +1070,7 @@ def get_information_from_fleets(self, partner_pk, schema, day=None):
         generate_summary_report.si(partner_pk, schema, day),
         get_driver_efficiency.si(partner_pk, schema, day),
         get_rent_information.si(partner_pk, schema, day),
-        calculate_driver_reports.si(partner_pk, schema, day)
-    )
-    task_chain()
-
-
-@app.task(bind=True, queue='beat_tasks')
-def send_from_db(self, partner_pk, schema):
-    task_chain = chain(
+        calculate_driver_reports.si(partner_pk, schema, day),
         send_daily_statistic.si(partner_pk, schema),
         send_driver_efficiency.si(partner_pk, schema),
         send_driver_report.si(partner_pk, schema),
@@ -1130,20 +1109,11 @@ def update_schedule(self):
             for partner in partners:
                 create_task(db_task.name, partner.pk, schedule, db_task.arguments)
     for schema in work_schemas:
-        tasks = ['get_information_from_fleets', 'send_from_db']
-        for num, task in enumerate(tasks):
-            if schema.shift_time != time.min:
-                shift_time_minutes = schema.shift_time.hour * 60 + schema.shift_time.minute
-            else:
-                shift_time_minutes = 8 * 60
-            task_time_minutes = shift_time_minutes + num
-            task_hours, task_minutes = divmod(task_time_minutes, 60)
-            task_time = time(task_hours, task_minutes)
-            hours = task_time.strftime('%H')
-            minutes = task_time.strftime('%M')
-            schedule = get_schedule(hours, minutes)
-
-            create_task(task, schema.partner.pk, schedule, schema.pk)
+        if schema.shift_time != time.min:
+            schedule = get_schedule(schema.shift_time.hour, schema.shift_time.minute)
+        else:
+            schedule = get_schedule("08", "00")
+        create_task('get_information_from_fleets', schema.partner.pk, schedule, schema.pk)
         night_schedule = get_schedule("03", "59")
         create_task("download_nightly_report", schema.partner.pk, night_schedule, schema.pk)
 
