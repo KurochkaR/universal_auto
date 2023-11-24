@@ -3,7 +3,7 @@ from datetime import timedelta
 
 from _decimal import Decimal
 from django.db.models import Sum, F, OuterRef, Subquery, DecimalField, Avg, Value, CharField, ExpressionWrapper, Case, \
-    When, Func
+    When, Func, FloatField
 from django.db.models.functions import Concat, Round, Coalesce
 from rest_framework import generics
 from rest_framework.response import Response
@@ -12,10 +12,8 @@ from api.mixins import CombinedPermissionsMixin, ManagerFilterMixin, InvestorFil
 from api.serializers import SummaryReportSerializer, CarEfficiencySerializer, CarDetailSerializer, \
     DriverEfficiencyRentSerializer, InvestorCarsSerializer
 from app.models import SummaryReport, CarEfficiency, Vehicle, DriverEfficiency, RentInformation
-from taxi_service.utils import get_dates
+from taxi_service.utils import get_start_end
 
-
-# Create your views here.
 
 class SummaryReportListView(CombinedPermissionsMixin,
                             ManagerFilterMixin,
@@ -23,16 +21,7 @@ class SummaryReportListView(CombinedPermissionsMixin,
     serializer_class = SummaryReportSerializer
 
     def get_queryset(self):
-        if self.kwargs['period'] in ('yesterday', 'current_week', 'current_month', 'current_quarter',
-                                     'last_week', 'last_month', 'last_quarter'):
-            start, end = get_dates(self.kwargs['period'])
-            format_start = start.strftime("%d.%m.%Y")
-            format_end = end.strftime("%d.%m.%Y")
-        else:
-            start, end = self.kwargs['period'].split('&')
-            format_start = ".".join(start.split("-")[::-1])
-            format_end = ".".join(end.split("-")[::-1])
-
+        start, end, format_start, format_end = get_start_end(self.kwargs['period'])
         queryset = ManagerFilterMixin.get_queryset(self, SummaryReport)
         filtered_qs = queryset.filter(report_from__range=(start, end))
         rent_amount_subquery = RentInformation.objects.filter(
@@ -53,7 +42,6 @@ class SummaryReportListView(CombinedPermissionsMixin,
         )
         total_rent = queryset.aggregate(total_rent=Sum('rent_amount'))['total_rent'] or 0
         queryset = queryset.exclude(total_kasa=0).order_by('full_name')
-
         return [{'total_rent': total_rent, 'start': format_start, 'end': format_end, 'drivers': queryset}]
 
 
@@ -62,16 +50,7 @@ class InvestorCarsEarningsView(CombinedPermissionsMixin,
     serializer_class = InvestorCarsSerializer
 
     def get_queryset(self):
-        if self.kwargs['period'] in ('yesterday', 'current_week', 'current_month', 'current_quarter',
-                                     'last_week', 'last_month', 'last_quarter'):
-            start, end = get_dates(self.kwargs['period'])
-            format_start = start.strftime("%d.%m.%Y")
-            format_end = end.strftime("%d.%m.%Y")
-        else:
-            start, end = self.kwargs['period'].split('&')
-            format_start = ".".join(start.split("-")[::-1])
-            format_end = ".".join(end.split("-")[::-1])
-
+        start, end, format_start, format_end = get_start_end(self.kwargs['period'])
         queryset = CarEfficiency.objects.none()
         investor_queryset = InvestorFilterMixin.get_queryset(self, CarEfficiency)
         if investor_queryset:
@@ -93,12 +72,7 @@ class CarEfficiencyListView(CombinedPermissionsMixin,
     serializer_class = CarEfficiencySerializer
 
     def get_queryset(self):
-        if self.kwargs['period'] in ('yesterday', 'current_week', 'current_month', 'current_quarter',
-                                     'last_week', 'last_month', 'last_quarter'):
-            start, end = get_dates(self.kwargs['period'])
-        else:
-            start, end = self.kwargs['period'].split('&')
-
+        start, end = get_start_end(self.kwargs['period'])[:2]
         queryset = ManagerFilterMixin.get_queryset(self, CarEfficiency)
         filtered_qs = queryset.filter(
             report_from__range=(start, end))
@@ -142,17 +116,7 @@ class DriverEfficiencyListView(CombinedPermissionsMixin,
     serializer_class = DriverEfficiencyRentSerializer
 
     def get_queryset(self):
-        if self.kwargs['period'] in ('yesterday', 'current_week', 'current_month', 'current_quarter',
-                                     'last_week', 'last_month', 'last_quarter'):
-            start, end = get_dates(self.kwargs['period'])
-            format_start = start.strftime("%d.%m.%Y")
-            format_end = end.strftime("%d.%m.%Y")
-
-        else:
-            start, end = self.kwargs['period'].split('&')
-            format_start = ".".join(start.split("-")[::-1])
-            format_end = ".".join(end.split("-")[::-1])
-
+        start, end, format_start, format_end = get_start_end(self.kwargs['period'])
         queryset = ManagerFilterMixin.get_queryset(self, DriverEfficiency)
         filtered_qs = queryset.filter(report_from__range=(start, end)).exclude(total_orders=0)
         qs = filtered_qs.values('driver_id').annotate(
@@ -164,9 +128,8 @@ class DriverEfficiencyListView(CombinedPermissionsMixin,
             average_price=Avg('average_price'),
             accept_percent=Avg('accept_percent'),
             road_time=Coalesce(Sum('road_time'), timedelta()),
-            efficiency=Avg('efficiency'),
             mileage=Sum('mileage'),
-
+            efficiency=ExpressionWrapper(F('total_kasa') / F('mileage') or 0, output_field=FloatField()),
         )
 
         return [{'start': format_start, 'end': format_end, 'drivers_efficiency': qs}]
