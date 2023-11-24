@@ -2,7 +2,7 @@ from datetime import timedelta
 
 from _decimal import Decimal
 from django.db.models import Sum, F, OuterRef, Subquery, DecimalField, Avg, Value, CharField, ExpressionWrapper, Case, \
-    When, Func
+    When, Func, FloatField
 from django.db.models.functions import Concat, Round, Coalesce
 from rest_framework import generics
 from rest_framework.response import Response
@@ -163,7 +163,7 @@ class DriverEfficiencyListView(CombinedPermissionsMixin,
             average_price=Avg('average_price'),
             accept_percent=Avg('accept_percent'),
             road_time=Coalesce(Sum('road_time'), timedelta()),
-            efficiency=Avg('efficiency'),
+            efficiency=ExpressionWrapper(F('total_kasa') / F('mileage') or 0, output_field=FloatField()),
             mileage=Sum('mileage'),
 
         )

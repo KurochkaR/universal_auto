@@ -52,6 +52,17 @@ function applyCustomDateRange() {
 	fetchCarEfficiencyData(selectedPeriod, vehicleId, vehicle_lc, startDate, endDate);
 }
 
+function applyCustomDateRangeVehicle() {
+	$(".apply-filter-button_driver").prop("disabled", true);
+
+	let startDate = $("#start_report_driver").val();
+	let endDate = $("#end_report_driver").val();
+
+	const selectedPeriod = 'custom'
+
+	fetchDriverEfficiencyData(selectedPeriod, startDate, endDate);
+}
+
 // ---------- CHARTS ---------- //
 
 var barChart = echarts.init(document.getElementById('bar-chart'));
@@ -113,20 +124,20 @@ let barChartOptions = {
       let cash = parseFloat(params[0].value);
 			let card = parseFloat(params[1].value);
 			let total = (cash + card).toFixed(2);
-      let cashColor = '#A1E8B9';
-      let cardColor = '#EC6323';
+      let cashColor = '#EC6323';
+      let cardColor = '#A1E8B9';
       return (
         category +
         ':<br>' +
         '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background-color:' +
-        cashColor +
-        '"></span> Готівка: ' +
-        cash +
-        ' грн.<br>' +
-        '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background-color:' +
         cardColor +
         '"></span> Карта: ' +
         card +
+        ' грн.<br>' +
+        '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background-color:' +
+        cashColor +
+        '"></span> Готівка: ' +
+        cash +
         ' грн.<br>' +
         'Весь дохід: ' +
         total +
@@ -136,18 +147,6 @@ let barChartOptions = {
   },
   series: [
     {
-      name: 'card',
-      type: 'bar',
-      stack: 'total',
-      label: {
-        focus: 'series'
-      },
-      itemStyle: {
-        color: '#A1E8B9'
-      },
-      data: []
-    },
-    {
       name: 'cash',
       type: 'bar',
       stack: 'total',
@@ -156,6 +155,18 @@ let barChartOptions = {
       },
       itemStyle: {
         color: '#EC6323'
+      },
+      data: []
+    },
+    {
+      name: 'card',
+      type: 'bar',
+      stack: 'total',
+      label: {
+        focus: 'series'
+      },
+      itemStyle: {
+        color: '#A1E8B9'
       },
       data: []
     },
@@ -246,7 +257,7 @@ let threeChartOptions = {
     {
       type: 'slider',
       start: 1,
-      end: 30,
+      end: 100,
       showDetail: false,
       backgroundColor: 'white',
       dataBackground: {
@@ -270,7 +281,10 @@ let threeChartOptions = {
   series: [
     {
       data: [],
-      type: 'bar'
+      type: 'bar',
+      itemStyle: {
+        color: '#A1E8B9'
+      }
     }
   ],
   tooltip: {
@@ -313,8 +327,8 @@ function fetchSummaryReportData(period, start, end) {
 				const categories = driversData.map(driver => driver.full_name);
 				const total_card = driversData.map(driver => driver.total_card);
 				const total_cash = driversData.map(driver => driver.total_cash);
-				barChartOptions.series[0].data = total_card;
-				barChartOptions.series[1].data = total_cash;
+				barChartOptions.series[1].data = total_card;
+				barChartOptions.series[0].data = total_cash;
 				barChartOptions.xAxis.data = categories;
 				barChart.setOption(barChartOptions);
 			} else {
@@ -697,6 +711,7 @@ $(document).ready(function () {
 	});
 
 	$('#DriverBtnContainer').click(function () {
+		fetchDriverEfficiencyData('yesterday');
 		$('.info-driver').show();
 		$('.payback-car').hide();
 		$('.charts').hide();
@@ -775,9 +790,12 @@ $(document).ready(function () {
 			customSelect.removeClass("active");
 
 			if (clickedValue !== "custom") {
-				fetchSummaryReportData(clickedValue);
-				fetchCarEfficiencyData(clickedValue, vehicleId, vehicle_lc);
-				fetchDriverEfficiencyData(clickedValue);
+				if (vehicle_lc) {
+					fetchSummaryReportData(clickedValue);
+					fetchCarEfficiencyData(clickedValue, vehicleId, vehicle_lc);
+				} else {
+					fetchDriverEfficiencyData(clickedValue);
+				}
 			}
 
 			if (clickedValue === "custom") {
@@ -800,7 +818,6 @@ $(document).ready(function () {
 
 	fetchSummaryReportData('yesterday');
 	fetchCarEfficiencyData('yesterday', vehicleId, vehicle_lc);
-	fetchDriverEfficiencyData('yesterday');
 
 	initializeCustomSelect(customSelect, selectedOption, optionsList, iconDown, datePicker, vehicleId, vehicle_lc);
 
