@@ -16,9 +16,11 @@ paid_inline_buttons = (
 choose_func_text = "Оберіть функцію"
 get_drivers_text = "Інформація оновиться протягом декількох хвилин."
 update_finished = "Інформація оновлена"
-no_drivers_text = "У вас немає звітів по водіях за цей період"
-no_reports_text = "У вас немає заробітків за цей період"
-no_vehicles_text = "У вас немає звітів по автомобілях за цей період"
+no_drivers_text = "У Вас немає звітів по водіях за цей період"
+no_reports_text = "У Вас немає заробітків за цей період"
+no_vehicles_text = "У Вас немає звітів по автомобілях за цей період"
+no_manager_vehicles = "У Вас немає автомобілів"
+no_manager_drivers = "У Вас немає водіїв"
 choose_period_text = "Оберіть період звіту"
 start_report_text = "Введіть з якої дати отримати звіт (ДД.MM.РРРР)"
 end_report_text = "Введіть по яку дату отримати звіт (ДД.MM.РРРР)"
@@ -29,6 +31,8 @@ partner_drivers = "Оберіть водія"
 choose_category_text = "Оберіть категорію витрат"
 ask_spend_sum_text = "Вкажіть суму витрат"
 wrong_sum_type = "Не вірна сума витрат. Введіть суму(число) ще раз"
+spending_saved_text = "Витрати успішно записано."
+generate_text = "Генеруємо звіт"
 pin_vehicle_callback = "pin_vehicle"
 
 manager_buttons = (
@@ -39,10 +43,13 @@ manager_buttons = (
     "\U0001F680 Ефективність водія",
     "\U0001F4B8 Витрати автомобіля"
 )
+efficiency_period = ("Поточний тиждень",
+                     "Вибрати період")
 
-report_period = ("Минулий тиждень",
-                 "Поточний тиждень",
-                 "Вибрати період")
+report_period = ("Тижневий зарплатний звіт",
+                 "Денний зарплатний звіт",
+                 "Поточна статистика",
+                 "Статистика за період")
 
 spending_buttons = ("\U0001F4A6 Мийка",
                     "\u26FD Паливо",

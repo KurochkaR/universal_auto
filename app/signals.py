@@ -6,36 +6,37 @@ from auto.tasks import send_on_job_application_on_driver, check_time_order, setu
     remove_periodic_tasks, search_driver_for_order, detaching_the_driver_from_the_car
 from django.db.models.signals import pre_save, post_save, post_delete
 from django.dispatch import receiver
-from app.models import Driver, StatusChange, JobApplication, ParkSettings, Partner, Order, UseOfCars
+from app.models import Driver, StatusChange, JobApplication, ParkSettings, Partner, Order, UseOfCars, DriverSchemaRate
 from auto_bot.handlers.order.keyboards import inline_reject_order
-from auto_bot.handlers.order.static_text import client_order_info
+from auto_bot.handlers.order.static_text import client_order_info, client_personal_info
 from auto_bot.main import bot
 from scripts.redis_conn import redis_instance
-from scripts.settings_for_park import settings_for_partner
 from django.contrib.auth.models import User as AuUser
-from scripts.google_calendar import create_event, datetime_with_timezone
+from scripts.google_calendar import datetime_with_timezone, GoogleCalendar
+from scripts.settings_for_park import standard_rates, settings_for_partner
 
 
-@receiver(post_save, sender=AuUser)
-def create_partner(sender, instance, created, **kwargs):
-    if created:
-        Partner.objects.create(user=instance)
+# @receiver(post_save, sender=AuUser)
+# def create_partner(sender, instance, created, **kwargs):
+#     if created:
+#         Partner.objects.create(user=instance)
 
 
 @receiver(post_save, sender=Partner)
 def create_park_settings(sender, instance, created, **kwargs):
-    if created and not instance.user.is_superuser:
+    if created:
         setup_periodic_tasks(instance)
-        for key in settings_for_partner.keys():
-            response = settings_for_partner[key]
-            ParkSettings.objects.create(key=key, value=response[0], description=response[1], partner=instance)
+        for key, value in settings_for_partner.items():
+            ParkSettings.objects.create(key=key, value=value[0], description=value[1], partner=instance)
+        for key, values in standard_rates.items():
+            for value in values:
+                DriverSchemaRate.objects.create(period=key, threshold=value[0], rate=value[1], partner=instance)
 
-
-@receiver(post_delete, sender=AuUser)
-def delete_park_settings(sender, instance, **kwargs):
-    partner = Partner.objects.filter(user=instance)
-    if partner:
-        remove_periodic_tasks(partner.first())
+# @receiver(post_delete, sender=AuUser)
+# def delete_park_settings(sender, instance, **kwargs):
+#     partner = Partner.objects.filter(user=instance)
+#     if partner:
+#         remove_periodic_tasks(partner.first())
 
 
 @receiver(pre_save, sender=Driver)
@@ -77,16 +78,24 @@ def run_add_drivers_task(sender, instance, created, **kwargs):
 
 @receiver(post_save, sender=Order)
 def take_order_from_client(sender, instance, **kwargs):
-    if instance.status_order == Order.WAITING and not instance.checked:
-        instance.checked = True
-        instance.save()
-        search_driver_for_order.delay(instance.pk)
-    elif all([instance.status_order == Order.ON_TIME, instance.sum, not instance.checked]):
-        client_msg = redis_instance().hget(instance.chat_id_client, 'client_msg')
-        bot.edit_message_text(chat_id=instance.chat_id_client,
-                              text=client_order_info(instance),
-                              reply_markup=inline_reject_order(instance.pk),
-                              message_id=client_msg)
+    update = False
+    if not instance.checked:
+        if instance.status_order == Order.WAITING:
+            instance.checked = True
+            instance.save()
+            search_driver_for_order.delay(instance.pk)
+            return
+        elif all([instance.status_order == Order.ON_TIME, instance.sum, instance.type_order == Order.STANDARD_TYPE]):
+            client_msg = redis_instance().hget(instance.chat_id_client, 'client_msg')
+            redis_instance().hdel(instance.chat_id_client, 'time_order')
+            if client_msg:
+                bot.delete_message(chat_id=instance.chat_id_client, message_id=client_msg)
+            else:
+                update = True
+            client_msg = bot.send_message(chat_id=instance.chat_id_client,
+                                          text=client_order_info(instance, update),
+                                          reply_markup=inline_reject_order(instance.pk))
+            redis_instance().hset(instance.chat_id_client, 'client_msg', client_msg.message_id)
         check_time_order.delay(instance.pk)
         # g_id = ParkSettings.get_value("GOOGLE_ID_ORDER_CALENDAR")
         # if g_id:
@@ -101,4 +110,3 @@ def take_order_from_client(sender, instance, **kwargs):
         #         datetime_with_timezone(instance.order_time),
         #         ParkSettings.get_value("GOOGLE_ID_ORDER_CALENDAR")
         #     )
-

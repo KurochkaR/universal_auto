@@ -35,5 +35,9 @@ folium
 shapely
 python-gettext
 gunicorn
+gevent
 backports.zoneinfo
 pyjwt==2.8.0
+cryptography
+sentry-sdk[django]
+sentry-sdk[celery]

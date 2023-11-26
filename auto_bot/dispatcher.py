@@ -4,7 +4,6 @@ import re
 
 from telegram.ext import CommandHandler, PreCheckoutQueryHandler, MessageHandler, Filters, CallbackQueryHandler, \
     ConversationHandler, Dispatcher
-from app.models import Driver
 from auto_bot.main import bot
 from auto_bot.states import text
 # handlers
@@ -25,7 +24,9 @@ from auto_bot.handlers.order.handlers import continue_order, to_the_address, fro
     order_create, get_location, handle_callback_order, increase_search_radius, \
     increase_order_price, first_address_check, second_address_check, client_reject_order, \
     ask_client_action, handle_order, choose_date_order, precheckout_callback, add_info_to_order, get_additional_info, \
-    successful_payment
+    successful_payment, payment_duty, payment_method, personal_driver_info, payment_personal_order, \
+    finish_personal_driver, not_continue_personal_order, update_personal_order, back_step_to_finish_personal, \
+    personal_order_terms, personal_order_info
 from auto_bot.handlers.main.handlers import start, update_phone_number, helptext, get_id, cancel, error_handler, \
     more_function, start_query, get_about_us, celery_test
 from auto_bot.handlers.driver_job.handlers import update_name, restart_job_application, update_second_name, \
@@ -105,7 +106,7 @@ def setup_dispatcher(dp):
     # Ordering taxi
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("test_celery", celery_test))
-    dp.add_handler(CallbackQueryHandler(more_function, pattern="Other_user|Other_manager|More_driver"))
+    dp.add_handler(CallbackQueryHandler(more_function, pattern="Other_user|Other_manager|More_driver|Other_owner"))
     # incomplete auth
     dp.add_handler(MessageHandler(Filters.contact, update_phone_number))
     # ordering taxi
@@ -115,21 +116,32 @@ def setup_dispatcher(dp):
     dp.add_handler(CallbackQueryHandler(from_address, pattern="Now_order|Wrong_place"))
     dp.add_handler(CallbackQueryHandler(to_the_address, pattern="Right_place"))
     dp.add_handler(CallbackQueryHandler(first_address_check, pattern="^From_address [0-9]+$"))
-    dp.add_handler(CallbackQueryHandler(second_address_check, pattern="^To_the_address [0-9]+$"))
+    dp.add_handler(CallbackQueryHandler(second_address_check, pattern="^(To_the_address [0-9]+)|Return_info$"))
     dp.add_handler(CallbackQueryHandler(add_info_to_order, pattern="Add_information"))
     dp.add_handler(CallbackQueryHandler(get_additional_info, pattern="Choose_payment"))
     dp.add_handler(CallbackQueryHandler(order_create, pattern="Cash_payment|Card_payment"))
     dp.add_handler(CallbackQueryHandler(increase_search_radius, pattern="Increase_price"))
-    dp.add_handler(CallbackQueryHandler(choose_date_order, pattern="On_time_order"))
+    dp.add_handler(CallbackQueryHandler(choose_date_order, pattern="^(On_time_order|Personal_order)$"))
+    dp.add_handler(CallbackQueryHandler(payment_personal_order, pattern="^([0-9]+|None) Hour [0-9]+$"))
     dp.add_handler(CallbackQueryHandler(time_order, pattern="Today_order|Tomorrow_order|No_driver_time_order"))
     dp.add_handler(CallbackQueryHandler(increase_order_price, pattern="30|50|100|150|Continue_search"))
     dp.add_handler(CallbackQueryHandler(ask_client_action, pattern="Ask_action"))
+    dp.add_handler(CallbackQueryHandler(payment_duty, pattern="Duty"))
+    dp.add_handler(CallbackQueryHandler(payment_method, pattern="Back_to_payment"))
     dp.add_handler(CallbackQueryHandler(handle_callback_order, pattern="^Accept_order [0-9]+$"))
     dp.add_handler(CallbackQueryHandler(handle_order,
                                         pattern=re.compile("^(Reject_order|Along_the_route|Off_route|"
-                                                           "Accept|End_trip|Change_payments) [0-9]+$")))
+                                                           "Accept|End_trip|Second_cash_payment|"
+                                                           "Second_card_payment) [0-9]+$")))
     dp.add_handler(CallbackQueryHandler(handle_order, pattern="Client_on_site [0-9]+ [0-9]+"))
     dp.add_handler(CallbackQueryHandler(client_reject_order, pattern="^Client_reject [0-9]+$"))
+    dp.add_handler(CallbackQueryHandler(personal_driver_info, pattern="Personal_driver"))
+    dp.add_handler(CallbackQueryHandler(personal_order_info, pattern="^Personal_order_info$"))
+    dp.add_handler(CallbackQueryHandler(personal_order_terms, pattern="^Personal_order_terms$"))
+    dp.add_handler(CallbackQueryHandler(finish_personal_driver, pattern="^Finish_personal [0-9]+$"))
+    dp.add_handler(CallbackQueryHandler(not_continue_personal_order, pattern="^End_personal [0-9]+$"))
+    dp.add_handler(CallbackQueryHandler(update_personal_order, pattern="^Continue_personal [0-9]+$"))
+    dp.add_handler(CallbackQueryHandler(back_step_to_finish_personal, pattern="^[0-9]+ Back_step_to_finish$"))
     dp.add_handler(MessageHandler(Filters.successful_payment, successful_payment))
     # sending comment
     dp.add_handler(CallbackQueryHandler(comment, pattern="Cancel_order|Comment client"))
@@ -170,7 +182,7 @@ def setup_dispatcher(dp):
     dp.add_handler(CallbackQueryHandler(statistic_functions, pattern="Get_statistic"))
     dp.add_handler(CallbackQueryHandler(get_drivers_from_fleets, pattern="Update_drivers"))
     dp.add_handler(CallbackQueryHandler(get_earning_report, pattern="Get_report"))
-    dp.add_handler(CallbackQueryHandler(get_weekly_report, pattern="Weekly_report"))
+    dp.add_handler(CallbackQueryHandler(get_weekly_report, pattern="Weekly_payment|Daily_payment"))
     dp.add_handler(CallbackQueryHandler(get_report, pattern="Daily_report|Custom_report"))
     dp.add_handler(CallbackQueryHandler(get_efficiency_auto, pattern="Efficiency_daily|Efficiency_custom"))
     dp.add_handler(CallbackQueryHandler(get_efficiency_report, pattern="Get_efficiency_report"))

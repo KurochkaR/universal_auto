@@ -101,15 +101,3 @@ def gps_cars(request):
         "map_obj": map_obj
     }
     return render(request, 'map.html', context)
-
-
-from rest_framework import generics
-from app.models import Order, Payments, RentInformation, SummaryReport, Driver, Vehicle, DriverManager, Comment, \
-    CarEfficiency
-from app.serializers import OrderSerializer, PaymentsSerializer, RentInformationSerializer, SummaryReportSerializer, \
-    DriverSerializer, VehicleSerializer, DriverManagerSerializer, CommentSerializer, CarEfficiencySerializer
-
-
-class OrderListAPIView(generics.ListAPIView):
-    queryset = CarEfficiency.objects.all()
-    serializer_class = CarEfficiencySerializer

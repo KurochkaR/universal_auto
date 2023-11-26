@@ -22,7 +22,8 @@ from auto import settings
 from django.views.decorators.csrf import csrf_exempt
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path('admin/', admin.site.urls, name='admin'),
+    path('api/', include('api.urls')),
     path('rating/', DriversRatingView.as_view()),
     path('drivers_total_weekly_rating/', drivers_total_weekly_rating, name='app/drivers_total_weekly_rating'),
     path('gps/data', GpsData.as_view()),
@@ -30,7 +31,6 @@ urlpatterns = [
     path('fake_uber/', include('fake_uber.urls')),
     path('cars/', gps_cars, name='map'),
     path('', include('taxi_service.urls')),
-    path('api/orders/', OrderListAPIView.as_view(), name='order-list'),
     path('webhook/', csrf_exempt(TelegramBotWebhookView.as_view())),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

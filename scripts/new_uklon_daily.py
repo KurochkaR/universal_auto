@@ -1,14 +1,15 @@
-import pendulum
+from datetime import timedelta
 
-from auto.drivers import NewUklon
+from django.utils import timezone
+
+from app.bolt_sync import BoltRequest
+from app.models import Fleet
+from app.uklon_sync import UklonRequest
+from auto_bot.handlers.driver_manager.utils import get_efficiency
 
 
 def run(*args):
-    if args:
-        day = f"{args[0]}"
-    else:
-        day = pendulum.now().start_of('day').subtract(days=1)
-    b = NewUklon(driver=True, day=day, sleep=5, headless=True)
-    b.login()
-    b.download_payments_order()
-    b.save_report()
+    fleet = Fleet.objects.filter(partner=4, name='Bolt').first()
+    fleet.disable_cash(driver_id="4477749", enable="false")
+
+

@@ -8,7 +8,7 @@ from django.utils import timezone
 from telegram import BotCommand, Update, ParseMode, ReplyKeyboardRemove
 from telegram.ext import ConversationHandler
 from auto.tasks import health_check
-from app.models import User, Client, ParkSettings
+from app.models import User, Client, ParkSettings, Manager, UserBank, Partner
 from auto_bot.handlers.main.keyboards import markup_keyboard, inline_user_kb, contact_keyboard, get_start_kb, \
     inline_owner_kb, inline_manager_kb, get_more_func_kb, inline_about_us
 import logging
@@ -28,14 +28,17 @@ def start(update, context):
     redis_instance().delete(str(chat_id))
     redis_instance().expire(str(chat_id), 3600)
     menu(update, context)
-    users = User.objects.filter(chat_id=chat_id)
-
+    UserBank.objects.get_or_create(chat_id=chat_id)
+    clients = list(User.objects.filter(chat_id=chat_id))
+    managers = list(Manager.objects.filter(chat_id=chat_id))
+    partners = list(Partner.objects.filter(chat_id=chat_id))
+    users = clients + managers + partners
     if not users:
         Client.objects.create(chat_id=chat_id, name=update.message.from_user.first_name,
                               second_name=update.message.from_user.last_name)
         update.message.reply_text(share_phone_text, reply_markup=markup_keyboard([contact_keyboard]))
     elif users and len(users) == 1:
-        user = users.first()
+        user = users[0]
         if user.phone_number:
             update.message.reply_text(user_greetings_text, reply_markup=get_start_kb(user))
         else:
@@ -46,16 +49,25 @@ def start(update, context):
         elif any(user.role == "DRIVER_MANAGER" for user in users):
             reply_markup = inline_manager_kb()
         else:
-            user = users.filter(role="DRIVER").first()
-            reply_markup = get_start_kb(user)
+            driver_users = [user for user in users if user.role == "DRIVER"]
+            if driver_users:
+                user = driver_users[0]
+                reply_markup = get_start_kb(user)
+            else:
+                reply_markup = inline_user_kb()
         update.message.reply_text(user_greetings_text, reply_markup=reply_markup)
 
 
 def start_query(update, context):
     query = update.callback_query
-    users = User.objects.filter(chat_id=update.effective_chat.id)
+    chat_id = str(update.effective_chat.id)
+    redis_instance().delete(str(chat_id))
+    clients = list(User.objects.filter(chat_id=chat_id))
+    managers = list(Manager.objects.filter(chat_id=chat_id))
+    partners = list(Partner.objects.filter(chat_id=chat_id))
+    users = clients + managers + partners
     if len(users) == 1:
-        user = users.first()
+        user = users[0]
         reply_markup = get_start_kb(user)
     else:
         if any(user.role == "OWNER" for user in users):
@@ -63,8 +75,12 @@ def start_query(update, context):
         elif any(user.role == "DRIVER_MANAGER" for user in users):
             reply_markup = inline_manager_kb()
         else:
-            user = users.filter(role="DRIVER").first()
-            reply_markup = get_start_kb(user)
+            driver_users = [user for user in users if user.role == "DRIVER"]
+            if driver_users:
+                user = driver_users[0]
+                reply_markup = get_start_kb(user)
+            else:
+                reply_markup = inline_user_kb()
     query.edit_message_text(text=user_greetings_text)
     query.edit_message_reply_markup(reply_markup=reply_markup)
 
@@ -77,7 +93,13 @@ def more_function(update, context):
 
 def update_phone_number(update, context):
     chat_id = update.message.chat.id
-    user = Client.get_by_chat_id(chat_id)
+    user = Partner.objects.filter(chat_id=chat_id).first()
+
+    if user is None:
+        user = Manager.objects.filter(chat_id=chat_id).first()
+
+    if user is None:
+        user = User.objects.filter(chat_id=chat_id).first()
     phone_number = update.message.contact.phone_number
     if phone_number and user:
         if len(phone_number) == 12:
@@ -86,14 +108,13 @@ def update_phone_number(update, context):
         user.save()
         update.message.reply_text('Дякуємо ми отримали ваш номер телефону',
                                   reply_markup=ReplyKeyboardRemove())
-    context.bot.send_message(chat_id=chat_id, text=user_greetings_text, reply_markup=inline_user_kb())
+    context.bot.send_message(chat_id=chat_id, text=user_greetings_text, reply_markup=get_start_kb(user))
 
 
 def get_about_us(update, context):
     query = update.callback_query
     query.edit_message_text(text=more_func_text)
-    query.edit_message_reply_markup(reply_markup=inline_about_us(url1=ParkSettings.get_value('PRIVACY_POLICE'),
-                                                                 url2=ParkSettings.get_value('CONTRACT_OFFER')))
+    query.edit_message_reply_markup(reply_markup=inline_about_us())
 
 
 def celery_test(update, context):
@@ -158,10 +179,9 @@ def error(update, context):
                              text=message, parse_mode=ParseMode.HTML)
 
 
-
 def menu(update, context):
     # chat_id = update.effective_chat.id
-    # driver_manager = DriverManager.get_by_chat_id(chat_id)
+    # driver_manager = Manager.get_by_chat_id(chat_id)
     # driver = Driver.get_by_chat_id(chat_id)
     # manager = ServiceStationManager.get_by_chat_id(chat_id)
     # owner = Owner.get_by_chat_id(chat_id)

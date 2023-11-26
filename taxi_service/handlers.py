@@ -1,17 +1,21 @@
 import json
 
+from celery.result import AsyncResult
 from django.core.serializers.json import DjangoJSONEncoder
 from django.http import JsonResponse, HttpResponse
 from django.contrib.auth.models import User
 from django.forms.models import model_to_dict
 from django.contrib.auth import logout
 
+from app.models import Partner, Manager, SubscribeUsers
 from taxi_service.forms import SubscriberForm, MainOrderForm, CommentForm
 from taxi_service.utils import (update_order_sum_or_status, restart_order,
-                                login_in, partner_logout, login_in_investor,
-                                change_password_investor,send_reset_code,
+                                partner_logout, login_in_investor,
+                                change_password_investor, send_reset_code,
                                 active_vehicles_gps, order_confirm,
-                                collect_total_earnings, effective_vehicle)
+                                check_aggregators)
+
+from auto.tasks import update_driver_data, get_session
 
 
 class PostRequestHandler:
@@ -29,12 +33,13 @@ class PostRequestHandler:
             return JsonResponse(order_form.errors, status=400)
 
     def handler_subscribe_form(self, request):
-        sub_form = SubscriberForm(request.POST)
-        if sub_form.is_valid():
-            sub_form.save()
-            return JsonResponse({}, status=200)
-        else:
-            return JsonResponse(sub_form.errors, status=400)
+        email = request.POST.get('email')
+
+        obj, created = SubscribeUsers.objects.get_or_create(email=email)
+
+        if created:
+            return JsonResponse({'success': True})
+        return JsonResponse({'success': False})
 
     def handler_comment_form(self, request):
         comment_form = CommentForm(request.POST)
@@ -62,23 +67,22 @@ class PostRequestHandler:
         return JsonResponse({}, status=200)
 
     def handler_success_login(self, request):
-        action = request.POST.get('action')
+        aggregator = request.POST.get('aggregator')
         login = request.POST.get('login')
         password = request.POST.get('password')
-        user_pk = request.user.pk
-
-        success_login = login_in(action, login, password, user_pk)
-        json_data = JsonResponse({'data': success_login}, safe=False)
+        partner = Partner.objects.get(user=request.user.pk)
+        task = get_session.delay(partner.pk, aggregator, login=login, password=password)
+        json_data = JsonResponse({'task_id': task.id}, safe=False)
         response = HttpResponse(json_data, content_type='application/json')
+
         return response
 
     def handler_handler_logout(self, request):
-        action = request.POST.get('action')
-        partner_pk = request.user.pk
-        partner_logout(action, partner_pk)
+        aggregator = request.POST.get('aggregator')
+        partner = Partner.objects.get(user=request.user.pk)
+        partner_logout(aggregator, partner.pk)
 
         return JsonResponse({}, status=200)
-
 
     def handler_success_login_investor(self, request):
         login = request.POST.get('login')
@@ -131,6 +135,30 @@ class PostRequestHandler:
                 response = HttpResponse(json.dumps({'success': False}), content_type='application/json')
                 return response
 
+    def handler_update_database(self, request):
+        if request.user.groups.filter(name="Partner").exists():
+            partner = Partner.objects.get(user=request.user.pk).pk
+        else:
+            partner = Manager.objects.get(user=request.user.pk).partner.pk
+        upd = update_driver_data.delay(partner)
+        json_data = JsonResponse({'task_id': upd.id}, safe=False)
+        response = HttpResponse(json_data, content_type='application/json')
+        return response
+
+    def handler_free_access(self, request):
+        name = request.POST.get('name')
+        phone = request.POST.get('phone')
+        response_data = {'success': False, 'error': 'Ви вже підписались'}
+        phone = phone.replace(' ', '').replace('-', '')
+        user, created = SubscribeUsers.objects.get_or_create(phone_number=phone,
+                                                             defaults={"name": name})
+        if created:
+            response_data = {'success': True}
+
+        json_data = JsonResponse(response_data, safe=False)
+        response = HttpResponse(json_data, content_type='application/json')
+        return response
+
     def handler_unknown_action(self, request):
         return JsonResponse({}, status=400)
 
@@ -149,29 +177,26 @@ class GetRequestHandler:
         response = HttpResponse(json_data, content_type='application/json')
         return response
 
-    def handle_get_drivers_cash(self, request):
-        period = request.GET.get('period')
-        get_drivers_cash = collect_total_earnings(period)
-        json_data = JsonResponse({'data': get_drivers_cash}, safe=False)
-        response = HttpResponse(json_data, content_type='application/json')
-        return response
-
-    def handle_effective_vehicle(self, request):
-        period = request.GET.get('period')
-        vehicle = request.GET.get('vehicle_id')
-        get_efficiency_vehicle = effective_vehicle(period, vehicle)
-        json_data = JsonResponse({'data': get_efficiency_vehicle}, safe=False)
-        response = HttpResponse(json_data, content_type='application/json')
-        return response
-
-    def handle_is_logged_in(self, request):
+    def handle_get_role(self, request):
         if request.user.is_authenticated:
-            user_name = request.user.first_name + " " + request.user.last_name
-
-            response_data = {'is_logged_in': True, 'user_name': user_name}
+            user_role = request.user.groups.first().name
+            response_data = {'role': user_role}
         else:
-            response_data = {'is_logged_in': False}
+            response_data = {'role': None}
         return JsonResponse(response_data, safe=False)
+
+    def handle_check_aggregators(self, request):
+        aggregators, fleets = check_aggregators(request.user.pk)
+        json_data = JsonResponse({'data': aggregators, 'fleets': fleets}, safe=False)
+        response = HttpResponse(json_data, content_type='application/json')
+        return response
+
+    def handle_check_task(self, request):
+        upd = AsyncResult(request.GET.get('task_id'))
+        answer = upd.get()[1] if upd.ready() else 'in progress'
+        json_data = JsonResponse({'data': answer}, safe=False)
+        response = HttpResponse(json_data, content_type='application/json')
+        return response
 
     def handle_unknown_action(self, request):
         return JsonResponse({}, status=400)

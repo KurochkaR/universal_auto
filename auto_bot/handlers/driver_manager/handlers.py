@@ -1,10 +1,12 @@
 # Create driver and other
-from datetime import datetime
+from datetime import datetime, timedelta, time
 from celery.signals import task_postrun
+from django.utils import timezone
 from telegram import ReplyKeyboardRemove
+from telegram.error import BadRequest
 
-from app.models import DriverManager, Vehicle, User, Driver, Fleets_drivers_vehicles_rate, Fleet, JobApplication, \
-    Payments, ParkSettings
+from app.models import Manager, Vehicle, User, Driver, Fleets_drivers_vehicles_rate, Fleet, JobApplication, \
+    Payments, ParkSettings, VehicleSpending, Partner
 from auto_bot.handlers.driver.static_text import BROKEN
 from auto_bot.handlers.driver_job.static_text import driver_job_name
 from auto_bot.handlers.driver_manager.keyboards import create_user_keyboard, role_keyboard, fleets_keyboard, \
@@ -13,19 +15,22 @@ from auto_bot.handlers.driver_manager.keyboards import create_user_keyboard, rol
     inline_statistic_kb, inline_driver_eff_kb, inline_func_with_vehicle_kb, vehicle_spending_kb
 from auto_bot.handlers.driver_manager.static_text import *
 from auto_bot.handlers.driver_manager.utils import get_daily_report, validate_date, get_efficiency, \
-    generate_message_weekly, get_driver_efficiency_report, validate_sum
+    generate_message_report, get_driver_efficiency_report, validate_sum, generate_report_period
 from auto_bot.handlers.main.keyboards import markup_keyboard, markup_keyboard_onetime, inline_manager_kb
 from auto.tasks import send_on_job_application_on_driver, manager_paid_weekly, fleets_cash_trips, \
-    update_driver_data, send_daily_report, send_efficiency_report, send_weekly_report, send_driver_efficiency
+    update_driver_data, send_daily_statistic, send_efficiency_report, send_driver_report, send_driver_efficiency
+from auto_bot.handlers.order.utils import check_vehicle
 from auto_bot.main import bot
+from auto_bot.utils import send_long_message
 from scripts.redis_conn import redis_instance
+from auto_bot.handlers.main.keyboards import back_to_main_menu
 
 
 @task_postrun.connect
 def remove_cash_driver(sender=None, **kwargs):
     if sender == manager_paid_weekly:
         partner_pk = kwargs.get('retval')
-        for manager in DriverManager.objects.filter(partner=partner_pk):
+        for manager in Manager.objects.filter(partner=partner_pk):
             for driver in Driver.objects.filter(manager=manager):
                 bot.send_message(chat_id=manager.chat_id, text=ask_driver_paid(driver),
                                  reply_markup=inline_driver_paid_kb(driver.id))
@@ -51,15 +56,15 @@ def statistic_functions(update, context):
 
 def choose_spending_category(update, context):
     query = update.callback_query
-    redis_instance().hset(str(update.effective_chat.id), 'vehicle', query.data[1])
+    redis_instance().hset(str(update.effective_chat.id), 'vehicle', query.data.split()[1])
     query.edit_message_text(choose_category_text)
-    query.edit_message_reply_markup(vehicle_spending_kb())
+    query.edit_message_reply_markup(vehicle_spending_kb('Spending_car'))
 
 
 def ask_spending_sum(update, context):
     query = update.callback_query
     data = {
-        'category': query.data,
+        'category': query.data.split()[0],
         'state': SPENDING_CAR
     }
     redis_instance().hmset(str(update.effective_chat.id), data)
@@ -68,15 +73,18 @@ def ask_spending_sum(update, context):
 
 def save_car_spending(update, context):
     spending = update.message.text
+    chat_id = str(update.effective_chat.id)
     if validate_sum(spending):
-        print("created")
-        # user_data = redis_instance().hgetall(str(update.effective_chat.id))
-        # vehicle = Vehicle.objects.get(pk=int(user_data['vehicle']))
-        # data = {'category': user_data['category'],
-        #         'vehicle': vehicle,
-        #         'amount': round(spending, 2)}
-        # Vehicle.objects.create(**data)
-        redis_instance().delete(str(update.effective_chat.id))
+        user_data = redis_instance().hgetall(chat_id)
+        vehicle = Vehicle.objects.get(pk=int(user_data['vehicle']))
+        data = {'category': user_data['category'],
+                'vehicle': vehicle,
+                'amount': round(int(spending), 2)}
+        VehicleSpending.objects.create(**data)
+        redis_instance().delete(chat_id)
+        context.bot.send_message(chat_id=update.effective_chat.id,
+                                 text=spending_saved_text,
+                                 reply_markup=inline_manager_kb())
     else:
         update.message.reply_text(wrong_sum_type)
 
@@ -84,8 +92,8 @@ def save_car_spending(update, context):
 @task_postrun.connect
 def update_drivers(sender=None, **kwargs):
     if sender == update_driver_data:
-        if kwargs.get('retval'):
-            bot.send_message(chat_id=kwargs.get('retval'), text=update_finished, reply_markup=inline_manager_kb())
+        if kwargs.get('retval')[0]:
+            bot.send_message(chat_id=kwargs.get('retval')[0], text=update_finished, reply_markup=inline_manager_kb())
 
 
 def remove_cash_by_manager(update, context):
@@ -98,27 +106,35 @@ def remove_cash_by_manager(update, context):
 
 def get_drivers_from_fleets(update, context):
     query = update.callback_query
-    partner = DriverManager.get_by_chat_id(query.from_user.id).partner
+    manager = Manager.get_by_chat_id(query.from_user.id)
+    partner = manager.partner if manager else Partner.get_by_chat_id(query.from_user.id)
     update_driver_data.delay(partner.id, query.from_user.id)
     query.edit_message_text(get_drivers_text)
 
 
 def get_earning_report(update, context):
     query = update.callback_query
-    query.edit_message_text(choose_period_text)
-    query.edit_message_reply_markup(inline_earning_report_kb())
+    manager = Manager.get_by_chat_id(update.effective_chat.id)
+    partner = Partner.get_by_chat_id(update.effective_chat.id)
+    drivers = Driver.objects.filter(manager=manager) if manager else Driver.objects.filter(partner=partner)
+    if drivers:
+        query.edit_message_text(choose_period_text)
+        query.edit_message_reply_markup(inline_earning_report_kb('Get_statistic'))
+    else:
+        query.edit_message_text(no_manager_drivers)
+        query.edit_message_reply_markup(back_to_main_menu())
 
 
 def get_efficiency_report(update, context):
     query = update.callback_query
     query.edit_message_text(choose_period_text)
-    query.edit_message_reply_markup(inline_efficiency_report_kb())
+    query.edit_message_reply_markup(inline_efficiency_report_kb('Get_statistic'))
 
 
 def get_drivers_statistics(update, context):
     query = update.callback_query
     query.edit_message_text(choose_period_text)
-    query.edit_message_reply_markup(inline_driver_eff_kb())
+    query.edit_message_reply_markup(inline_driver_eff_kb('Get_statistic'))
 
 
 def get_efficiency_for_drivers(update, context):
@@ -128,14 +144,18 @@ def get_efficiency_for_drivers(update, context):
         query.edit_message_text(start_report_text)
         redis_instance().hset(str(update.effective_chat.id), 'state', START_DRIVER_EFF)
     else:
+        query.edit_message_text(generate_text)
         result = get_driver_efficiency_report(manager_id=query.from_user.id)
         if result:
             for k, v in result.items():
                 message += f"{k}\n" + "".join(v) + "\n"
         else:
             message += no_drivers_text
-        query.edit_message_text(message)
-        query.edit_message_reply_markup(reply_markup=inline_manager_kb())
+        try:
+            query.edit_message_text(message)
+            query.edit_message_reply_markup(reply_markup=inline_manager_kb())
+        except BadRequest:
+            send_long_message(update.effective_chat.id, message, inline_manager_kb())
 
 
 def get_period_driver_eff(update, context):
@@ -159,14 +179,16 @@ def create_driver_eff(update, context):
         end = datetime.strptime(data, '%d.%m.%Y')
         if start > end:
             start, end = end, start
+        msg = update.message.reply_text(generate_text)
         result = get_driver_efficiency_report(update.message.chat_id, start, end)
         message = ''
         if result:
             for k, v in result.items():
-                message += f"{k}\n" + "".join(v)
+                message += f"{k}\n" + "".join(v) + "\n"
         else:
             message += no_drivers_text
-        update.message.reply_text(message, reply_markup=inline_manager_kb())
+        bot.edit_message_text(chat_id=update.effective_chat.id, text=message,
+                              message_id=msg.message_id, reply_markup=inline_manager_kb())
     else:
         redis_instance().hset(str(update.effective_chat.id), 'state', END_DRIVER_EFF)
         context.bot.send_message(chat_id=update.message.chat_id, text=invalid_end_data_text)
@@ -174,10 +196,12 @@ def create_driver_eff(update, context):
 
 def get_weekly_report(update, context):
     query = update.callback_query
-    manager = DriverManager.get_by_chat_id(query.from_user.id)
-    messages = generate_message_weekly(manager.partner.pk)
-    owner_message = messages.get(str(query.from_user.id)) or no_drivers_text
+    query.edit_message_text(generate_text)
+    daily = True if query.data == "Daily_payment" else False
+    messages = generate_message_report(query.from_user.id, daily)
+    owner_message = messages.get(str(query.from_user.id))
     query.edit_message_text(owner_message)
+    query.edit_message_reply_markup(back_to_main_menu())
 
 
 def get_report(update, context):
@@ -187,15 +211,17 @@ def get_report(update, context):
         query.edit_message_text(start_report_text)
         redis_instance().hset(str(update.effective_chat.id), 'state', START_EARNINGS)
     else:
+        query.edit_message_text(generate_text)
         result = get_daily_report(manager_id=query.from_user.id)
-        if result:
-            for key in result[0]:
-                if result[0][key]:
-                    message += "{}\nКаса: {:.2f} (+{:.2f})\nОренда: {:.2f}км (+{:.2f})\n".format(
-                        key, result[0][key], result[1].get(key, 0), result[2].get(key, 0), result[3].get(key, 0))
-        else:
-            message = no_drivers_text
-        query.edit_message_text(message)
+        for key in result[0]:
+            if result[0][key]:
+                message += "{}\nКаса: {:.2f} (+{:.2f})\nОренда: {:.2f}км (+{:.2f})\n\n".format(
+                    key, result[0][key], result[1].get(key, 0), result[2].get(key, 0), result[3].get(key, 0))
+        try:
+            query.edit_message_text(message)
+        except BadRequest as e:
+            if "Message text is empty" in str(e):
+                query.edit_message_text(no_drivers_text)
         query.edit_message_reply_markup(reply_markup=inline_manager_kb())
 
 
@@ -221,11 +247,10 @@ def create_period_report(update, context):
         end = datetime.strptime(date, '%d.%m.%Y')
         if start > end:
             start, end = end, start
-        report = get_daily_report(update.message.chat_id, start, end)[0]
-        message = ''
-        for key, value in report.items():
-            message += "{} {:.2f}\n".format(key, value)
-        update.message.reply_text(message, reply_markup=inline_manager_kb())
+        msg = update.message.reply_text(generate_text)
+        report = generate_report_period(update.effective_chat.id, start, end)
+        bot.edit_message_text(chat_id=update.effective_chat.id, text=report,
+                              message_id=msg.message_id, reply_markup=inline_manager_kb())
     else:
         redis_instance().hset(str(update.effective_chat.id), 'state', END_EARNINGS)
         context.bot.send_message(chat_id=update.message.chat_id, text=invalid_end_data_text)
@@ -238,13 +263,15 @@ def get_efficiency_auto(update, context):
         query.edit_message_text(start_report_text)
         redis_instance().hset(str(update.effective_chat.id), 'state', START_EFFICIENCY)
     else:
+        query.edit_message_text(generate_text)
         result = get_efficiency(manager_id=query.from_user.id)
-        if result:
-            for k, v in result.items():
-                message += f"{k}\n" + "".join(v)
-        else:
-            message = no_vehicles_text
-        query.edit_message_text(message)
+        for k, v in result.items():
+            message += f"{k}\n" + "".join(v) + "\n"
+        try:
+            query.edit_message_text(message)
+        except BadRequest as e:
+            if "Message text is empty" in str(e):
+                query.edit_message_text(no_vehicles_text)
         query.edit_message_reply_markup(reply_markup=inline_manager_kb())
 
 
@@ -269,14 +296,18 @@ def create_period_efficiency(update, context):
         end = datetime.strptime(data, '%d.%m.%Y')
         if start > end:
             start, end = end, start
+        msg = update.message.reply_text(generate_text)
         result = get_efficiency(update.message.chat_id, start, end)
         message = ''
-        if result:
-            for k, v in result.items():
-                message += f"{k}\n" + "".join(v)
-        else:
-            message = no_vehicles_text
-        update.message.reply_text(message, reply_markup=inline_manager_kb())
+        for k, v in result.items():
+            message += f"{k}\n" + "".join(v) + "\n"
+        try:
+            context.bot.edit_message_text(chat_id=update.effective_chat.id, text=message,
+                                          message_id=msg.message_id, reply_markup=inline_manager_kb())
+        except BadRequest as e:
+            if "Message text is empty" in str(e):
+                context.bot.edit_message_text(chat_id=update.effective_chat.id, text=no_vehicles_text,
+                                              message_id=msg.message_id, reply_markup=inline_manager_kb())
     else:
         redis_instance().hset(str(update.effective_chat.id), 'state', END_EFFICIENCY)
         context.bot.send_message(chat_id=update.message.chat_id, text=invalid_end_data_text)
@@ -284,44 +315,76 @@ def create_period_efficiency(update, context):
 
 @task_postrun.connect
 def send_into_group(sender=None, **kwargs):
-    if sender in (send_daily_report, send_efficiency_report, send_driver_efficiency):
+    yesterday = timezone.localtime() - timedelta(days=1)
+    if sender in (send_daily_statistic, send_driver_efficiency):
+        messages, drivers_messages = kwargs.get('retval')
+        for partner, message in messages.items():
+            if message and ParkSettings.get_value('DRIVERS_CHAT', partner=partner):
+                bot.send_message(chat_id=ParkSettings.get_value('DRIVERS_CHAT', partner=partner), text=message)
+            else:
+                try:
+                    bot.send_message(chat_id=Partner.get_partner(partner).chat_id, text=message)
+                except BadRequest:
+                    pass
+        for pk, message in drivers_messages.items():
+            driver = Driver.objects.get(pk=pk)
+            vehicle = check_vehicle(driver, yesterday, max_time=True)[0]
+            if vehicle:
+                if vehicle.chat_id and message:
+                    bot.send_message(chat_id=vehicle.chat_id, text=message)
+
+
+@task_postrun.connect
+def send_vehicle_efficiency(sender=None, **kwargs):
+    if sender == send_efficiency_report:
         messages = kwargs.get('retval')
         for partner, message in messages.items():
-            if message:
+            if message and ParkSettings.get_value('DRIVERS_CHAT', partner=partner):
                 bot.send_message(chat_id=ParkSettings.get_value('DRIVERS_CHAT', partner=partner), text=message)
+            else:
+                try:
+                    bot.send_message(chat_id=Partner.get_partner(partner).chat_id, text=message)
+                except BadRequest:
+                    pass
 
 
 @task_postrun.connect
 def send_week_report(sender=None, **kwargs):
-    if sender == send_weekly_report:
-        messages = kwargs.get('retval')
-        for user, message in messages.items():
-            bot.send_message(chat_id=user, text=message)
+    if sender == send_driver_report:
+        result = kwargs.get('retval')
+        for messages in result:
+            for user, message in messages.items():
+                bot.send_message(chat_id=user, text=message)
 
 
 def get_partner_vehicles(update, context):
     query = update.callback_query
-    manager = DriverManager.get_by_chat_id(query.from_user.id)
-    vehicles = Vehicle.objects.filter(partner=manager.partner, manager=manager)
+    manager = Manager.get_by_chat_id(query.from_user.id)
+    partner = Partner.get_by_chat_id(query.from_user.id)
+    vehicles = Vehicle.objects.filter(manager=manager) if manager else Vehicle.objects.filter(partner=partner)
     if vehicles:
         if query.data == "Pin_vehicle_to_driver":
             callback = 'select_vehicle'
+            back_step = "Setup_drivers"
         else:
             callback = 'Spending_vehicle'
+            back_step = 'Setup_vehicles'
         query.edit_message_text(partner_vehicles)
-        query.edit_message_reply_markup(reply_markup=inline_partner_vehicles(vehicles, callback))
+        query.edit_message_reply_markup(reply_markup=inline_partner_vehicles(vehicles, callback, back_step))
     else:
-        query.edit_message_text(no_vehicles_text)
+        query.edit_message_text(no_manager_vehicles)
 
 
 def get_partner_drivers(update, context):
     query = update.callback_query
     pk_vehicle = query.data.split()[1]
-    manager = DriverManager.get_by_chat_id(query.from_user.id)
-    drivers = Driver.objects.filter(partner=manager.partner, manager=manager)
+    manager = Manager.get_by_chat_id(query.from_user.id)
+    partner = Partner.get_by_chat_id(query.from_user.id)
+    drivers = Driver.objects.filter(manager=manager) if manager else Driver.objects.filter(partner=partner)
     if drivers:
         query.edit_message_text(partner_drivers)
-        query.edit_message_reply_markup(reply_markup=inline_partner_drivers(pin_vehicle_callback, drivers, pk_vehicle))
+        query.edit_message_reply_markup(reply_markup=inline_partner_drivers(pin_vehicle_callback, drivers,
+                                                                            'Pin_vehicle_to_driver', pk_vehicle,))
     else:
         query.edit_message_text(no_drivers_text)
 
@@ -335,12 +398,13 @@ def pin_partner_vehicle_to_driver(update, context):
     driver_obj.vehicle = vehicle_obj
     driver_obj.save()
     query.edit_message_text(pin_vehicle_to_driver(driver_obj, vehicle_obj))
+    query.edit_message_reply_markup(back_to_main_menu())
 
 
 # Add users and vehicle to db and others
 def add(update, context):
     chat_id = update.message.chat.id
-    driver_manager = DriverManager.get_by_chat_id(chat_id)
+    driver_manager = Manager.get_by_chat_id(chat_id)
     if driver_manager is not None:
         context.user_data['role'] = driver_manager
         update.message.reply_text('Оберіть опцію, кого ви бажаєте створити',
@@ -405,12 +469,12 @@ def create_user(update, context):
                 email=context.user_data['email'],
                 phone_number=phone_number)
 
-            manager = DriverManager.get_by_chat_id(chat_id)
+            manager = Manager.get_by_chat_id(chat_id)
             manager.driver_id.add(driver.id)
             manager.save()
             update.message.reply_text('Водія було добавленно в базу данних')
         elif context.user_data['role'] == USER_MANAGER_DRIVER:
-            DriverManager.objects.create(
+            Manager.objects.create(
                 name=context.user_data['name'],
                 second_name=context.user_data['second_name'],
                 email=context.user_data['email'],
@@ -425,7 +489,7 @@ def create_user(update, context):
 # Viewing broken car
 def broken_car(update, context):
     chat_id = update.message.chat.id
-    driver_manager = DriverManager.get_by_chat_id(chat_id)
+    driver_manager = Manager.get_by_chat_id(chat_id)
     if driver_manager is not None:
         vehicle = Vehicle.objects.filter(car_status=f'{BROKEN}')
         report = ''
@@ -443,7 +507,7 @@ def broken_car(update, context):
 # Viewing status driver
 def driver_status(update, context):
     chat_id = update.message.chat.id
-    driver_manager = DriverManager.get_by_chat_id(chat_id)
+    driver_manager = Manager.get_by_chat_id(chat_id)
     if driver_manager is not None:
         context.user_data['manager_state'] = STATUS
         context.bot.send_message(chat_id=update.effective_chat.id, text='Оберіть статус',
@@ -470,7 +534,7 @@ def viewing_status_driver(update, context):
 # Add Vehicle to driver
 def get_list_drivers(update, context):
     chat_id = update.message.chat.id
-    driver_manager = DriverManager.get_by_chat_id(chat_id)
+    driver_manager = Manager.get_by_chat_id(chat_id)
     if driver_manager is not None:
         drivers = {i.id: f'{i.name } {i.second_name}' for i in Driver.objects.all()}
         if len(drivers) == 0:
@@ -588,7 +652,7 @@ def add_information_to_driver(update, context):
 # Push job application to fleets
 def get_list_job_application(update, context):
     chat_id = update.message.chat.id
-    driver_manager = DriverManager.get_by_chat_id(chat_id)
+    driver_manager = Manager.get_by_chat_id(chat_id)
     if driver_manager is not None:
         applications = {i.id: f'{i}' for i in JobApplication.objects.all() if (i.role == driver_job_name and i.status_bolt == False)}
         if len(applications) == 0:
@@ -680,7 +744,7 @@ def get_vin_code_vehicle(update, context):
 
 def get_licence_plate_for_gps_imei(update, context):
     chat_id = update.message.chat.id
-    driver_manager = DriverManager.get_by_chat_id(chat_id)
+    driver_manager = Manager.get_by_chat_id(chat_id)
     vehicles = {i.id: i.licence_plate for i in Vehicle.objects.all()}
     vehicles = {k: vehicles[k] for k in sorted(vehicles)}
     report_list_vehicles = ''
