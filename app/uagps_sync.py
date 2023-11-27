@@ -127,30 +127,33 @@ class UaGpsSynchronizer(Fleet):
                     continue
                 previous_finish_time = None
                 for order in completed:
-                    try:
-                        end_report = order.finish_time if order.finish_time < end else end
-                        if previous_finish_time is None or order.accepted_time >= previous_finish_time:
-                            report = self.generate_report(self.get_timestamp(timezone.localtime(order.accepted_time)),
-                                                          self.get_timestamp(timezone.localtime(end_report)),
-                                                          order.vehicle.gps.gps_id)
-                        elif order.finish_time <= previous_finish_time:
+                    if order.vehicle.gps:
+                        try:
+                            end_report = order.finish_time if order.finish_time < end else end
+                            if previous_finish_time is None or order.accepted_time >= previous_finish_time:
+                                report = self.generate_report(self.get_timestamp(timezone.localtime(order.accepted_time)),
+                                                              self.get_timestamp(timezone.localtime(end_report)),
+                                                              order.vehicle.gps.gps_id)
+                            elif order.finish_time <= previous_finish_time:
+                                continue
+                            else:
+                                report = self.generate_report(self.get_timestamp(timezone.localtime(previous_finish_time)),
+                                                              self.get_timestamp(timezone.localtime(end_report)),
+                                                              order.vehicle.gps.gps_id)
+                        except AttributeError as e:
+                            get_logger().error(e)
                             continue
-                        else:
-                            report = self.generate_report(self.get_timestamp(timezone.localtime(previous_finish_time)),
-                                                          self.get_timestamp(timezone.localtime(end_report)),
-                                                          order.vehicle.gps.gps_id)
-                    except AttributeError as e:
-                        get_logger().error(e)
+                        previous_finish_time = end_report
+                        road_distance += report[0]
+                        road_time += report[1]
+                        order.distance = report[0]
+                        order.save()
+                    else:
                         continue
-                    previous_finish_time = end_report
-                    road_distance += report[0]
-                    road_time += report[1]
-                    order.distance = report[0]
-                    order.save()
                 yesterday_order = FleetOrder.objects.filter(driver=driver,
                                                             finish_time__gt=start,
                                                             accepted_time__lte=start).first()
-                if yesterday_order:
+                if yesterday_order and yesterday_order.vehicle.gps:
                     try:
                         report = self.generate_report(self.get_timestamp(start),
                                                       self.get_timestamp(timezone.localtime(yesterday_order.finish_time)),

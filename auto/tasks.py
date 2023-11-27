@@ -19,7 +19,7 @@ from app.models import RawGPS, Vehicle, Order, Driver, JobApplication, ParkSetti
     Payments, SummaryReport, Manager, Partner, DriverEfficiency, FleetOrder, ReportTelegramPayments, \
     TransactionsConversation, VehicleSpending, DriverReshuffle, DriverPayments, SalaryCalculation, \
     PaymentTypes, DriverEffVehicleKasa, Fleet
-from django.db.models import Sum, IntegerField, FloatField, Q, DecimalField
+from django.db.models import Sum, IntegerField, FloatField, Q, DecimalField, Value
 from django.db.models.functions import Cast, Coalesce
 from auto_bot.handlers.driver_manager.utils import get_daily_report, get_efficiency, generate_message_report, \
     get_driver_efficiency_report, calculate_by_rate, calculate_rent
@@ -154,24 +154,18 @@ def check_card_cash_value(self, partner_pk):
     orders = FleetOrder.objects.filter(accepted_time__date=timezone.localtime().date(),
                                        state=FleetOrder.COMPLETED,
                                        partner=partner_pk)
-    kasa_qs = orders.values('driver').annotate(kasa=Sum('price'))
+    kasa_qs = orders.values('driver').annotate(kasa=Coalesce(Sum('price'), Value(1))).filter(kasa__gt=0)
     for driver in kasa_qs:
-        driver_obj = Driver.objects.get(pk=driver['driver'])
-        if driver['kasa'] > int(ParkSettings.get_value("START_CHECK_CASH", partner=partner_pk)):
+        driver_obj = Driver.objects.filter(pk=driver['driver'], schema__isnull=False).first()
+        if driver['kasa'] > int(ParkSettings.get_value("START_CHECK_CASH", partner=partner_pk)) and driver_obj:
             card = orders.filter(payment=PaymentTypes.CARD,
                                  driver=driver['driver']).aggregate(card_kasa=Sum('price'))['card_kasa']
-            try:
-                if driver['kasa'] != 0:
-                    ratio = card / driver['kasa']
-                    if driver_obj.schema.schema == "RENT":
-                        rate = float(ParkSettings.get_value("RENT_CASH_RATE", partner=partner_pk))
-                    else:
-                        rate = driver_obj.schema.rate
-                    enable = 'false' if ratio < rate else 'true'
-                else:
-                    return
-            except TypeError:
-                enable = 'false'
+            ratio = card / driver['kasa']
+            if driver_obj.schema.is_rent():
+                rate = float(ParkSettings.get_value("RENT_CASH_RATE", partner=partner_pk))
+            else:
+                rate = driver_obj.schema.rate
+            enable = 'false' if ratio < rate else 'true'
             bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"),
                              text=f"Готівка {enable} у {driver_obj}")
             fleets_cash_trips.delay(partner_pk, driver_obj.pk, enable)

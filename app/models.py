@@ -106,6 +106,9 @@ class Schema(models.Model):
         schema = cls.objects.filter(schema=title, partner__isnull=True).first()
         return schema
 
+    def is_rent(self):
+        return True if self.schema == "RENT" else False
+
     def __str__(self):
         return self.title if self.title else ''
 
