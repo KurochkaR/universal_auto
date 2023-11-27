@@ -17,7 +17,7 @@ import dj_database_url
 import sentry_sdk
 
 sentry_sdk.init(
-    dsn="https://3952c7977a0140be30bbbf2077fb7f4b@o4506288030482432.ingest.sentry.io/4506288049618944",
+    dsn=os.environ['SENTRY_DSN'],
     enable_tracing=True,
     # Set traces_sample_rate to 1.0 to capture 100%
     # of transactions for performance monitoring.
