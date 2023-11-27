@@ -91,3 +91,16 @@ class InvestorCarsSerializer(serializers.Serializer):
     totals = TotalEarningsSerializer()
     start = serializers.CharField()
     end = serializers.CharField()
+
+
+class DriverChangesSerializer(serializers.Serializer):
+    date = serializers.DateField()
+    driver_name = serializers.CharField()
+    driver_photo = serializers.CharField()
+    start_shift = serializers.TimeField()
+    end_shift = serializers.TimeField()
+
+
+class ReshuffleSerializer(serializers.Serializer):
+    swap_licence = serializers.CharField()
+    reshuffles = DriverChangesSerializer(many=True)
