@@ -385,47 +385,37 @@
       </div>
     </div>
 
-    <!--    {% for car in car_piggy_bank %}-->
-    <!--    <div class="driver-calendar">-->
-    <!--      <div class="calendar-container">-->
-    <!--        <div class="car-image">-->
-    <!--          <img src="{% static 'app/images/index-one-block-2.webp' %}" alt="Зображення авто">-->
-    <!--          <p>{{ car.licence_plate }}</p>-->
-    <!--        </div>-->
-    <!--        <div class="calendar-detail">-->
-    <!--          <ul>-->
-    <!--            <li></li>-->
-    <!--            <li></li>-->
-    <!--            <li></li>-->
-    <!--            <li></li>-->
-    <!--            <li></li>-->
-    <!--            <li></li>-->
-    <!--            <li></li>-->
-    <!--            <li></li>-->
-    <!--            <li></li>-->
-    <!--            <li></li>-->
-    <!--            <li></li>-->
-    <!--            <li></li>-->
-    <!--            <li></li>-->
-    <!--            <li></li>-->
-    <!--          </ul>-->
-    <!--        </div>-->
-    <!--      </div>-->
-    <!--    </div>-->
-    <!--    {% endfor %}-->
-    {% for car in car_piggy_bank %}
     <div class="driver-calendar">
       <div class="calendar-container">
         <div class="car-image">
           <img src="{% static 'app/images/index-one-block-2.webp' %}" alt="Зображення авто">
-          <p>{{ car.licence_plate }}</p>
+          <p class="vehicle-license-plate">"11111111"</p>
         </div>
-        <div id="investPrevButton">&lt;</div>
-        <div class="calendar-detail" id="calendarDetail"></div>
-        <div id="investNextButton">&gt;</div>
+        <div class="investButton" id="investPrevButton">
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="24" viewBox="0 0 12 24" fill="none">
+            <path d="M9 7L4 12L9 17V7Z" fill="#141E17" stroke="#141E17" stroke-width="5"/>
+          </svg>
+        </div>
+        <div class="calendar-detail" id="calendarDetail">
+          <div class="calendar-card">
+            <div class="change-date">
+              <p class="calendar-day"></p>
+              <p class="calendar-date"></p>
+            </div>
+            <div class="driver-photo-container">
+              <div class="driver-photo">
+                <img src="{% static 'app/images/logo-2.svg' %}" alt="Зображення водія">
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="investButton" id="investNextButton">
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="24" viewBox="0 0 12 24" fill="none">
+            <path d="M3 17L8 12L3 7V17Z" fill="#141E17" stroke="#141E17" stroke-width="5"/>
+          </svg>
+        </div>
       </div>
     </div>
-    {% endfor %}
 
   </main>
   <!-- End Main Manager-->

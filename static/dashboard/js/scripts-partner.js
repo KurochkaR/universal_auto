@@ -841,68 +841,118 @@ $(document).ready(function () {
 
 
 $(document).ready(function () {
-    const calendarDetail = $('#calendarDetail');
-    const today = new Date();
-    const daysToShow = 14; // Кількість днів, яку ви хочете відображати
 
-    function renderCalendar(startDate) {
-        calendarDetail.empty();
+	const today = new Date();
+	const daysToShow = 14;
 
-        for (let i = 0; i < daysToShow; i++) {
-            const day = new Date(startDate);
-            day.setDate(startDate.getDate() + i);
+	$('.driver-calendar').each(function () {
+		const calendarDetail = $(this).find('.calendar-detail');
+		const investPrevButton = $(this).find('#investPrevButton');
+		const investNextButton = $(this).find('#investNextButton');
 
-            const card = $('<div>').addClass('calendar-card');
+		let currentDate = new Date(today);
+		currentDate.setDate(currentDate.getDate() - 3);
 
-            const dayOfWeek = day.toLocaleDateString('uk-UA', { weekday: 'short' });
-            const dayOfWeekElement = $('<div>').text(dayOfWeek);
-            card.append(dayOfWeekElement);
+		function renderCalendar(startDate) {
+			calendarDetail.empty();
 
-            const dateElement = $('<div>').text(day.toLocaleDateString());
-            card.append(dateElement);
+			for (let i = 0; i < daysToShow; i++) {
+				const day = new Date(startDate);
+				day.setDate(startDate.getDate() + i);
 
-            for (let j = 1; j <= 2; j++) {
-                const driverPhoto = $('<div>').addClass('driver-photo');
-                const driverImage = $('<img>').attr('src', logoImageUrl).attr('alt', `Фото водія ${j}`);
-                driverPhoto.append(driverImage);
-                card.append(driverPhoto);
-            }
+				const card = $('<div>').addClass('calendar-card');
 
-            // Перевірка чи дата є сьогоднішньою
-            if (isToday(day)) {
-                card.addClass('today'); // Додавання класу для виділення
-            }
+				const dayOfWeek = day.toLocaleDateString('uk-UA', { weekday: 'short' });
+				const dayOfWeekElement = $('<div>').text(dayOfWeek);
+				card.append(dayOfWeekElement);
 
-            calendarDetail.append(card);
-        }
-    }
+				const dateElement = $('<div>').text(formatDate(day));
+				card.append(dateElement);
 
-    // Початкова відправна дата (сьогодні)
-    let currentDate = today;
+				const driverPhotoContainer = $('<div>').addClass('driver-photo-container');
 
-    // Відображення календаря при завантаженні сторінки
-    renderCalendar(currentDate);
+				for (let j = 1; j <= 2; j++) {
+					const driverPhoto = $('<div>').addClass('driver-photo');
+					const driverImage = $('<img>').attr('src', logoImageUrl).attr('alt', `Фото водія ${j}`);
+					driverPhoto.append(driverImage);
 
-    // Стрілка для переміщення календаря вперед
-    $('#investNextButton').click(function () {
-        currentDate.setDate(currentDate.getDate() + 7);
-        renderCalendar(currentDate);
-    });
+					driverPhotoContainer.append(driverPhoto);
+				}
 
-    // Стрілка для переміщення календаря назад
-    $('#investPrevButton').click(function () {
-        currentDate.setDate(currentDate.getDate() - 7);
-        renderCalendar(currentDate);
-    });
+				card.append(driverPhotoContainer);
 
-    // Функція, яка перевіряє, чи дата є сьогоднішньою
-    function isToday(someDate) {
-        const todayDate = new Date();
-        return (
-            someDate.getDate() === todayDate.getDate() &&
-            someDate.getMonth() === todayDate.getMonth() &&
-            someDate.getFullYear() === todayDate.getFullYear()
-        );
-    }
+				if (isToday(day)) {
+					card.addClass('today');
+				} else if (isYesterdayOrEarlier(day)) {
+					card.addClass('yesterday');
+				}
+
+				calendarDetail.append(card);
+			}
+			fetchDataFromServer(startDate, new Date(startDate).setDate(startDate.getDate() + daysToShow - 1));
+		}
+
+		function formatDateForDatabase(date) {
+			const year = date.getFullYear();
+			const month = (date.getMonth() + 1).toString().padStart(2, '0');
+			const day = date.getDate().toString().padStart(2, '0');
+
+			const formattedDate = `${year}-${month}-${day}`;
+			return formattedDate;
+		}
+
+
+		function fetchDataFromServer(startDate, endDate) {
+			console.log(startDate.getDate(), endDate);
+			const endDate_ = new Date(endDate);
+			const formattedStartDate = formatDateForDatabase(startDate);
+			const formattedEndDate = formatDateForDatabase(endDate_);
+
+			apiUrl = `/api/reshuffle/${formattedStartDate}/${formattedEndDate}/`;
+			$.ajax({
+				url: apiUrl,
+				type: 'GET',
+				dataType: 'json',
+				success: function (data) {
+					console.log(data);
+				},
+				error: function (error) {
+					console.error(error);
+				}
+			});
+		}
+
+
+		function formatDate(date) {
+			const day = String(date.getDate()).padStart(2, '0');
+			const month = String(date.getMonth() + 1).padStart(2, '0');
+			return `${day}.${month}`;
+		}
+
+		function isToday(someDate) {
+			const todayDate = new Date();
+			return (
+				someDate.getDate() === todayDate.getDate() &&
+				someDate.getMonth() === todayDate.getMonth() &&
+				someDate.getFullYear() === todayDate.getFullYear()
+			);
+		}
+
+		function isYesterdayOrEarlier(someDate) {
+			const todayDate = new Date();
+			return someDate < todayDate;
+		}
+
+		renderCalendar(currentDate);
+
+		investNextButton.click(function () {
+			currentDate.setDate(currentDate.getDate() + 7);
+			renderCalendar(currentDate);
+		});
+
+		investPrevButton.click(function () {
+			currentDate.setDate(currentDate.getDate() - 7);
+			renderCalendar(currentDate);
+		});
+	});
 });
-
