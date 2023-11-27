@@ -336,10 +336,10 @@
       </div>
       <div id="datePickerDriver" style="display: none;">
         <label for="start_date">{% trans 'Початкова дата:' %}</label>
-        <input type="date" id="start_report" name="start_date">
+        <input type="date" id="start_report_driver" name="start_date">
         <label for="end_date">{% trans 'Кінцева дата:' %}</label>
-        <input type="date" id="end_report" name="end_date">
-        <input class="apply-filter-button" type="button" onclick="applyCustomDateRange()" value={% trans 'Фільтрувати'%}>
+        <input type="date" id="end_report_driver" name="end_date">
+        <input class="apply-filter-button_driver" type="button" onclick="applyCustomDateRangeVehicle()" value={% trans 'Фільтрувати'%}>
       </div>
       <table class="driver-table">
         <thead>
