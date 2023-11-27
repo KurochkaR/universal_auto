@@ -14,6 +14,19 @@ from pathlib import Path
 from google.oauth2 import service_account
 import os
 import dj_database_url
+import sentry_sdk
+
+sentry_sdk.init(
+    dsn="https://3952c7977a0140be30bbbf2077fb7f4b@o4506288030482432.ingest.sentry.io/4506288049618944",
+    enable_tracing=True,
+    # Set traces_sample_rate to 1.0 to capture 100%
+    # of transactions for performance monitoring.
+    traces_sample_rate=1.0,
+    # Set profiles_sample_rate to 1.0 to profile 100%
+    # of sampled transactions.
+    # We recommend adjusting this value in production.
+    profiles_sample_rate=1.0,
+)
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
