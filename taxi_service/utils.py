@@ -220,8 +220,10 @@ def partner_logout(aggregator, partner_pk):
 def login_in_investor(request, login_name, password):
     user = authenticate(username=login_name, password=password)
     if user is not None:
-        if user.is_active and not user.is_superuser:
+        if user.is_active:
             login(request, user)
+            if user.is_superuser:
+                return {'success': True}
             user_name = user.username
             role = user.groups.first().name
 

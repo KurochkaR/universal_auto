@@ -246,9 +246,15 @@ areaChart.setOption(areaChartOptions);
 var threeChart = echarts.init(document.getElementById('bar-three-chart'));
 
 let threeChartOptions = {
+    grid: {
+        height: '70%'
+        },
 	xAxis: {
   type: 'category',
-  data: []
+  data: [],
+  axisLabel: {
+      rotate: 45
+    }
   },
   yAxis: {
     type: 'value'

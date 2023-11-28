@@ -199,8 +199,6 @@ class BoltRequest(Fleet, Synchronizer):
             time.sleep(0.5)
             if report.get('data'):
                 for order in report['data']['rows']:
-                    if FleetOrder.objects.filter(order_id=order['order_id']):
-                        continue
                     try:
                         finish = timezone.make_aware(
                             datetime.fromtimestamp(order['order_stops'][-1]['arrived_at']))

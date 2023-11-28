@@ -3,6 +3,8 @@ import os
 import jwt
 import json
 
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Q
 from django.urls import reverse
 from django.shortcuts import render, redirect
@@ -111,13 +113,17 @@ class DriversView(TemplateView):
         return context
 
 
-class DashboardView(TemplateView):
+class DashboardView(LoginRequiredMixin, TemplateView):
     template_name = "dashboard.html"
+    login_url = "index"
+
+    def dispatch(self, request, *args, **kwargs):
+        if self.request.user.is_superuser:
+            return redirect(reverse('admin:index'))
+        return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        if self.request.user.is_superuser:
-            raise Http404("This page is not for superuser")
         context["investor_group"] = self.request.user.groups.filter(
             name="Investor"
         ).exists()

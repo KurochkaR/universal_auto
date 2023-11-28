@@ -174,7 +174,6 @@ CELERY_IMPORTS = [
 ]
 
 SECURE_REFERRER_POLICY = "no-referrer-when-downgrade"
-APPEND_SLASH = False
 
 # Налаштування для відправки листів
 

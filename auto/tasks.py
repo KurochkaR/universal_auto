@@ -977,10 +977,10 @@ def check_cash_and_vehicle(self, partner_pk):
 
 @app.on_after_finalize.connect
 def run_periodic_tasks(sender, **kwargs):
-    sender.add_periodic_task(crontab(minute="*/2"), send_time_order.s())
+    # sender.add_periodic_task(crontab(minute="*/2"), send_time_order.s())
     sender.add_periodic_task(crontab(minute='*/15'), auto_send_task_bot.s())
-    sender.add_periodic_task(crontab(minute="*/2"), order_not_accepted.s())
-    sender.add_periodic_task(crontab(minute="*/4"), check_personal_orders.s())
+    # sender.add_periodic_task(crontab(minute="*/2"), order_not_accepted.s())
+    # sender.add_periodic_task(crontab(minute="*/4"), check_personal_orders.s())
     for partner in Partner.objects.all():
         setup_periodic_tasks(partner, sender)
 
@@ -989,7 +989,7 @@ def setup_periodic_tasks(partner, sender=None):
     if sender is None:
         sender = current_app
     partner_id = partner.pk
-    sender.add_periodic_task(20, update_driver_status.s(partner_id))
+    sender.add_periodic_task(40, update_driver_status.s(partner_id))
     sender.add_periodic_task(crontab(minute="0", hour="*/3"), update_driver_data.s(partner_id))
     sender.add_periodic_task(crontab(minute="0", hour="4"), download_daily_report.s(partner_id))
     # repeat
