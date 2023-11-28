@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, time
 import time as tm
 import requests
 from _decimal import Decimal
-from celery import current_app
+from celery import current_app, chain
 from celery.exceptions import MaxRetriesExceededError
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import IntegrityError
@@ -966,6 +966,15 @@ def calculate_driver_reports(self, partner_pk, daily=False):
                                               partner=Partner.get_partner(partner_pk))
 
 
+@app.task(bind=True, queue='beat_tasks')
+def check_cash_and_vehicle(self, partner_pk):
+    tasks = chain(get_today_orders.si(partner_pk),
+                  send_notify_to_check_car.si(partner_pk),
+                  check_card_cash_value.si(partner_pk)
+                  )
+    tasks()
+
+
 @app.on_after_finalize.connect
 def run_periodic_tasks(sender, **kwargs):
     sender.add_periodic_task(crontab(minute="*/2"), send_time_order.s())
@@ -991,9 +1000,7 @@ def setup_periodic_tasks(partner, sender=None):
     sender.add_periodic_task(crontab(minute="2", hour='*/2'), get_driver_reshuffles.s(partner_id))
     sender.add_periodic_task(crontab(minute="15", hour='4'), get_orders_from_fleets.s(partner_id))
     sender.add_periodic_task(crontab(minute='20', hour='4'), check_orders_for_vehicle.s(partner_id))
-    sender.add_periodic_task(crontab(minute="0", hour='*/2'), get_today_orders.s(partner_id))
-    sender.add_periodic_task(crontab(minute="5", hour='*/2'), send_notify_to_check_car.s(partner_id))
-    sender.add_periodic_task(crontab(minute="5", hour='*/2'), check_card_cash_value.s(partner_id))
+    sender.add_periodic_task(crontab(minute="*/30"), check_cash_and_vehicle.s(partner_id))
     sender.add_periodic_task(crontab(minute="2", hour="9"), send_driver_efficiency.s(partner_id))
     sender.add_periodic_task(crontab(minute="0", hour="9"), send_efficiency_report.s(partner_id))
     sender.add_periodic_task(crontab(minute="30", hour="7"), get_car_efficiency.s(partner_id))
