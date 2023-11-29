@@ -730,7 +730,7 @@ class SummaryReportAdmin(filter_queryset_by_group('Partner')(admin.ModelAdmin)):
 
 @admin.register(Partner)
 class PartnerAdmin(admin.ModelAdmin):
-    list_display = ('user', 'chat_id', 'gps_url', 'contacts')
+    list_display = ('chat_id', 'gps_url', 'contacts')
     list_per_page = 25
 
     fieldsets = [
@@ -749,7 +749,7 @@ class PartnerAdmin(admin.ModelAdmin):
 
 @admin.register(Investor)
 class InvestorAdmin(filter_queryset_by_group('Partner')(admin.ModelAdmin)):
-    list_display = ('first_name', 'last_name', 'phone_number')
+    list_display = ('first_name', 'last_name')
     list_per_page = 25
 
     def save_model(self, request, obj, form, change):

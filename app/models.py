@@ -8,8 +8,12 @@ from django.utils import timezone
 from django.db import models, ProgrammingError
 from django.utils.safestring import mark_safe
 from polymorphic.models import PolymorphicModel
-from django.contrib.auth.models import User as AuUser
+from django.contrib.auth.models import AbstractUser
 from cryptography.fernet import Fernet
+
+
+class CustomUser(AbstractUser):
+    chat_id = models.CharField(blank=True, null=True, max_length=10, verbose_name='Ідентифікатор чата')
 
 
 class Role(models.TextChoices):
@@ -52,10 +56,7 @@ class PaymentTypes(models.TextChoices):
         return payment_type_mapping.get(payment, cls.CARD)
 
 
-class Partner(models.Model):
-    role = models.CharField(max_length=25, default=Role.OWNER, choices=Role.choices)
-    user = models.OneToOneField(AuUser, on_delete=models.SET_NULL, null=True)
-    chat_id = models.CharField(blank=True, null=True, max_length=10, verbose_name='Ідентифікатор чата')
+class Partner(CustomUser):
     gps_url = models.URLField(null=True, verbose_name='Сторінка логіну Gps')
     calendar = models.CharField(max_length=255, verbose_name='Календар змін водіїв')
     contacts = models.BooleanField(default=False, verbose_name='Доступ до контактів')
@@ -203,18 +204,16 @@ class User(models.Model):
                 return valid_phone_number
 
 
-class Manager(models.Model):
-    login = models.CharField(max_length=255, verbose_name='Логін')
-    password = models.CharField(max_length=255, verbose_name='Пароль')
-    first_name = models.CharField(max_length=255, verbose_name="Ім'я")
-    last_name = models.CharField(max_length=255, verbose_name='Прізвище')
-    email = models.EmailField(max_length=254, verbose_name='Електронна пошта')
+class Manager(CustomUser):
+    # login = models.CharField(max_length=255, verbose_name='Логін')
+    # password = models.CharField(max_length=255, verbose_name='Пароль')
+    # first_name = models.CharField(max_length=255, verbose_name="Ім'я")
+    # last_name = models.CharField(max_length=255, verbose_name='Прізвище')
+    # email = models.EmailField(max_length=254, verbose_name='Електронна пошта')
     phone_number = models.CharField(max_length=13, blank=True, null=True, verbose_name='Номер телефона')
-    chat_id = models.CharField(max_length=10, blank=True, null=True, verbose_name='Ідентифікатор чата')
-    partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
-    user = models.OneToOneField(AuUser, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Користувач')
-    role = models.CharField(max_length=25, default=Role.DRIVER_MANAGER, choices=Role.choices)
-    calendar = models.CharField(max_length=255, verbose_name='Календар змін водіїв')
+    # chat_id = models.CharField(max_length=10, blank=True, null=True, verbose_name='Ідентифікатор чата')
+    managers_partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
+
 
     class Meta:
         verbose_name = 'Менеджера'
@@ -238,15 +237,14 @@ class Manager(models.Model):
         return f"{self.first_name} {self.last_name}"
 
 
-class Investor(models.Model):
-    password = models.CharField(max_length=255, verbose_name='Пароль')
-    first_name = models.CharField(max_length=255, verbose_name="Ім'я")
-    last_name = models.CharField(max_length=255, verbose_name='Прізвище')
-    email = models.EmailField(max_length=254, verbose_name='Електронна пошта')
+class Investor(CustomUser):
+    # password = models.CharField(max_length=255, verbose_name='Пароль')
+    # first_name = models.CharField(max_length=255, verbose_name="Ім'я")
+    # last_name = models.CharField(max_length=255, verbose_name='Прізвище')
+    # email = models.EmailField(max_length=254, verbose_name='Електронна пошта')
     phone_number = models.CharField(max_length=13, blank=True, null=True, verbose_name='Номер телефона')
-    role = models.CharField(max_length=25, default=Role.INVESTOR, choices=Role.choices)
-    partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
-    user = models.OneToOneField(AuUser, on_delete=models.SET_NULL, null=True)
+    # role = models.CharField(max_length=25, default=Role.INVESTOR, choices=Role.choices)
+    investors_partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
 
     class Meta:
         verbose_name = 'Інвестора'
