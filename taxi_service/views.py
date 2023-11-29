@@ -1,17 +1,14 @@
 import os
 
 import jwt
-import json
-
-from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import Q
+
 from django.urls import reverse
 from django.shortcuts import render, redirect
-from django.contrib.auth import login
+from django.contrib.auth import login, logout
 from django.contrib.auth.models import User as AuUser
 from django.core.paginator import Paginator
-from django.http import HttpResponseRedirect, Http404
+from django.http import HttpResponseRedirect
 from django.views.generic import View, TemplateView
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
@@ -20,7 +17,7 @@ from api.views import CarsInformationListView
 from taxi_service.forms import SubscriberForm, MainOrderForm
 from taxi_service.handlers import PostRequestHandler, GetRequestHandler
 from taxi_service.seo_keywords import seo_index, seo_park_page
-from app.models import ParkSettings, Driver, Vehicle
+from app.models import Driver, Vehicle
 from auto_bot.main import bot
 
 
@@ -72,7 +69,6 @@ class GetRequestView(View):
         method = {
             "active_vehicles_locations": handler.handle_active_vehicles_locations,
             "order_confirm": handler.handle_order_confirm,
-            "get_role": handler.handle_get_role,
             "aggregators": handler.handle_check_aggregators,
             "check_task": handler.handle_check_task,
         }
@@ -123,19 +119,17 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
+        user = self.request.user
         context = super().get_context_data(**kwargs)
-        context["investor_group"] = self.request.user.groups.filter(
-            name="Investor"
-        ).exists()
-        context["partner_group"] = self.request.user.groups.filter(
-            name="Partner"
-        ).exists()
-        context["manager_group"] = self.request.user.groups.filter(
-            name="Manager"
-        ).exists()
-        context["get_all_vehicle"] = Vehicle.objects.filter(
-            Q(manager__user=self.request.user) | Q(partner__user=self.request.user)
-        )
+        context["investor_group"] = user.is_investor()
+        context["partner_group"] = user.is_partner()
+        context["manager_group"] = user.is_manager()
+
+        if user.is_manager():
+            context["get_all_vehicle"] = Vehicle.objects.filter(manager=user)
+        elif user.is_partner():
+            context["get_all_vehicle"] = Vehicle.objects.filter(partner=user)
+
         context["car_piggy_bank"] = CarsInformationListView.get_queryset(self)
 
         return context

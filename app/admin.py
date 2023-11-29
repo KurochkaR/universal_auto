@@ -3,6 +3,7 @@ from django.contrib.auth.models import User as AuthUser
 from django.contrib.auth.models import Group, Permission
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import FieldError
+from django.db.models import Q
 
 from scripts.google_calendar import GoogleCalendar
 from .filters import VehicleEfficiencyUserFilter, DriverEfficiencyUserFilter, RentInformationUserFilter, \
@@ -81,24 +82,22 @@ def filter_queryset_by_group(*groups, field_to_filter=None):
         class FilteredModelAdmin(model_admin_class):
             def get_queryset(self, request):
                 queryset = super().get_queryset(request)
-                if request.user.groups.filter(name='Investor').exists():
-
+                if request.user.is_partner():
+                    queryset = queryset.filter(partner=request.user)
+                    if field_to_filter is not None:
+                        queryset = queryset.filter(**{field_to_filter: True})
+                elif request.user.is_investor():
                     try:
-                        queryset = queryset.filter(vehicle__investor_car__user=request.user)
+                        queryset = queryset.filter(vehicle__investor_car=request.user)
                     except FieldError:
-                        queryset = queryset.filter(investor_car__user=request.user)
-                if request.user.groups.filter(name='Manager').exists():
+                        queryset = queryset.filter(investor_car=request.user)
+                elif request.user.is_manager():
                     try:
-                        queryset = queryset.filter(manager__user=request.user)
+                        queryset = queryset.filter(manager=request.user)
                         if field_to_filter is not None:
                             queryset = queryset.filter(**{field_to_filter: True})
                     except FieldError:
                         pass
-
-                if request.user.groups.filter(name='Partner').exists():
-                    queryset = queryset.filter(partner__user=request.user)
-                    if field_to_filter is not None:
-                        queryset = queryset.filter(**{field_to_filter: True})
 
                 return queryset
 
@@ -215,12 +214,8 @@ class Fleets_drivers_vehicles_rateInline(admin.TabularInline):
     ]
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
-        if db_field.name in ('vehicle', 'driver'):
-            try:
-                partner = Partner.objects.get(user=request.user.pk)
-                kwargs['queryset'] = db_field.related_model.objects.filter(partner=partner)
-            except ObjectDoesNotExist:
-                pass
+        if db_field.name in ('vehicle', 'driver') and request.user.is_partner():
+            kwargs['queryset'] = db_field.related_model.objects.filter(partner=request.user)
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
 
@@ -248,12 +243,12 @@ class SchemaAdmin(filter_queryset_by_group('Partner')(admin.ModelAdmin)):
             obj.rate = 1
         else:
             obj.rental = obj.plan * (1 - obj.rate)
-        if request.user.groups.filter(name='Partner').exists():
-            obj.partner = Partner.objects.get(user=request.user)
+        if request.user.is_partner():
+            obj.partner = request.user
         super().save_model(request, obj, form, change)
 
     def get_fieldsets(self, request, obj=None):
-        if request.user.groups.filter(name='Partner').exists():
+        if request.user.is_partner():
             fieldsets = [
                 ('Деталі', {'fields': ['title', 'schema', 'rate', 'plan', 'rental', 'rent_price', 'limit_distance', 'shift_time', 'salary_calculation']}),
             ]
@@ -447,22 +442,30 @@ class VehicleSpendingAdmin(admin.ModelAdmin):
 
     def get_queryset(self, request):
         queryset = super().get_queryset(request)
-        if request.user.groups.filter(name='Investor').exists():
-            queryset = queryset.filter(vehicle__investor_car__user=request.user)
-        if request.user.groups.filter(name='Manager').exists():
-            queryset = queryset.filter(vehicle__manager__user=request.user)
-        if request.user.groups.filter(name='Partner').exists():
-            queryset = queryset.filter(vehicle__partner__user=request.user)
+
+        user = request.user
+        if user.is_investor():
+            filter_condition = Q(vehicle__investor_car=user)
+        elif user.is_manager():
+            filter_condition = Q(vehicle__manager=user)
+        elif user.is_partner():
+            filter_condition = Q(vehicle__partner=user)
+        else:
+            filter_condition = Q()
+
+        queryset = queryset.filter(filter_condition)
 
         return queryset
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
-        if not request.user.is_superuser:
+        user = request.user
+        if not user.is_superuser:
             if db_field.name == 'vehicle':
-                if request.user.groups.filter(name='Partner').exists():
-                    kwargs['queryset'] = db_field.related_model.objects.filter(partner__user=request.user)
-                if request.user.groups.filter(name='Manager').exists():
-                    kwargs['queryset'] = db_field.related_model.objects.filter(manager__user=request.user)
+
+                if user.is_partner():
+                    kwargs['queryset'] = db_field.related_model.objects.filter(partner=request.user)
+                if user.is_manager():
+                    kwargs['queryset'] = db_field.related_model.objects.filter(manager=request.user)
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
 
@@ -502,8 +505,8 @@ class CarEfficiencyAdmin(filter_queryset_by_group('Partner')(admin.ModelAdmin)):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        if request.user.groups.filter(name='Manager').exists():
-            qs = CarEfficiency.objects.filter(vehicle__manager__user=request.user)
+        if request.user.is_manager():
+            qs = CarEfficiency.objects.filter(vehicle__manager=request.user)
         return qs
 
 
@@ -535,8 +538,8 @@ class DriverEfficiencyAdmin(filter_queryset_by_group('Partner')(admin.ModelAdmin
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        if request.user.groups.filter(name='Manager').exists():
-            return qs.filter(driver__manager__user=request.user)
+        if request.user.is_manager():
+            return qs.filter(driver__manager=request.user)
         return qs
 
 
@@ -602,8 +605,8 @@ class RentInformationAdmin(filter_queryset_by_group('Partner')(admin.ModelAdmin)
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        if request.user.groups.filter(name='Manager').exists():
-            return qs.filter(driver__manager__user=request.user)
+        if request.user.is_manager():
+            return qs.filter(driver__manager=request.user)
         return qs
 
 
@@ -661,8 +664,8 @@ class PaymentsOrderAdmin(filter_queryset_by_group('Partner')(admin.ModelAdmin)):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        if request.user.groups.filter(name='Manager').exists():
-            manager_drivers = Driver.objects.filter(manager__user=request.user)
+        if request.user.is_partner():
+            manager_drivers = Driver.objects.filter(manager=request.user)
             full_names = [f"{driver.name} {driver.second_name}" for driver in manager_drivers]
             return qs.filter(full_name__in=full_names)
         return qs
@@ -722,8 +725,8 @@ class SummaryReportAdmin(filter_queryset_by_group('Partner')(admin.ModelAdmin)):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        if request.user.groups.filter(name='Manager').exists():
-            manager_drivers = Driver.objects.filter(manager__user=request.user)
+        if request.user.is_manager():
+            manager_drivers = Driver.objects.filter(manager=request.user)
             return qs.filter(driver__in=manager_drivers)
         return qs
 
@@ -734,7 +737,7 @@ class PartnerAdmin(admin.ModelAdmin):
     list_per_page = 25
 
     fieldsets = [
-        (None, {'fields': ['user', 'chat_id', 'gps_url', 'contacts']}),
+        (None, {'fields': ['chat_id', 'gps_url', 'contacts']}),
     ]
 
     def save_model(self, request, obj, form, change):
@@ -742,9 +745,14 @@ class PartnerAdmin(admin.ModelAdmin):
             gc = GoogleCalendar()
             cal_id = gc.create_calendar()
             obj.calendar = cal_id
-            permissions = gc.add_permission(obj.user.email)
+            permissions = gc.add_permission(obj.email)
             gc.service.acl().insert(calendarId=cal_id, body=permissions).execute()
         super().save_model(request, obj, form, change)
+
+
+@admin.register(CustomUser)
+class CustomUserAdmin(admin.ModelAdmin):
+    list_per_page = 25
 
 
 @admin.register(Investor)
@@ -753,10 +761,9 @@ class InvestorAdmin(filter_queryset_by_group('Partner')(admin.ModelAdmin)):
     list_per_page = 25
 
     def save_model(self, request, obj, form, change):
-        if not request.user.is_superuser:
-            partner = Partner.objects.get(user=request.user)
+        if request.user.is_partner():
             if not change:
-                user = AuthUser.objects.create_user(
+                user = CustomUser.objects.create_user(
                     username=obj.email,
                     password=obj.password,
                     is_staff=True,
@@ -767,12 +774,10 @@ class InvestorAdmin(filter_queryset_by_group('Partner')(admin.ModelAdmin)):
                     email=obj.email
                 )
                 user.groups.add(Group.objects.get(name='Investor'))
-
-                obj.user = user
-                obj.partner = partner
-            if change and not obj.user.is_active:
+                obj.partner = request.user
+            if change and not obj.is_active:
                 obj.partner = None
-                AuthUser.objects.filter(username=obj.email).delete()
+                CustomUser.objects.filter(username=obj.email).delete()
         super().save_model(request, obj, form, change)
 
     def get_fieldsets(self, request, obj=None):
@@ -799,13 +804,12 @@ class ManagerAdmin(filter_queryset_by_group('Partner')(admin.ModelAdmin)):
     list_per_page = 25
 
     def save_model(self, request, obj, form, change):
-        if not request.user.is_superuser:
+        if request.user.is_partner():
             gc = GoogleCalendar()
-            partner = Partner.objects.get(user=request.user)
             emails = [obj.email,
-                      partner.user.email]
+                      request.user.email]
             if not change:
-                user = AuthUser.objects.create_user(
+                user = CustomUser.objects.create_user(
                     username=obj.email,
                     password=obj.password,
                     is_staff=True,
@@ -817,20 +821,19 @@ class ManagerAdmin(filter_queryset_by_group('Partner')(admin.ModelAdmin)):
                 )
                 user.groups.add(Group.objects.get(name='Manager'))
 
-                obj.user = user
-                obj.partner = partner
+                obj.partner = request.user
                 cal_id = gc.create_calendar(f"Розклад водіїв {obj.first_name} {obj.last_name}")
                 obj.calendar = cal_id
                 for email in emails:
                     permissions = gc.add_permission(email)
                     gc.service.acl().insert(calendarId=cal_id, body=permissions).execute()
-            if change and not obj.user.is_active:
+            if change and not obj.is_active:
                 obj.partner = None
                 existing_acl = gc.service.acl().list(calendarId=obj.calendar).execute()
                 for acl_rule in existing_acl.get('items', []):
                     if acl_rule['scope']['type'] == 'user' and acl_rule['scope']['value'] in emails:
                         gc.service.acl().delete(calendarId=obj.calendar, ruleId=acl_rule['id']).execute()
-                AuthUser.objects.filter(username=obj.email).delete()
+                CustomUser.objects.filter(username=obj.email).delete()
         super().save_model(request, obj, form, change)
 
     def get_list_display(self, request):
@@ -858,13 +861,13 @@ class ManagerAdmin(filter_queryset_by_group('Partner')(admin.ModelAdmin)):
 
     def formfield_for_manytomany(self, db_field, request, **kwargs):
         if db_field.name == 'driver_id':
-            kwargs['queryset'] = Driver.objects.filter(partner__user=request.user)
+            kwargs['queryset'] = Driver.objects.filter(partner=request.user)
 
         return super().formfield_for_manytomany(db_field, request, **kwargs)
 
 
 @admin.register(Driver)
-class DriverAdmin(filter_queryset_by_group('Partner', field_to_filter='worked')(admin.ModelAdmin)):
+class DriverAdmin(admin.ModelAdmin):
     search_fields = ('name', 'second_name')
     ordering = ('name', 'second_name')
     list_display_links = ('name', 'second_name')
@@ -872,9 +875,9 @@ class DriverAdmin(filter_queryset_by_group('Partner', field_to_filter='worked')(
     readonly_fields = ('name', 'second_name', 'email', 'phone_number', 'driver_status')
 
     def get_list_editable(self, request):
-        if request.user.groups.filter(name='Partner').exists():
+        if request.user.is_partner():
             return ['vehicle', 'schema', 'manager']
-        elif request.user.groups.filter(name='Manager').exists():
+        elif request.user.is_manager():
             return ['vehicle', 'schema']
 
     def changelist_view(self, request, extra_context=None):
@@ -887,7 +890,7 @@ class DriverAdmin(filter_queryset_by_group('Partner', field_to_filter='worked')(
     def get_list_display(self, request):
         if request.user.is_superuser:
             return [f.name for f in self.model._meta.fields]
-        elif request.user.groups.filter(name='Partner').exists():
+        elif request.user.is_partner():
             return ['name', 'second_name',
                     'vehicle', 'manager', 'chat_id',
                     'driver_status', 'schema',
@@ -898,7 +901,6 @@ class DriverAdmin(filter_queryset_by_group('Partner', field_to_filter='worked')(
                     'vehicle', 'chat_id', 'schema',
                     'driver_status'
                     ]
-
 
     def get_fieldsets(self, request, obj=None):
         if request.user.is_superuser:
@@ -912,7 +914,7 @@ class DriverAdmin(filter_queryset_by_group('Partner', field_to_filter='worked')(
                                                             ]}),
             )
 
-        elif request.user.groups.filter(name='Partner').exists():
+        elif request.user.is_partner():
             fieldsets = (
                 ('Інформація про водія',        {'fields': ['name', 'second_name', 'email',
                                                             'phone_number', 'chat_id',
@@ -935,14 +937,14 @@ class DriverAdmin(filter_queryset_by_group('Partner', field_to_filter='worked')(
         return fieldsets
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
-        if request.user.groups.filter(name='Partner').exists():
+        if request.user.is_partner():
             if db_field.name in ('manager', 'vehicle', 'schema'):
-                kwargs['queryset'] = db_field.related_model.objects.filter(partner__user=request.user)
-        if request.user.groups.filter(name='Manager').exists():
+                kwargs['queryset'] = db_field.related_model.objects.filter(partner=request.user)
+        if request.user.is_manager():
             if db_field.name == 'vehicle':
-                kwargs['queryset'] = db_field.related_model.objects.filter(manager__user=request.user)
+                kwargs['queryset'] = db_field.related_model.objects.filter(manager=request.user)
             if db_field.name == 'schema':
-                partner = Manager.objects.get(user=request.user).partner.pk
+                partner = request.user.managers_partner.pk
                 kwargs['queryset'] = db_field.related_model.objects.filter(partner=partner)
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
@@ -974,7 +976,8 @@ class VehicleAdmin(admin.ModelAdmin):
     def get_list_display(self, request):
         if request.user.is_superuser:
             return [f.name for f in self.model._meta.fields]
-        elif request.user.groups.filter(name='Partner').exists():
+        elif request.user.is_partner():
+            print(request.user)
             return ['licence_plate', 'name',
                     'vin_code', 'gps',
                     'purchase_price',
@@ -987,9 +990,9 @@ class VehicleAdmin(admin.ModelAdmin):
                     ]
 
     def get_list_editable(self, request):
-        if request.user.groups.filter(name='Partner').exists() or request.user.is_superuser:
+        if request.user.is_partner():
             return ['investor_car', 'manager', 'purchase_price', 'gps']
-        elif request.user.groups.filter(name='Manager').exists():
+        elif request.user.is_manager():
             return ['gps']
         else:
             return []
@@ -1014,7 +1017,7 @@ class VehicleAdmin(admin.ModelAdmin):
                                                             ]}),
             ]
 
-        elif request.user.groups.filter(name='Partner').exists():
+        elif request.user.is_partner():
             fieldsets = (
                 ('Номер автомобіля',            {'fields': ['licence_plate', 'gps_imei', 'gps',
                                                             ]}),
@@ -1024,7 +1027,7 @@ class VehicleAdmin(admin.ModelAdmin):
                 ('Додатково',                   {'fields': ['manager',
                                                             ]}),
             )
-        elif request.user.groups.filter(name='Manager').exists():
+        elif request.user.is_manager():
             fieldsets = (
                 ('Номер автомобіля',            {'fields': ['licence_plate', 'gps_imei', 'gps',
                                                             ]}),
@@ -1041,23 +1044,29 @@ class VehicleAdmin(admin.ModelAdmin):
         return fieldsets
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
-        if request.user.groups.filter(name='Partner').exists():
-            if db_field.name in ('manager', 'investor_car', 'gps'):
-                kwargs['queryset'] = db_field.related_model.objects.filter(partner__user=request.user).select_related('partner')
-        elif request.user.groups.filter(name='Manager').exists():
-            manager = Manager.objects.filter(user=request.user).first()
+        filter_mapping = {
+            'investor_car': 'investors_partner',
+            'manager': 'managers_partner',
+            'gps': 'partner',
+        }
+        if request.user.is_partner():
+            related_field_name = filter_mapping.get(db_field.name)
+            if related_field_name:
+                filter_param = {related_field_name: request.user}
+                kwargs['queryset'] = db_field.related_model.objects.filter(
+                    **filter_param).select_related(related_field_name)
+        elif request.user.is_manager():
             if db_field.name == 'gps':
-                kwargs['queryset'] = db_field.related_model.objects.filter(partner=manager.partner).select_related('partner')
+                kwargs['queryset'] = db_field.related_model.objects.filter(partner=request.user.managers_partner.pk).select_related('partner')
 
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        if request.user.groups.filter(name='Manager').exists():
-            return qs.filter(manager__user=request.user).select_related('gps')
-        if request.user.groups.filter(name='Partner').exists():
-            return qs.filter(partner__user=request.user).select_related(
-                'partner', 'manager', 'gps', 'investor_car')
+        if request.user.is_manager():
+            return qs.filter(manager=request.user).select_related('gps')
+        if request.user.is_partner():
+            return qs.filter(partner=request.user)
         return qs
 
 
@@ -1143,14 +1152,14 @@ class Fleets_drivers_vehicles_rateAdmin(filter_queryset_by_group('Partner', fiel
     list_select_related = ['driver', 'partner']
 
     def get_list_display(self, request):
-        if request.user.groups.filter(name__in=('Partner', 'Manager')).exists():
+        if request.user.is_partner() or request.user.is_manager():
             return ('fleet', 'driver',
                     'driver_external_id',
                     )
         return [f.name for f in self.model._meta.fields]
 
     def get_fieldsets(self, request, obj=None):
-        if request.user.groups.filter(name__in=('Partner', 'Manager')).exists():
+        if request.user.is_partner() or request.user.is_manager():
             fieldsets = [
                 ('Деталі',                      {'fields': ['fleet', 'driver',
                                                             'driver_external_id',
@@ -1162,10 +1171,10 @@ class Fleets_drivers_vehicles_rateAdmin(filter_queryset_by_group('Partner', fiel
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == "driver":
-            if request.user.groups.filter(name='Partner').exists():
-                kwargs["queryset"] = Driver.objects.filter(partner__user=request.user, worked=True)
-            if request.user.groups.filter(name='Manager').exists():
-                kwargs["queryset"] = Driver.objects.filter(manager__user=request.user, worked=True)
+            if request.user.is_partner():
+                kwargs["queryset"] = Driver.objects.filter(partner=request.user, worked=True)
+            if request.user.is_manager():
+                kwargs["queryset"] = Driver.objects.filter(manager=request.user, worked=True)
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
 
@@ -1203,16 +1212,16 @@ class ParkSettingsAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         if not request.user.is_superuser:
-            qs = qs.filter(partner__user=request.user)
+            qs = qs.filter(partner=request.user)
         return qs
 
     def get_list_display(self, request):
-        if request.user.groups.filter(name='Partner').exists():
+        if request.user.is_partner():
             return ['description', 'value']
         return [f.name for f in self.model._meta.fields]
 
     def get_fieldsets(self, request, obj=None):
-        if request.user.groups.filter(name='Partner').exists():
+        if request.user.is_partner():
             fieldsets = [
                 ('Деталі',                      {'fields': ['description', 'value',
                                                             ]}),

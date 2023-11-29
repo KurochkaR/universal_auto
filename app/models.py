@@ -12,18 +12,28 @@ from django.contrib.auth.models import AbstractUser
 from cryptography.fernet import Fernet
 
 
-class CustomUser(AbstractUser):
-    chat_id = models.CharField(blank=True, null=True, max_length=10, verbose_name='Ідентифікатор чата')
-
-
 class Role(models.TextChoices):
     CLIENT = 'CLIENT', 'Клієнт'
     DRIVER = 'DRIVER', 'Водій'
     DRIVER_MANAGER = 'DRIVER_MANAGER', 'Менеджер водіїв'
     SERVICE_STATION_MANAGER = 'SERVICE_STATION_MANAGER', 'Сервісний менеджер'
     SUPPORT_MANAGER = 'SUPPORT_MANAGER', 'Менеджер підтримки'
-    OWNER = 'OWNER', 'Власник'
+    PARTNER = 'PARTNER', 'Власник'
     INVESTOR = 'INVESTOR', 'Інвестор'
+
+
+class CustomUser(AbstractUser):
+    chat_id = models.CharField(blank=True, null=True, max_length=10, verbose_name='Ідентифікатор чата')
+    role = models.CharField(max_length=25, default=Role.CLIENT, choices=Role.choices)
+
+    def is_partner(self):
+        return self.role == "PARTNER"
+
+    def is_manager(self):
+        return self.role == "DRIVER_MANAGER"
+
+    def is_investor(self):
+        return self.role == "INVESTOR"
 
 
 class SalaryCalculation(models.TextChoices):
@@ -72,8 +82,6 @@ class Partner(CustomUser):
         except ObjectDoesNotExist:
             return None
 
-    def __str__(self):
-        return str(self.user.username) if self.user else ''
 
     class Meta:
         verbose_name = 'Власника'

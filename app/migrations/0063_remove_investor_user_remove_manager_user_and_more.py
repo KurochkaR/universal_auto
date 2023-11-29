@@ -41,6 +41,11 @@ class Migration(migrations.Migration):
                 ('is_active', models.BooleanField(default=True, help_text='Designates whether this user should be treated as active. Unselect this instead of deleting accounts.', verbose_name='active')),
                 ('date_joined', models.DateTimeField(default=django.utils.timezone.now, verbose_name='date joined')),
                 ('chat_id', models.CharField(blank=True, max_length=10, null=True, verbose_name='Ідентифікатор чата')),
+                ('role', models.CharField(
+                    choices=[('CLIENT', 'Клієнт'), ('DRIVER', 'Водій'), ('DRIVER_MANAGER', 'Менеджер водіїв'),
+                             ('SERVICE_STATION_MANAGER', 'Сервісний менеджер'),
+                             ('SUPPORT_MANAGER', 'Менеджер підтримки'), ('PARTNER', 'Власник'), ('INVESTOR', 'Інвестор')],
+                    default='CLIENT', max_length=25)),
                 ('groups', models.ManyToManyField(related_name='baseuser_groups', to='auth.group')),
                 ('user_permissions', models.ManyToManyField(related_name='baseuser_user_permissions', to='auth.permission')),
             ],

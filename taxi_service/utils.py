@@ -4,14 +4,13 @@ import secrets
 from datetime import timedelta, date
 from django.utils import timezone
 from django.core.mail import send_mail
-from django.contrib.auth.models import User
 from django.core.serializers.json import DjangoJSONEncoder
 from django.contrib.auth import authenticate, login, logout
 from django.core.exceptions import ObjectDoesNotExist
 
 from app.bolt_sync import BoltRequest
 from app.models import Driver, UseOfCars, VehicleGPS, Order, Partner, ParkSettings, CredentialPartner, Fleet, \
-    NewUklonService, UberService, UaGpsService, BoltService
+    NewUklonService, UberService, UaGpsService, BoltService, CustomUser
 from app.uagps_sync import UaGpsSynchronizer
 from app.uber_sync import UberRequest
 from app.uklon_sync import UklonRequest
@@ -154,8 +153,7 @@ def update_park_set(partner, key, value, description=None, check_value=True, par
                 setting.value = value
                 setting.save()
         except ObjectDoesNotExist:
-            partner = Partner.get_partner(partner)
-            ParkSettings.objects.create(key=key, value=value, description=description, partner=partner)
+            ParkSettings.objects.create(key=key, value=value, description=description, partner_id=partner)
     else:
         try:
             setting = CredentialPartner.objects.get(key=key, partner=partner)
@@ -163,17 +161,15 @@ def update_park_set(partner, key, value, description=None, check_value=True, par
                 setting.value = CredentialPartner.encrypt_credential(value)
                 setting.save()
         except ObjectDoesNotExist:
-            partner = Partner.get_partner(partner)
             value = CredentialPartner.encrypt_credential(value)
-            CredentialPartner.objects.create(key=key, value=value, partner=partner)
+            CredentialPartner.objects.create(key=key, value=value, partner_id=partner)
 
 
 def login_in(aggregator=None, partner_id=None, login_name=None, password=None, token=None):
     if aggregator == 'Bolt':
         update_park_set(partner_id, 'BOLT_PASSWORD', password, description='Пароль користувача Bolt', park=False)
         update_park_set(partner_id, 'BOLT_NAME', login_name, description='Ім\'я користувача Bolt', park=False)
-        BoltRequest.objects.create(name=aggregator,
-                                   partner=Partner.get_partner(partner_id))
+        BoltRequest.objects.create(name=aggregator, partner_id=partner_id)
     elif aggregator == 'Uklon':
         update_park_set(partner_id, 'UKLON_PASSWORD', password, description='Пароль користувача Uklon', park=False)
         update_park_set(partner_id, 'UKLON_NAME', login_name, description='Ім\'я користувача Uklon', park=False)
@@ -183,17 +179,14 @@ def login_in(aggregator=None, partner_id=None, login_name=None, password=None, t
         update_park_set(
             partner_id, 'CLIENT_ID', random_hex,
             description='Ідентифікатор клієнта Uklon', check_value=False, park=False)
-        UklonRequest.objects.create(name=aggregator,
-                                    partner=Partner.get_partner(partner_id))
+        UklonRequest.objects.create(name=aggregator, partner_id=partner_id)
     elif aggregator == 'Uber':
         update_park_set(partner_id, 'UBER_PASSWORD', password, description='Пароль користувача Uber', park=False)
         update_park_set(partner_id, 'UBER_NAME', login_name, description='Ім\'я користувача Uber', park=False)
-        UberRequest.objects.create(name=aggregator,
-                                   partner=Partner.get_partner(partner_id))
+        UberRequest.objects.create(name=aggregator, partner_id=partner_id)
     elif aggregator == 'Gps':
         update_park_set(partner_id, 'UAGPS_TOKEN', token, description='Токен для GPS сервісу', park=False)
-        UaGpsSynchronizer.objects.create(name=aggregator,
-                                         partner=Partner.get_partner(partner_id))
+        UaGpsSynchronizer.objects.create(name=aggregator, partner_id=partner_id)
     return True
 
 
@@ -225,9 +218,8 @@ def login_in_investor(request, login_name, password):
             if user.is_superuser:
                 return {'success': True}
             user_name = user.username
-            role = user.groups.first().name
 
-            return {'success': True, 'user_name': user_name, 'role': role}
+            return {'success': True, 'user_name': user_name}
         else:
             return {'success': False, 'message': 'User is not active'}
     else:
@@ -235,7 +227,7 @@ def login_in_investor(request, login_name, password):
 
 
 def change_password_investor(request, password, new_password, user_email):
-    user = User.objects.filter(email=user_email).first()
+    user = CustomUser.objects.filter(email=user_email).first()
     if user is not None:
         user = authenticate(username=user.username, password=password)
         if user.is_active:
@@ -270,14 +262,6 @@ def send_reset_code(email, user_login):
 
 
 def check_aggregators(user_pk):
-    partner = Partner.objects.get(user_id=user_pk)
-    aggregators = Fleet.objects.filter(partner=partner).values_list('name', flat=True)
-
-    # aggregator_results = {
-    #     'Bolt': CredentialPartner.objects.filter(partner=partner, key='BOLT_NAME').exists(),
-    #     'Uklon': CredentialPartner.objects.filter(partner=partner, key='UKLON_NAME').exists(),
-    #     'Uber': CredentialPartner.objects.filter(partner=partner, key='UBER_NAME').exists(),
-    #     'Gps': CredentialPartner.objects.filter(partner=partner, key='UAGPS_TOKEN').exists(),
-    # }
+    aggregators = Fleet.objects.filter(partner=user_pk).values_list('name', flat=True)
     fleets = Fleet.objects.all().values_list('name', flat=True)
     return list(aggregators), list(fleets)
