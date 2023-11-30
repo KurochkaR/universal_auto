@@ -836,61 +836,22 @@ $(document).ready(function () {
 			$(".custom-dropdown .dropdown-options").hide();
 		}
 	});
-});
 
+	//kalendar
 
+	$('#workCalendarBtnContainer').click(function () {
+		$('.driver-calendar').show();
+		$('.charts').hide();
+		$('.main-cards').hide();
+		$('.info-driver').hide();
+		$('.payback-car').hide();
+		$('.common-period').hide();
+		$('#datePicker').hide()
+		$('#sidebar').removeClass('sidebar-responsive');
+		$('.main-title h2').text(gettext('Календар-зміни'));
 
-$(document).ready(function () {
-
-	const today = new Date();
-	const daysToShow = 14;
-
-	$('.driver-calendar').each(function () {
-		const calendarDetail = $(this).find('.calendar-detail');
-		const investPrevButton = $(this).find('#investPrevButton');
-		const investNextButton = $(this).find('#investNextButton');
-
-		let currentDate = new Date(today);
-		currentDate.setDate(currentDate.getDate() - 3);
-
-		function renderCalendar(startDate) {
-			calendarDetail.empty();
-
-			for (let i = 0; i < daysToShow; i++) {
-				const day = new Date(startDate);
-				day.setDate(startDate.getDate() + i);
-
-				const card = $('<div>').addClass('calendar-card');
-
-				const dayOfWeek = day.toLocaleDateString('uk-UA', { weekday: 'short' });
-				const dayOfWeekElement = $('<div>').text(dayOfWeek);
-				card.append(dayOfWeekElement);
-
-				const dateElement = $('<div>').text(formatDate(day));
-				card.append(dateElement);
-
-				const driverPhotoContainer = $('<div>').addClass('driver-photo-container');
-
-				for (let j = 1; j <= 2; j++) {
-					const driverPhoto = $('<div>').addClass('driver-photo');
-					const driverImage = $('<img>').attr('src', logoImageUrl).attr('alt', `Фото водія ${j}`);
-					driverPhoto.append(driverImage);
-
-					driverPhotoContainer.append(driverPhoto);
-				}
-
-				card.append(driverPhotoContainer);
-
-				if (isToday(day)) {
-					card.addClass('today');
-				} else if (isYesterdayOrEarlier(day)) {
-					card.addClass('yesterday');
-				}
-
-				calendarDetail.append(card);
-			}
-			fetchDataFromServer(startDate, new Date(startDate).setDate(startDate.getDate() + daysToShow - 1));
-		}
+		const today = new Date();
+		const daysToShow = 14;
 
 		function formatDateForDatabase(date) {
 			const year = date.getFullYear();
@@ -901,58 +862,246 @@ $(document).ready(function () {
 			return formattedDate;
 		}
 
+		let currentDate = new Date(today);
+		currentDate.setDate(currentDate.getDate() - 3);
+		let formattedStartDate = formatDateForDatabase(currentDate);
 
-		function fetchDataFromServer(startDate, endDate) {
-			console.log(startDate.getDate(), endDate);
-			const endDate_ = new Date(endDate);
-			const formattedStartDate = formatDateForDatabase(startDate);
-			const formattedEndDate = formatDateForDatabase(endDate_);
+		let endDate = new Date(currentDate);
+		endDate.setDate(endDate.getDate() + daysToShow - 1);
+		let formattedEndDate = formatDateForDatabase(endDate);
 
-			apiUrl = `/api/reshuffle/${formattedStartDate}/${formattedEndDate}/`;
-			$.ajax({
-				url: apiUrl,
-				type: 'GET',
-				dataType: 'json',
-				success: function (data) {
-					console.log(data);
-				},
-				error: function (error) {
-					console.error(error);
+
+		function reshuffleHandler (data) {
+			$('.driver-calendar').empty();
+
+			const calendarHTML = data.map(function (carData) {
+				return `
+				<div class="calendar-container" id="${carData.swap_licence}">
+					<div class="car-image">
+						<img src="${VehicleImg}" alt="Зображення авто">
+						<p class="vehicle-license-plate">${carData.swap_licence}</p>
+					</div>
+					<div class="investButton" id="investPrevButton">
+						<svg xmlns="http://www.w3.org/2000/svg" width="12" height="24" viewBox="0 0 12 24" fill="none">
+							<path d="M9 7L4 12L9 17V7Z" fill="#141E17" stroke="#141E17" stroke-width="5"/>
+						</svg>
+					</div>
+					<div class="calendar-detail" id="calendarDetail">
+						<div class="calendar-card">
+							<div class="change-date">
+								<p class="calendar-day"></p>
+								<p class="calendar-date"></p>
+							</div>
+							<div class="driver-photo-container">
+								<div class="driver-photo">
+									<img src="${logoImageUrl}" alt="Зображення водія 1">
+									<img src="${logoImageUrl}" alt="Зображення водія 2">
+								</div>
+							</div>
+						</div>
+					</div>
+					<div class="investButton" id="investNextButton">
+						<svg xmlns="http://www.w3.org/2000/svg" width="12" height="24" viewBox="0 0 12 24" fill="none">
+							<path d="M3 17L8 12L3 7V17Z" fill="#141E17" stroke="#141E17" stroke-width="5"/>
+						</svg>
+					</div>
+				</div>
+				`
+			}).join('');
+			$('.driver-calendar').append(calendarHTML);
+
+			$('.calendar-container').each(function () {
+				const calendarDetail = $(this).find('.calendar-detail');
+				const investPrevButton = $(this).find('#investPrevButton');
+				const investNextButton = $(this).find('#investNextButton');
+				const vehicleLC = $(this).attr('id');
+
+				const driverList = data.find(carDate => carDate.swap_licence === vehicleLC);
+
+				function renderCalendar(startDate) {
+					calendarDetail.empty();
+
+					for (let i = 0; i < daysToShow; i++) {
+						const day = new Date(startDate);
+						day.setDate(startDate.getDate() + i);
+
+						const card = $('<div>').addClass('calendar-card');
+						const formattedDate = formatDateForDatabase(day);
+						card.attr('id', formattedDate);
+
+						const dayOfWeek = day.toLocaleDateString('uk-UA', { weekday: 'short' });
+
+						const dayOfWeekElement = $('<div>').text(dayOfWeek).addClass('day-of-week');
+						card.append(dayOfWeekElement);
+
+						const dateElement = $('<div>').text(formatDate(day)).addClass('date');
+						card.append(dateElement);
+
+						const driverPhotoContainer = $('<div>').addClass('driver-photo-container');
+						const isDriverPhotoVisible = driverList.reshuffles.some(function (driver) {
+							return driver.date === formattedDate && driver.driver_photo;
+						});
+
+						if (isDriverPhotoVisible) {
+							driverList.reshuffles.forEach(function (driver) {
+								if (driver.date === formattedDate) {
+									const driverPhoto = $('<div>').addClass('driver-photo');
+									const driverImage = $('<img>').attr('src', 'https://storage.googleapis.com/jobdriver-bucket/'+ driver.driver_photo).attr('alt', `Фото водія`)
+
+									driverPhoto.append(driverImage);
+									driverPhotoContainer.append(driverPhoto);
+
+									card.append(driverPhotoContainer);
+								}
+							});
+						} else {
+							const driverPhoto = $('<div>').addClass('driver-photo');
+							const driverImage = $('<img>').attr('src', logoImageUrl).attr('alt', `Фото водія`)
+
+							driverPhoto.append(driverImage);
+							driverPhotoContainer.append(driverPhoto);
+
+							card.append(driverPhotoContainer);
+						}
+
+						if (isToday(day)) {
+							card.addClass('today');
+						} else if (isYesterdayOrEarlier(day)) {
+							card.addClass('yesterday');
+						}
+
+						calendarDetail.append(card);
+					};
+				};
+
+				function formatDate(date) {
+					const day = String(date.getDate()).padStart(2, '0');
+					const month = String(date.getMonth() + 1).padStart(2, '0');
+					return `${day}.${month}`;
 				}
+
+				function isToday(someDate) {
+					const todayDate = new Date();
+					return (
+						someDate.getDate() === todayDate.getDate() &&
+						someDate.getMonth() === todayDate.getMonth() &&
+						someDate.getFullYear() === todayDate.getFullYear()
+					);
+				}
+
+				function isYesterdayOrEarlier(someDate) {
+					const todayDate = new Date();
+					return someDate < todayDate;
+				}
+
+				renderCalendar(currentDate);
+
+				investNextButton.off('click').on('click', function () {
+					currentDate.setDate(currentDate.getDate() + 7);
+					const formattedStartDate = formatDateForDatabase(currentDate);
+
+					let endDate = new Date(currentDate);
+					endDate.setDate(endDate.getDate() + daysToShow - 1);
+					let formattedEndDate = formatDateForDatabase(endDate);
+
+					apiUrl = `/api/reshuffle/${formattedStartDate}/${formattedEndDate}/`;
+					$.ajax({
+						url: apiUrl,
+						type: 'GET',
+						dataType: 'json',
+						success: function (data) {
+
+							renderCalendar(currentDate);
+							const currentCar = data.find(car => car.swap_licence === vehicleLC);
+							const calendarDetail = $(`#${currentCar.swap_licence}`).find('.calendar-detail');
+
+							for (let i = 0; i < daysToShow; i++) {
+								const day = new Date(currentDate);
+								day.setDate(currentDate.getDate() + i);
+								const formattedDate = formatDateForDatabase(day);
+
+								const isDriverPhotoVisible = currentCar.reshuffles.some(function (driver) {
+									return driver.date === formattedDate && driver.driver_photo;
+								});
+						  	if (isDriverPhotoVisible) {
+						  		const driverPhotoContainer = $(`#${currentCar.swap_licence}`).find(`#${formattedDate}`).find('.driver-photo-container').empty();
+									currentCar.reshuffles.forEach(function (driver) {
+										if (driver.date === formattedDate) {
+
+											const driverPhoto = $('<div>').addClass('driver-photo');
+											const driverImage = $('<img>').attr('src', 'https://storage.googleapis.com/jobdriver-bucket/'+ driver.driver_photo).attr('alt', `Фото водія`);
+											driverPhoto.append(driverImage);
+											driverPhotoContainer.append(driverPhoto);
+										}
+									});
+						  	}
+							}
+						},
+						error: function (error) {
+							console.error(error);
+						}
+					});
+				});
+
+				investPrevButton.off('click').on('click', function () {
+					currentDate.setDate(currentDate.getDate() - 7);
+					const formattedStartDate = formatDateForDatabase(currentDate);
+
+					let endDate = new Date(currentDate);
+					endDate.setDate(endDate.getDate() + daysToShow - 1);
+					let formattedEndDate = formatDateForDatabase(endDate);
+
+					apiUrl = `/api/reshuffle/${formattedStartDate}/${formattedEndDate}/`;
+					$.ajax({
+						url: apiUrl,
+						type: 'GET',
+						dataType: 'json',
+						success: function (data) {
+
+							renderCalendar(currentDate);
+							const currentCar = data.find(car => car.swap_licence === vehicleLC);
+							const calendarDetail = $(`#${currentCar.swap_licence}`).find('.calendar-detail');
+
+							for (let i = 0; i < daysToShow; i++) {
+								const day = new Date(currentDate);
+								day.setDate(currentDate.getDate() + i);
+								const formattedDate = formatDateForDatabase(day);
+
+								const isDriverPhotoVisible = currentCar.reshuffles.some(function (driver) {
+									return driver.date === formattedDate && driver.driver_photo;
+								});
+						  	if (isDriverPhotoVisible) {
+						  		const driverPhotoContainer = $(`#${currentCar.swap_licence}`).find(`#${formattedDate}`).find('.driver-photo-container').empty();
+									currentCar.reshuffles.forEach(function (driver) {
+										if (driver.date === formattedDate) {
+
+											const driverPhoto = $('<div>').addClass('driver-photo');
+											const driverImage = $('<img>').attr('src', 'https://storage.googleapis.com/jobdriver-bucket/'+ driver.driver_photo).attr('alt', `Фото водія`);
+											driverPhoto.append(driverImage);
+											driverPhotoContainer.append(driverPhoto);
+										}
+									});
+						  	}
+							}
+						},
+						error: function (error) {
+							console.error(error);
+						}
+					});
+				});
 			});
 		}
-
-
-		function formatDate(date) {
-			const day = String(date.getDate()).padStart(2, '0');
-			const month = String(date.getMonth() + 1).padStart(2, '0');
-			return `${day}.${month}`;
-		}
-
-		function isToday(someDate) {
-			const todayDate = new Date();
-			return (
-				someDate.getDate() === todayDate.getDate() &&
-				someDate.getMonth() === todayDate.getMonth() &&
-				someDate.getFullYear() === todayDate.getFullYear()
-			);
-		}
-
-		function isYesterdayOrEarlier(someDate) {
-			const todayDate = new Date();
-			return someDate < todayDate;
-		}
-
-		renderCalendar(currentDate);
-
-		investNextButton.click(function () {
-			currentDate.setDate(currentDate.getDate() + 7);
-			renderCalendar(currentDate);
-		});
-
-		investPrevButton.click(function () {
-			currentDate.setDate(currentDate.getDate() - 7);
-			renderCalendar(currentDate);
+		apiUrl = `/api/reshuffle/${formattedStartDate}/${formattedEndDate}/`;
+		$.ajax({
+			url: apiUrl,
+			type: 'GET',
+			dataType: 'json',
+			success: function (data) {
+				reshuffleHandler(data);
+			},
+			error: function (error) {
+				console.error(error);
+			}
 		});
 	});
 });

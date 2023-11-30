@@ -1312,7 +1312,7 @@ select:focus {
 /* ,,,,,,,,,,,,,,,,,,, */
 
 .driver-calendar {
-	display: flex;
+	display: none;
 	flex-direction: column;
 	align-items: center;
 	margin-top: 20px;
@@ -1388,6 +1388,8 @@ select:focus {
 }
 
 .driver-photo img {
+	width: 50px;
+	height: 50px;
+	border-radius: 50%;
 	max-width: 100%;
-	height: auto;
 }
