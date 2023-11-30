@@ -1,4 +1,3 @@
-
 from datetime import timedelta
 
 from _decimal import Decimal
@@ -129,7 +128,14 @@ class DriverEfficiencyListView(CombinedPermissionsMixin,
             accept_percent=Avg('accept_percent'),
             road_time=Coalesce(Sum('road_time'), timedelta()),
             mileage=Sum('mileage'),
-            efficiency=ExpressionWrapper(F('total_kasa') / F('mileage') or 0, output_field=FloatField()),
+            efficiency=ExpressionWrapper(
+                Case(
+                    When(mileage__gt=0, then=F('total_kasa') / F('mileage')),
+                    default=Value(0),
+                    output_field=FloatField()
+                ),
+                output_field=FloatField()
+            ),
         )
 
         return [{'start': format_start, 'end': format_end, 'drivers_efficiency': qs}]

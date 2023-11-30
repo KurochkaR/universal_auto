@@ -175,8 +175,8 @@ def setup_dispatcher(dp):
     dp.add_handler(MessageHandler(Filters.regex(fr'^{CORRECT_CHOICE}$'), get_imei))
 
     # Commands for Driver Managers
-    dp.add_handler(CallbackQueryHandler(remove_cash_by_manager,
-                                        pattern=re.compile("^Paid_driver (true|false) [0-9]+$")))
+    # dp.add_handler(CallbackQueryHandler(remove_cash_by_manager,
+    #                                     pattern=re.compile("^Paid_driver (true|false) [0-9]+$")))
     dp.add_handler(CallbackQueryHandler(functions_with_drivers, pattern="Setup_drivers"))
     dp.add_handler(CallbackQueryHandler(functions_with_vehicles, pattern="Setup_vehicles"))
     dp.add_handler(CallbackQueryHandler(statistic_functions, pattern="Get_statistic"))

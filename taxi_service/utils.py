@@ -237,6 +237,8 @@ def login_in_investor(request, login_name, password):
     if user is not None:
         if user.is_active:
             login(request, user)
+            if user.is_superuser:
+                return {'success': True}
             user_name = user.username
             role = user.groups.first().name
 

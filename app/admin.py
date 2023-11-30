@@ -1084,7 +1084,7 @@ class FleetOrderAdmin(admin.ModelAdmin):
         if request.user.is_superuser:
             return [f.name for f in self.model._meta.fields]
         else:
-            return ['order_id', 'fleet', 'driver_id', 'from_address', 'destination',
+            return ['order_id', 'fleet', 'driver', 'from_address', 'destination',
                     'accepted_time', 'finish_time',
                     'state', 'payment', 'price', 'vehicle_id'
                     ]
@@ -1093,7 +1093,7 @@ class FleetOrderAdmin(admin.ModelAdmin):
         fieldsets = [
             ('Адреси',                      {'fields': ['from_address', 'destination',
                                                         ]}),
-            ('Інформація',                    {'fields': ['driver_id', 'fleet', 'state'
+            ('Інформація',                    {'fields': ['driver', 'fleet', 'state'
                                                           ]}),
             ('Час',                        {'fields': ['accepted_time', 'finish_time',
                                                        ]}),

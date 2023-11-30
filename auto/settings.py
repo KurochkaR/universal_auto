@@ -17,7 +17,7 @@ import dj_database_url
 import sentry_sdk
 
 sentry_sdk.init(
-    dsn=os.environ['SENTRY_DSN'],
+    dsn=os.getenv("SENTRY_DSN"),
     enable_tracing=True,
     # Set traces_sample_rate to 1.0 to capture 100%
     # of transactions for performance monitoring.
@@ -176,7 +176,6 @@ CELERY_IMPORTS = [
 ]
 
 SECURE_REFERRER_POLICY = "no-referrer-when-downgrade"
-APPEND_SLASH = False
 
 # Налаштування для відправки листів
 

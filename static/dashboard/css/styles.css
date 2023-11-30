@@ -248,10 +248,9 @@ i.fas.fa-angle-down {
   margin-top: 20px;
 }
 
-#start_date,
-#end_date,
-#start_report,
-#end_report {
+#start_date, #end_date,
+#start_report, #end_report,
+#start_report_driver, #end_report_driver{
   padding: 5px;
   font-size: 16px;
   margin-right: 10px;
@@ -471,9 +470,13 @@ input[type="button"] {
 	}
 
 	.car-select {
+	    position: static;
 		left: 0;
 		top: 100px;
 	}
+	.charts-card .weekly-income-dates {
+        float: none !important;
+    }
 
 	#area-chart {
     top: 35px;

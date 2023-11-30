@@ -19,7 +19,7 @@ from app.models import RawGPS, Vehicle, Order, Driver, JobApplication, ParkSetti
     TransactionsConversation, VehicleSpending, DriverReshuffle, DriverPayments, SalaryCalculation, \
     PaymentTypes, TaskScheduler, DriverEffVehicleKasa, Schema, CustomReport, FleetsDriversVehiclesRate, Fleet, \
     VehicleGPS
-from django.db.models import Sum, IntegerField, FloatField, Q, DecimalField
+from django.db.models import Sum, IntegerField, FloatField, Q, DecimalField, Value
 from django.db.models.functions import Cast, Coalesce
 from app.utils import get_schedule, create_task
 from auto_bot.handlers.driver_manager.utils import get_daily_report, get_efficiency, generate_message_report, \
@@ -44,7 +44,6 @@ from app.uber_sync import UberRequest
 from app.uklon_sync import UklonRequest
 from scripts.nbu_conversion import convert_to_currency
 from taxi_service.utils import login_in
-
 
 logger = get_task_logger(__name__)
 
@@ -164,24 +163,18 @@ def check_card_cash_value(self, partner_pk):
     orders = FleetOrder.objects.filter(accepted_time__date=timezone.localtime().date(),
                                        state=FleetOrder.COMPLETED,
                                        partner=partner_pk)
-    kasa_qs = orders.values('driver').annotate(kasa=Sum('price'))
+    kasa_qs = orders.values('driver').annotate(kasa=Coalesce(Sum('price'), Value(1))).filter(kasa__gt=0)
     for driver in kasa_qs:
-        driver_obj = Driver.objects.get(pk=driver['driver'])
-        if driver['kasa'] > int(ParkSettings.get_value("START_CHECK_CASH", partner=partner_pk)):
+        driver_obj = Driver.objects.filter(pk=driver['driver'], schema__isnull=False).first()
+        if driver['kasa'] > int(ParkSettings.get_value("START_CHECK_CASH", partner=partner_pk)) and driver_obj:
             card = orders.filter(payment=PaymentTypes.CARD,
                                  driver=driver['driver']).aggregate(card_kasa=Sum('price'))['card_kasa']
-            try:
-                if driver['kasa'] != 0 and driver_obj.schema:
-                    ratio = card / driver['kasa']
-                    if driver_obj.schema.schema == "RENT":
-                        rate = float(ParkSettings.get_value("RENT_CASH_RATE", partner=partner_pk))
-                    else:
-                        rate = driver_obj.schema.rate
-                    enable = 'false' if ratio < rate else 'true'
-                else:
-                    return
-            except TypeError:
-                enable = 'false'
+            ratio = card / driver['kasa']
+            if driver_obj.schema.is_rent():
+                rate = float(ParkSettings.get_value("RENT_CASH_RATE", partner=partner_pk))
+            else:
+                rate = driver_obj.schema.rate
+            enable = 'false' if ratio < rate else 'true'
             bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"),
                              text=f"Готівка {enable} у {driver_obj}")
             fleets_cash_trips.delay(partner_pk, driver_obj.pk, enable)
@@ -1061,6 +1054,15 @@ def calculate_driver_reports(self, partner_pk, schema, day=None):
 
 
 @app.task(bind=True, queue='beat_tasks')
+def check_cash_and_vehicle(self, partner_pk):
+    tasks = chain(get_today_orders.si(partner_pk),
+                  send_notify_to_check_car.si(partner_pk),
+                  check_card_cash_value.si(partner_pk)
+                  )
+    tasks()
+
+
+@app.task(bind=True, queue='beat_tasks')
 def get_information_from_fleets(self, partner_pk, schema, day=None):
     task_chain = chain(
         download_daily_report.si(partner_pk, schema, day),
@@ -1120,10 +1122,10 @@ def update_schedule(self):
 
 @app.on_after_finalize.connect
 def run_periodic_tasks(sender, **kwargs):
-    sender.add_periodic_task(crontab(minute="*/2"), send_time_order.s())
+    # sender.add_periodic_task(crontab(minute="*/2"), send_time_order.s())
     sender.add_periodic_task(crontab(minute='*/15'), auto_send_task_bot.s())
-    sender.add_periodic_task(crontab(minute="*/2"), order_not_accepted.s())
-    sender.add_periodic_task(crontab(minute="*/4"), check_personal_orders.s())
+    # sender.add_periodic_task(crontab(minute="*/2"), order_not_accepted.s())
+    # sender.add_periodic_task(crontab(minute="*/4"), check_personal_orders.s())
     sender.add_periodic_task(crontab(minute="0", hour="*/1"), update_schedule.s())
 
 
