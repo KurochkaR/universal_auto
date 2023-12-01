@@ -226,7 +226,9 @@ class BoltRequest(Fleet, Synchronizer):
                         redis_instance().hset(f"wrong_vehicle_{self.partner}", pk, order['car_reg_number'])
                     obj, created = FleetOrder.objects.get_or_create(order_id=order['order_id'], defaults=data)
                     if not created:
-                        obj.update(**data)
+                        for key, value in data.items():
+                            setattr(obj, key, value)
+                        obj.save()
 
     def get_drivers_status(self):
         with_client = []
