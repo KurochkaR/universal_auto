@@ -52,6 +52,17 @@ function applyCustomDateRange() {
 	fetchCarEfficiencyData(selectedPeriod, vehicleId, vehicle_lc, startDate, endDate);
 }
 
+function applyCustomDateRangeVehicle() {
+	$(".apply-filter-button_driver").prop("disabled", true);
+
+	let startDate = $("#start_report_driver").val();
+	let endDate = $("#end_report_driver").val();
+
+	const selectedPeriod = 'custom'
+
+	fetchDriverEfficiencyData(selectedPeriod, startDate, endDate);
+}
+
 // ---------- CHARTS ---------- //
 
 var barChart = echarts.init(document.getElementById('bar-chart'));
@@ -82,7 +93,7 @@ let barChartOptions = {
     {
       type: 'slider',
       start: 1,
-      end: 20,
+      end: 100,
       showDetail: false,
       backgroundColor: 'white',
       dataBackground: {
@@ -113,20 +124,20 @@ let barChartOptions = {
       let cash = parseFloat(params[0].value);
 			let card = parseFloat(params[1].value);
 			let total = (cash + card).toFixed(2);
-      let cashColor = '#A1E8B9';
-      let cardColor = '#EC6323';
+      let cashColor = '#EC6323';
+      let cardColor = '#A1E8B9';
       return (
         category +
         ':<br>' +
         '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background-color:' +
-        cashColor +
-        '"></span> Готівка: ' +
-        cash +
-        ' грн.<br>' +
-        '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background-color:' +
         cardColor +
         '"></span> Карта: ' +
         card +
+        ' грн.<br>' +
+        '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background-color:' +
+        cashColor +
+        '"></span> Готівка: ' +
+        cash +
         ' грн.<br>' +
         'Весь дохід: ' +
         total +
@@ -136,18 +147,6 @@ let barChartOptions = {
   },
   series: [
     {
-      name: 'card',
-      type: 'bar',
-      stack: 'total',
-      label: {
-        focus: 'series'
-      },
-      itemStyle: {
-        color: '#A1E8B9'
-      },
-      data: []
-    },
-    {
       name: 'cash',
       type: 'bar',
       stack: 'total',
@@ -156,6 +155,18 @@ let barChartOptions = {
       },
       itemStyle: {
         color: '#EC6323'
+      },
+      data: []
+    },
+    {
+      name: 'card',
+      type: 'bar',
+      stack: 'total',
+      label: {
+        focus: 'series'
+      },
+      itemStyle: {
+        color: '#A1E8B9'
       },
       data: []
     },
@@ -182,7 +193,7 @@ let areaChartOptions = {
     {
       type: 'slider',
       start: 1,
-      end: 30,
+      end: 100,
       showDetail: false,
       backgroundColor: 'white',
       dataBackground: {
@@ -231,6 +242,73 @@ let areaChartOptions = {
 
 areaChart.setOption(areaChartOptions);
 
+// BAR CHART 2
+var threeChart = echarts.init(document.getElementById('bar-three-chart'));
+
+let threeChartOptions = {
+    grid: {
+        height: '70%'
+        },
+	xAxis: {
+  type: 'category',
+  data: [],
+  axisLabel: {
+      rotate: 45
+    }
+  },
+  yAxis: {
+    type: 'value'
+  },
+  dataZoom: [
+    {
+      type: 'slider',
+      start: 1,
+      end: 100,
+      showDetail: false,
+      backgroundColor: 'white',
+      dataBackground: {
+        lineStyle: {
+          color: 'orange',
+          width: 5
+        }
+      },
+      selectedDataBackground: {
+        lineStyle: {
+          color: 'rgb(255, 69, 0)',
+          width: 5
+        }
+      },
+      handleStyle: {
+        color: 'orange',
+        borderWidth: 0
+      },
+    }
+  ],
+  series: [
+    {
+      data: [],
+      type: 'bar',
+      itemStyle: {
+        color: '#A1E8B9'
+      }
+    }
+  ],
+  tooltip: {
+    show: true,
+    trigger: 'axis',
+    axisPointer: {
+      type: 'shadow'
+    },
+    formatter: function (params) {
+      return 'Автомобіль: ' + params[0].name + '<br/>Ефективність: ' + params[0].value;
+    }
+  }
+}
+
+threeChart.setOption(threeChartOptions);
+
+// ---------- END CHARTS ---------- //
+
 function fetchSummaryReportData(period, start, end) {
 	let apiUrl;
 	if (period === 'custom') {
@@ -269,8 +347,8 @@ function fetchSummaryReportData(period, start, end) {
 				console.log(formattedNamesList);
 				const total_card = driversData.map(driver => driver.total_card);
 				const total_cash = driversData.map(driver => driver.total_cash);
-				barChartOptions.series[0].data = total_card;
-				barChartOptions.series[1].data = total_cash;
+				barChartOptions.series[1].data = total_card;
+				barChartOptions.series[0].data = total_cash;
 				barChartOptions.xAxis.data = formattedNamesList;
 				barChart.setOption(barChartOptions);
 			} else {
@@ -308,6 +386,7 @@ function fetchCarEfficiencyData(period, vehicleId, vehicle_lc, start, end) {
 			if (data['dates'].length !== 0) {
 				$(".noDataMessage2").hide();
 				$('#area-chart').show();
+				$('#bar-three-chart').show();
 				$('.car-select').show();
 
 				let firstVehicleData = {
@@ -321,9 +400,17 @@ function fetchCarEfficiencyData(period, vehicleId, vehicle_lc, start, end) {
 				areaChartOptions.xAxis.data = data['dates'];
 				areaChart.setOption(areaChartOptions);
 
+				let averageEff = data['vehicles'].average_eff;
+				let vehicleNames = Object.keys(averageEff);
+				let vehicleEff = Object.values(averageEff);
+
+				threeChartOptions.series[0].data = vehicleEff;
+				threeChartOptions.xAxis.data = vehicleNames;
+				threeChart.setOption(threeChartOptions);
 			} else {
 				$(".noDataMessage2").show();
 				$('#area-chart').hide();
+				$('#bar-three-chart').hide();
 				$('.car-select').hide();
 			};
 			$('.weekly-income-amount').text(data["kasa"] + ' ' + gettext('грн'));
@@ -644,6 +731,7 @@ $(document).ready(function () {
 	});
 
 	$('#DriverBtnContainer').click(function () {
+		fetchDriverEfficiencyData('yesterday');
 		$('.info-driver').show();
 		$('.payback-car').hide();
 		$('.charts').hide();
@@ -722,9 +810,12 @@ $(document).ready(function () {
 			customSelect.removeClass("active");
 
 			if (clickedValue !== "custom") {
-				fetchSummaryReportData(clickedValue);
-				fetchCarEfficiencyData(clickedValue, vehicleId, vehicle_lc);
-				fetchDriverEfficiencyData(clickedValue);
+				if (vehicle_lc) {
+					fetchSummaryReportData(clickedValue);
+					fetchCarEfficiencyData(clickedValue, vehicleId, vehicle_lc);
+				} else {
+					fetchDriverEfficiencyData(clickedValue);
+				}
 			}
 
 			if (clickedValue === "custom") {
@@ -747,7 +838,6 @@ $(document).ready(function () {
 
 	fetchSummaryReportData('yesterday');
 	fetchCarEfficiencyData('yesterday', vehicleId, vehicle_lc);
-	fetchDriverEfficiencyData('yesterday');
 
 	initializeCustomSelect(customSelect, selectedOption, optionsList, iconDown, datePicker, vehicleId, vehicle_lc);
 

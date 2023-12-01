@@ -39,3 +39,6 @@ gevent
 backports.zoneinfo
 pyjwt==2.8.0
 cryptography
+django_celery_beat
+sentry-sdk[django]
+sentry-sdk[celery]

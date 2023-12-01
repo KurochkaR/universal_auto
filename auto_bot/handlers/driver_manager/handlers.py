@@ -5,7 +5,7 @@ from django.utils import timezone
 from telegram import ReplyKeyboardRemove
 from telegram.error import BadRequest
 
-from app.models import Manager, Vehicle, User, Driver, Fleets_drivers_vehicles_rate, Fleet, JobApplication, \
+from app.models import Manager, Vehicle, User, Driver, FleetsDriversVehiclesRate, Fleet, JobApplication, \
     Payments, ParkSettings, VehicleSpending, Partner
 from auto_bot.handlers.driver.static_text import BROKEN
 from auto_bot.handlers.driver_job.static_text import driver_job_name
@@ -180,7 +180,7 @@ def create_driver_eff(update, context):
         if start > end:
             start, end = end, start
         msg = update.message.reply_text(generate_text)
-        result = get_driver_efficiency_report(update.message.chat_id, start, end)
+        result = get_driver_efficiency_report(update.message.chat_id, start=start, end=end)
         message = ''
         if result:
             for k, v in result.items():
@@ -198,7 +198,7 @@ def get_weekly_report(update, context):
     query = update.callback_query
     query.edit_message_text(generate_text)
     daily = True if query.data == "Daily_payment" else False
-    messages = generate_message_report(query.from_user.id, daily)
+    messages = generate_message_report(query.from_user.id, daily=daily)
     owner_message = messages.get(str(query.from_user.id))
     query.edit_message_text(owner_message)
     query.edit_message_reply_markup(back_to_main_menu())
@@ -590,7 +590,7 @@ def get_driver_external_id(update, context):
     fleet = update.message.text
     context.user_data['fleet'] = fleet
     try:
-        response = Fleets_drivers_vehicles_rate.objects.get(
+        response = FleetsDriversVehiclesRate.objects.get(
             fleet=Fleet.objects.get(name=fleet),
             driver=context.user_data['driver'],
             vehicle=context.user_data['vehicle'])
@@ -636,7 +636,7 @@ def add_information_to_driver(update, context):
     except:
         update.message.reply_text('Не вдалось обробити ваше значення, або переданий номер рейтингу не є дійсним. Спробуйте ще раз')
     if isinstance(rate, float):
-        Fleets_drivers_vehicles_rate.objects.create(
+        FleetsDriversVehiclesRate.objects.create(
                 fleet=Fleet.objects.get(name=context.user_data['fleet']),
                 driver=context.user_data['driver'],
                 vehicle=context.user_data['vehicle'],

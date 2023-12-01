@@ -60,6 +60,22 @@ class PaymentTypes(models.TextChoices):
         return payment_type_mapping.get(payment, cls.CARD)
 
 
+class TaskScheduler(models.Model):
+    name = models.CharField(max_length=75, verbose_name="Назва задачі")
+    task_time = models.TimeField(verbose_name="Час запуску задачі")
+    periodic = models.BooleanField(verbose_name="Періодичний запуск")
+    weekly = models.BooleanField(verbose_name="Тижнева задача")
+    interval = models.IntegerField(blank=True, null=True, verbose_name="Інтервал запуску")
+    arguments = models.IntegerField(null=True, blank=True, verbose_name="Аргументи")
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = 'Розклад задач'
+        verbose_name_plural = 'Розклад задач'
+
+
 class Partner(models.Model):
     role = models.CharField(max_length=25, default=Role.OWNER, choices=Role.choices)
     user = models.OneToOneField(AuUser, on_delete=models.SET_NULL, null=True)
@@ -105,12 +121,15 @@ class Schema(models.Model):
     limit_distance = models.IntegerField(default=400, verbose_name='Ліміт пробігу за період')
     salary_calculation = models.CharField(max_length=25, choices=SalaryCalculation.choices,
                                           default=SalaryCalculation.WEEK, verbose_name='Період розрахунку зарплати')
-    shift_time = models.TimeField(null=True, verbose_name="Час проведення розрахунку")
+    shift_time = models.TimeField(default=time.min, verbose_name="Час проведення розрахунку")
     shift_period = models.IntegerField(null=True, choices=ShiftTypes.choices)
     partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
 
     def __str__(self):
         return self.title if self.title else ''
+
+    def is_rent(self):
+        return True if self.schema == "RENT" else False
 
     class Meta:
         verbose_name = 'Схему роботи'
@@ -342,7 +361,7 @@ class Driver(User):
                                 verbose_name='Менеджер водіїв')
     vehicle = models.ForeignKey(Vehicle, on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Автомобіль')
     driver_status = models.CharField(max_length=35, null=False, default=OFFLINE, verbose_name='Статус водія')
-    schema = models.ForeignKey(Schema, null=True, on_delete=models.CASCADE, verbose_name='Схема роботи')
+    schema = models.ForeignKey(Schema, null=True, on_delete=models.SET_NULL, verbose_name='Схема роботи')
 
     class Meta:
         verbose_name = 'Водія'
@@ -350,9 +369,9 @@ class Driver(User):
 
     def get_driver_external_id(self, vendor: str):
         try:
-            return Fleets_drivers_vehicles_rate.objects.get(fleet__name=vendor, driver=self,
-                                                            partner=self.partner,
-                                                            deleted_at=None).driver_external_id
+            return FleetsDriversVehiclesRate.objects.get(fleet__name=vendor, driver=self,
+                                                         partner=self.partner,
+                                                         deleted_at=None).driver_external_id
         except ObjectDoesNotExist:
             return
 
@@ -390,7 +409,8 @@ class DriverReshuffle(models.Model):
 
 
 class RentInformation(models.Model):
-    report_from = models.DateField(verbose_name='Дата звіту')
+    report_from = models.DateTimeField(verbose_name='Звіт з')
+    report_to = models.DateTimeField(null=True, verbose_name='Звіт по')
     driver = models.ForeignKey(Driver, on_delete=models.SET_NULL, null=True, verbose_name='Водій')
     rent_distance = models.DecimalField(null=True, blank=True, max_digits=6,
                                         decimal_places=2, verbose_name='Орендована дистанція')
@@ -476,7 +496,8 @@ class SupportManager(User):
 
 
 class Payments(models.Model):
-    report_from = models.DateField(verbose_name='Дата звіту')
+    report_from = models.DateTimeField(verbose_name='Звіт з')
+    report_to = models.DateTimeField(null=True, verbose_name='Звіт по')
     vendor_name = models.CharField(max_length=30, default='Ninja', verbose_name='Агрегатор')
     full_name = models.CharField(null=True, max_length=255, verbose_name='ПІ водія')
     driver_id = models.CharField(null=True, max_length=50, verbose_name='Унікальний індифікатор водія')
@@ -489,7 +510,7 @@ class Payments(models.Model):
     tips = models.DecimalField(null=True, default=0, decimal_places=2, max_digits=10, verbose_name='Чайові')
     total_rides = models.PositiveIntegerField(null=True, default=0, verbose_name='Кількість поїздок')
     total_distance = models.DecimalField(null=True, default=0, decimal_places=2,
-                                         max_digits=10, verbose_name='Пробіг під замовлення')
+                                         max_digits=10, verbose_name='Пробіг під замовленням')
     bonuses = models.DecimalField(null=True, default=0, decimal_places=2, max_digits=10, verbose_name='Бонуси')
     fee = models.DecimalField(null=True, default=0, decimal_places=2, max_digits=10, verbose_name='Комісія')
     fares = models.DecimalField(null=True, default=0, decimal_places=2, max_digits=10, verbose_name='Штрафи')
@@ -515,16 +536,17 @@ class Payments(models.Model):
 
 
 class SummaryReport(models.Model):
-    report_from = models.DateField(verbose_name='Дата звіту')
+    report_from = models.DateTimeField(verbose_name='Звіт з')
+    report_to = models.DateTimeField(null=True, verbose_name='Звіт по')
     driver = models.ForeignKey(Driver, on_delete=models.CASCADE, null=True, verbose_name='Водій')
     total_amount_without_fee = models.DecimalField(decimal_places=2, max_digits=10,
-                                                   verbose_name='Чистий дохід', db_index=True)
+                                                   verbose_name='Чистий дохід')
     total_amount_cash = models.DecimalField(decimal_places=2, max_digits=10, verbose_name='Готівкою')
     total_amount_on_card = models.DecimalField(null=True, decimal_places=2, max_digits=10, verbose_name='На картку')
     total_amount = models.DecimalField(null=True, decimal_places=2, max_digits=10, verbose_name='Загальна сума')
     total_rides = models.PositiveIntegerField(null=True, verbose_name='Кількість поїздок')
     total_distance = models.DecimalField(null=True, decimal_places=2,
-                                         max_digits=10, verbose_name='Пробіг під замовлення')
+                                         max_digits=10, verbose_name='Пробіг під замовленням')
     tips = models.DecimalField(null=True, decimal_places=2, max_digits=10, verbose_name='Чайові')
     bonuses = models.DecimalField(null=True, decimal_places=2, max_digits=10, verbose_name='Бонуси')
     fee = models.DecimalField(null=True, decimal_places=2, max_digits=10, verbose_name='Комісія')
@@ -542,8 +564,37 @@ class SummaryReport(models.Model):
         verbose_name_plural = 'Зведені звіти'
 
 
+class CustomReport(models.Model):
+    report_from = models.DateTimeField(verbose_name='Звіт з')
+    report_to = models.DateTimeField(null=True, verbose_name='Звіт по')
+    vendor_name = models.CharField(max_length=30, default='Ninja', verbose_name='Агрегатор')
+    full_name = models.CharField(null=True, max_length=255, verbose_name='ПІ водія')
+    driver_id = models.CharField(null=True, max_length=50, verbose_name='Унікальний індифікатор водія')
+    total_amount_without_fee = models.DecimalField(decimal_places=2, max_digits=10, verbose_name='Чистий дохід')
+    total_amount_cash = models.DecimalField(decimal_places=2, max_digits=10, verbose_name='Готівкою')
+    total_amount_on_card = models.DecimalField(null=True, default=0, decimal_places=2, max_digits=10,
+                                               verbose_name='На картку')
+    total_amount = models.DecimalField(null=True, default=0, decimal_places=2, max_digits=10,
+                                       verbose_name='Загальна сума')
+    tips = models.DecimalField(null=True, default=0, decimal_places=2, max_digits=10, verbose_name='Чайові')
+    total_rides = models.PositiveIntegerField(null=True, default=0, verbose_name='Кількість поїздок')
+    total_distance = models.DecimalField(null=True, default=0, decimal_places=2,
+                                         max_digits=10, verbose_name='Пробіг під замовленням')
+    bonuses = models.DecimalField(null=True, default=0, decimal_places=2, max_digits=10, verbose_name='Бонуси')
+    fee = models.DecimalField(null=True, default=0, decimal_places=2, max_digits=10, verbose_name='Комісія')
+    fares = models.DecimalField(null=True, default=0, decimal_places=2, max_digits=10, verbose_name='Штрафи')
+    cancels = models.DecimalField(null=True, default=0, decimal_places=2, max_digits=10,
+                                  verbose_name='Плата за скасування')
+    compensations = models.DecimalField(null=True, default=0, decimal_places=2, max_digits=10,
+                                        verbose_name='Компенсації')
+    refunds = models.DecimalField(null=True, default=0, decimal_places=2, max_digits=10,
+                                  verbose_name='Повернення коштів')
+    vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Автомобіль')
+    partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
+
+
 class StatusChange(models.Model):
-    driver = models.ForeignKey(Driver, null=True, on_delete=models.SET_NULL)
+    driver = models.ForeignKey(Driver, null=True, on_delete=models.CASCADE)
     vehicle = models.ForeignKey(Vehicle, null=True, on_delete=models.CASCADE)
     name = models.CharField(max_length=255, verbose_name='Назва статусу')
     start_time = models.DateTimeField(auto_now_add=True)
@@ -551,15 +602,18 @@ class StatusChange(models.Model):
     duration = models.DurationField(null=True, blank=True)
 
 
-class Fleets_drivers_vehicles_rate(models.Model):
+class FleetsDriversVehiclesRate(models.Model):
     fleet = models.ForeignKey(Fleet, on_delete=models.CASCADE, verbose_name='Агрегатор')
-    driver = models.ForeignKey(Driver, null=True, on_delete=models.SET_NULL, verbose_name='Водій')
+    driver = models.ForeignKey(Driver, null=True, on_delete=models.CASCADE, verbose_name='Водій')
     driver_external_id = models.CharField(max_length=255, verbose_name='Унікальний індифікатор по автопарку')
     partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
     created_at = models.DateTimeField(editable=False, auto_now_add=True, verbose_name='Створено')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='Оновлено')
     deleted_at = models.DateTimeField(null=True, blank=True, verbose_name='Видалено')
     pay_cash = models.BooleanField(default=False, verbose_name='Оплата готівкою')
+
+    def __str__(self) -> str:
+        return ''
 
     class Meta:
         verbose_name = 'Водія в агрегаторах'
@@ -764,7 +818,7 @@ class FleetOrder(models.Model):
         verbose_name_plural = 'Замовлення в агрегаторах'
 
 
-class Report_of_driver_debt(models.Model):
+class ReportDriveDebt(models.Model):
     driver = models.CharField(max_length=255, verbose_name='Водій')
     image = models.ImageField(upload_to='.', verbose_name='Фото')
     created_at = models.DateTimeField(editable=False, auto_now_add=True, verbose_name='Створено')
@@ -805,7 +859,7 @@ class SubscribeUsers(models.Model):
     @staticmethod
     def get_by_email(email):
         """
-        Returns subscriber by email
+        Returns subscriber by field
         :param email: email by which we need to find the subscriber
         :type email: str
         :return: subscriber object or None if a subscriber with such email does not exist
@@ -890,10 +944,12 @@ def admin_image_preview(image):
 
 
 class CarEfficiency(models.Model):
-    report_from = models.DateField(verbose_name='Звіт за')
+    report_from = models.DateTimeField(verbose_name='Звіт з')
+    report_to = models.DateTimeField(null=True, verbose_name='Звіт по')
     drivers = models.ManyToManyField(Driver, through="DriverEffVehicleKasa", verbose_name='Водії', db_index=True)
     vehicle = models.ForeignKey(Vehicle, null=True, on_delete=models.CASCADE, verbose_name='Автомобіль', db_index=True)
     total_kasa = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Каса')
+    clean_kasa = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Чистий дохід')
     total_spending = models.DecimalField(null=True, decimal_places=2, max_digits=10, default=0, verbose_name='Витрати')
     mileage = models.DecimalField(decimal_places=2, max_digits=6, default=0, verbose_name='Пробіг, км')
     efficiency = models.DecimalField(decimal_places=2, max_digits=4, default=0, verbose_name='Ефективність, грн/км')
@@ -914,7 +970,8 @@ class DriverEffVehicleKasa(models.Model):
 
 
 class DriverEfficiency(models.Model):
-    report_from = models.DateField(verbose_name='Звіт за')
+    report_from = models.DateTimeField(verbose_name='Звіт з')
+    report_to = models.DateTimeField(null=True, verbose_name='Звіт по')
     driver = models.ForeignKey(Driver, null=True, on_delete=models.SET_NULL, verbose_name='Водій', db_index=True)
     vehicles = models.ManyToManyField(Vehicle, verbose_name="Автомобілі", db_index=True)
     total_kasa = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Каса')
