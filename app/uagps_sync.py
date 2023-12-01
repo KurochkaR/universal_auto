@@ -51,11 +51,14 @@ class UaGpsSynchronizer(Fleet):
         }
         response = requests.get(f"{self.partner.gps_url}wialon/ajax.html", params=params)
         for vehicle in response.json():
-            GPSNumber.objects.get_or_create(gps_id=vehicle['i'],
-                                            defaults={
-                                                "name": vehicle['d']['nm'],
-                                                "partner": self.partner
-                                            })
+            data = {"name": vehicle['d']['nm'],
+                    "partner": self.partner}
+            obj, created = GPSNumber.objects.get_or_create(gps_id=vehicle['i'],
+                                                           defaults=data)
+            if not created:
+                for key, value in data.items():
+                    setattr(obj, key, value)
+                obj.save()
 
     def generate_report(self, start_time, end_time, vehicle_id):
         parameters = {
