@@ -835,7 +835,7 @@ $(document).ready(function () {
 		}
 	});
 
-	//kalendar
+	//calendar
 
 	$('#workCalendarBtnContainer').click(function () {
 		$('.driver-calendar').show();
@@ -941,6 +941,7 @@ $(document).ready(function () {
 						});
 
 						if (isDriverPhotoVisible) {
+
 							driverList.reshuffles.forEach(function (driver) {
 								if (driver.date === formattedDate) {
 
@@ -948,7 +949,15 @@ $(document).ready(function () {
 									driverPhoto.attr('data-name', driver.driver_name).attr('data-start-time', driver.start_shift).attr('data-end-time', driver.end_shift);
 									const driverImage = $('<img>').attr('src', 'https://storage.googleapis.com/jobdriver-bucket/'+ driver.driver_photo).attr('alt', `Фото водія`)
 
+									const driverInfo = $('<div>').addClass('driver-info-reshuffle');
+									const driverDate = $('<p>').addClass('driver-date').text(driver.date);
+									const driverName = $('<p>').addClass('driver-name').text(driver.driver_name);
+									const driverTime = $('<p>').addClass('driver-time').text(driver.start_shift + ' - ' + driver.end_shift);
+
+									driverInfo.append(driverDate, driverName, driverTime);
+
 									driverPhoto.append(driverImage);
+									driverPhoto.append(driverInfo);
 									driverPhotoContainer.append(driverPhoto);
 									card.append(driverPhotoContainer);
 
@@ -971,6 +980,11 @@ $(document).ready(function () {
 						}
 
 						calendarDetail.append(card);
+						$(".driver-photo").hover(function () {
+							$(this).find(".driver-info-reshuffle").css("display", "flex");
+						}, function () {
+							$(this).find(".driver-info-reshuffle").css("display", "none");
+						});
 					};
 				};
 
@@ -1113,6 +1127,7 @@ $(document).ready(function () {
 				});
 			});
 		}
+
 		apiUrl = `/api/reshuffle/${formattedStartDate}/${formattedEndDate}/`;
 		$.ajax({
 			url: apiUrl,
