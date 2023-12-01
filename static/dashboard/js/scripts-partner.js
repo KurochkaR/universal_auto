@@ -1056,12 +1056,25 @@ $(document).ready(function () {
 
 											const driverPhoto = $('<div>').addClass('driver-photo');
 											const driverImage = $('<img>').attr('src', 'https://storage.googleapis.com/jobdriver-bucket/'+ driver.driver_photo).attr('alt', `Фото водія`);
+
+											const driverInfo = $('<div>').addClass('driver-info-reshuffle');
+											const driverDate = $('<p>').addClass('driver-date').text(driver.date);
+											const driverName = $('<p>').addClass('driver-name').text(driver.driver_name);
+											const driverTime = $('<p>').addClass('driver-time').text(driver.start_shift + ' - ' + driver.end_shift);
+
+											driverInfo.append(driverDate, driverName, driverTime);
+											driverPhoto.append(driverInfo);
 											driverPhoto.append(driverImage);
 											driverPhotoContainer.append(driverPhoto);
 										}
 									});
 						  	}
 							}
+							$(".driver-photo").hover(function () {
+								$(this).find(".driver-info-reshuffle").css("display", "flex");
+							}, function () {
+								$(this).find(".driver-info-reshuffle").css("display", "none");
+							});
 						},
 						error: function (error) {
 							console.error(error);
@@ -1113,12 +1126,24 @@ $(document).ready(function () {
 
 											const driverPhoto = $('<div>').addClass('driver-photo');
 											const driverImage = $('<img>').attr('src', 'https://storage.googleapis.com/jobdriver-bucket/'+ driver.driver_photo).attr('alt', `Фото водія`);
+											const driverInfo = $('<div>').addClass('driver-info-reshuffle');
+											const driverDate = $('<p>').addClass('driver-date').text(driver.date);
+											const driverName = $('<p>').addClass('driver-name').text(driver.driver_name);
+											const driverTime = $('<p>').addClass('driver-time').text(driver.start_shift + ' - ' + driver.end_shift);
+
+											driverInfo.append(driverDate, driverName, driverTime);
+											driverPhoto.append(driverInfo);
 											driverPhoto.append(driverImage);
 											driverPhotoContainer.append(driverPhoto);
 										}
 									});
 						  	}
 							}
+							$(".driver-photo").hover(function () {
+								$(this).find(".driver-info-reshuffle").css("display", "flex");
+							}, function () {
+								$(this).find(".driver-info-reshuffle").css("display", "none");
+							});
 						},
 						error: function (error) {
 							console.error(error);
