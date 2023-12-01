@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django_extensions',
+    'django_celery_beat',
     'app.apps.AppConfig',
     'fake_uklon',
     'polymorphic',
@@ -168,7 +169,8 @@ REST_FRAMEWORK = {
 
 CELERY_BROKER_URL = os.environ['CELERY_BROKER_URL']
 CELERY_RESULT_BACKEND = os.environ['CELERY_RESULT_BACKEND']
-
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+CELERY_TIMEZONE = "Europe/Kiev"
 CELERY_IMPORTS = [
     'auto.tasks',
 ]

@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 from app.models import CarEfficiency, Vehicle, DriverEfficiency, Driver, RentInformation, \
-    TransactionsConversation, SummaryReport, Payments, FleetOrder, Fleets_drivers_vehicles_rate
+    TransactionsConversation, SummaryReport, Payments, FleetOrder, FleetsDriversVehiclesRate
 
 
 class VehicleEfficiencyUserFilter(admin.SimpleListFilter):
@@ -35,11 +35,11 @@ class TransactionInvestorUserFilter(admin.SimpleListFilter):
 
     def lookups(self, request, model_admin):
         user = request.user
-        queryset = TransactionsConversation.objects.all()
+        queryset = TransactionsConversation.objects.all().select_related("vehicle")
         vehicle_choices = []
         if user.groups.filter(name='Investor').exists():
             vehicles = Vehicle.objects.filter(investor_car__user=user)
-            queryset.filter(vehicle__in=vehicles)
+            queryset.filter(vehicle__in=vehicles).select_related('vehicle')
         if user.groups.filter(name='Partner').exists():
             queryset = TransactionsConversation.objects.filter(investor__partner__user=user)
         vehicle_choices.extend(queryset.values_list('vehicle_id', 'vehicle__licence_plate'))
@@ -150,7 +150,7 @@ class FleetRelatedFilter(admin.SimpleListFilter):
 
     def lookups(self, request, model_admin):
         user = request.user
-        queryset = Fleets_drivers_vehicles_rate.objects.all()
+        queryset = FleetsDriversVehiclesRate.objects.all()
         fleet_choices = []
         if user.groups.filter(name__in=('Manager', 'Partner')).exists():
             queryset = queryset.filter(partner__user=user)

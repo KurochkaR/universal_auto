@@ -3,7 +3,7 @@ from datetime import timedelta, datetime
 
 from django.db import IntegrityError
 
-from app.models import Driver, Vehicle, Fleets_drivers_vehicles_rate, BoltFleet, UberFleet, NewUklonFleet, \
+from app.models import Driver, Vehicle, FleetsDriversVehiclesRate, BoltFleet, UberFleet, NewUklonFleet, \
     DriverRateLevels, NinjaFleet, SummaryReport, CarEfficiency
 
 DRIVERS_MAP = {
@@ -156,7 +156,7 @@ def init_models():
         for rate in item['fleets_drivers_vehicles_rate']:
             print('+++++++++++++++++++++++++++++++++++++')
             print(driver)
-            get_or_create_object(Fleets_drivers_vehicles_rate,
+            get_or_create_object(FleetsDriversVehiclesRate,
                                  ['fleet', 'driver'],
                                  fleet=fleets[rate['fleet']],
                                  driver=driver,

@@ -2,7 +2,7 @@ import pendulum
 from datetime import datetime
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 
-from app.models import Payments, Fleets_drivers_vehicles_rate, Fleet
+from app.models import Payments, FleetsDriversVehiclesRate, Fleet
 
 from auto import celery_app
 
@@ -88,12 +88,12 @@ class DriversRating:
 
     def get_driver(self, item):
         try:
-            record = Fleets_drivers_vehicles_rate.objects.get(driver_external_id=self.get_driver_identifier(item),
-                                                              fleet__name=item.vendor_name)
+            record = FleetsDriversVehiclesRate.objects.get(driver_external_id=self.get_driver_identifier(item),
+                                                           fleet__name=item.vendor_name)
             return record.driver.__str__()
-        except Fleets_drivers_vehicles_rate.DoesNotExist:
+        except FleetsDriversVehiclesRate.DoesNotExist:
             raise ObjectDoesNotExist
-        except Fleets_drivers_vehicles_rate.MultipleObjectsReturned:
+        except FleetsDriversVehiclesRate.MultipleObjectsReturned:
             raise MultipleObjectsReturned
 
     def get_trips(self, item):
