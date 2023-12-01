@@ -295,8 +295,7 @@ function fetchSummaryReportData(period, start, end) {
 		apiUrl = `/api/reports/${start}&${end}/`;
 	} else {
 		apiUrl = `/api/reports/${period}/`;
-	}
-	;
+	};
 	$.ajax({
 		url: apiUrl,
 		type: 'GET',
@@ -396,8 +395,7 @@ function fetchDriverEfficiencyData(period, start, end) {
 		apiUrl = `/api/drivers_info/${start}&${end}/`;
 	} else {
 		apiUrl = `/api/drivers_info/${period}/`;
-	}
-	;
+	};
 	$.ajax({
 		url: apiUrl,
 		type: 'GET',
@@ -945,13 +943,15 @@ $(document).ready(function () {
 						if (isDriverPhotoVisible) {
 							driverList.reshuffles.forEach(function (driver) {
 								if (driver.date === formattedDate) {
+
 									const driverPhoto = $('<div>').addClass('driver-photo');
+									driverPhoto.attr('data-name', driver.driver_name).attr('data-start-time', driver.start_shift).attr('data-end-time', driver.end_shift);
 									const driverImage = $('<img>').attr('src', 'https://storage.googleapis.com/jobdriver-bucket/'+ driver.driver_photo).attr('alt', `Фото водія`)
 
 									driverPhoto.append(driverImage);
 									driverPhotoContainer.append(driverPhoto);
-
 									card.append(driverPhotoContainer);
+
 								}
 							});
 						} else {
@@ -996,13 +996,22 @@ $(document).ready(function () {
 
 				renderCalendar(currentDate);
 
-				investNextButton.off('click').on('click', function () {
-					currentDate.setDate(currentDate.getDate() + 7);
-					const formattedStartDate = formatDateForDatabase(currentDate);
+				let cachedCar = null;
+				let carDate = null;
+				investNextButton.on('click', function () {
+					if (cachedCar && cachedCar === vehicleLC) {
+						carDate.setDate(carDate.getDate() + 7);
+					} else {
+						carDate = new Date();
+						carDate.setDate(carDate.getDate() + 4);
+						cachedCar = vehicleLC;
+					}
+					const formattedStartDate = formatDateForDatabase(carDate);
 
-					let endDate = new Date(currentDate);
+					let endDate = new Date(carDate);
 					endDate.setDate(endDate.getDate() + daysToShow - 1);
 					let formattedEndDate = formatDateForDatabase(endDate);
+					renderCalendar(carDate);
 
 					apiUrl = `/api/reshuffle/${formattedStartDate}/${formattedEndDate}/`;
 					$.ajax({
@@ -1011,13 +1020,16 @@ $(document).ready(function () {
 						dataType: 'json',
 						success: function (data) {
 
-							renderCalendar(currentDate);
-							const currentCar = data.find(car => car.swap_licence === vehicleLC);
+							if (!data.length || !(currentCar = data.find(car => car.swap_licence === vehicleLC))) {
+									return;
+							}
+
 							const calendarDetail = $(`#${currentCar.swap_licence}`).find('.calendar-detail');
 
+
 							for (let i = 0; i < daysToShow; i++) {
-								const day = new Date(currentDate);
-								day.setDate(currentDate.getDate() + i);
+								const day = new Date(carDate);
+								day.setDate(carDate.getDate() + i);
 								const formattedDate = formatDateForDatabase(day);
 
 								const isDriverPhotoVisible = currentCar.reshuffles.some(function (driver) {
@@ -1043,13 +1055,22 @@ $(document).ready(function () {
 					});
 				});
 
-				investPrevButton.off('click').on('click', function () {
-					currentDate.setDate(currentDate.getDate() - 7);
-					const formattedStartDate = formatDateForDatabase(currentDate);
 
-					let endDate = new Date(currentDate);
+				investPrevButton.on('click', function () {
+					if (cachedCar && cachedCar === vehicleLC) {
+						carDate.setDate(carDate.getDate() - 7);
+					} else {
+						carDate = new Date();
+						carDate.setDate(carDate.getDate() - 10);
+						cachedCar = vehicleLC;
+					}
+					const formattedStartDate = formatDateForDatabase(carDate);
+
+					let endDate = new Date(carDate);
 					endDate.setDate(endDate.getDate() + daysToShow - 1);
 					let formattedEndDate = formatDateForDatabase(endDate);
+
+					renderCalendar(carDate);
 
 					apiUrl = `/api/reshuffle/${formattedStartDate}/${formattedEndDate}/`;
 					$.ajax({
@@ -1057,14 +1078,15 @@ $(document).ready(function () {
 						type: 'GET',
 						dataType: 'json',
 						success: function (data) {
+							if (!data.length || !(currentCar = data.find(car => car.swap_licence === vehicleLC))) {
+								return;
+							}
 
-							renderCalendar(currentDate);
-							const currentCar = data.find(car => car.swap_licence === vehicleLC);
 							const calendarDetail = $(`#${currentCar.swap_licence}`).find('.calendar-detail');
 
 							for (let i = 0; i < daysToShow; i++) {
-								const day = new Date(currentDate);
-								day.setDate(currentDate.getDate() + i);
+								const day = new Date(carDate);
+								day.setDate(carDate.getDate() + i);
 								const formattedDate = formatDateForDatabase(day);
 
 								const isDriverPhotoVisible = currentCar.reshuffles.some(function (driver) {
