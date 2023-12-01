@@ -112,13 +112,14 @@ class UaGpsSynchronizer(Fleet):
                     completed = FleetOrder.objects.filter(driver=driver,
                                                           state=FleetOrder.COMPLETED,
                                                           accepted_time__gte=start,
-                                                          accepted_time__lt=end).order_by('accepted_time')
+                                                          accepted_time__lt=end)
                     first_order = FleetOrder.objects.filter(driver=driver,
                                                             finish_time__gt=start,
                                                             state=FleetOrder.COMPLETED,
                                                             accepted_time__lte=start).first()
                     if first_order:
                         completed = completed.union(FleetOrder.objects.filter(pk=first_order.pk))
+                    completed = completed.order_by('accepted_time')
                 else:
                     continue
                 previous_finish_time = None

@@ -305,7 +305,7 @@ def get_car_efficiency(self, partner_pk):
         vehicle_drivers = {}
         total_spending = VehicleSpending.objects.filter(
             vehicle=vehicle,  created_at__range=(start, end)).aggregate(Sum('amount'))['amount__sum'] or 0
-        reshuffles = DriverReshuffle.objects.filter(end_time__range=(start, end), swap_vehicle=vehicle)
+        reshuffles = DriverReshuffle.objects.filter(Q(end_time=end) | Q(swap_time=start), swap_vehicle=vehicle)
         drivers = [reshuffle.driver_start for reshuffle in reshuffles] if reshuffles \
             else Driver.objects.filter(vehicle=vehicle)
         total_kasa = 0
@@ -915,7 +915,7 @@ def get_distance_trip(self, order, start_trip_with_client, end, gps_id):
 
 @app.task(bind=True, max_retries=10, queue='beat_tasks')
 def get_driver_reshuffles(self, partner, delta=0):
-    day = timezone.localtime().date()
+    day = timezone.localtime().date() - timedelta(days=delta)
     start = timezone.make_aware(datetime.combine(day, time.min))
     end = timezone.make_aware(datetime.combine(day, time.max))
     obj_partner = list(Partner.objects.filter(pk=partner))
@@ -945,7 +945,8 @@ def get_driver_reshuffles(self, partner, delta=0):
                     "swap_vehicle": vehicle,
                     "driver_start": driver_start,
                     "swap_time": swap_time,
-                    "end_time": end_time
+                    "end_time": end_time,
+                    "partner_id": partner
                 }
                 reshuffle = DriverReshuffle.objects.filter(calendar_event_id=calendar_event_id)
                 reshuffle.update(**obj_data) if reshuffle else DriverReshuffle.objects.create(**obj_data)

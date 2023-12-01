@@ -437,13 +437,13 @@ class DriverReshuffle(models.Model):
     driver_start = models.ForeignKey(Driver, on_delete=models.SET_NULL, null=True, verbose_name="Водій")
     swap_time = models.DateTimeField(verbose_name="Час початку зміни")
     end_time = models.DateTimeField(verbose_name="Час завершення зміни")
+    partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
 
 
 class RentInformation(models.Model):
     report_from = models.DateTimeField(verbose_name='Звіт з')
     report_to = models.DateTimeField(null=True, verbose_name='Звіт по')
     driver = models.ForeignKey(Driver, on_delete=models.SET_NULL, null=True, verbose_name='Водій')
-    # vehicle
     rent_distance = models.DecimalField(null=True, blank=True, max_digits=6,
                                         decimal_places=2, verbose_name='Орендована дистанція')
     partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')

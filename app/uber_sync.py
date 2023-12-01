@@ -105,6 +105,8 @@ class UberRequest(Fleet, Synchronizer):
         drivers = []
         data = self.get_payload(query, variables)
         response = requests.post(str(self.base_url), headers=self.get_header(), json=data)
+        if response.status_code in (502, 504):
+            return drivers
         drivers_data = response.json()['data']['getDrivers']['drivers']
         for driver in drivers_data:
             licence_plate = ''
@@ -132,6 +134,8 @@ class UberRequest(Fleet, Synchronizer):
     def save_report(self, start, end, schema):
         format_start = self.report_interval(start) * 1000
         format_end = self.report_interval(end) * 1000
+        if format_start >= format_end:
+            return
         uber_drivers = FleetsDriversVehiclesRate.objects.filter(partner=self.partner,
                                                                 fleet=self)
         drivers_id = [obj.driver_external_id for obj in uber_drivers]
