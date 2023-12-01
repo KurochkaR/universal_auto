@@ -126,7 +126,7 @@ class UberRequest(Fleet, Synchronizer):
                             'photo': driver['member']['user']['pictureUrl'],
                             'vehicle_name': vehicle_name,
                             'vin_code': vin_code,
-                            'worked': True})
+                            })
         return drivers
 
     def save_report(self, day):

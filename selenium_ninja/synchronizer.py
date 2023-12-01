@@ -121,7 +121,6 @@ class Synchronizer:
         phone_number = kwargs.get('phone_number')
         photo = kwargs.get('photo')
         email = kwargs.get('email')
-        worked = kwargs.get('worked')
         swap_vehicle = Vehicle.objects.filter(licence_plate=kwargs['licence_plate']).first()
         reshuffle = DriverReshuffle.objects.filter(swap_vehicle=swap_vehicle,
                                                    swap_time__date=yesterday.date())
@@ -139,8 +138,6 @@ class Synchronizer:
 
             if email and driver.email != email:
                 driver.email = email
-
-        driver.worked = worked
         driver.save()
 
     @staticmethod

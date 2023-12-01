@@ -239,7 +239,6 @@ class UklonRequest(Fleet, Synchronizer):
                 'licence_plate': self.find_value_str(driver, *('selected_vehicle', 'license_plate')),
                 'vehicle_name': vehicle_name,
                 'vin_code': vin_code,
-                'worked': True,
             })
         return drivers
 

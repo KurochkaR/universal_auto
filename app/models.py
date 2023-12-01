@@ -12,6 +12,14 @@ from django.contrib.auth.models import User as AuUser
 from cryptography.fernet import Fernet
 
 
+class SoftDeleteManager(models.Manager):
+    def delete(self):
+        return self.get_queryset().update(deleted_at=timezone.localtime())
+
+    def get_active(self, partner):
+        return self.get_queryset().filter(partner=partner, deleted_at__isnull=True)
+
+
 class Role(models.TextChoices):
     CLIENT = 'CLIENT', 'Клієнт'
     DRIVER = 'DRIVER', 'Водій'
@@ -133,6 +141,8 @@ class User(models.Model):
     created_at = models.DateTimeField(editable=False, auto_now_add=True, verbose_name='Створено')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='Оновлено')
     deleted_at = models.DateTimeField(null=True, blank=True, verbose_name='Видалено')
+
+    objects = SoftDeleteManager()
 
     class Meta:
         verbose_name = 'Користувача'
@@ -325,12 +335,12 @@ class Driver(User):
     WAIT_FOR_CLIENT = 'Очікую клієнта'
     OFFLINE = 'Не працюю'
     RENT = 'Орендую авто'
+
     photo = models.ImageField(blank=True, null=True, upload_to='drivers', verbose_name='Фото водія')
     partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
     manager = models.ForeignKey(Manager, on_delete=models.SET_NULL, null=True, blank=True,
                                 verbose_name='Менеджер водіїв')
     vehicle = models.ForeignKey(Vehicle, on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Автомобіль')
-    worked = models.BooleanField(default=True, verbose_name='Працює')
     driver_status = models.CharField(max_length=35, null=False, default=OFFLINE, verbose_name='Статус водія')
     schema = models.ForeignKey(Schema, null=True, on_delete=models.CASCADE, verbose_name='Схема роботи')
 
@@ -348,6 +358,13 @@ class Driver(User):
 
     def __str__(self) -> str:
         return f'{self.name} {self.second_name}'
+
+
+class FiredDriver(Driver):
+    class Meta:
+        verbose_name = 'Звільненого водія'
+        verbose_name_plural = 'Звільнені водії'
+        proxy = True
 
 
 class PartnerEarnings(models.Model):

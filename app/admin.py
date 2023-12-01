@@ -3,6 +3,8 @@ from django.contrib.auth.models import User as AuthUser
 from django.contrib.auth.models import Group, Permission
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import FieldError
+from django.utils.translation import gettext_lazy as _
+from django.shortcuts import redirect
 
 from scripts.google_calendar import GoogleCalendar
 from .filters import VehicleEfficiencyUserFilter, DriverEfficiencyUserFilter, RentInformationUserFilter, \
@@ -10,73 +12,33 @@ from .filters import VehicleEfficiencyUserFilter, DriverEfficiencyUserFilter, Re
 from .models import *
 
 
-models = {
-    'RentInformation':              {'view': True, 'add': False, 'change': False, 'delete': False},
-    'Payments':                     {'view': True, 'add': False, 'change': False, 'delete': False},
-    'SummaryReport':                {'view': True, 'add': False, 'change': False, 'delete': False},
-    # 'Order':                        {'view': True, 'add': False, 'change': False, 'delete': False},
-    'Driver':                       {'view': True, 'add': False, 'change': True, 'delete': False},
-    'Schema':                       {'view': True, 'add': True, 'change': True, 'delete': True},
-    'Vehicle':                      {'view': True, 'add': False, 'change': True, 'delete': True},
-    'Manager':                      {'view': True, 'add': True, 'change': True, 'delete': True},
-    'Investor':                     {'view': True, 'add': True, 'change': True, 'delete': True},
-    # 'Comment':                      {'view': True, 'add': False, 'change': True, 'delete': False},
-    'ParkSettings':                 {'view': True, 'add': False, 'change': True, 'delete': False},
-    'CarEfficiency':                {'view': True, 'add': False, 'change': False, 'delete': False},
-    'DriverEfficiency':             {'view': True, 'add': False, 'change': False, 'delete': False},
-    'VehicleSpending':              {'view': True, 'add': True, 'change': True, 'delete': True},
-    'DriverSchemaRate':             {'view': True, 'add': False, 'change': True, 'delete': False},
-    'TransactionConversation':      {'view': True, 'add': False, 'change': False, 'delete': False},
-    'Fleets_drivers_vehicles_rate': {'view': True, 'add': False, 'change': True, 'delete': False},
-}
+class SoftDeleteAdmin(admin.ModelAdmin):
+    actions = ['delete_selected']
 
-investor_permissions = {
-    'Vehicle':                      {'view': True, 'add': False, 'change': False, 'delete': False},
-    'CarEfficiency':                {'view': True, 'add': False, 'change': False, 'delete': False},
-    'VehicleSpending':              {'view': True, 'add': False, 'change': False, 'delete': False},
-    'TransactionConversation':      {'view': True, 'add': False, 'change': False, 'delete': False},
-}
+    def delete_selected(self, model, request, queryset):
+        # Soft-delete selected instances
+        now = timezone.now()
+        queryset.update(deleted_at=now)
 
-manager_permissions = {
-    'RentInformation':              {'view': True, 'add': False, 'change': False, 'delete': False},
-    'Payments':                     {'view': True, 'add': False, 'change': False, 'delete': False},
-    'SummaryReport':                {'view': True, 'add': False, 'change': False, 'delete': False},
-    'Driver':                       {'view': True, 'add': False, 'change': True, 'delete': False},
-    'Vehicle':                      {'view': True, 'add': False, 'change': False, 'delete': False},
-    'CarEfficiency':                {'view': True, 'add': False, 'change': False, 'delete': False},
-    'DriverEfficiency':             {'view': True, 'add': False, 'change': False, 'delete': False},
-    'VehicleSpending':              {'view': True, 'add': True, 'change': False, 'delete': False},
-}
+    def delete_view(self, request, object_id, extra_context=None):
+        obj = self.get_object(request, object_id)
+        if obj:
+            obj.deleted_at = timezone.now()
+            obj.save()
+        return redirect(f'admin:app_{self.model._meta.model_name}_changelist')
 
-group_permissions = {
-    'Partner': models,
-    'Investor': investor_permissions,
-    'Manager': manager_permissions
-}
+    def get_actions(self, request):
+        actions = super().get_actions(request)
+        actions['delete_selected'] = (
+            self.delete_selected, 'delete_selected', _(f"Видалити обрані {self.model._meta.verbose_name_plural}"))
+        return actions
+
+    # Override get_queryset to exclude soft-deleted instances by default
+    def get_queryset(self, request):
+        return super().get_queryset(request).exclude(deleted_at__isnull=False)
 
 
-def assign_model_permissions(group, permissions=None):
-    for model, permissions in permissions.items():
-        content_type = ContentType.objects.get(app_label='app', model__iexact=model)
-        model_permissions = Permission.objects.filter(content_type=content_type)
-
-        for permission, value in permissions.items():
-            codename = f'{permission}_{model.lower()}'
-            permission_obj = model_permissions.get(codename=codename)
-
-            if value and permission_obj not in group.permissions.all():
-                group.permissions.add(permission_obj)
-
-
-try:
-    for group_name, model_permissions in group_permissions.items():
-        group, created = Group.objects.get_or_create(name=group_name)
-        assign_model_permissions(group, model_permissions)
-except (ProgrammingError, ObjectDoesNotExist):
-    pass
-
-
-def filter_queryset_by_group(*groups, field_to_filter=None):
+def filter_queryset_by_group(*groups):
     def decorator(model_admin_class):
         class FilteredModelAdmin(model_admin_class):
             def get_queryset(self, request):
@@ -90,15 +52,11 @@ def filter_queryset_by_group(*groups, field_to_filter=None):
                 if request.user.groups.filter(name='Manager').exists():
                     try:
                         queryset = queryset.filter(manager__user=request.user)
-                        if field_to_filter is not None:
-                            queryset = queryset.filter(**{field_to_filter: True})
                     except FieldError:
                         pass
 
                 if request.user.groups.filter(name='Partner').exists():
                     queryset = queryset.filter(partner__user=request.user)
-                    if field_to_filter is not None:
-                        queryset = queryset.filter(**{field_to_filter: True})
 
                 return queryset
 
@@ -864,7 +822,7 @@ class ManagerAdmin(filter_queryset_by_group('Partner')(admin.ModelAdmin)):
 
 
 @admin.register(Driver)
-class DriverAdmin(filter_queryset_by_group('Partner', field_to_filter='worked')(admin.ModelAdmin)):
+class DriverAdmin(filter_queryset_by_group('Partner')(admin.ModelAdmin), SoftDeleteAdmin):
     search_fields = ('name', 'second_name')
     ordering = ('name', 'second_name')
     list_display_links = ('name', 'second_name')
@@ -959,6 +917,14 @@ class DriverAdmin(filter_queryset_by_group('Partner', field_to_filter='worked')(
                                                         )
 
         super().save_model(request, obj, form, change)
+
+
+@admin.register(FiredDriver)
+class FiredDriverAdmin(admin.ModelAdmin):
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.filter(deleted_at__isnull=False)
 
 
 @admin.register(Vehicle)
@@ -1129,7 +1095,7 @@ class FleetOrderAdmin(admin.ModelAdmin):
 
 
 @admin.register(Fleets_drivers_vehicles_rate)
-class Fleets_drivers_vehicles_rateAdmin(filter_queryset_by_group('Partner', field_to_filter='driver__worked')(admin.ModelAdmin)):
+class Fleets_drivers_vehicles_rateAdmin(filter_queryset_by_group('Partner')(admin.ModelAdmin)):
     list_filter = (FleetRelatedFilter,)
     readonly_fields = ('fleet', 'driver_external_id')
     list_per_page = 25

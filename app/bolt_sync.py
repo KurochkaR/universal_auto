@@ -183,7 +183,6 @@ class BoltRequest(Fleet, Synchronizer):
                     'licence_plate': '',
                     'vehicle_name': '',
                     'vin_code': '',
-                    'worked': True,
                 })
             time.sleep(0.5)
         return driver_list

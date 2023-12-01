@@ -112,7 +112,7 @@ def get_session(self, partner_pk, aggregator='Uber', login=None, password=None):
 def get_orders_from_fleets(self, partner_pk, day=None):
     fleets = Fleet.objects.filter(partner=partner_pk).exclude(name='Gps')
     day = get_day_for_task(day)
-    drivers = Driver.objects.filter(partner=partner_pk)
+    drivers = Driver.objects.get_active(partner=partner_pk)
     for fleet in fleets:
         if isinstance(fleet, UberRequest):
             try:
@@ -128,7 +128,7 @@ def get_orders_from_fleets(self, partner_pk, day=None):
 def check_orders_for_vehicle(self, partner_pk):
     day = timezone.localtime() - timedelta(days=1)
     orders = FleetOrder.objects.filter(accepted_time__date=day.date(), partner=partner_pk)
-    for driver in Driver.objects.filter(partner=partner_pk):
+    for driver in Driver.objects.get_active(partner=partner_pk):
         driver_orders = orders.filter(driver=driver)
         vehicles = check_reshuffle(driver, date=day)
         for vehicle, reshuffle in vehicles.items():
@@ -143,7 +143,7 @@ def check_orders_for_vehicle(self, partner_pk):
 def get_today_orders(self, partner_pk):
     fleets = Fleet.objects.filter(partner=partner_pk).exclude(name__in=('Gps', 'Uber'))
     day = timezone.localtime() - timedelta(minutes=5)
-    drivers = Driver.objects.filter(partner=partner_pk)
+    drivers = Driver.objects.get_active(partner=partner_pk)
     for fleet in fleets:
         for driver in drivers:
             fleet.get_fleet_orders(day, driver.pk)
@@ -203,7 +203,7 @@ def download_daily_report(self, partner_pk, day=None):
     for fleet in fleets:
         fleet.save_report(day)
     fleet_reports = Payments.objects.filter(report_from=day, partner=partner_pk)
-    for driver in Driver.objects.filter(partner=partner_pk):
+    for driver in Driver.objects.get_active(partner=partner_pk):
         payments = [r for r in fleet_reports if r.driver_id == driver.get_driver_external_id(r.vendor_name)]
         if payments:
             if not SummaryReport.objects.filter(report_from=day, driver=driver, partner=partner_pk):
@@ -293,7 +293,7 @@ def get_car_efficiency(self, partner_pk, day=None):
 @app.task(bind=True, queue='beat_tasks')
 def get_driver_efficiency(self, partner_pk, day=None):
     day = get_day_for_task(day)
-    for driver in Driver.objects.filter(partner=partner_pk, worked=True):
+    for driver in Driver.objects.get_active(partner=partner_pk):
         efficiency = DriverEfficiency.objects.filter(report_from=day,
                                                      partner=partner_pk,
                                                      driver=driver)
@@ -326,8 +326,9 @@ def get_driver_efficiency(self, partner_pk, day=None):
                 total_orders = orders.count()
                 if total_orders:
                     canceled = orders.filter(state=FleetOrder.DRIVER_CANCEL).count()
-                    accept = int((total_orders - canceled) / total_orders * 100) if canceled else 100
-                    avg_price = Decimal(total_kasa) / Decimal(total_orders)
+                    accepted_orders = total_orders - canceled
+                    accept = accepted_orders / total_orders * 100
+                    avg_price = Decimal(total_kasa) / Decimal(accepted_orders)
                 hours_online = timedelta()
                 using_info = UseOfCars.objects.filter(created_at__date=day, user_vehicle=driver)
                 start = timezone.datetime.combine(day, datetime.min.time()).astimezone()
@@ -370,7 +371,7 @@ def update_driver_status(self, partner_pk):
             logger.info(f"{fleet} {statuses}")
             status_online = status_online.union(set(statuses['wait']))
             status_with_client = status_with_client.union(set(statuses['with_client']))
-        drivers = Driver.objects.filter(partner=partner_pk)
+        drivers = Driver.objects.get_active(partner=partner_pk)
         for driver in drivers:
             active_order = Order.objects.filter(driver=driver, status_order=Order.IN_PROGRESS)
             work_ninja = UseOfCars.objects.filter(user_vehicle=driver, partner=partner_pk,
@@ -402,8 +403,6 @@ def update_driver_status(self, partner_pk):
 @app.task(bind=True, queue='bot_tasks')
 def update_driver_data(self, partner_pk, manager_id=None):
     try:
-        drivers = Driver.objects.filter(partner=partner_pk)
-        drivers.update(worked=False)
         fleets = Fleet.objects.filter(partner=partner_pk)
         for synchronization_class in fleets:
             synchronization_class.synchronize()
@@ -914,7 +913,7 @@ def save_report_to_ninja_payment(day, partner_pk, fleet_name='Ninja'):
     if reports:
         return reports
 
-    for driver in Driver.objects.filter(partner=partner_pk).exclude(chat_id=''):
+    for driver in Driver.objects.get_active(partner=partner_pk).exclude(chat_id=''):
         records = Order.objects.filter(driver__chat_id=driver.chat_id,
                                        status_order=Order.COMPLETED,
                                        created_at__date=day,
@@ -955,7 +954,7 @@ def calculate_driver_reports(self, partner_pk, daily=False):
         end = timezone.localtime().date() - timedelta(days=timezone.localtime().weekday() + 1)
         start = end - timedelta(days=6)
         calculation = SalaryCalculation.WEEK
-    for driver in Driver.objects.filter(schema__salary_calculation=calculation, partner=partner_pk):
+    for driver in Driver.objects.get_active(partner=partner_pk).filter(schema__salary_calculation=calculation):
         if DriverPayments.objects.filter(report_from=start,
                                          report_to=end,
                                          driver=driver).exists():
@@ -1006,7 +1005,7 @@ def calculate_driver_reports(self, partner_pk, daily=False):
 def calculate_vehicle_earnings(self, partner_pk, day=None):
     if not day:
         day = timezone.localtime() - timedelta(days=1)
-    drivers = Driver.objects.filter(partner=partner_pk, schema__isnull=False).select_related('partner')
+    drivers = Driver.objects.get_active(partner=partner_pk).filter(schema__isnull=False).select_related('partner')
     for driver in drivers:
         payment = DriverPayments.objects.filter(report_to=day, driver=driver, partner=driver.partner).first()
         if payment:
