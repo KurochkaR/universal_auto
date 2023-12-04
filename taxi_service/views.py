@@ -3,13 +3,15 @@ import os
 import jwt
 import json
 
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Q
 from django.urls import reverse
 from django.shortcuts import render, redirect
 from django.contrib.auth import login
 from django.contrib.auth.models import User as AuUser
 from django.core.paginator import Paginator
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, Http404
 from django.views.generic import View, TemplateView
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
@@ -111,8 +113,14 @@ class DriversView(TemplateView):
         return context
 
 
-class DashboardView(TemplateView):
+class DashboardView(LoginRequiredMixin, TemplateView):
     template_name = "dashboard.html"
+    login_url = "index"
+
+    def dispatch(self, request, *args, **kwargs):
+        if self.request.user.is_superuser:
+            return redirect(reverse('admin:index'))
+        return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

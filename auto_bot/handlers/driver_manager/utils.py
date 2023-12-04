@@ -1,5 +1,5 @@
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 
 from _decimal import Decimal
 from django.db.models import Sum, Avg, DecimalField, ExpressionWrapper, F
@@ -8,7 +8,25 @@ from django.utils import timezone
 
 from app.models import CarEfficiency, Driver, SummaryReport, Manager, \
     Vehicle, RentInformation, DriverEfficiency, Partner, Role, DriverSchemaRate, SalaryCalculation, \
-    DriverPayments
+    DriverPayments, Schema
+
+
+def get_time_for_task(schema, day=None):
+    """
+    Returns time periods
+    :param schema: pk of the schema
+    :param day: report day if needed
+    :type schema: int
+    :return: start, end, previous_start, previous_end
+    """
+    schema_obj = Schema.objects.get(pk=schema)
+    date = day.strftime("%Y-%m-%d") if day else timezone.localtime()
+    start = timezone.make_aware(datetime.combine(date, time.min))
+    yesterday = date - timedelta(days=1)
+    previous_end = timezone.make_aware(datetime.combine(yesterday, time.max))
+    end = timezone.make_aware(datetime.combine(date, schema_obj.shift_time))
+    previous_start = timezone.make_aware(datetime.combine(yesterday, schema_obj.shift_time))
+    return start, end, previous_start, previous_end
 
 
 def validate_date(date_str):
@@ -45,7 +63,7 @@ def get_drivers_vehicles_list(chat_id, cls):
 
 
 def calculate_rent(start, end, driver):
-    end_time = datetime.combine(end, datetime.max.time())
+    end_time = timezone.make_aware(datetime.combine(end, datetime.max.time()))
     total_rent = 0
     if driver.schema:
         rent_report = RentInformation.objects.filter(
@@ -88,18 +106,21 @@ def calculate_by_rate(driver, kasa):
     return driver_spending
 
 
-def get_daily_report(manager_id):
-    end = timezone.localtime().date() - timedelta(days=1)
-    if timezone.localtime().weekday():
-        start = timezone.localtime().date() - timedelta(days=timezone.localtime().weekday())
+def get_daily_report(manager_id, schema_obj=None):
+    drivers = get_drivers_vehicles_list(manager_id, Driver)[0]
+    if schema_obj:
+        report_time = datetime.combine(timezone.localtime().date(), schema_obj.shift_time)
+        drivers = drivers.filter(schema=schema_obj)
     else:
-        start = timezone.localtime().date() - timedelta(weeks=1)
+        report_time = timezone.localtime()
+    end = report_time - timedelta(days=1)
+    start = report_time - timedelta(days=report_time.weekday()) if report_time.weekday() else \
+        report_time - timedelta(weeks=1)
 
     total_values = {}
     day_values = {}
     rent_daily = {}
     total_rent = {}
-    drivers = get_drivers_vehicles_list(manager_id, Driver)[0]
     for driver in drivers:
         daily_report = calculate_daily_reports(end, end, driver)
         if daily_report:
@@ -111,19 +132,29 @@ def get_daily_report(manager_id):
     return sort_report, day_values, total_rent, rent_daily
 
 
-def generate_message_report(chat_id, daily=False):
-    if daily:
-        start = end = timezone.localtime().date() - timedelta(days=1)
-        calculation = SalaryCalculation.DAY
+def generate_message_report(chat_id, schema_id=None, daily=None):
+    drivers, user = get_drivers_vehicles_list(chat_id, Driver)
+    schema = Schema.objects.get(pk=schema_id)
+    if schema_id:
+        if schema.salary_calculation == SalaryCalculation.WEEK:
+            if not timezone.localtime().weekday():
+                start = timezone.localtime() - timedelta(weeks=1)
+                end = timezone.localtime() - timedelta(days=1)
+            else:
+                return
+        else:
+            end, start = get_time_for_task(schema_id)[1:3]
+        drivers = drivers.filter(schema=schema)
+    elif daily:
+        start = timezone.localtime()
+        end = start - timedelta(days=1)
     else:
-        end = timezone.localtime().date() - timedelta(days=timezone.localtime().weekday() + 1)
+        end = timezone.localtime() - timedelta(days=timezone.localtime().weekday() + 1)
         start = end - timedelta(days=6)
-        calculation = SalaryCalculation.WEEK
     message = ''
     drivers_dict = {}
     balance = 0
-    drivers, user = get_drivers_vehicles_list(chat_id, Driver)
-    for driver in drivers.filter(schema__salary_calculation=calculation):
+    for driver in drivers:
         payment = DriverPayments.objects.filter(report_from=start, report_to=end, driver=driver).first()
         driver_message = ''
         if payment:
@@ -152,9 +183,10 @@ def generate_message_report(chat_id, daily=False):
             message += driver_message
         if driver_message:
             message += "*" * 39 + '\n'
-    manager_message = f'Ваш баланс:%.2f\n' % balance
-    manager_message += message
-    if user:
+    if message and user:
+        manager_message = "Звіт з {0} по {1}\n".format(start.date(), end.date())
+        manager_message += f'Ваш баланс:%.2f\n' % balance
+        manager_message += message
         drivers_dict[user.chat_id] = manager_message
     return drivers_dict
 
@@ -293,17 +325,22 @@ def calculate_efficiency_driver(driver, start, end):
                 avg_price, aggregations['total_distance'], total_hours_formatted, driver_vehicles)
 
 
-def get_driver_efficiency_report(manager_id=None, start=None, end=None):
+def get_driver_efficiency_report(manager_id, schema=None, start=None, end=None):
+    drivers = get_drivers_vehicles_list(manager_id, Driver)[0]
     yesterday = timezone.localtime().date() - timedelta(days=1)
     if not start and not end:
-        if timezone.localtime().weekday():
-            start = timezone.localtime().date() - timedelta(days=timezone.localtime().weekday())
+        if schema:
+            report_time = datetime.combine(timezone.localtime().date(), schema.shift_time)
+            yesterday = report_time - timedelta(days=1)
+            drivers = drivers.filter(schema=schema)
         else:
-            start = timezone.localtime().date() - timedelta(weeks=1)
+            report_time = timezone.localtime()
         end = yesterday
+        start = report_time - timedelta(days=report_time.weekday()) if report_time.weekday() else \
+            report_time - timedelta(weeks=1)
     effective_driver = {}
     report = {}
-    drivers = get_drivers_vehicles_list(manager_id, Driver)[0]
+
     for driver in drivers:
         effect = calculate_efficiency_driver(driver, start, end)
         if effect:

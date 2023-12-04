@@ -21,6 +21,10 @@ from app.views import *
 from auto import settings
 from django.views.decorators.csrf import csrf_exempt
 
+admin.site.site_header = "Ninja Admin"
+admin.site.site_title = "Ninja Admin Portal"
+admin.site.index_title = "Welcome to Ninja Taxi"
+
 urlpatterns = [
     path('admin/', admin.site.urls, name='admin'),
     path('api/', include('api.urls')),

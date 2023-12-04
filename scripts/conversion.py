@@ -13,7 +13,6 @@ def convertion(coordinates: str):
     if is_negative:
         coordinates = coordinates[1:]
     index = 2 if len(coordinates) == 9 else 3
-
     degrees, minutes = coordinates[:index], coordinates[index:]
     result = float(degrees) + float(minutes) / 60
     if is_negative:
@@ -25,16 +24,16 @@ def convertion(coordinates: str):
 
 
 def haversine(lat1, lon1, lat2, lon2):
-    R = 6371  # Radius of the Earth in kilometers
-    dLat = radians(lat2 - lat1)
-    dLon = radians(lon2 - lon1)
+    r = 6371
+    diff_lat = radians(lat2 - lat1)
+    diff_lon = radians(lon2 - lon1)
     lat1 = radians(lat1)
     lat2 = radians(lat2)
 
-    a = sin(dLat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(dLon / 2) ** 2
+    a = sin(diff_lat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(diff_lon / 2) ** 2
     c = 2 * atan2(sqrt(a), sqrt(1 - a))
 
-    return R * c
+    return r * c
 
 
 city_boundaries = Polygon([(50.482433, 30.758250), (50.491685, 30.742045), (50.517374, 30.753721),
@@ -113,19 +112,23 @@ def get_address(latitude, longitude, api_key) -> str or None:
     # Checking for results and address
     if data['status'] == 'OK':
         return data['results'][0]['formatted_address']
-    else:
-        return None
 
 
-def get_addresses_by_radius(address, center_lat, center_lng, center_radius: int, api_key) -> list or None:
+def get_addresses_by_radius(address, center_coord, center_radius: int, api_key) -> list or None:
     """"Returns addresses by pattern {CITY_PARK} """
 
-    url = f"https://maps.googleapis.com/maps/api/place/autocomplete/json?input={address}&language=uk&" \
-          f"location={center_lat},{center_lng}&radius={center_radius}&key={api_key}"
+    url = "https://maps.googleapis.com/maps/api/place/autocomplete/json"
+    params = {
+        "input": address,
+        "language": "uk",
+        "location": center_coord,
+        "radius": center_radius,
+        "key": api_key
+    }
 
-    response = requests.get(url)
+    response = requests.get(url, params=params)
     data = response.json()
-    city_park = f"{ParkSettings.get_value('CITY_PARK')}"
+    city_park = ParkSettings.get_value('CITY_PARK')
     addresses = {}
     pattern = re.compile(rf".*({city_park}).*", re.IGNORECASE)
 
@@ -140,3 +143,21 @@ def get_addresses_by_radius(address, center_lat, center_lng, center_radius: int,
 
     return addresses
 
+
+def get_coordinates_from_place(address, api_key):
+    url = "https://maps.googleapis.com/maps/api/place/findplacefromtext/json"
+    params = {
+        'input': address,
+        'inputtype': 'textquery',
+        'fields': 'geometry',
+        'key': api_key,
+    }
+    response = requests.get(url, params=params)
+
+    if response.status_code == 200:
+        data = response.json()
+        geometry_info = data.get('candidates', [{}])[0].get('geometry', {})
+        latitude, longitude = geometry_info['location']['lat'], geometry_info['location']['lng']
+    else:
+        latitude, longitude = 0, 0
+    return latitude, longitude

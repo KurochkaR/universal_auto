@@ -1,6 +1,6 @@
 import pytest
 import datetime
-from app.models import Fleet, Fleets_drivers_vehicles_rate, Driver, Vehicle, Partner, AuUser, Role
+from app.models import Fleet, FleetsDriversVehiclesRate, Driver, Vehicle, Partner, AuUser, Role
 from selenium_ninja.synchronizer import Synchronizer
 from django.core.exceptions import MultipleObjectsReturned
 
@@ -107,7 +107,7 @@ def test_create_driver(synchronizer, fleet, partner, vehicle, driver):
     fleet = Fleet.objects.get(name=fleet)
     driver = Driver.objects.get(name=name, second_name=second_name, partner=partner.pk)
     vehicle = Vehicle.objects.get(licence_plate=licence_plate, partner=partner.pk)
-    fleets_drivers_vehicles_rate = Fleets_drivers_vehicles_rate.objects.get(
+    fleets_drivers_vehicles_rate = FleetsDriversVehiclesRate.objects.get(
         fleet=fleet, driver_external_id=driver_external_id, partner=partner.pk)
 
     assert fleets_drivers_vehicles_rate.driver == driver
@@ -293,4 +293,4 @@ def test_synchronize(synchronizer, monkeypatch):
 
     synchronizer.synchronize()
 
-    assert len(Fleets_drivers_vehicles_rate.objects.all()) == 0
+    assert len(FleetsDriversVehiclesRate.objects.all()) == 0
