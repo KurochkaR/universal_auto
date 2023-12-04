@@ -128,6 +128,9 @@ class DashboardView(TemplateView):
         context["get_all_vehicle"] = Vehicle.objects.filter(
             Q(manager__user=self.request.user) | Q(partner__user=self.request.user)
         )
+        context["get_all_driver"] = Driver.objects.filter(
+            Q(manager__user=self.request.user) | Q(partner__user=self.request.user), worked=True
+        )
         context["car_piggy_bank"] = CarsInformationListView.get_queryset(self)
 
         return context

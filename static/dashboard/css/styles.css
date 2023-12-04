@@ -1424,3 +1424,110 @@ select:focus {
 	font-weight: 400;
 	line-height: normal;
 }
+
+
+/* modal-shift */
+
+#modal-shift {
+	z-index: 999999999;
+	display: block;
+	position: fixed;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	border: 1px solid #ccc;
+	border-radius: 62px;
+	background-color: #fff;
+	width: 645px;
+	height: 380px;
+	box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+.modal-shift-title {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	background: #EC6323;
+	width: 97%;
+	border-radius: 62px;
+	padding: 10px;
+	margin-bottom: 10px;
+	margin-top: 0px;
+}
+
+.modal-shift-title h2 {
+	color: #FFF;
+	font-size: 25px;
+	font-style: normal;
+	font-weight: 700;
+	line-height: normal;
+	text-transform: uppercase;
+	margin-bottom: 15px;
+}
+
+.shift-time,
+.shift-driver-recurrence {
+	display: flex;
+	justify-content: space-between;
+	padding: 15px 65px;
+}
+
+.shift-start-time,
+.shift-end-time,
+.shift-driver,
+.recurrence {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+}
+
+.shift-start-time label,
+.shift-end-time label,
+.shift-driver label,
+.recurrence label {
+	color: #26392C;
+	font-size: 20px;
+	font-style: normal;
+	font-weight: 600;
+	line-height: normal;
+	margin-bottom: 5px;
+}
+
+.shift-start-time input,
+.shift-end-time input {
+	width: 92%;
+	padding: 5px;
+	border-radius: 62px;
+	border: 3px solid #A1E8B9;
+	background: #FFF;
+	margin-bottom: 20px;
+}
+
+.shift-driver select,
+.recurrence select {
+	width: 100%;
+	padding: 5px;
+	border-radius: 62px;
+	border: 3px solid #A1E8B9;
+	background: #FFF;
+	margin-bottom: 20px;
+}
+
+.shift-btn {
+	display: flex;
+	justify-content: flex-end;
+	margin: 10px 65px;
+}
+
+.shift-btn button {
+	padding: 5px 17px;
+	border-radius: 62px;
+	border: 3px solid #EC6323;
+	background: #EC6323;
+	color: #FFF;
+	font-size: 15px;
+	font-style: normal;
+	font-weight: 700;
+	line-height: normal;
+	cursor: pointer;
+}
