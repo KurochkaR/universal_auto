@@ -1,7 +1,7 @@
 import json
 import random
 import secrets
-from datetime import timedelta, date, datetime
+from datetime import timedelta, date, datetime, time
 from django.utils import timezone
 from django.core.mail import send_mail
 from django.contrib.auth.models import User
@@ -74,7 +74,7 @@ def restart_order(id_order, car_delivery_price, action):
 
 
 def get_dates(period=None):
-    current_date = timezone.localtime()
+    current_date = datetime.combine(timezone.localtime(), time.min)
 
     if period == 'yesterday':
         previous_date = current_date - timedelta(days=1)

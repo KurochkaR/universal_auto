@@ -15,7 +15,6 @@ from taxi_service.utils import get_start_end
 
 
 class SummaryReportListView(CombinedPermissionsMixin,
-                            ManagerFilterMixin,
                             generics.ListAPIView):
     serializer_class = SummaryReportSerializer
 
