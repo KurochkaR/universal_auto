@@ -52,6 +52,21 @@ class TransactionInvestorUserFilter(admin.SimpleListFilter):
             return queryset.filter(vehicle__id=int(value))
 
 
+class ChildModelFilter(admin.SimpleListFilter):
+    title = 'Child Service'
+    parameter_name = 'child_service'
+
+    def lookups(self, request, model_admin):
+        child_models = model_admin.child_models
+        return [(str(model.id), model.__name__) for model in child_models]
+
+    def queryset(self, request, queryset):
+        child_model_id = self.value()
+        if child_model_id:
+            return queryset.filter(polymorphic_ctype_id=child_model_id)
+        return queryset
+
+
 class VehicleManagerFilter(admin.SimpleListFilter):
     parameter_name = 'vehicle_manager_user'
     title = 'менеджером'
@@ -60,7 +75,7 @@ class VehicleManagerFilter(admin.SimpleListFilter):
         user = request.user
         queryset = Vehicle.objects.exclude(manager__isnull=True).select_related('manager', 'gps')
         if user.is_partner():
-            queryset = queryset.filter(partner=1)
+            queryset = queryset.filter(partner=user)
             manager_ids = queryset.values_list('manager_id', flat=True)
             manager_labels = [f'{item.manager.first_name} {item.manager.last_name}' for item in queryset]
             return set(zip(manager_ids, manager_labels))

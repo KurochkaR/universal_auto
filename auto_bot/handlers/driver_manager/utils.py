@@ -8,7 +8,7 @@ from django.utils import timezone
 
 from app.models import CarEfficiency, Driver, SummaryReport, Manager, \
     Vehicle, RentInformation, DriverEfficiency, Partner, Role, DriverSchemaRate, SalaryCalculation, \
-    DriverPayments
+    DriverPayments, CustomUser
 
 
 def validate_date(date_str):
@@ -33,14 +33,12 @@ def validate_sum(sum_str):
 
 def get_drivers_vehicles_list(chat_id, cls):
     objects = []
-    user = Manager.get_by_chat_id(chat_id)
-    if not user:
-        user = Partner.get_by_chat_id(chat_id)
-    if user:
-        if user.role == Role.DRIVER_MANAGER:
-            objects = cls.objects.filter(manager=user.pk)
-        elif user.role == Role.OWNER:
-            objects = cls.objects.filter(partner=user.pk)
+    user = CustomUser.get_by_chat_id(chat_id)
+
+    if user.is_manager():
+        objects = cls.objects.filter(manager=user.pk)
+    elif user.is_partner():
+        objects = cls.objects.filter(partner=user.pk)
     return objects, user
 
 

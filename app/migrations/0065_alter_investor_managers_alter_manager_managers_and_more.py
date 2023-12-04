@@ -13,6 +13,18 @@ def add_user_ptr(apps, schema_editor):
     CustomUser = apps.get_model('app', 'CustomUser')
     ParkSettings = apps.get_model('app', 'ParkSettings')
 
+    for obj in Partner.objects.all().order_by("id"):
+        name, passw = ParkSettings.objects.get(key="USERNAME", partner=obj.id).value, ParkSettings.objects.get(key="PASSWORD", partner=obj.id).value
+        user = CustomUser.objects.create_user(
+            username=name,
+            password=passw,
+            is_staff=True,
+            is_active=True,
+            is_superuser=False,
+        )
+        obj.user_ptr = user
+        obj.save()
+
     for obj in Investor.objects.all():
         user = CustomUser.objects.create_user(
             username=obj.email,
@@ -37,18 +49,6 @@ def add_user_ptr(apps, schema_editor):
             first_name=obj.first_name,
             last_name=obj.last_name,
             email=obj.email
-        )
-        obj.user_ptr = user
-        obj.save()
-
-    for obj in Partner.objects.all():
-        name, passw = ParkSettings.objects.get(key="USERNAME", partner=obj.id).value, ParkSettings.objects.get(key="PASSWORD", partner=obj.id).value
-        user = CustomUser.objects.create_user(
-            username=name,
-            password=passw,
-            is_staff=True,
-            is_active=True,
-            is_superuser=False,
         )
         obj.user_ptr = user
         obj.save()

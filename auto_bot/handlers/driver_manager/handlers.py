@@ -6,7 +6,7 @@ from telegram import ReplyKeyboardRemove
 from telegram.error import BadRequest
 
 from app.models import Manager, Vehicle, User, Driver, Fleets_drivers_vehicles_rate, Fleet, JobApplication, \
-    Payments, ParkSettings, VehicleSpending, Partner
+    Payments, ParkSettings, VehicleSpending, Partner, CustomUser
 from auto_bot.handlers.driver.static_text import BROKEN
 from auto_bot.handlers.driver_job.static_text import driver_job_name
 from auto_bot.handlers.driver_manager.keyboards import create_user_keyboard, role_keyboard, fleets_keyboard, \
@@ -114,9 +114,8 @@ def get_drivers_from_fleets(update, context):
 
 def get_earning_report(update, context):
     query = update.callback_query
-    manager = Manager.get_by_chat_id(update.effective_chat.id)
-    partner = Partner.get_by_chat_id(update.effective_chat.id)
-    drivers = Driver.objects.filter(manager=manager) if manager else Driver.objects.filter(partner=partner)
+    user = CustomUser.get_by_chat_id(update.effective_chat.id)
+    drivers = Driver.objects.filter(manager=user) if user.is_manager() else Driver.objects.filter(partner=user)
     if drivers:
         query.edit_message_text(choose_period_text)
         query.edit_message_reply_markup(inline_earning_report_kb('Get_statistic'))

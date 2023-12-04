@@ -35,6 +35,13 @@ class CustomUser(AbstractUser):
     def is_investor(self):
         return self.role == "INVESTOR"
 
+    @staticmethod
+    def get_by_chat_id(chat_id):
+        try:
+            return CustomUser.objects.get(chat_id=chat_id)
+        except ObjectDoesNotExist:
+            return None
+
 
 class SalaryCalculation(models.TextChoices):
     WEEK = 'WEEK', 'Тижневий'
@@ -74,14 +81,6 @@ class Partner(CustomUser):
     @classmethod
     def get_partner(cls, pk):
         return cls.objects.get(id=pk)
-
-    @staticmethod
-    def get_by_chat_id(chat_id):
-        try:
-            return Partner.objects.get(chat_id=chat_id)
-        except ObjectDoesNotExist:
-            return None
-
 
     class Meta:
         verbose_name = 'Власника'
@@ -213,15 +212,8 @@ class User(models.Model):
 
 
 class Manager(CustomUser):
-    # login = models.CharField(max_length=255, verbose_name='Логін')
-    # password = models.CharField(max_length=255, verbose_name='Пароль')
-    # first_name = models.CharField(max_length=255, verbose_name="Ім'я")
-    # last_name = models.CharField(max_length=255, verbose_name='Прізвище')
-    # email = models.EmailField(max_length=254, verbose_name='Електронна пошта')
     phone_number = models.CharField(max_length=13, blank=True, null=True, verbose_name='Номер телефона')
-    # chat_id = models.CharField(max_length=10, blank=True, null=True, verbose_name='Ідентифікатор чата')
     managers_partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
-
 
     class Meta:
         verbose_name = 'Менеджера'
@@ -246,12 +238,7 @@ class Manager(CustomUser):
 
 
 class Investor(CustomUser):
-    # password = models.CharField(max_length=255, verbose_name='Пароль')
-    # first_name = models.CharField(max_length=255, verbose_name="Ім'я")
-    # last_name = models.CharField(max_length=255, verbose_name='Прізвище')
-    # email = models.EmailField(max_length=254, verbose_name='Електронна пошта')
     phone_number = models.CharField(max_length=13, blank=True, null=True, verbose_name='Номер телефона')
-    # role = models.CharField(max_length=25, default=Role.INVESTOR, choices=Role.choices)
     investors_partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
 
     class Meta:

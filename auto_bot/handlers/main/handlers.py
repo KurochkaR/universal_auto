@@ -3,12 +3,10 @@ import traceback
 import html
 import os
 import rollbar
-
-from django.utils import timezone
 from telegram import BotCommand, Update, ParseMode, ReplyKeyboardRemove
 from telegram.ext import ConversationHandler
 from auto.tasks import health_check
-from app.models import User, Client, ParkSettings, Manager, UserBank, Partner
+from app.models import User, Client, ParkSettings, Manager, UserBank, Partner, CustomUser
 from auto_bot.handlers.main.keyboards import markup_keyboard, inline_user_kb, contact_keyboard, get_start_kb, \
     inline_owner_kb, inline_manager_kb, get_more_func_kb, inline_about_us
 import logging
@@ -30,9 +28,8 @@ def start(update, context):
     menu(update, context)
     UserBank.objects.get_or_create(chat_id=chat_id)
     clients = list(User.objects.filter(chat_id=chat_id))
-    managers = list(Manager.objects.filter(chat_id=chat_id))
-    partners = list(Partner.objects.filter(chat_id=chat_id))
-    users = clients + managers + partners
+    staff = list(CustomUser.objects.filter(chat_id=chat_id))
+    users = clients + staff
     if not users:
         Client.objects.create(chat_id=chat_id, name=update.message.from_user.first_name,
                               second_name=update.message.from_user.last_name)
@@ -63,9 +60,8 @@ def start_query(update, context):
     chat_id = str(update.effective_chat.id)
     redis_instance().delete(str(chat_id))
     clients = list(User.objects.filter(chat_id=chat_id))
-    managers = list(Manager.objects.filter(chat_id=chat_id))
-    partners = list(Partner.objects.filter(chat_id=chat_id))
-    users = clients + managers + partners
+    staff = list(CustomUser.objects.filter(chat_id=chat_id))
+    users = clients + staff
     if len(users) == 1:
         user = users[0]
         reply_markup = get_start_kb(user)
@@ -93,10 +89,7 @@ def more_function(update, context):
 
 def update_phone_number(update, context):
     chat_id = update.message.chat.id
-    user = Partner.objects.filter(chat_id=chat_id).first()
-
-    if user is None:
-        user = Manager.objects.filter(chat_id=chat_id).first()
+    user = CustomUser.objects.filter(chat_id=chat_id).first()
 
     if user is None:
         user = User.objects.filter(chat_id=chat_id).first()

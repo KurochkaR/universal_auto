@@ -8,7 +8,7 @@ from django.contrib.auth.models import User
 from django.forms.models import model_to_dict
 
 
-from app.models import SubscribeUsers
+from app.models import SubscribeUsers, Manager
 from taxi_service.forms import MainOrderForm, CommentForm
 from taxi_service.utils import (update_order_sum_or_status, restart_order,
                                 partner_logout, login_in_investor,
@@ -146,7 +146,11 @@ class PostRequestHandler:
 
     @staticmethod
     def handler_update_database(request):
-        partner = request.user.pk if request.user.is_partner() else request.user.managers_partner
+        if request.user.is_partner():
+            partner = request.user.pk
+        else:
+            manager = Manager.objects.get(pk=request.user.pk)
+            partner = manager.managers_partner.pk
         upd = update_driver_data.delay(partner)
         json_data = JsonResponse({'task_id': upd.id}, safe=False)
         response = HttpResponse(json_data, content_type='application/json')
