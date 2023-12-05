@@ -127,7 +127,9 @@ def get_orders_from_fleets(self, partner_pk, schema=None, day=None):
                 logger.error(e)
         else:
             for driver in drivers:
-                fleet.get_fleet_orders(start, end, driver.pk)
+                driver_id = driver.get_driver_external_id(fleet.name)
+                if driver_id:
+                    fleet.get_fleet_orders(start, end, driver.pk, driver_id)
 
 
 @app.task(bind=True, queue='beat_tasks')
@@ -155,7 +157,9 @@ def get_today_orders(self, partner_pk):
         if isinstance(fleet, UklonRequest) and end <= start:
             continue
         for driver in drivers:
-            fleet.get_fleet_orders(start, end, driver.pk)
+            driver_id = driver.get_driver_external_id(fleet.name)
+            if driver_id:
+                fleet.get_fleet_orders(start, end, driver.pk, driver_id)
 
 
 @app.task(bind=True, queue='beat_tasks')
@@ -204,8 +208,10 @@ def download_daily_report(self, partner_pk, schema, day=None):
     start, end = get_time_for_task(schema, day)[:2]
     fleets = Fleet.objects.filter(partner=partner_pk).exclude(name='Gps')
     for fleet in fleets:
-        fleet.save_report(start, end, schema)
-    save_report_to_ninja_payment(start, end, partner_pk, schema)
+        for driver in Driver.objects.filter(schema=schema):
+            driver_id = driver.get_driver_external_id(fleet.name)
+            if driver_id:
+                fleet.save_report(start, end, driver)
 
 
 @app.task(bind=True, queue='beat_tasks')
@@ -213,11 +219,14 @@ def download_nightly_report(self, partner_pk, schema, day=None):
     start, end = get_time_for_task(schema, day)[2:]
     fleets = Fleet.objects.filter(partner=partner_pk).exclude(name='Gps')
     for fleet in fleets:
-        if isinstance(fleet, UberRequest):
-            fleet.save_report(start, end, schema)
-        else:
-            fleet.save_report(start, end, schema, custom=True)
-    save_report_to_ninja_payment(start, end, partner_pk, schema)
+        for driver in Driver.objects.filter(schema=schema):
+            driver_id = driver.get_driver_external_id(fleet.name)
+            if driver_id:
+                if isinstance(fleet, UberRequest):
+                    fleet.save_report(start, end, driver)
+                else:
+                    fleet.save_report(start, end, driver, custom=True)
+    # save_report_to_ninja_payment(start, end, partner_pk, schema)
 
 
 @app.task(bind=True, queue='beat_tasks')
@@ -1097,9 +1106,9 @@ def get_information_from_fleets(self, partner_pk, schema, day=None):
         check_orders_for_vehicle.si(partner_pk, schema),
         generate_payments.si(partner_pk, schema, day),
         generate_summary_report.si(partner_pk, schema, day),
+        calculate_driver_reports.si(partner_pk, schema, day),
         get_driver_efficiency.si(partner_pk, schema, day),
         get_rent_information.si(partner_pk, schema, day),
-        calculate_driver_reports.si(partner_pk, schema, day),
         send_daily_statistic.si(partner_pk, schema),
         send_driver_efficiency.si(partner_pk, schema),
         send_driver_report.si(partner_pk, schema),
@@ -1143,7 +1152,7 @@ def update_schedule(self):
         else:
             schedule = get_schedule("08", "00")
         create_task('get_information_from_fleets', schema.partner.pk, schedule, schema.pk)
-        night_schedule = get_schedule("03", "59")
+        night_schedule = get_schedule("05", "59")
         create_task("download_nightly_report", schema.partner.pk, night_schedule, schema.pk)
 
 

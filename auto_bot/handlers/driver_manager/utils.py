@@ -141,18 +141,18 @@ def generate_message_report(chat_id, schema_id=None, daily=None):
     if schema_id:
         if schema.salary_calculation == SalaryCalculation.WEEK:
             if not timezone.localtime().weekday():
-                start = timezone.localtime().date() - timedelta(weeks=1)
-                end = timezone.localtime().date() - timedelta(days=1)
+                start = timezone.localtime() - timedelta(weeks=1)
+                end = timezone.localtime() - timedelta(days=1)
             else:
                 return
         else:
             end, start = get_time_for_task(schema_id)[1:3]
         drivers = drivers.filter(schema=schema)
     elif daily:
-        start = timezone.localtime().date()
+        start = timezone.localtime()
         end = start - timedelta(days=1)
     else:
-        end = timezone.localtime().date() - timedelta(days=timezone.localtime().weekday() + 1)
+        end = timezone.localtime() - timedelta(days=timezone.localtime().weekday() + 1)
         start = end - timedelta(days=6)
     message = ''
     drivers_dict = {}
