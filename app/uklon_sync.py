@@ -3,14 +3,13 @@ import secrets
 from datetime import datetime, time
 import requests
 from _decimal import Decimal
-from django.core.exceptions import ObjectDoesNotExist
 from django.utils import timezone
 from django.db import models
 from app.models import ParkSettings, FleetsDriversVehiclesRate, Driver, Service, FleetOrder, \
     CredentialPartner, Vehicle, PaymentTypes, CustomReport, Fleet
 from auto_bot.handlers.order.utils import check_vehicle
 from auto_bot.main import bot
-from scripts.redis_conn import redis_instance, get_logger
+from scripts.redis_conn import redis_instance
 from selenium_ninja.synchronizer import Synchronizer, AuthenticationError
 
 
@@ -193,23 +192,23 @@ class UklonRequest(Fleet, Synchronizer):
                 db_report.update(**report) if db_report else CustomReport.objects.create(**report)
 
     def get_drivers_status(self):
-        first_key, second_key = 'with_client', 'wait'
         drivers = {
-                first_key: [],
-                second_key: [],
+                'with_client': [],
+                'wait': [],
             }
         url = f"{Service.get_value('UKLON_5')}{self.uklon_id()}"
         url += Service.get_value('UKLON_6')
         data = self.response_data(url, params={'limit': '50', 'offset': '0'})
         for driver in data['data']:
-            first_data = (driver['last_name'], driver['first_name'])
-            second_data = (driver['first_name'], driver['last_name'])
+            name, second_name = driver['first_name'].split()[0], driver['last_name'].split()[0]
+            first_data = (second_name, name)
+            second_data = (name, second_name)
             if driver['status'] == 'Active':
-                drivers[f'{second_key}'].append(first_data)
-                drivers[f'{second_key}'].append(second_data)
+                drivers['wait'].append(first_data)
+                drivers['wait'].append(second_data)
             elif driver['status'] == 'OrderExecution':
-                drivers[f'{first_key}'].append(first_data)
-                drivers[f'{first_key}'].append(second_data)
+                drivers['with_client'].append(first_data)
+                drivers['with_client'].append(second_data)
         return drivers
 
     def get_drivers_table(self):
@@ -249,7 +248,7 @@ class UklonRequest(Fleet, Synchronizer):
             })
         return drivers
 
-    def get_fleet_orders(self, start, end, pk):
+    def get_fleet_orders(self, start, end, pk, driver_id):
         states = {"completed": FleetOrder.COMPLETED,
                   "Rider": FleetOrder.CLIENT_CANCEL,
                   "Driver": FleetOrder.DRIVER_CANCEL,
@@ -258,57 +257,55 @@ class UklonRequest(Fleet, Synchronizer):
                   }
 
         driver = Driver.objects.get(pk=pk)
-        driver_id = driver.get_driver_external_id(self.name)
-        if driver_id:
-            str_driver_id = driver_id.replace("-", "")
-            params = {"limit": 50,
-                      "fleetId": self.uklon_id(),
-                      "driverId": driver_id,
-                      "from": self.report_interval(start),
-                      "to": self.report_interval(end)
-                      }
-            orders = self.response_data(url=f"{Service.get_value('UKLON_1')}orders", params=params)
-            try:
-                for order in orders['items']:
-                    if order['status'] in ("running", "accepted", "arrived"):
-                        continue
-                    detail = self.response_data(url=f"{Service.get_value('UKLON_1')}orders/{order['id']}",
-                                                params={"driverId": str_driver_id})
-                    try:
-                        finish_time = timezone.make_aware(datetime.fromtimestamp(detail["completedAt"]))
-                    except KeyError:
-                        finish_time = None
-                    try:
-                        start_time = timezone.make_aware(datetime.fromtimestamp(detail["createdAt"]))
-                    except KeyError:
-                        start_time = None
-                    if order['status'] != "completed":
-                        state = order["cancellation"]["initiator"]
-                    else:
-                        state = order['status']
-                    vehicle = Vehicle.objects.get(licence_plate=order['vehicle']['licencePlate'])
-                    data = {"order_id": order['id'],
-                            "fleet": self.name,
-                            "driver": driver,
-                            "from_address": order['route']['points'][0]["address"],
-                            "accepted_time": start_time,
-                            "state": states.get(state),
-                            "finish_time": finish_time,
-                            "destination": order['route']['points'][-1]["address"],
-                            "vehicle": vehicle,
-                            "payment": PaymentTypes.map_payments(order['payment']['paymentType']),
-                            "price": order['payment']['cost'],
-                            "partner": self.partner
-                            }
-                    if check_vehicle(driver)[0] != vehicle:
-                        redis_instance().hset(f"wrong_vehicle_{self.partner}", pk, order['vehicle']['licencePlate'])
-                    obj, created = FleetOrder.objects.get_or_create(order_id=order['id'], defaults=data)
-                    if not created:
-                        for key, value in data.items():
-                            setattr(obj, key, value)
-                        obj.save()
-            except KeyError:
-                bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"), text=f"{orders}")
+        str_driver_id = driver_id.replace("-", "")
+        params = {"limit": 50,
+                  "fleetId": self.uklon_id(),
+                  "driverId": driver_id,
+                  "from": self.report_interval(start),
+                  "to": self.report_interval(end)
+                  }
+        orders = self.response_data(url=f"{Service.get_value('UKLON_1')}orders", params=params)
+        try:
+            for order in orders['items']:
+                if order['status'] in ("running", "accepted", "arrived"):
+                    continue
+                detail = self.response_data(url=f"{Service.get_value('UKLON_1')}orders/{order['id']}",
+                                            params={"driverId": str_driver_id})
+                try:
+                    finish_time = timezone.make_aware(datetime.fromtimestamp(detail["completedAt"]))
+                except KeyError:
+                    finish_time = None
+                try:
+                    start_time = timezone.make_aware(datetime.fromtimestamp(detail["createdAt"]))
+                except KeyError:
+                    start_time = None
+                if order['status'] != "completed":
+                    state = order["cancellation"]["initiator"]
+                else:
+                    state = order['status']
+                vehicle = Vehicle.objects.get(licence_plate=order['vehicle']['licencePlate'])
+                data = {"order_id": order['id'],
+                        "fleet": self.name,
+                        "driver": driver,
+                        "from_address": order['route']['points'][0]["address"],
+                        "accepted_time": start_time,
+                        "state": states.get(state),
+                        "finish_time": finish_time,
+                        "destination": order['route']['points'][-1]["address"],
+                        "vehicle": vehicle,
+                        "payment": PaymentTypes.map_payments(order['payment']['paymentType']),
+                        "price": order['payment']['cost'],
+                        "partner": self.partner
+                        }
+                if check_vehicle(driver)[0] != vehicle:
+                    redis_instance().hset(f"wrong_vehicle_{self.partner}", pk, order['vehicle']['licencePlate'])
+                obj, created = FleetOrder.objects.get_or_create(order_id=order['id'], defaults=data)
+                if not created:
+                    for key, value in data.items():
+                        setattr(obj, key, value)
+                    obj.save()
+        except KeyError:
+            bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"), text=f"{orders}")
 
     def disable_cash(self, driver_id, enable):
         url = f"{Service.get_value('UKLON_1')}{self.uklon_id()}"

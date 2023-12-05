@@ -127,7 +127,9 @@ def get_orders_from_fleets(self, partner_pk, schema=None, day=None):
                 logger.error(e)
         else:
             for driver in drivers:
-                fleet.get_fleet_orders(start, end, driver.pk)
+                driver_id = driver.get_driver_external_id(fleet.name)
+                if driver_id:
+                    fleet.get_fleet_orders(start, end, driver.pk, driver_id)
 
 
 @app.task(bind=True, queue='beat_tasks')
@@ -155,7 +157,9 @@ def get_today_orders(self, partner_pk):
         if isinstance(fleet, UklonRequest) and end <= start:
             continue
         for driver in drivers:
-            fleet.get_fleet_orders(start, end, driver.pk)
+            driver_id = driver.get_driver_external_id(fleet.name)
+            if driver_id:
+                fleet.get_fleet_orders(start, end, driver.pk, driver_id)
 
 
 @app.task(bind=True, queue='beat_tasks')
@@ -1122,7 +1126,7 @@ def update_schedule(self):
         else:
             schedule = get_schedule("08", "00")
         create_task('get_information_from_fleets', schema.partner.pk, schedule, schema.pk)
-        night_schedule = get_schedule("03", "59")
+        night_schedule = get_schedule("05", "59")
         create_task("download_nightly_report", schema.partner.pk, night_schedule, schema.pk)
 
 

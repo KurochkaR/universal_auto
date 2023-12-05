@@ -24,8 +24,9 @@ class PackageHandler:
     answer_bad_data = '#AD#-1\r\n'
     answer_ping = '#AP#\r\n'
 
-    def __init__(self):
+    def __init__(self, db_conn):
         self.imei = ''
+        self.conn = db_conn
 
     async def _l_handler(self, **kwargs):
         imei = kwargs['msg'].split(';')[0]
@@ -39,25 +40,20 @@ class PackageHandler:
         if self.imei and kwargs['msg']:
             imei,  client_ip, client_port = self.imei, kwargs['addr'][0], kwargs['addr'][1]
             data, created_at = kwargs['msg'], await sync_to_async(now)()
-            database_url = os.environ.get('DATABASE_URL')
-            conn = await asyncpg.connect(dsn=database_url)
             try:
                 query = """
                             INSERT INTO app_rawgps (imei, client_ip, client_port, data, created_at)
                             VALUES ($1, $2, $3, $4, $5)
                         """
-                await conn.execute(query, imei, client_ip, client_port, data, created_at)
-                obj_id = await conn.fetchval("SELECT lastval();")
+                await self.conn.execute(query, imei, client_ip, client_port, data, created_at)
+                obj_id = await self.conn.fetchval("SELECT lastval();")
                 obj_id = int(obj_id)
-                await conn.close()
                 raw_gps_handler.delay(obj_id)
 
                 return self.answer_data
             except (Exception, asyncpg.PostgresError) as error:
                 print("Error inserting GPS data:", error)
                 return self.answer_bad_data
-            finally:
-                await conn.close()
         else:
             return self.answer_bad_data
 
@@ -86,10 +82,10 @@ class PackageHandler:
             return self.answer_bad_data
 
 
-async def handle_connection(reader, writer):
+async def handle_connection(reader, writer, db_conn):
     addr = writer.get_extra_info("peername")
     logging.info(msg=f"Connected by {addr}")
-    ph = PackageHandler()
+    ph = PackageHandler(db_conn)
     while True:
         # Receive
         try:
@@ -112,7 +108,9 @@ async def handle_connection(reader, writer):
 
 
 async def main(host, port):
-    server = await asyncio.start_server(handle_connection, host, port)
+    database_url = os.environ.get('DATABASE_URL')
+    db_conn = await asyncpg.connect(dsn=database_url)
+    server = await asyncio.start_server(lambda r, w: handle_connection(r, w, db_conn), host, port)
     async with server:
         await server.serve_forever()
 

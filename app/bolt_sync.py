@@ -189,7 +189,7 @@ class BoltRequest(Fleet, Synchronizer):
             time.sleep(0.5)
         return driver_list
 
-    def get_fleet_orders(self, start, end, pk):
+    def get_fleet_orders(self, start, end, pk, driver_id):
         bolt_states = {
             "client_did_not_show": FleetOrder.CLIENT_CANCEL,
             "finished": FleetOrder.COMPLETED,
@@ -198,58 +198,56 @@ class BoltRequest(Fleet, Synchronizer):
             "driver_rejected": FleetOrder.DRIVER_CANCEL
         }
         driver = Driver.objects.get(pk=pk)
-        driver_id = driver.get_driver_external_id(self.name)
-        if driver_id:
-            format_start = start.strftime("%Y-%m-%d")
-            format_end = end.strftime("%Y-%m-%d")
-            payload = {
-                      "offset": 0,
-                      "limit": 50,
-                      "from_date": format_start,
-                      "to_date": format_end,
-                      "driver_id": driver_id,
-                      "orders_state_statuses": [
-                                                "client_did_not_show",
-                                                "finished",
-                                                "client_cancelled",
-                                                "driver_cancelled_after_accept",
-                                                "driver_rejected"
-                                                ]
-                    }
-            report = self.post_target_url(f'{self.base_url}getOrdersHistory', self.param(), payload)
-            time.sleep(0.5)
-            if report.get('data'):
-                for order in report['data']['rows']:
-                    try:
-                        finish = timezone.make_aware(
-                            datetime.fromtimestamp(order['order_stops'][-1]['arrived_at']))
-                    except TypeError:
-                        finish = None
-                    try:
-                        price = order['total_price']
-                    except KeyError:
-                        price = 0
-                    vehicle = Vehicle.objects.get(licence_plate=order['car_reg_number'])
-                    data = {"order_id": order['order_id'],
-                            "fleet": self.name,
-                            "driver": driver,
-                            "from_address": order['pickup_address'],
-                            "accepted_time": timezone.make_aware(datetime.fromtimestamp(order['accepted_time'])),
-                            "state": bolt_states.get(order['order_try_state']),
-                            "finish_time": finish,
-                            "payment": PaymentTypes.map_payments(order['payment_method']),
-                            "destination": order['order_stops'][-1]['address'],
-                            "vehicle": vehicle,
-                            "price": price,
-                            "partner": self.partner
-                            }
-                    if check_vehicle(driver)[0] != vehicle:
-                        redis_instance().hset(f"wrong_vehicle_{self.partner}", pk, order['car_reg_number'])
-                    obj, created = FleetOrder.objects.get_or_create(order_id=order['order_id'], defaults=data)
-                    if not created:
-                        for key, value in data.items():
-                            setattr(obj, key, value)
-                        obj.save()
+        format_start = start.strftime("%Y-%m-%d")
+        format_end = end.strftime("%Y-%m-%d")
+        payload = {
+                  "offset": 0,
+                  "limit": 50,
+                  "from_date": format_start,
+                  "to_date": format_end,
+                  "driver_id": driver_id,
+                  "orders_state_statuses": [
+                                            "client_did_not_show",
+                                            "finished",
+                                            "client_cancelled",
+                                            "driver_cancelled_after_accept",
+                                            "driver_rejected"
+                                            ]
+                }
+        report = self.post_target_url(f'{self.base_url}getOrdersHistory', self.param(), payload)
+        time.sleep(0.5)
+        if report.get('data'):
+            for order in report['data']['rows']:
+                try:
+                    finish = timezone.make_aware(
+                        datetime.fromtimestamp(order['order_stops'][-1]['arrived_at']))
+                except TypeError:
+                    finish = None
+                try:
+                    price = order['total_price']
+                except KeyError:
+                    price = 0
+                vehicle = Vehicle.objects.get(licence_plate=order['car_reg_number'])
+                data = {"order_id": order['order_id'],
+                        "fleet": self.name,
+                        "driver": driver,
+                        "from_address": order['pickup_address'],
+                        "accepted_time": timezone.make_aware(datetime.fromtimestamp(order['accepted_time'])),
+                        "state": bolt_states.get(order['order_try_state']),
+                        "finish_time": finish,
+                        "payment": PaymentTypes.map_payments(order['payment_method']),
+                        "destination": order['order_stops'][-1]['address'],
+                        "vehicle": vehicle,
+                        "price": price,
+                        "partner": self.partner
+                        }
+                if check_vehicle(driver)[0] != vehicle:
+                    redis_instance().hset(f"wrong_vehicle_{self.partner}", pk, order['car_reg_number'])
+                obj, created = FleetOrder.objects.get_or_create(order_id=order['order_id'], defaults=data)
+                if not created:
+                    for key, value in data.items():
+                        setattr(obj, key, value)
+                    obj.save()
 
     def get_drivers_status(self):
         with_client = []
