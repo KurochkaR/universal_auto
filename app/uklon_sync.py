@@ -37,7 +37,7 @@ class UklonRequest(Fleet, Synchronizer):
         payload = {
             'client_id': client_id,
             'contact': login,
-            'device_id': "38c13dc5-2ef3-4637-99f5-8de26b2e8216",
+            'device_id': "c16d1c46-61d9-443c-af02-f491bdcda103",
             'grant_type': "password_mfa",
             'password': password,
         }
@@ -57,7 +57,10 @@ class UklonRequest(Fleet, Synchronizer):
             redis_instance().set(f"{partner}_{self.name}_token", token)
             return token
         elif response.status_code == 429:
-            raise AuthenticationError(f"{self.name} service unavailable.")
+            if self.partner:
+                return self.create_session(self.partner.id)
+            else:
+                raise AuthenticationError(f"{self.name} service unavailable.")
         else:
             raise AuthenticationError(f"{self.name} login or password incorrect.")
 
@@ -68,14 +71,13 @@ class UklonRequest(Fleet, Synchronizer):
                        data: dict = None,
                        pjson: dict = None,
                        method: str = None):
-        if method == "POST":
-            response = requests.post(url=url, headers=headers, data=data, json=pjson, params=params)
-        elif method == "PUT":
-            response = requests.put(url=url, headers=headers, data=data, json=pjson, params=params)
-        elif method == "DELETE":
-            response = requests.delete(url=url, headers=headers, data=data, json=pjson, params=params)
-        else:
-            response = requests.get(url=url, headers=headers, data=data, json=pjson, params=params)
+        http_methods = {
+            "POST": requests.post,
+            "PUT": requests.put,
+            "DELETE": requests.delete,
+        }
+        http_method_function = http_methods.get(method, requests.get)
+        response = http_method_function(url=url, headers=headers, data=data, json=pjson, params=params)
         return response
 
     def response_data(self, url: str = None,
@@ -126,77 +128,69 @@ class UklonRequest(Fleet, Synchronizer):
 
         return nested_data
 
-    def save_report(self, start, end, schema, custom=None):
+    def save_report(self, start, end, driver, custom=None):
         if custom:
             start_time = datetime.combine(start, time.min)
         else:
             start_time = start
+        driver_id = driver.get_driver_external_id(self.name)
         param = {'dateFrom': self.report_interval(start_time),
                  'dateTo': self.report_interval(end),
-                 'limit': '50', 'offset': '0'
+                 'limit': '50', 'offset': '0',
+                 "driverId": driver_id
                  }
         url = f"{Service.get_value('UKLON_3')}{self.uklon_id()}"
         url += Service.get_value('UKLON_4')
         resp = self.response_data(url=url, params=param)
-        data = resp['items']
+        data = resp.get('items')
         if data:
             for i in data:
-                try:
-                    db_driver = FleetsDriversVehiclesRate.objects.get(driver_external_id=i['driver']['id'],
-                                                                      partner=self.partner).driver
-                except ObjectDoesNotExist:
-                    get_logger().error(self, i['driver']['id'])
-                    continue
-                driver_obj = Driver.objects.get(pk=db_driver)
-                if driver_obj.schema:
-                    if driver_obj.schema.pk != schema:
-                        continue
-                    vehicle = check_vehicle(db_driver, end, max_time=True)[0]
-                    distance = i.get('total_distance_meters', 0)
-                    report = {
-                        "report_from": start,
-                        "report_to": end,
-                        "vendor_name": self.name,
-                        "full_name": f"{i['driver']['first_name'].split()[0]} {i['driver']['last_name'].split()[0]}",
-                        "driver_id": i['driver']['id'],
-                        "total_rides": i.get('total_orders_count', 0),
-                        "total_distance": self.to_float(distance, div=1000),
-                        "total_amount_cash": self.find_value(i, *('profit', 'order', 'cash', 'amount')),
-                        "total_amount_on_card": self.find_value(i, *('profit', 'order', 'wallet', 'amount')),
-                        "total_amount": self.find_value(i, *('profit', 'order', 'total', 'amount')),
-                        "tips": self.find_value(i, *('profit', 'tips', 'amount')),
-                        "bonuses": float(0),
-                        "fares": float(0),
-                        "fee": self.find_value(i, *('loss', 'order', 'wallet', 'amount')),
-                        "total_amount_without_fee": self.find_value(i, *('profit', 'total', 'amount')),
-                        "partner": self.partner,
-                        "vehicle": vehicle
-                    }
-                    if custom:
-                        uklon_custom = CustomReport.objects.filter(report_from__date=start_time,
-                                                                   driver_id=i['driver']['id'],
-                                                                   vendor_name=self.name,
-                                                                   partner=self.partner).last()
-                        if uklon_custom:
-                            report.update({
-                                "total_rides": i.get('total_orders_count', 0) - uklon_custom.total_rides,
-                                "total_distance": self.to_float(distance, div=1000) - uklon_custom.total_distance,
-                                "total_amount_cash": (self.find_value(i, *('profit', 'order', 'cash', 'amount')) -
-                                                      uklon_custom.total_amount_cash),
-                                "total_amount_on_card": (self.find_value(i, *('profit', 'order', 'wallet', 'amount')) -
-                                                         uklon_custom.total_amount_on_card),
-                                "total_amount": (self.find_value(i, *('profit', 'order', 'total', 'amount')) -
-                                                 uklon_custom.total_amount),
-                                "tips": self.find_value(i, *('profit', 'tips', 'amount')) - uklon_custom.tips,
-                                "fee": self.find_value(i, *('loss', 'order', 'wallet', 'amount')) - uklon_custom.fee,
-                                "total_amount_without_fee": (self.find_value(i, *('profit', 'total', 'amount')) -
-                                                             uklon_custom.total_amount_without_fee),
-                            })
-                    db_report = CustomReport.objects.filter(report_from=start,
-                                                            driver_id=i['driver']['id'],
-                                                            vendor_name=self.name,
-                                                            partner=self.partner)
-                    db_report.update(**report) if db_report else CustomReport.objects.create(**report)
+                vehicle = check_vehicle(driver, end, max_time=True)[0]
+                distance = i.get('total_distance_meters', 0)
+                report = {
+                    "report_from": start,
+                    "report_to": end,
+                    "vendor_name": self.name,
+                    "full_name": f"{i['driver']['first_name'].split()[0]} {i['driver']['last_name'].split()[0]}",
+                    "driver_id": i['driver']['id'],
+                    "total_rides": i.get('total_orders_count', 0),
+                    "total_distance": self.to_float(distance, div=1000),
+                    "total_amount_cash": self.find_value(i, *('profit', 'order', 'cash', 'amount')),
+                    "total_amount_on_card": self.find_value(i, *('profit', 'order', 'wallet', 'amount')),
+                    "total_amount": self.find_value(i, *('profit', 'order', 'total', 'amount')),
+                    "tips": self.find_value(i, *('profit', 'tips', 'amount')),
+                    "bonuses": float(0),
+                    "fares": float(0),
+                    "fee": self.find_value(i, *('loss', 'order', 'wallet', 'amount')),
+                    "total_amount_without_fee": self.find_value(i, *('profit', 'total', 'amount')),
+                    "partner": self.partner,
+                    "vehicle": vehicle
+                }
+                if custom:
+                    uklon_custom = CustomReport.objects.filter(report_from__date=start_time,
+                                                               driver_id=i['driver']['id'],
+                                                               vendor_name=self.name,
+                                                               partner=self.partner).last()
+                    if uklon_custom:
+                        report.update({
+                            "total_rides": i.get('total_orders_count', 0) - uklon_custom.total_rides,
+                            "total_distance": self.to_float(distance, div=1000) - uklon_custom.total_distance,
+                            "total_amount_cash": (self.find_value(i, *('profit', 'order', 'cash', 'amount')) -
+                                                  uklon_custom.total_amount_cash),
+                            "total_amount_on_card": (self.find_value(i, *('profit', 'order', 'wallet', 'amount')) -
+                                                     uklon_custom.total_amount_on_card),
+                            "total_amount": (self.find_value(i, *('profit', 'order', 'total', 'amount')) -
+                                             uklon_custom.total_amount),
+                            "tips": self.find_value(i, *('profit', 'tips', 'amount')) - uklon_custom.tips,
+                            "fee": self.find_value(i, *('loss', 'order', 'wallet', 'amount')) - uklon_custom.fee,
+                            "total_amount_without_fee": (self.find_value(i, *('profit', 'total', 'amount')) -
+                                                         uklon_custom.total_amount_without_fee),
+                        })
+                db_report = CustomReport.objects.filter(report_from=start,
+                                                        driver_id=i['driver']['id'],
+                                                        vendor_name=self.name,
+                                                        partner=self.partner)
+                db_report.update(**report) if db_report else CustomReport.objects.create(**report)
 
     def get_drivers_status(self):
         first_key, second_key = 'with_client', 'wait'

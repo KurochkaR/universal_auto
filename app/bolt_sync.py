@@ -91,79 +91,72 @@ class BoltRequest(Fleet, Synchronizer):
         response = requests.post(url, json=json, params=params, headers=headers)
         return response.json()
 
-    def save_report(self, start, end, schema, custom=None):
+    def save_report(self, start, end, driver, custom=None):
+        time.sleep(0.5)
         format_start = start.strftime("%Y-%m-%d")
         format_end = end.strftime("%Y-%m-%d")
         param = self.param()
         if not custom:
             param.update({"period": "ongoing_day",
+                          "search": str(driver),
                           "offset": 0,
                           "limit": 50})
             reports = self.get_target_url(f'{self.base_url}getDriverEarnings/recent', param)
         else:
             param.update({"start_date": format_start,
                           "end_date": format_end,
+                          "search": str(driver),
                           "offset": 0,
                           "limit": 50})
             reports = self.get_target_url(f'{self.base_url}getDriverEarnings/dateRange', param)
-        for driver in reports['data']['drivers']:
-            try:
-                db_driver = FleetsDriversVehiclesRate.objects.get(driver_external_id=driver['id'],
-                                                                  partner=self.partner).driver
-            except ObjectDoesNotExist:
-                get_logger().error(self, driver['id'])
-                continue
-            driver_obj = Driver.objects.get(pk=db_driver)
-            if driver_obj.schema:
-                if driver_obj.schema.pk != schema:
-                    continue
-                rides = FleetOrder.objects.filter(fleet=self.name,
-                                                  accepted_time__gte=start,
-                                                  state=FleetOrder.COMPLETED,
-                                                  driver=db_driver).count()
-                vehicle = check_vehicle(db_driver, end, max_time=True)[0]
-                report = {
-                    "report_from": start,
-                    "report_to": end,
-                    "vendor_name": self.name,
-                    "full_name": driver['name'],
-                    "driver_id": driver['id'],
-                    "total_amount_cash": driver['cash_in_hand'],
-                    "total_amount": driver['gross_revenue'],
-                    "tips": driver['tips'],
-                    "partner": self.partner,
-                    "bonuses": driver['bonuses'],
-                    "cancels": driver['cancellation_fees'],
-                    "fee": -(driver['gross_revenue'] - driver['net_earnings']),
-                    "total_amount_without_fee": driver['net_earnings'],
-                    "compensations": driver['compensations'],
-                    "refunds": driver['expense_refunds'],
-                    "total_rides": rides,
-                    "vehicle": vehicle
-                }
-                if custom:
-                    bolt_custom = CustomReport.objects.filter(report_from__date=start,
-                                                              driver_id=driver['id'],
-                                                              vendor_name=self.name,
-                                                              partner=self.partner).last()
-                    if bolt_custom:
-                        report.update(
-                            {"total_amount_cash": driver['cash_in_hand'] - bolt_custom.total_amount_cash,
-                             "total_amount": driver['gross_revenue'] - bolt_custom.total_amount,
-                             "tips": driver['tips'] - bolt_custom.tips,
-                             "bonuses": driver['bonuses'] - bolt_custom.bonuses,
-                             "cancels": driver['cancellation_fees'] - bolt_custom.cancels,
-                             "fee": Decimal(-(driver['gross_revenue'] - driver['net_earnings'])) + bolt_custom.fee,
-                             "total_amount_without_fee": Decimal(
-                                 driver['net_earnings']) - bolt_custom.total_amount_without_fee,
-                             "compensations": Decimal(driver['compensations']) - bolt_custom.compensations,
-                             "refunds": Decimal(driver['expense_refunds']) - bolt_custom.refunds,
-                             })
-                db_report = CustomReport.objects.filter(report_from=start,
-                                                        driver_id=driver['id'],
-                                                        vendor_name=self.name,
-                                                        partner=self.partner)
-                db_report.update(**report) if db_report else CustomReport.objects.create(**report)
+        for driver_report in reports['data']['drivers']:
+            rides = FleetOrder.objects.filter(fleet=self.name,
+                                              accepted_time__gte=start,
+                                              state=FleetOrder.COMPLETED,
+                                              driver=driver).count()
+            vehicle = check_vehicle(driver, end, max_time=True)[0]
+            report = {
+                "report_from": start,
+                "report_to": end,
+                "vendor_name": self.name,
+                "full_name": driver_report['name'],
+                "driver_id": driver_report['id'],
+                "total_amount_cash": driver_report['cash_in_hand'],
+                "total_amount": driver_report['gross_revenue'],
+                "tips": driver_report['tips'],
+                "partner": self.partner,
+                "bonuses": driver_report['bonuses'],
+                "cancels": driver_report['cancellation_fees'],
+                "fee": -(driver_report['gross_revenue'] - driver_report['net_earnings']),
+                "total_amount_without_fee": driver_report['net_earnings'],
+                "compensations": driver_report['compensations'],
+                "refunds": driver_report['expense_refunds'],
+                "total_rides": rides,
+                "vehicle": vehicle
+            }
+            if custom:
+                bolt_custom = CustomReport.objects.filter(report_from__date=start,
+                                                          driver_id=driver_report['id'],
+                                                          vendor_name=self.name,
+                                                          partner=self.partner).last()
+                if bolt_custom:
+                    report.update(
+                        {"total_amount_cash": driver_report['cash_in_hand'] - bolt_custom.total_amount_cash,
+                         "total_amount": driver_report['gross_revenue'] - bolt_custom.total_amount,
+                         "tips": driver_report['tips'] - bolt_custom.tips,
+                         "bonuses": driver_report['bonuses'] - bolt_custom.bonuses,
+                         "cancels": driver_report['cancellation_fees'] - bolt_custom.cancels,
+                         "fee": Decimal(-(driver_report['gross_revenue'] - driver_report['net_earnings'])) + bolt_custom.fee,
+                         "total_amount_without_fee": Decimal(
+                             driver_report['net_earnings']) - bolt_custom.total_amount_without_fee,
+                         "compensations": Decimal(driver_report['compensations']) - bolt_custom.compensations,
+                         "refunds": Decimal(driver_report['expense_refunds']) - bolt_custom.refunds,
+                         })
+            db_report = CustomReport.objects.filter(report_from=start,
+                                                    driver_id=driver_report['id'],
+                                                    vendor_name=self.name,
+                                                    partner=self.partner)
+            db_report.update(**report) if db_report else CustomReport.objects.create(**report)
 
     def get_drivers_table(self):
         driver_list = []

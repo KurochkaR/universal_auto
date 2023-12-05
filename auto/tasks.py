@@ -204,8 +204,10 @@ def download_daily_report(self, partner_pk, schema, day=None):
     start, end = get_time_for_task(schema, day)[:2]
     fleets = Fleet.objects.filter(partner=partner_pk).exclude(name='Gps')
     for fleet in fleets:
-        print(fleet)
-        fleet.save_report(start, end, schema)
+        for driver in Driver.objects.filter(schema=schema):
+            driver_id = driver.get_driver_external_id(fleet.name)
+            if driver_id:
+                fleet.save_report(start, end, driver)
 
 
 @app.task(bind=True, queue='beat_tasks')
@@ -213,11 +215,13 @@ def download_nightly_report(self, partner_pk, schema, day=None):
     start, end = get_time_for_task(schema, day)[2:]
     fleets = Fleet.objects.filter(partner=partner_pk).exclude(name='Gps')
     for fleet in fleets:
-        print(fleet)
-        if isinstance(fleet, UberRequest):
-            fleet.save_report(start, end, schema)
-        else:
-            fleet.save_report(start, end, schema, custom=True)
+        for driver in Driver.objects.filter(schema=schema):
+            driver_id = driver.get_driver_external_id(fleet.name)
+            if driver_id:
+                if isinstance(fleet, UberRequest):
+                    fleet.save_report(start, end, driver)
+                else:
+                    fleet.save_report(start, end, driver, custom=True)
     # save_report_to_ninja_payment(start, end, partner_pk, schema)
 
 
