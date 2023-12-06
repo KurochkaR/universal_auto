@@ -1467,13 +1467,29 @@ select:focus {
 }
 
 .modal-shift-title h2 {
+	margin-left: 15px;
 	color: #FFF;
 	font-size: 25px;
 	font-style: normal;
 	font-weight: 700;
 	line-height: normal;
 	text-transform: uppercase;
-	margin-bottom: 15px;
+	margin-bottom: 20px;
+}
+
+.modal-shift-date {
+	margin-left: -200px;
+	color: #FFF;
+	font-family: Open Sans;
+	font-size: 15px;
+	font-style: normal;
+	font-weight: 600;
+	line-height: normal;
+}
+
+.shift-close-btn {
+	margin-right: 15px;
+	cursor: pointer;
 }
 
 .shift-time,
@@ -1483,19 +1499,17 @@ select:focus {
 	padding: 15px 65px;
 }
 
-.shift-start-time,
-.shift-end-time,
-.shift-driver,
-.recurrence {
+.shift-start-time, .shift-end-time,
+.shift-driver, .recurrence,
+.shift-vehicle {
 	display: flex;
 	flex-direction: column;
 	align-items: flex-start;
 }
 
-.shift-start-time label,
-.shift-end-time label,
-.shift-driver label,
-.recurrence label {
+.shift-start-time label, .shift-end-time label,
+.shift-driver label, .recurrence label,
+.shift-vehicle label {
 	color: #26392C;
 	font-size: 20px;
 	font-style: normal;
@@ -1515,7 +1529,8 @@ select:focus {
 }
 
 .shift-driver select,
-.recurrence select {
+.recurrence select,
+.shift-vehicle select {
 	width: 100%;
 	padding: 5px;
 	border-radius: 62px;
@@ -1524,13 +1539,14 @@ select:focus {
 	margin-bottom: 20px;
 }
 
-.shift-btn {
+.shift-btn-box {
 	display: flex;
 	justify-content: flex-end;
 	margin: 10px 65px;
 }
 
-.shift-btn button {
+.shift-btn-box button {
+	margin-left: 20px;
 	padding: 5px 17px;
 	border-radius: 62px;
 	border: 3px solid #EC6323;
@@ -1541,4 +1557,13 @@ select:focus {
 	font-weight: 700;
 	line-height: normal;
 	cursor: pointer;
+}
+
+.shift-btn-box .delete-btn,
+.shift-btn-box .upd-btn {
+	display: none;
+}
+
+.shift-vehicle {
+	display: none;
 }

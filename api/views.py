@@ -12,8 +12,8 @@ from rest_framework.response import Response
 
 from api.mixins import CombinedPermissionsMixin, ManagerFilterMixin, InvestorFilterMixin
 from api.serializers import SummaryReportSerializer, CarEfficiencySerializer, CarDetailSerializer, \
-    DriverEfficiencyRentSerializer, InvestorCarsSerializer
-from app.models import SummaryReport, CarEfficiency, Vehicle, DriverEfficiency, RentInformation
+    DriverEfficiencyRentSerializer, InvestorCarsSerializer, ReshuffleSerializer
+from app.models import SummaryReport, CarEfficiency, Vehicle, DriverEfficiency, RentInformation, DriverReshuffle
 from taxi_service.utils import get_start_end
 
 
@@ -214,7 +214,6 @@ class DriverReshuffleListView(CombinedPermissionsMixin, generics.ListAPIView):
                 "reshuffles": reshuffles
             }
             reshuffles_list.append(reshuffle_data)
-        print(reshuffles_list)
         return reshuffles_list
 
     def list(self, request, *args, **kwargs):

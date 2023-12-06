@@ -159,6 +159,21 @@ class PostRequestHandler:
         response = HttpResponse(json_data, content_type='application/json')
         return response
 
+    def handler_add_shift(self, request):
+        print(request.POST)
+
+        return JsonResponse({}, status=200)
+
+    def handler_delete_shift(self, request):
+        print(request.POST)
+
+        return JsonResponse({}, status=200)
+
+    def handler_update_shift(self, request):
+        print(request.POST)
+
+        return JsonResponse({}, status=200)
+
     def handler_unknown_action(self, request):
         return JsonResponse({}, status=400)
 

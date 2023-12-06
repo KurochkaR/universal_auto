@@ -869,7 +869,7 @@ $(document).ready(function () {
 		$('.common-period').hide();
 		$('#datePicker').hide()
 		$('#sidebar').removeClass('sidebar-responsive');
-		$('.main-title h2').text(gettext('Календар-зміни'));
+		$('.main-title h2').text(gettext('Розклад водіїв'));
 
 		const today = new Date();
 		const daysToShow = 14;
@@ -1197,6 +1197,153 @@ $(document).ready(function () {
 					});
 				});
 			});
+
+
+			function updShiftForm(clickedDayId, calendarId, dataName, startTime, endTime) {
+				console.log(clickedDayId, calendarId, dataName, startTime, endTime)
+				$('.modal-shift-date').text(clickedDayId);
+				const shiftForm = $('#modal-shift');
+				const shiftBtn = $('.shift-btn').hide();
+				const deleteBtn = $('.delete-btn').show();
+				const updBtn = $('.upd-btn').show();
+				const shiftVehicle = $('.shift-vehicle').show();
+				shiftForm.show();
+
+				deleteBtn.on('click', function (e) {
+					e.preventDefault();
+					$.ajax({
+						url: ajaxPostUrl,
+						type: 'POST',
+						data: {
+							action: 'delete_shift',
+							vehicle_licence: calendarId,
+							date: clickedDayId,
+							csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
+						},
+						success: function (response) {
+						console.log("response", response);
+						},
+					});
+					console.log('Видалити зміну водія на ' + clickedDayId + ' в календарі ' + calendarId);
+					shiftForm.hide();
+					shiftBtn.off('click');
+					deleteBtn.off('click');
+					updBtn.off('click');
+				});
+
+				updBtn.on('click', function (e) {
+					e.preventDefault();
+					const startTime = $('#startTime').val();
+					const endTime = $('#endTime').val();
+					const selectedDriverId = $('#shift-driver').val();
+					const recurrence = $('#recurrence').val();
+
+					$.ajax({
+						url: ajaxPostUrl,
+						type: 'POST',
+						data: {
+							action: 'update_shift',
+							vehicle_licence: calendarId,
+							date: clickedDayId,
+							start_time: startTime,
+							end_time: endTime,
+							driver_id: selectedDriverId,
+							recurrence: recurrence,
+							csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
+						},
+						success: function (response) {
+						console.log("response", response);
+						},
+					});
+					console.log('Оновити зміну водія ' + selectedDriverId + ' на ' + clickedDayId + ' в календарі ' + calendarId);
+					shiftForm.hide();
+					shiftBtn.off('click');
+					deleteBtn.off('click');
+					updBtn.off('click');
+				});
+			}
+
+
+			function openShiftForm(clickedDayId, calendarId) {
+				$('.modal-shift-date').text(clickedDayId);
+				const shiftForm = $('#modal-shift');
+				const shiftBtn = $('.shift-btn').show();
+				const deleteBtn = $('.delete-btn').hide();
+				const updBtn = $('.upd-btn').hide();
+				const shiftVehicle = $('.shift-vehicle').hide();
+				shiftForm.show();
+
+
+				shiftBtn.on('click', function (e) {
+					e.preventDefault();
+					const startTime = $('#startTime').val();
+					const endTime = $('#endTime').val();
+					const selectedDriverId = $('#shift-driver').val();
+					const recurrence = $('#recurrence').val();
+
+					$.ajax({
+						url: ajaxPostUrl,
+						type: 'POST',
+						data: {
+							action: 'add_shift',
+							vehicle_licence: calendarId,
+							date: clickedDayId,
+							start_time: startTime,
+							end_time: endTime,
+							driver_id: selectedDriverId,
+							recurrence: recurrence,
+							csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
+						},
+						success: function (response) {
+						console.log(response);
+						},
+					});
+					console.log('Додати зміну водія ' + selectedDriverId + ' на ' + clickedDayId + ' в календарі ' + calendarId);
+					shiftForm.hide();
+					shiftBtn.off('click');
+				});
+			}
+
+			const calendarContainers = $('.calendar-container');
+
+			calendarContainers.each(function() {
+				const calendarDetail = $(this).find('.calendar-detail');
+				let photoClicked = false;
+
+				calendarDetail.on('click', '.calendar-card', function() {
+					let photoClicked = false;
+					const clickedCard = $(this);
+					const clickedDayId = clickedCard.attr('id');
+					const calendarId = clickedCard.closest('.calendar-container').attr('id');
+
+					if (clickedCard.hasClass('yesterday')) {
+						return;
+					} else if (!photoClicked) {
+						openShiftForm(clickedDayId, calendarId);
+					}
+				});
+
+				calendarDetail.on('click', '.driver-photo', function(event) {
+					event.stopPropagation();
+					const clickedCard = $(this).closest('.calendar-card');
+					const clickedDayId = clickedCard.attr('id');
+					const calendarId = clickedCard.closest('.calendar-container').attr('id');
+
+					const driverPhoto = $(this).find('img');
+					const photoSrc = driverPhoto.attr('src');
+
+					if (photoSrc.endsWith('logo-2.svg')) {
+						photoClicked = true;
+						openShiftForm(clickedDayId, calendarId);
+					} else {
+						const driverInfo = $(this).find('.driver-info-reshuffle');
+						const dataName = driverInfo.find('.driver-name').text();
+						const startTime = driverInfo.find('.driver-time').text().split(' - ')[0];
+						const endTime = driverInfo.find('.driver-time').text().split(' - ')[1];
+						updShiftForm(clickedDayId, calendarId, dataName, startTime, endTime);
+					}
+				});
+			});
 		}
 
 		apiUrl = `/api/reshuffle/${formattedStartDate}/${formattedEndDate}/`;
@@ -1226,4 +1373,8 @@ $(document).ready(function () {
       timeList.appendChild(option);
     }
   }
+
+  $('.shift-close-btn').click(function () {
+  	$('#modal-shift').hide();
+  });
 });

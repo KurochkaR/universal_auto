@@ -389,6 +389,7 @@
     <div id="modal-shift">
       <div class="modal-shift-title">
         <h2>{% trans "Створення зміни" %}</h2>
+        <span class="modal-shift-date"></span>
         <span class="shift-close-btn">
           <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28" fill="none">
             <path d="M26.5 2L14.25 14.25M2 26.5L14.25 14.25M14.25 14.25L2 2L26.5 26.5" stroke="white" stroke-width="3" stroke-linejoin="round"/>
@@ -405,6 +406,17 @@
             <label for="endTime">{% trans "Час закінчення" %}</label>
             <input type="text" id="endTime" list="timeList" value="23:59">
           </div>
+          <div class="recurrence">
+            <label for="recurrence">{% trans "Циклічність" %}</label>
+            <select id="recurrence">
+              <option value="once">------</option>
+              <option value="daily">{% trans "Щоденно" %}</option>
+              <option value="everyOtherDay">{% trans "Кожен другий день" %}</option>
+              <option value="every2Days">{% trans "Кожні 2 дні" %}</option>
+              <option value="every3Days">{% trans "Кожні 3 дні" %}</option>
+              <option value="every4Days">{% trans "Кожні 4 дні" %}</option>
+            </select>
+          </div>
           <datalist id="timeList"></datalist>
         </div>
         <div class="shift-driver-recurrence">
@@ -416,19 +428,19 @@
               {% endfor %}
             </select>
           </div>
-          <div class="recurrence">
-            <label for="recurrence">{% trans "Циклічність" %}</label>
-            <select id="recurrence">
-              <option value="daily">{% trans "Щоденно" %}</option>
-              <option value="everyOtherDay">{% trans "Кожен другий день" %}</option>
-              <option value="every2Days">{% trans "Кожні 2 дні" %}</option>
-              <option value="every3Days">{% trans "Кожні 3 дні" %}</option>
-              <option value="every4Days">{% trans "Кожні 4 дні" %}</option>
+          <div class="shift-vehicle">
+            <label for="shift-vehicle">{% trans "Автомобіль" %}</label>
+            <select id="shift-vehicle">
+              {% for vehicle in get_all_vehicle %}
+              <option value="{{ vehicle.id }}">{{ vehicle }}</option>
+              {% endfor %}
             </select>
           </div>
         </div>
-        <div class="shift-btn">
-          <button>{% trans "Створити зміну" %}</button>
+        <div class="shift-btn-box">
+          <button class="delete-btn">{% trans "Видалити зміну" %}</button>
+          <button class="upd-btn">{% trans "Змінити зміну" %}</button>
+          <button class="shift-btn">{% trans "Створити зміну" %}</button>
         </div>
       </div>
     </div>
