@@ -357,29 +357,10 @@ def get_driver_efficiency(self, partner_pk, schema, day=None):
                                                      partner=partner_pk,
                                                      driver=driver)
         if not efficiency:
-            driver_vehicles = []
-            vehicles = check_reshuffle(driver, start, end)
             accept = 0
             avg_price = 0
-            total_km = 0
-            for vehicle, reshuffles in vehicles.items():
-                try:
-                    if reshuffles:
-                        for reshuffle in reshuffles:
-                            driver_vehicles.append(reshuffle.swap_vehicle)
-                            total_km += UaGpsSynchronizer.objects.get(
-                                partner=partner_pk).total_per_day(reshuffle.swap_vehicle.gps.gps_id,
-                                                                  reshuffle.swap_time,
-                                                                  reshuffle.end_time)
-                    elif vehicle:
-                        driver_vehicles.append(vehicle)
-                        total_km = UaGpsSynchronizer.objects.get(partner=partner_pk).total_per_day(vehicle.gps.gps_id,
-                                                                                                   start, end)
-                    else:
-                        continue
-                except AttributeError as e:
-                    logger.error(e)
-                    continue
+            total_km, driver_vehicles = UaGpsSynchronizer.objects.get(
+                                partner=partner_pk).calc_total_km(driver, start, end)
             if driver_vehicles:
                 report = SummaryReport.objects.filter(report_from=start, driver=driver).first()
                 total_kasa = report.total_amount_without_fee if report else 0

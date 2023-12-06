@@ -2,6 +2,7 @@ import json
 from datetime import datetime, time
 
 import requests
+from django.db.models import Q
 from django.utils import timezone
 from telegram.error import BadRequest
 
@@ -18,7 +19,10 @@ def validate_text(text):
 
 def check_reshuffle(driver, start, end):
     vehicles = {}
-    reshuffles = DriverReshuffle.objects.filter(swap_time__range=(start, end), driver_start=driver)
+    reshuffles = DriverReshuffle.objects.filter(
+        Q(swap_time__range=(start, end)) |
+        Q(end_time__range=(start, end)),
+        driver_start=driver).distinct()
     if reshuffles:
         for reshuffle in reshuffles:
             vehicle = reshuffle.swap_vehicle
