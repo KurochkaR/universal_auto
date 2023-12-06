@@ -122,6 +122,9 @@ class Schema(models.Model):
         schema = cls.objects.filter(schema=title, partner__isnull=True).first()
         return schema
 
+    def is_weekly(self):
+        return True if self.salary_calculation == SalaryCalculation.WEEK else False
+
     def is_rent(self):
         return True if self.schema == "RENT" else False
 

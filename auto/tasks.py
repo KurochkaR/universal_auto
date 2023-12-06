@@ -101,7 +101,7 @@ def auto_send_task_bot(self):
     requests.post(webhook_url, json=message_data)
 
 
-@app.task(bind=True, queue='beat_tasks')
+@app.task(bind=True, queue='bot_tasks')
 def get_session(self, partner_pk, aggregator='Uber', login=None, password=None):
     fleet = Fleet.objects.get(name=aggregator, partner=None)
     try:
@@ -164,24 +164,34 @@ def get_today_orders(self, partner_pk):
 
 @app.task(bind=True, queue='beat_tasks')
 def check_card_cash_value(self, partner_pk):
-    orders = FleetOrder.objects.filter(accepted_time__date=timezone.localtime().date(),
-                                       state=FleetOrder.COMPLETED,
-                                       partner=partner_pk)
-    kasa_qs = orders.values('driver').annotate(kasa=Coalesce(Sum('price'), Value(1))).filter(kasa__gt=0)
-    for driver in kasa_qs:
-        driver_obj = Driver.objects.filter(pk=driver['driver'], schema__isnull=False).first()
-        if driver['kasa'] > int(ParkSettings.get_value("START_CHECK_CASH", partner=partner_pk)) and driver_obj:
+    today = timezone.localtime().date()
+    start_week = today - timedelta(days=today.weekday())
+    for driver in Driver.objects.filter(partner=partner_pk, schema__isnull=False):
+        if driver.schema.is_weekly():
+            orders = FleetOrder.objects.filter(accepted_time__range=(start_week, today),
+                                               state=FleetOrder.COMPLETED,
+                                               driver=driver)
+            rent = calculate_rent(start_week, today, driver)
+        else:
+            yesterday = today - timedelta(days=1)
+            orders = FleetOrder.objects.filter(accepted_time__date=timezone.localtime().date(),
+                                               state=FleetOrder.COMPLETED,
+                                               driver=driver)
+            rent = calculate_rent(yesterday, today, driver)
+        kasa = orders.aggregate(kasa=Coalesce(Sum('price'), Value(1)))['kasa']
+        rent_payment = rent * driver.schema.rent_price
+        if kasa > int(ParkSettings.get_value("START_CHECK_CASH", partner=partner_pk)):
             card = orders.filter(payment=PaymentTypes.CARD,
-                                 driver=driver['driver']).aggregate(card_kasa=Sum('price'))['card_kasa']
-            ratio = card / driver['kasa']
-            if driver_obj.schema.is_rent():
+                                 driver=driver).aggregate(card_kasa=Sum('price'))['card_kasa']
+            ratio = (card - rent_payment) / kasa
+            if driver.schema.is_rent():
                 rate = float(ParkSettings.get_value("RENT_CASH_RATE", partner=partner_pk))
             else:
-                rate = driver_obj.schema.rate
+                rate = driver.schema.rate
             enable = 'false' if ratio < rate else 'true'
             bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"),
-                             text=f"Готівка {enable} у {driver_obj}")
-            fleets_cash_trips.delay(partner_pk, driver_obj.pk, enable)
+                             text=f"Готівка {enable} у {driver}")
+            fleets_cash_trips.delay(partner_pk, driver.pk, enable)
 
 
 @app.task(bind=True, queue='beat_tasks')
