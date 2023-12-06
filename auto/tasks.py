@@ -478,6 +478,19 @@ def send_on_job_application_on_driver(self, job_id):
 
 
 @app.task(bind=True, queue='bot_tasks')
+def schedule_for_detaching_uklon(self, partner_pk):
+    today = timezone.localtime().date()
+    reshuffles = DriverReshuffle.objects.filter(
+                    end_time__date=today,
+                    end_time__lt=timezone.make_aware(datetime.combine(today, time.max)),
+                    partner=partner_pk
+                    )
+    for reshuffle in reshuffles:
+        eta = reshuffle.end_time
+        detaching_the_driver_from_the_car.apply_async((partner_pk, reshuffle.swap_vehicle.licence_plate), eta=eta)
+
+
+@app.task(bind=True, queue='bot_tasks')
 def detaching_the_driver_from_the_car(self, partner_pk, licence_plate):
     try:
         fleet = UklonRequest.objects.get(partner=partner_pk)
