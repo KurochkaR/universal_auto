@@ -101,7 +101,7 @@ def auto_send_task_bot(self):
     requests.post(webhook_url, json=message_data)
 
 
-@app.task(bind=True, queue='beat_tasks')
+@app.task(bind=True, queue='bot_tasks')
 def get_session(self, partner_pk, aggregator='Uber', login=None, password=None):
     fleet = Fleet.objects.get(name=aggregator, partner=None)
     try:
@@ -127,7 +127,9 @@ def get_orders_from_fleets(self, partner_pk, schema=None, day=None):
                 logger.error(e)
         else:
             for driver in drivers:
-                fleet.get_fleet_orders(start, end, driver.pk)
+                driver_id = driver.get_driver_external_id(fleet.name)
+                if driver_id:
+                    fleet.get_fleet_orders(start, end, driver.pk, driver_id)
 
 
 @app.task(bind=True, queue='beat_tasks')
@@ -155,29 +157,41 @@ def get_today_orders(self, partner_pk):
         if isinstance(fleet, UklonRequest) and end <= start:
             continue
         for driver in drivers:
-            fleet.get_fleet_orders(start, end, driver.pk)
+            driver_id = driver.get_driver_external_id(fleet.name)
+            if driver_id:
+                fleet.get_fleet_orders(start, end, driver.pk, driver_id)
 
 
 @app.task(bind=True, queue='beat_tasks')
 def check_card_cash_value(self, partner_pk):
-    orders = FleetOrder.objects.filter(accepted_time__date=timezone.localtime().date(),
-                                       state=FleetOrder.COMPLETED,
-                                       partner=partner_pk)
-    kasa_qs = orders.values('driver').annotate(kasa=Coalesce(Sum('price'), Value(1))).filter(kasa__gt=0)
-    for driver in kasa_qs:
-        driver_obj = Driver.objects.filter(pk=driver['driver'], schema__isnull=False).first()
-        if driver['kasa'] > int(ParkSettings.get_value("START_CHECK_CASH", partner=partner_pk)) and driver_obj:
+    today = timezone.localtime().date()
+    start_week = today - timedelta(days=today.weekday())
+    for driver in Driver.objects.filter(partner=partner_pk, schema__isnull=False):
+        if driver.schema.is_weekly():
+            orders = FleetOrder.objects.filter(accepted_time__range=(start_week, today),
+                                               state=FleetOrder.COMPLETED,
+                                               driver=driver)
+            rent = calculate_rent(start_week, today, driver)
+        else:
+            yesterday = today - timedelta(days=1)
+            orders = FleetOrder.objects.filter(accepted_time__date=timezone.localtime().date(),
+                                               state=FleetOrder.COMPLETED,
+                                               driver=driver)
+            rent = calculate_rent(yesterday, today, driver)
+        kasa = orders.aggregate(kasa=Coalesce(Sum('price'), Value(1)))['kasa']
+        rent_payment = rent * driver.schema.rent_price
+        if kasa > int(ParkSettings.get_value("START_CHECK_CASH", partner=partner_pk)):
             card = orders.filter(payment=PaymentTypes.CARD,
-                                 driver=driver['driver']).aggregate(card_kasa=Sum('price'))['card_kasa']
-            ratio = card / driver['kasa']
-            if driver_obj.schema.is_rent():
+                                 driver=driver).aggregate(card_kasa=Sum('price'))['card_kasa']
+            ratio = (card - rent_payment) / kasa
+            if driver.schema.is_rent():
                 rate = float(ParkSettings.get_value("RENT_CASH_RATE", partner=partner_pk))
             else:
-                rate = driver_obj.schema.rate
+                rate = driver.schema.rate
             enable = 'false' if ratio < rate else 'true'
             bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"),
-                             text=f"Готівка {enable} у {driver_obj}")
-            fleets_cash_trips.delay(partner_pk, driver_obj.pk, enable)
+                             text=f"Готівка {enable} у {driver}")
+            fleets_cash_trips.delay(partner_pk, driver.pk, enable)
 
 
 @app.task(bind=True, queue='beat_tasks')
@@ -204,8 +218,10 @@ def download_daily_report(self, partner_pk, schema, day=None):
     start, end = get_time_for_task(schema, day)[:2]
     fleets = Fleet.objects.filter(partner=partner_pk).exclude(name='Gps')
     for fleet in fleets:
-        fleet.save_report(start, end, schema)
-    save_report_to_ninja_payment(start, end, partner_pk, schema)
+        for driver in Driver.objects.filter(schema=schema):
+            driver_id = driver.get_driver_external_id(fleet.name)
+            if driver_id:
+                fleet.save_report(start, end, driver)
 
 
 @app.task(bind=True, queue='beat_tasks')
@@ -213,11 +229,14 @@ def download_nightly_report(self, partner_pk, schema, day=None):
     start, end = get_time_for_task(schema, day)[2:]
     fleets = Fleet.objects.filter(partner=partner_pk).exclude(name='Gps')
     for fleet in fleets:
-        if isinstance(fleet, UberRequest):
-            fleet.save_report(start, end, schema)
-        else:
-            fleet.save_report(start, end, schema, custom=True)
-    save_report_to_ninja_payment(start, end, partner_pk, schema)
+        for driver in Driver.objects.filter(schema=schema):
+            driver_id = driver.get_driver_external_id(fleet.name)
+            if driver_id:
+                if isinstance(fleet, UberRequest):
+                    fleet.save_report(start, end, driver)
+                else:
+                    fleet.save_report(start, end, driver, custom=True)
+    # save_report_to_ninja_payment(start, end, partner_pk, schema)
 
 
 @app.task(bind=True, queue='beat_tasks')
@@ -348,29 +367,10 @@ def get_driver_efficiency(self, partner_pk, schema, day=None):
                                                      partner=partner_pk,
                                                      driver=driver)
         if not efficiency:
-            driver_vehicles = []
-            vehicles = check_reshuffle(driver, start, end)
             accept = 0
             avg_price = 0
-            total_km = 0
-            for vehicle, reshuffles in vehicles.items():
-                try:
-                    if reshuffles:
-                        for reshuffle in reshuffles:
-                            driver_vehicles.append(reshuffle.swap_vehicle)
-                            total_km += UaGpsSynchronizer.objects.get(
-                                partner=partner_pk).total_per_day(reshuffle.swap_vehicle.gps.gps_id,
-                                                                  reshuffle.swap_time,
-                                                                  reshuffle.end_time)
-                    elif vehicle:
-                        driver_vehicles.append(vehicle)
-                        total_km = UaGpsSynchronizer.objects.get(partner=partner_pk).total_per_day(vehicle.gps.gps_id,
-                                                                                                   start, end)
-                    else:
-                        continue
-                except AttributeError as e:
-                    logger.error(e)
-                    continue
+            total_km, driver_vehicles = UaGpsSynchronizer.objects.get(
+                                partner=partner_pk).calc_total_km(driver, start, end)
             if driver_vehicles:
                 report = SummaryReport.objects.filter(report_from=start, driver=driver).first()
                 total_kasa = report.total_amount_without_fee if report else 0
@@ -474,6 +474,19 @@ def send_on_job_application_on_driver(self, job_id):
         logger.info('The job application has been sent')
     except Exception as e:
         logger.error(e)
+
+
+@app.task(bind=True, queue='bot_tasks')
+def schedule_for_detaching_uklon(self, partner_pk):
+    today = timezone.localtime().date()
+    reshuffles = DriverReshuffle.objects.filter(
+                    end_time__date=today,
+                    end_time__lt=timezone.make_aware(datetime.combine(today, time.max)),
+                    partner=partner_pk
+                    )
+    for reshuffle in reshuffles:
+        eta = reshuffle.end_time
+        detaching_the_driver_from_the_car.apply_async((partner_pk, reshuffle.swap_vehicle.licence_plate), eta=eta)
 
 
 @app.task(bind=True, queue='bot_tasks')
@@ -1097,9 +1110,9 @@ def get_information_from_fleets(self, partner_pk, schema, day=None):
         check_orders_for_vehicle.si(partner_pk, schema),
         generate_payments.si(partner_pk, schema, day),
         generate_summary_report.si(partner_pk, schema, day),
+        calculate_driver_reports.si(partner_pk, schema, day),
         get_driver_efficiency.si(partner_pk, schema, day),
         get_rent_information.si(partner_pk, schema, day),
-        calculate_driver_reports.si(partner_pk, schema, day),
         send_daily_statistic.si(partner_pk, schema),
         send_driver_efficiency.si(partner_pk, schema),
         send_driver_report.si(partner_pk, schema),
@@ -1143,7 +1156,7 @@ def update_schedule(self):
         else:
             schedule = get_schedule("08", "00")
         create_task('get_information_from_fleets', schema.partner.pk, schedule, schema.pk)
-        night_schedule = get_schedule("03", "59")
+        night_schedule = get_schedule("05", "59")
         create_task("download_nightly_report", schema.partner.pk, night_schedule, schema.pk)
 
 

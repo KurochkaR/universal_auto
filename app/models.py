@@ -128,6 +128,9 @@ class Schema(models.Model):
     def __str__(self):
         return self.title if self.title else ''
 
+    def is_weekly(self):
+        return True if self.salary_calculation == SalaryCalculation.WEEK else False
+
     def is_rent(self):
         return True if self.schema == "RENT" else False
 
