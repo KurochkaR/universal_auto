@@ -710,6 +710,7 @@ $(document).ready(function () {
 		$('.common-period').hide();
 		$('#datePicker').hide()
 		$('.driver-container').hide()
+		$('.driver-calendar').hide()
 		$('#sidebar').removeClass('sidebar-responsive');
 		$('.main-title h2').text(gettext('Автомобілі'));
 	});
@@ -722,6 +723,7 @@ $(document).ready(function () {
 		$('.main-cards').hide();
 		$('.common-period').hide();
 		$('#datePicker').hide()
+		$('.driver-calendar').hide()
 		$('#sidebar').removeClass('sidebar-responsive');
 		if (window.innerWidth <= 900) {
 			$('.driver-container').css('display', 'block');
@@ -1200,7 +1202,6 @@ $(document).ready(function () {
 
 
 			function updShiftForm(clickedDayId, calendarId, dataName, startTime, endTime) {
-				console.log(clickedDayId, calendarId, dataName, startTime, endTime)
 				$('.modal-shift-date').text(clickedDayId);
 				const shiftForm = $('#modal-shift');
 				const shiftBtn = $('.shift-btn').hide();
@@ -1224,7 +1225,6 @@ $(document).ready(function () {
 						console.log("response", response);
 						},
 					});
-					console.log('Видалити зміну водія на ' + clickedDayId + ' в календарі ' + calendarId);
 					shiftForm.hide();
 					shiftBtn.off('click');
 					deleteBtn.off('click');
@@ -1255,7 +1255,6 @@ $(document).ready(function () {
 						console.log("response", response);
 						},
 					});
-					console.log('Оновити зміну водія ' + selectedDriverId + ' на ' + clickedDayId + ' в календарі ' + calendarId);
 					shiftForm.hide();
 					shiftBtn.off('click');
 					deleteBtn.off('click');
@@ -1298,7 +1297,6 @@ $(document).ready(function () {
 						console.log(response);
 						},
 					});
-					console.log('Додати зміну водія ' + selectedDriverId + ' на ' + clickedDayId + ' в календарі ' + calendarId);
 					shiftForm.hide();
 					shiftBtn.off('click');
 				});
