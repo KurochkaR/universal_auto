@@ -13,7 +13,6 @@ from app.models import CarEfficiency, Driver, SummaryReport, Manager, \
 from auto_bot.handlers.order.utils import check_reshuffle
 
 
-
 def get_time_for_task(schema, day=None):
     """
     Returns time periods

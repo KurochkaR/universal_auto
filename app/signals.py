@@ -11,7 +11,7 @@ from auto.tasks import send_on_job_application_on_driver, check_time_order, setu
 from django.db.models.signals import pre_save, post_save, post_delete, pre_delete
 from django.dispatch import receiver
 from app.models import Driver, StatusChange, JobApplication, ParkSettings, Partner, Order, UseOfCars, DriverSchemaRate, \
-    Schema, Fleet
+    Schema, Fleet, User
 from auto_bot.handlers.driver_manager.utils import get_time_for_task, create_driver_payments
 from auto_bot.handlers.order.keyboards import inline_reject_order
 from auto_bot.handlers.order.static_text import client_order_info, client_personal_info
@@ -28,12 +28,12 @@ from scripts.settings_for_park import standard_rates, settings_for_partner
 #         Partner.objects.create(user=instance)
 
 @receiver(post_delete, sender=Driver)
-def calculate_fired_driver(sender, instance, created, **kwargs):
-    if instance.schema.is_weekly():
-        schema = Schema.objects.get(pk=instance.schema)
+def calculate_fired_driver(sender, instance, **kwargs):
+    print(instance)
+    if instance.schema and instance.schema.is_weekly():
         end = timezone.localtime().date()
         start = end - timedelta(days=end.weekday())
-        create_driver_payments(start, end, instance, schema)
+        create_driver_payments(start, end, instance, instance.schema)
 
 
 @receiver(post_save, sender=Partner)

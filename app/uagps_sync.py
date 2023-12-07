@@ -93,8 +93,8 @@ class UaGpsSynchronizer(Fleet):
 
     def get_road_distance(self, start, end, schema=None):
         road_dict = {}
-        drivers = Driver.objects.filter(
-            partner=self.partner, schema=schema) if schema else Driver.objects.filter(partner=self.partner)
+        drivers = Driver.objects.get_active(
+            partner=self.partner, schema=schema) if schema else Driver.objects.get_active(partner=self.partner)
         for driver in drivers:
             if RentInformation.objects.filter(report_to=end, driver=driver):
                 continue

@@ -18,15 +18,17 @@ class SoftDeleteAdmin(admin.ModelAdmin):
     actions = ['delete_selected']
 
     def delete_selected(self, model, request, queryset):
-        # Soft-delete selected instances
-        now = timezone.now()
-        queryset.update(deleted_at=now)
+        deleted = queryset
+        for item in queryset:
+            post_delete.send(sender=item.__class__, instance=item)
+        deleted.update(deleted_at=timezone.localtime())
 
     def delete_view(self, request, object_id, extra_context=None):
         obj = self.get_object(request, object_id)
         if obj:
-            obj.deleted_at = timezone.now()
+            obj.deleted_at = timezone.localtime()
             obj.save()
+            post_delete.send(sender=obj.__class__, instance=obj)
         return redirect(f'admin:app_{self.model._meta.model_name}_changelist')
 
     def get_actions(self, request):

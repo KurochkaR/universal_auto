@@ -19,11 +19,11 @@ from app.models import RawGPS, Vehicle, Order, Driver, JobApplication, ParkSetti
     InvestorPayments, VehicleSpending, DriverReshuffle, DriverPayments, SalaryCalculation, \
     PaymentTypes, TaskScheduler, DriverEffVehicleKasa, Schema, CustomReport, FleetsDriversVehiclesRate, Fleet, \
     VehicleGPS, PartnerEarnings
-from django.db.models import Sum, IntegerField, FloatField, Q, DecimalField, Value
+from django.db.models import Sum, IntegerField, FloatField, Q, Value
 from django.db.models.functions import Cast, Coalesce
 from app.utils import get_schedule, create_task
 from auto_bot.handlers.driver_manager.utils import get_daily_report, get_efficiency, generate_message_report, \
-    get_driver_efficiency_report, calculate_by_rate, calculate_rent, get_vehicle_income, get_time_for_task, \
+    get_driver_efficiency_report, calculate_rent, get_vehicle_income, get_time_for_task, \
     create_driver_payments
 from auto_bot.handlers.order.keyboards import inline_markup_accept, inline_search_kb, inline_client_spot, \
     inline_spot_keyboard, inline_second_payment_kb, inline_reject_order, personal_order_end_kb, \
@@ -944,8 +944,8 @@ def get_driver_reshuffles(self, partner, delta=0):
                 event_summary = event['summary'].split(',')
                 licence_plate, driver = event_summary
                 name, second_name = driver.split()
-                driver_start = Driver.objects.get_active(Q(name=name, second_name=second_name) |
-                                                         Q(name=second_name, second_name=name)).first()
+                driver_start = Driver.objects.filter(Q(name=name, second_name=second_name) |
+                                                     Q(name=second_name, second_name=name)).first()
                 vehicle = Vehicle.objects.filter(licence_plate=licence_plate.split()[0]).first()
                 try:
                     swap_time = timezone.make_aware(datetime.strptime(event['start']['date'], "%Y-%m-%d"))
@@ -976,7 +976,7 @@ def get_driver_reshuffles(self, partner, delta=0):
 def save_report_to_ninja_payment(start, end, partner_pk, schema, fleet_name='Ninja'):
     reports = Payments.objects.filter(report_from=start, vendor_name=fleet_name, partner=partner_pk)
     if not reports:
-        for driver in Driver.objects.get_active(partner=partner_pk).filter(schema=schema).exclude(chat_id=''):
+        for driver in Driver.objects.get_active(partner=partner_pk, schema=schema).exclude(chat_id=''):
             records = Order.objects.filter(driver__chat_id=driver.chat_id,
                                            status_order=Order.COMPLETED,
                                            created_at__range=(start, end),
@@ -1020,7 +1020,7 @@ def calculate_driver_reports(self, partner_pk, schema, day=None):
             return
     else:
         end, start = get_time_for_task(schema, day)[1:3]
-    for driver in Driver.objects.get_active(partner=partner_pk).filter(schema=schema):
+    for driver in Driver.objects.get_active(partner=partner_pk, schema=schema):
         if DriverPayments.objects.filter(report_from=start,
                                          report_to=end,
                                          driver=driver).exists():
@@ -1032,7 +1032,7 @@ def calculate_driver_reports(self, partner_pk, schema, day=None):
 def calculate_vehicle_earnings(self, partner_pk, day=None):
     if not day:
         day = timezone.localtime() - timedelta(days=1)
-    drivers = Driver.objects.get_active(partner=partner_pk).filter(schema__isnull=False).select_related('partner')
+    drivers = Driver.objects.get_active(partner=partner_pk, schema__isnull=False).select_related('partner')
     for driver in drivers:
         payment = DriverPayments.objects.filter(report_to=day, driver=driver, partner=driver.partner).first()
         if payment:
