@@ -3,6 +3,8 @@ from django.contrib.auth.models import User as AuthUser
 from django.contrib.auth.models import Group, Permission
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import FieldError
+from django.http import HttpResponseRedirect
+from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from django.shortcuts import redirect
 
@@ -889,9 +891,37 @@ class DriverAdmin(filter_queryset_by_group('Partner')(admin.ModelAdmin), SoftDel
 @admin.register(FiredDriver)
 class FiredDriverAdmin(admin.ModelAdmin):
 
+    def get_model_perms(self, request):
+        perms = super().get_model_perms(request)
+        if request.user.groups.filter(name='Partner').exists():
+            perms.update(view=True, change=True, add=True, delete=True)
+        return perms
+
     def get_queryset(self, request):
-        qs = super().get_queryset(request)
-        return qs.filter(deleted_at__isnull=False)
+        qs = super().get_queryset(request).filter(deleted_at__isnull=False)
+        if request.user.groups.filter(name='Partner').exists():
+            return qs.filter(partner__user=request.user)
+        return qs
+
+    change_form_template = 'admin/change_form_fired_driver.html'
+
+    def change_view(self, request, object_id, form_url='', extra_context=None):
+        extra_context = extra_context or {}
+
+        if 'restore_driver' in request.POST:
+            # Add your custom restore logic here
+            instance = self.get_object(request, object_id)
+            if instance:
+                instance.deleted_at = None
+                instance.save()
+
+                self.message_user(request, 'Object restored successfully.')
+
+                # Redirect to the change form again
+                list_url = reverse('admin:app_fireddriver_changelist')
+                return HttpResponseRedirect(list_url)
+
+        return super().change_view(request, object_id, form_url, extra_context)
 
 
 @admin.register(Vehicle)

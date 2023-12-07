@@ -23,7 +23,8 @@ from django.db.models import Sum, IntegerField, FloatField, Q, DecimalField, Val
 from django.db.models.functions import Cast, Coalesce
 from app.utils import get_schedule, create_task
 from auto_bot.handlers.driver_manager.utils import get_daily_report, get_efficiency, generate_message_report, \
-    get_driver_efficiency_report, calculate_by_rate, calculate_rent, get_vehicle_income, get_time_for_task
+    get_driver_efficiency_report, calculate_by_rate, calculate_rent, get_vehicle_income, get_time_for_task, \
+    create_driver_payments
 from auto_bot.handlers.order.keyboards import inline_markup_accept, inline_search_kb, inline_client_spot, \
     inline_spot_keyboard, inline_second_payment_kb, inline_reject_order, personal_order_end_kb, \
     personal_driver_end_kb
@@ -166,7 +167,7 @@ def get_today_orders(self, partner_pk):
 def check_card_cash_value(self, partner_pk):
     today = timezone.localtime().date()
     start_week = today - timedelta(days=today.weekday())
-    for driver in Driver.objects.filter(partner=partner_pk, schema__isnull=False):
+    for driver in Driver.objects.get_active(partner=partner_pk, schema__isnull=False):
         if driver.schema.is_weekly():
             orders = FleetOrder.objects.filter(accepted_time__range=(start_week, today),
                                                state=FleetOrder.COMPLETED,
@@ -218,7 +219,7 @@ def download_daily_report(self, partner_pk, schema, day=None):
     start, end = get_time_for_task(schema, day)[:2]
     fleets = Fleet.objects.filter(partner=partner_pk).exclude(name='Gps')
     for fleet in fleets:
-        for driver in Driver.objects.filter(schema=schema):
+        for driver in Driver.objects.get_active(schema=schema):
             driver_id = driver.get_driver_external_id(fleet.name)
             if driver_id:
                 fleet.save_report(start, end, driver)
@@ -229,7 +230,7 @@ def download_nightly_report(self, partner_pk, schema, day=None):
     start, end = get_time_for_task(schema, day)[2:]
     fleets = Fleet.objects.filter(partner=partner_pk).exclude(name='Gps')
     for fleet in fleets:
-        for driver in Driver.objects.filter(schema=schema):
+        for driver in Driver.objects.get_active(schema=schema):
             driver_id = driver.get_driver_external_id(fleet.name)
             if driver_id:
                 if isinstance(fleet, UberRequest):
@@ -243,7 +244,7 @@ def download_nightly_report(self, partner_pk, schema, day=None):
 def generate_payments(self, partner_pk, schema, day=None):
     fleets = Fleet.objects.filter(partner=partner_pk).exclude(name='Gps')
     for fleet in fleets:
-        for driver in Driver.objects.filter(schema=schema):
+        for driver in Driver.objects.get_active(schema=schema):
             end, start = get_time_for_task(schema, day)[1:3]
             driver_id = driver.get_driver_external_id(fleet.name)
             reports = CustomReport.objects.filter(
@@ -362,7 +363,7 @@ def get_car_efficiency(self, partner_pk):
 @app.task(bind=True, queue='beat_tasks')
 def get_driver_efficiency(self, partner_pk, schema, day=None):
     end, start = get_time_for_task(schema, day)[1:3]
-    for driver in Driver.objects.get_active(partner=partner_pk, schema=schema, worked=True):
+    for driver in Driver.objects.get_active(partner=partner_pk, schema=schema):
         efficiency = DriverEfficiency.objects.filter(report_from=start,
                                                      partner=partner_pk,
                                                      driver=driver)
@@ -812,7 +813,7 @@ def search_driver_for_order(self, order_pk):
         else:
             text_to_client(order, search_driver_2, message_id=client_msg,
                            button=inline_reject_order(order.pk))
-        drivers = Driver.objects.filter(chat_id__isnull=False)
+        drivers = Driver.objects.get_active(chat_id__isnull=False)
         for driver in drivers:
             vehicle = check_vehicle(driver)[0]
             if driver.driver_status == Driver.ACTIVE and vehicle:
@@ -943,8 +944,8 @@ def get_driver_reshuffles(self, partner, delta=0):
                 event_summary = event['summary'].split(',')
                 licence_plate, driver = event_summary
                 name, second_name = driver.split()
-                driver_start = Driver.objects.filter(Q(name=name, second_name=second_name) |
-                                                     Q(name=second_name, second_name=name)).first()
+                driver_start = Driver.objects.get_active(Q(name=name, second_name=second_name) |
+                                                         Q(name=second_name, second_name=name)).first()
                 vehicle = Vehicle.objects.filter(licence_plate=licence_plate.split()[0]).first()
                 try:
                     swap_time = timezone.make_aware(datetime.strptime(event['start']['date'], "%Y-%m-%d"))
@@ -1024,46 +1025,7 @@ def calculate_driver_reports(self, partner_pk, schema, day=None):
                                          report_to=end,
                                          driver=driver).exists():
             continue
-        driver_report = SummaryReport.objects.filter(report_from__range=(start, end),
-                                                     driver=driver).aggregate(
-                cash=Coalesce(Sum('total_amount_cash'), 0, output_field=DecimalField()),
-                kasa=Coalesce(Sum('total_amount_without_fee'), 0, output_field=DecimalField()))
-
-        rent = calculate_rent(start, end, driver)
-        rent_value = rent * schema_obj.rent_price
-        if driver_report['kasa']:
-            if schema_obj.schema == "DYNAMIC":
-                driver_spending = calculate_by_rate(driver, driver_report['kasa'])
-                salary = '%.2f' % (driver_spending - driver_report['cash'] - rent_value)
-            elif schema_obj.schema in ("HALF", "CUSTOM"):
-                salary = '%.2f' % (
-                    driver_report['kasa'] * schema_obj.rate - driver_report['cash'] - (
-                     (schema_obj.plan - driver_report['kasa']) * Decimal(1 - schema_obj.rate)
-                     if driver_report['kasa'] < schema_obj.plan
-                     else 0
-                    ) - rent_value
-                )
-            else:
-                overall_distance = DriverEfficiency.objects.filter(
-                    report_from__range=(start, end),
-                    driver=driver).aggregate(
-                    distance=Coalesce(Sum('mileage'), 0, output_field=DecimalField()))['distance']
-                rent = max((overall_distance - schema_obj.limit_distance), 0)
-                rent_value = rent * schema_obj.rent_price
-                salary = '%.2f' % (driver_report['kasa'] * schema_obj.rate -
-                                   driver_report['cash'] - schema_obj.rental - rent_value)
-
-            DriverPayments.objects.create(report_from=start,
-                                          report_to=end,
-                                          report_type=schema_obj.salary_calculation,
-                                          driver=driver,
-                                          rent_distance=rent,
-                                          rent_price=schema_obj.rent_price,
-                                          kasa=driver_report['kasa'],
-                                          cash=driver_report['cash'],
-                                          salary=salary,
-                                          rent=rent_value,
-                                          partner=Partner.get_partner(partner_pk))
+        create_driver_payments(start, end, driver, schema_obj)
 
 
 @app.task(bind=True, queue='beat_tasks')
