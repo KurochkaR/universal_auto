@@ -71,7 +71,7 @@ def create_driver_payments(start, end, driver, schema):
                                       cash=driver_report['cash'],
                                       salary=salary,
                                       rent=rent_value,
-                                      partner_id=schema.partner)
+                                      partner=schema.partner)
 
 
 def validate_date(date_str):

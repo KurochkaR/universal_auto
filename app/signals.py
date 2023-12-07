@@ -29,7 +29,6 @@ from scripts.settings_for_park import standard_rates, settings_for_partner
 
 @receiver(post_delete, sender=Driver)
 def calculate_fired_driver(sender, instance, **kwargs):
-    print(instance)
     if instance.schema and instance.schema.is_weekly():
         end = timezone.localtime().date()
         start = end - timedelta(days=end.weekday())
