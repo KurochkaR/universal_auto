@@ -885,6 +885,12 @@ $(document).ready(function () {
 			return formattedDate;
 		}
 
+		const formatTime = (date) => {
+			const hours = date.getHours().toString().padStart(2, '0');
+			const minutes = date.getMinutes().toString().padStart(2, '0');
+			return hours + ':' + minutes;
+		};
+
 		let currentDate = new Date(today);
 		currentDate.setDate(currentDate.getDate() - 3);
 		let formattedStartDate = formatDateForDatabase(currentDate);
@@ -971,13 +977,19 @@ $(document).ready(function () {
 								if (driver.date === formattedDate) {
 
 									const driverPhoto = $('<div>').addClass('driver-photo');
-									driverPhoto.attr('data-name', driver.driver_name).attr('data-start-time', driver.start_shift).attr('data-end-time', driver.end_shift);
+									driverPhoto.attr('data-name', driver.driver_name).attr('data-id-driver', driver.driver_id).attr('data-id-vehicle', driver.vehicle_id);
 									const driverImage = $('<img>').attr('src', 'https://storage.googleapis.com/jobdriver-bucket/'+ driver.driver_photo).attr('alt', `Фото водія`)
+
+									const startTime = new Date('1970-01-01T' + driver.start_shift);
+									const endTime = new Date('1970-01-01T' + driver.end_shift);
+
+									const StartTimes = formatTime(startTime);
+									const EndTimes = formatTime(endTime);
 
 									const driverInfo = $('<div>').addClass('driver-info-reshuffle');
 									const driverDate = $('<p>').addClass('driver-date').text(driver.date);
 									const driverName = $('<p>').addClass('driver-name').text(driver.driver_name);
-									const driverTime = $('<p>').addClass('driver-time').text(driver.start_shift + ' - ' + driver.end_shift);
+									const driverTime = $('<p>').addClass('driver-time').text(StartTimes + ' - ' + EndTimes);
 
 									driverInfo.append(driverDate, driverName, driverTime);
 
@@ -1201,24 +1213,34 @@ $(document).ready(function () {
 			});
 
 
-			function updShiftForm(clickedDayId, calendarId, dataName, startTime, endTime) {
+			function updShiftForm(clickedDayId, calendarId, dataName, startTime, endTime, driverId, vehicleId) {
+			console.log(clickedDayId, calendarId, dataName, startTime, endTime, driverId, vehicleId);
 				$('.modal-shift-date').text(clickedDayId);
+				$('#shift-driver').val(driverId);
+				$('#startTime').val(startTime);
+				$('#endTime').val(endTime);
+				$('#shift-vehicle').val(vehicleId);
 				const shiftForm = $('#modal-shift');
 				const shiftBtn = $('.shift-btn').hide();
+				const recurrence = $('.recurrence').hide();
 				const deleteBtn = $('.delete-btn').show();
+				const deleteAllBtn = $('.delete-all-btn').show();
 				const updBtn = $('.upd-btn').show();
+				const updAllBtn = $('.upd-all-btn').show();
 				const shiftVehicle = $('.shift-vehicle').show();
 				shiftForm.show();
 
-				deleteBtn.on('click', function (e) {
+				deleteBtn.off('click').on('click', function (e) {
+					const selectedDriverId = $('#shift-driver').val();
 					e.preventDefault();
 					$.ajax({
 						url: ajaxPostUrl,
 						type: 'POST',
 						data: {
 							action: 'delete_shift',
-							vehicle_licence: calendarId,
+							vehicle_licence: vehicleId,
 							date: clickedDayId,
+							driver_id: driverId,
 							csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
 						},
 						success: function (response) {
@@ -1226,12 +1248,9 @@ $(document).ready(function () {
 						},
 					});
 					shiftForm.hide();
-					shiftBtn.off('click');
-					deleteBtn.off('click');
-					updBtn.off('click');
 				});
 
-				updBtn.on('click', function (e) {
+				updBtn.off('click').on('click', function (e) {
 					e.preventDefault();
 					const startTime = $('#startTime').val();
 					const endTime = $('#endTime').val();
@@ -1256,24 +1275,23 @@ $(document).ready(function () {
 						},
 					});
 					shiftForm.hide();
-					shiftBtn.off('click');
-					deleteBtn.off('click');
-					updBtn.off('click');
 				});
 			}
-
 
 			function openShiftForm(clickedDayId, calendarId) {
 				$('.modal-shift-date').text(clickedDayId);
 				const shiftForm = $('#modal-shift');
 				const shiftBtn = $('.shift-btn').show();
+				const recurrence = $('.recurrence').show();
 				const deleteBtn = $('.delete-btn').hide();
+				const deleteAllBtn = $('.delete-all-btn').hide();
 				const updBtn = $('.upd-btn').hide();
+				const updAllBtn = $('.upd-all-btn').hide();
 				const shiftVehicle = $('.shift-vehicle').hide();
 				shiftForm.show();
 
 
-				shiftBtn.on('click', function (e) {
+				shiftBtn.off('click').on('click', function (e) {
 					e.preventDefault();
 					const startTime = $('#startTime').val();
 					const endTime = $('#endTime').val();
@@ -1298,7 +1316,6 @@ $(document).ready(function () {
 						},
 					});
 					shiftForm.hide();
-					shiftBtn.off('click');
 				});
 			}
 
@@ -1327,6 +1344,11 @@ $(document).ready(function () {
 					const clickedDayId = clickedCard.attr('id');
 					const calendarId = clickedCard.closest('.calendar-container').attr('id');
 
+					const driverPh = $(this);
+					const dataName = driverPh.data('name');
+					const idDriver = driverPh.data('id-driver');
+					const idVehicle = driverPh.data('id-vehicle');
+
 					const driverPhoto = $(this).find('img');
 					const photoSrc = driverPhoto.attr('src');
 
@@ -1335,10 +1357,9 @@ $(document).ready(function () {
 						openShiftForm(clickedDayId, calendarId);
 					} else {
 						const driverInfo = $(this).find('.driver-info-reshuffle');
-						const dataName = driverInfo.find('.driver-name').text();
 						const startTime = driverInfo.find('.driver-time').text().split(' - ')[0];
 						const endTime = driverInfo.find('.driver-time').text().split(' - ')[1];
-						updShiftForm(clickedDayId, calendarId, dataName, startTime, endTime);
+						updShiftForm(clickedDayId, calendarId, dataName, startTime, endTime, idDriver, idVehicle);
 					}
 				});
 			});
@@ -1371,8 +1392,8 @@ $(document).ready(function () {
       timeList.appendChild(option);
     }
   }
-
-  $('.shift-close-btn').click(function () {
-  	$('#modal-shift').hide();
-  });
+  $('.shift-close-btn').off('click').on('click', function (e) {
+  	e.preventDefault();
+		$('#modal-shift').hide();
+	});
 });

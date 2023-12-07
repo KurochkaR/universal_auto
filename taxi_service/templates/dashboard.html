@@ -412,9 +412,8 @@
               <option value="once">------</option>
               <option value="daily">{% trans "Щоденно" %}</option>
               <option value="everyOtherDay">{% trans "Кожен другий день" %}</option>
-              <option value="every2Days">{% trans "Кожні 2 дні" %}</option>
-              <option value="every3Days">{% trans "Кожні 3 дні" %}</option>
-              <option value="every4Days">{% trans "Кожні 4 дні" %}</option>
+              <option value="every2Days">{% trans "2 через 2" %}</option>
+              <option value="every3Days">{% trans "3 через 3" %}</option>
             </select>
           </div>
           <datalist id="timeList"></datalist>
@@ -438,8 +437,10 @@
           </div>
         </div>
         <div class="shift-btn-box">
+          <button class="delete-all-btn">{% trans "Видалити усі" %}</button>
           <button class="delete-btn">{% trans "Видалити зміну" %}</button>
           <button class="upd-btn">{% trans "Змінити зміну" %}</button>
+          <button class="upd-all-btn">{% trans "Змінити усі" %}</button>
           <button class="shift-btn">{% trans "Створити зміну" %}</button>
         </div>
       </div>

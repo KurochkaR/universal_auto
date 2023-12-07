@@ -11,7 +11,7 @@ from django.core.exceptions import ObjectDoesNotExist
 
 from app.bolt_sync import BoltRequest
 from app.models import Driver, UseOfCars, VehicleGPS, Order, Partner, ParkSettings, CredentialPartner, Fleet, \
-    NewUklonService, UberService, UaGpsService, BoltService
+    NewUklonService, UberService, UaGpsService, BoltService, Vehicle, DriverReshuffle
 from app.uagps_sync import UaGpsSynchronizer
 from app.uber_sync import UberRequest
 from app.uklon_sync import UklonRequest
@@ -287,12 +287,52 @@ def send_reset_code(email, user_login):
 def check_aggregators(user_pk):
     partner = Partner.objects.get(user_id=user_pk)
     aggregators = Fleet.objects.filter(partner=partner).values_list('name', flat=True)
-
-    # aggregator_results = {
-    #     'Bolt': CredentialPartner.objects.filter(partner=partner, key='BOLT_NAME').exists(),
-    #     'Uklon': CredentialPartner.objects.filter(partner=partner, key='UKLON_NAME').exists(),
-    #     'Uber': CredentialPartner.objects.filter(partner=partner, key='UBER_NAME').exists(),
-    #     'Gps': CredentialPartner.objects.filter(partner=partner, key='UAGPS_TOKEN').exists(),
-    # }
     fleets = Fleet.objects.all().values_list('name', flat=True)
     return list(aggregators), list(fleets)
+
+
+def add_shift(licence_plate, date, start_time, end_time, driver_id, recurrence, partner):
+    vehicle = Vehicle.objects.filter(licence_plate=licence_plate).first()
+    driver = Driver.objects.get(id=driver_id)
+
+    start_datetime = datetime.strptime(f"{date} {start_time}", "%Y-%m-%d %H:%M")
+    end_datetime = datetime.strptime(f"{date} {end_time}", "%Y-%m-%d %H:%M")
+
+    interval = range(1)
+
+    if recurrence == 'daily':
+        interval = range(0, 7)
+    elif recurrence == 'everyOtherDay':
+        interval = range(0, 7, 2)
+    elif recurrence == 'every2Days':
+        interval = range(0, 7, 4)
+    elif recurrence == 'every3Days':
+        interval = range(0, 7, 6)
+
+    for day_offset in interval:
+        current_date = start_datetime + timedelta(days=day_offset)
+
+        current_swap_time = current_date.replace(hour=start_datetime.hour, minute=start_datetime.minute)
+        current_end_time = current_date.replace(hour=end_datetime.hour, minute=end_datetime.minute)
+
+        reshuffle = DriverReshuffle.objects.create(
+            swap_vehicle=vehicle,
+            driver_start=driver,
+            swap_time=current_swap_time,
+            end_time=current_end_time,
+            partner=partner
+        )
+        reshuffle.save()
+    return True
+
+
+def delete_shift(action, licence_id, date, driver_id):
+    if action == 'delete_shift':
+        DriverReshuffle.objects.filter(swap_vehicle=licence_id, driver_start=driver_id, swap_time=date).delete()
+    elif action == 'delete_all':
+        DriverReshuffle.objects.filter(
+            swap_vehicle=licence_id,
+            driver_start=driver_id,
+            swap_time__gte=date
+        ).delete()
+    return True

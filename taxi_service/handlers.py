@@ -13,7 +13,7 @@ from taxi_service.utils import (update_order_sum_or_status, restart_order,
                                 partner_logout, login_in_investor,
                                 change_password_investor, send_reset_code,
                                 active_vehicles_gps, order_confirm,
-                                check_aggregators)
+                                check_aggregators, add_shift, delete_shift)
 
 from auto.tasks import update_driver_data, get_session
 
@@ -160,14 +160,29 @@ class PostRequestHandler:
         return response
 
     def handler_add_shift(self, request):
-        print(request.POST)
+        partner = Partner.objects.get(user=request.user)
+        licence_plate = request.POST.get('vehicle_licence')
+        date = request.POST.get('date')
+        start_time = request.POST.get('start_time')
+        end_time = request.POST.get('end_time')
+        driver_id = request.POST.get('driver_id')
+        recurrence = request.POST.get('recurrence')
 
-        return JsonResponse({}, status=200)
+        result = add_shift(licence_plate, date, start_time, end_time, driver_id, recurrence, partner)
+        json_data = JsonResponse({'data': result}, safe=False)
+        response = HttpResponse(json_data, content_type='application/json')
+        return response
 
     def handler_delete_shift(self, request):
-        print(request.POST)
+        action = request.POST.get('action')
+        licence_plate = request.POST.get('vehicle_licence')
+        date = request.POST.get('date')
+        driver_id = request.POST.get('driver_id')
 
-        return JsonResponse({}, status=200)
+        result = delete_shift(action, licence_plate, date, driver_id)
+        json_data = JsonResponse({'data': result}, safe=False)
+        response = HttpResponse(json_data, content_type='application/json')
+        return response
 
     def handler_update_shift(self, request):
         print(request.POST)

@@ -1,12 +1,13 @@
-from datetime import timedelta, datetime
+from collections import defaultdict
+from datetime import timedelta
 
 from _decimal import Decimal
 from itertools import groupby
 from operator import itemgetter
 
 from django.db.models import Sum, F, OuterRef, Subquery, DecimalField, Avg, Value, CharField, ExpressionWrapper, Case, \
-    When, Func, FloatField, DateField, TimeField
-from django.db.models.functions import Concat, Round, Coalesce
+    When, Func, FloatField
+from django.db.models.functions import Concat, Round, Coalesce, TruncTime
 from rest_framework import generics
 from rest_framework.response import Response
 
@@ -190,23 +191,32 @@ class DriverReshuffleListView(CombinedPermissionsMixin, generics.ListAPIView):
     serializer_class = ReshuffleSerializer
 
     def get_queryset(self):
+        vehicles = ManagerFilterMixin.get_queryset(self, Vehicle)
         qs = DriverReshuffle.objects.filter(
-            swap_vehicle__in=ManagerFilterMixin.get_queryset(self, Vehicle),
+            swap_vehicle__in=vehicles,
             swap_time__range=(self.kwargs['start_date'], self.kwargs['end_date'])
         ).annotate(
             licence_plate=F('swap_vehicle__licence_plate'),
+            vehicle_id=F('swap_vehicle__pk'),
             driver_name=Concat(
                 F("driver_start__user_ptr__name"),
                 Value(" "),
                 F("driver_start__user_ptr__second_name")),
+            driver_id=F('driver_start__pk'),
             driver_photo=F('driver_start__photo'),
             start_shift=F('swap_time__time'),
             end_shift=F('end_time__time'),
             date=F('swap_time__date')
-        ).values('licence_plate', 'driver_name', 'driver_photo', 'start_shift', 'end_shift', 'date')
-        sorted_qs = sorted(qs, key=itemgetter('licence_plate'))
-        grouped_by_licence_plate = {key: list(group) for key, group in
-                                    groupby(sorted_qs, key=itemgetter('licence_plate'))}
+        ).values('licence_plate', 'vehicle_id', 'driver_name', 'driver_id', 'driver_photo', 'start_shift', 'end_shift',
+                 'date')
+        sorted_reshuffles = sorted(qs, key=itemgetter('licence_plate'))
+        grouped_by_licence_plate = defaultdict(list)
+        for key, group in groupby(sorted_reshuffles, key=itemgetter('licence_plate')):
+            grouped_by_licence_plate[key].extend(group)
+
+        for vehicle in vehicles:
+            if vehicle.licence_plate not in grouped_by_licence_plate:
+                grouped_by_licence_plate[vehicle.licence_plate] = []
         reshuffles_list = []
         for licence_plate, reshuffles in grouped_by_licence_plate.items():
             reshuffle_data = {

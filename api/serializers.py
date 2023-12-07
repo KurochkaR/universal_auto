@@ -96,6 +96,8 @@ class InvestorCarsSerializer(serializers.Serializer):
 class DriverChangesSerializer(serializers.Serializer):
     date = serializers.DateField()
     driver_name = serializers.CharField()
+    driver_id = serializers.IntegerField()
+    vehicle_id = serializers.IntegerField()
     driver_photo = serializers.CharField()
     start_shift = serializers.TimeField()
     end_shift = serializers.TimeField()
