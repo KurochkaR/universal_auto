@@ -56,10 +56,8 @@ class UklonRequest(Fleet, Synchronizer):
             redis_instance().set(f"{partner}_{self.name}_token", token)
             return token
         elif response.status_code == 429:
-            if self.partner:
-                return self.create_session(self.partner.id)
-            else:
-                raise AuthenticationError(f"{self.name} service unavailable.")
+            bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"), text=f"{payload}\n{response.json()}")
+            raise AuthenticationError(f"{self.name} service unavailable.")
         else:
             raise AuthenticationError(f"{self.name} login or password incorrect.")
 
