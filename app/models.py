@@ -4,6 +4,7 @@ import random
 from datetime import datetime, date, time
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.validators import MaxLengthValidator, EmailValidator, RegexValidator
+from django.db.models.signals import post_delete
 from django.utils import timezone
 from django.db import models, ProgrammingError
 from django.utils.safestring import mark_safe
@@ -14,10 +15,14 @@ from cryptography.fernet import Fernet
 
 class SoftDeleteManager(models.Manager):
     def delete(self):
-        return self.get_queryset().update(deleted_at=timezone.localtime())
+        deleted_items = self.get_queryset()
+        deleted_items.update(deleted_at=timezone.localtime())
+        for item in deleted_items:
+            post_delete.send(sender=item.__class__, instance=item)
+        return len(deleted_items)
 
-    def get_active(self, partner):
-        return self.get_queryset().filter(partner=partner, deleted_at__isnull=True)
+    def get_active(self, **kwargs):
+        return self.get_queryset().filter(**kwargs, deleted_at__isnull=True)
 
 
 class Role(models.TextChoices):
@@ -127,6 +132,9 @@ class Schema(models.Model):
 
     def __str__(self):
         return self.title if self.title else ''
+
+    def is_weekly(self):
+        return True if self.salary_calculation == SalaryCalculation.WEEK else False
 
     def is_rent(self):
         return True if self.schema == "RENT" else False
