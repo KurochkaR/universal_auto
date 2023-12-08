@@ -400,11 +400,11 @@
         <div class="shift-time">
           <div class="shift-start-time">
             <label for="startTime">{% trans "Час початку" %}</label>
-            <input type="text" id="startTime" list="timeList" value="00:00">
+            <input type="text" id="startTime" list="timeList" value="00:00" oninput="validateInputTime(this)">
           </div>
           <div class="shift-end-time">
             <label for="endTime">{% trans "Час закінчення" %}</label>
-            <input type="text" id="endTime" list="timeList" value="23:59">
+            <input type="text" id="endTime" list="timeList" value="23:59" oninput="validateInputTime(this)">
           </div>
           <div class="recurrence">
             <label for="recurrence">{% trans "Циклічність" %}</label>
