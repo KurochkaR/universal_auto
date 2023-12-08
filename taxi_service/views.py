@@ -58,7 +58,9 @@ class PostRequestView(View):
             "free_access_or_consult": handler.handler_free_access,
             "add_shift": handler.handler_add_shift,
             "delete_shift": handler.handler_delete_shift,
+            "delete_all_shift": handler.handler_delete_shift,
             "update_shift": handler.handler_update_shift,
+            "update_all_shift": handler.handler_update_shift,
         }
 
         if action in method:

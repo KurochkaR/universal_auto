@@ -101,6 +101,7 @@ class DriverChangesSerializer(serializers.Serializer):
     driver_photo = serializers.CharField()
     start_shift = serializers.TimeField()
     end_shift = serializers.TimeField()
+    reshuffle_id = serializers.IntegerField()
 
 
 class ReshuffleSerializer(serializers.Serializer):

@@ -206,9 +206,10 @@ class DriverReshuffleListView(CombinedPermissionsMixin, generics.ListAPIView):
             driver_photo=F('driver_start__photo'),
             start_shift=F('swap_time__time'),
             end_shift=F('end_time__time'),
-            date=F('swap_time__date')
+            date=F('swap_time__date'),
+            reshuffle_id=F('pk')
         ).values('licence_plate', 'vehicle_id', 'driver_name', 'driver_id', 'driver_photo', 'start_shift', 'end_shift',
-                 'date')
+                 'date', 'reshuffle_id')
         sorted_reshuffles = sorted(qs, key=itemgetter('licence_plate'))
         grouped_by_licence_plate = defaultdict(list)
         for key, group in groupby(sorted_reshuffles, key=itemgetter('licence_plate')):

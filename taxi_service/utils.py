@@ -326,13 +326,50 @@ def add_shift(licence_plate, date, start_time, end_time, driver_id, recurrence, 
     return True
 
 
-def delete_shift(action, licence_id, date, driver_id):
+def delete_shift(action, reshuffle_id):
+    reshuffle = DriverReshuffle.objects.get(id=reshuffle_id)
     if action == 'delete_shift':
-        DriverReshuffle.objects.filter(swap_vehicle=licence_id, driver_start=driver_id, swap_time=date).delete()
-    elif action == 'delete_all':
-        DriverReshuffle.objects.filter(
-            swap_vehicle=licence_id,
+        reshuffle.delete()
+    elif action == 'delete_all_shift':
+        reshuffle_del = DriverReshuffle.objects.filter(
+            swap_time__gte=timezone.localtime(reshuffle.swap_time),
+            swap_time__time=timezone.localtime(reshuffle.swap_time).time(),
+            end_time__time=timezone.localtime(reshuffle.end_time).time(),
+            driver_start=reshuffle.driver_start,
+            swap_vehicle=reshuffle.swap_vehicle
+        )
+        reshuffle_del.delete()
+    return True
+
+
+def upd_shift(action, licence_id, start_time, end_time, date, driver_id, reshuffle_id):
+    start_datetime = datetime.strptime(date + ' ' + start_time, '%Y-%m-%d %H:%M')
+    end_datetime = datetime.strptime(date + ' ' + end_time, '%Y-%m-%d %H:%M')
+
+    if action == 'update_shift':
+
+        DriverReshuffle.objects.filter(id=reshuffle_id).update(
+            swap_time=start_datetime,
+            end_time=end_datetime,
             driver_start=driver_id,
-            swap_time__gte=date
-        ).delete()
+            swap_vehicle=licence_id
+        )
+
+    elif action == 'update_all_shift':
+        selected_reshuffle = DriverReshuffle.objects.get(id=reshuffle_id)
+
+        reshuffle_upd = DriverReshuffle.objects.filter(
+            swap_time__gte=timezone.localtime(selected_reshuffle.swap_time),
+            swap_time__time=timezone.localtime(selected_reshuffle.swap_time).time(),
+            end_time__time=timezone.localtime(selected_reshuffle.end_time).time(),
+            driver_start=selected_reshuffle.driver_start,
+            swap_vehicle=selected_reshuffle.swap_vehicle
+        )
+
+        for reshuffle in reshuffle_upd:
+            reshuffle.swap_time = datetime.combine(reshuffle.swap_time.date(), start_datetime.time())
+            reshuffle.end_time = datetime.combine(reshuffle.end_time.date(), end_datetime.time())
+            reshuffle.driver_start = Driver.objects.get(id=driver_id)
+            reshuffle.swap_vehicle = Vehicle.objects.get(id=licence_id)
+            reshuffle.save()
     return True
