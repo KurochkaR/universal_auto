@@ -1042,9 +1042,9 @@ def calculate_vehicle_earnings(self, partner_pk, day=None):
         day = timezone.localtime() - timedelta(days=1)
     drivers = Driver.objects.filter(partner=partner_pk, schema__isnull=False).select_related('partner')
     for driver in drivers:
-        payment = DriverPayments.objects.filter(report_to=day, driver=driver, partner=driver.partner).first()
+        payment = DriverPayments.objects.filter(report_to=day, driver=driver, partner=partner_pk).first()
         if payment:
-            spending_rate = 1 - round((payment.salary + payment.cash + payment.rent) / payment.kasa, 6)
+            spending_rate = 1 - round((payment.earning + payment.cash + payment.rent) / payment.kasa, 6)
             print(spending_rate)
             print(payment)
             vehicles_income = get_vehicle_income(driver, payment.report_from, payment.report_to,

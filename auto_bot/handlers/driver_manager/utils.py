@@ -107,28 +107,23 @@ def get_drivers_vehicles_list(chat_id, cls):
 
 def calculate_rent(start, end, driver):
     end_time = timezone.make_aware(datetime.combine(end, datetime.max.time()))
-    total_rent = 0
-    if driver.schema:
-        rent_report = RentInformation.objects.filter(
-            rent_distance__gt=driver.schema.limit_distance,
-            report_from__range=(start, end_time),
-            driver=driver)
-        if rent_report:
-            overall_rent = ExpressionWrapper(F('rent_distance') - driver.schema.limit_distance,
-                                             output_field=DecimalField())
-            total_rent = rent_report.aggregate(distance=Sum(overall_rent))['distance']
+    rent_report = RentInformation.objects.filter(
+        rent_distance__gt=driver.schema.limit_distance,
+        report_from__range=(start, end_time),
+        driver=driver)
+    overall_rent = ExpressionWrapper(F('rent_distance') - driver.schema.limit_distance,
+                                     output_field=DecimalField())
+    total_rent = rent_report.aggregate(distance=Sum(overall_rent))['distance'] or 0
     return total_rent
 
 
 def calculate_daily_reports(start, end, driver):
-    kasa = 0
-    rent = 0
     driver_report = SummaryReport.objects.filter(report_from__range=(start, end),
                                                  driver=driver)
-    if driver_report:
-        kasa = driver_report.aggregate(
-            kasa=Coalesce(Sum('total_amount_without_fee'), 0, output_field=DecimalField()))['kasa']
-        rent = calculate_rent(start, end, driver)
+    kasa = driver_report.aggregate(kasa=Coalesce(
+        Sum('total_amount_without_fee'), 0, output_field=DecimalField()))['kasa'] or 0
+
+    rent = calculate_rent(start, end, driver)
     return kasa, rent
 
 
@@ -156,6 +151,7 @@ def get_daily_report(manager_id, schema_obj=None):
         drivers = drivers.filter(schema=schema_obj)
     else:
         report_time = timezone.localtime()
+        drivers = drivers.filter(schema__isnull=False)
     end = report_time - timedelta(days=1)
     start = report_time - timedelta(days=report_time.weekday()) if report_time.weekday() else \
         report_time - timedelta(weeks=1)
@@ -166,11 +162,9 @@ def get_daily_report(manager_id, schema_obj=None):
     total_rent = {}
     for driver in drivers:
         daily_report = calculate_daily_reports(end, end, driver)
-        if daily_report:
-            day_values[driver],  rent_daily[driver] = daily_report
+        day_values[driver],  rent_daily[driver] = daily_report
         total_report = calculate_daily_reports(start, end, driver)
-        if total_report:
-            total_values[driver], total_rent[driver] = total_report
+        total_values[driver], total_rent[driver] = total_report
     sort_report = dict(sorted(total_values.items(), key=lambda item: item[1], reverse=True))
     return sort_report, day_values, total_rent, rent_daily
 
@@ -284,14 +278,11 @@ def calculate_efficiency(vehicle, start, end):
     driver_info = [f"{first_name} {second_name} ({total_kasa:.2f})" for
                    (first_name, second_name), total_kasa in driver_kasa_totals.items()]
     vehicle_drivers.extend(driver_info)
-    if efficiency_objects:
-        total_kasa = efficiency_objects.aggregate(kasa=Sum('total_kasa'))['kasa']
-        total_distance = efficiency_objects.aggregate(total_distance=Sum('mileage'))['total_distance']
-        efficiency = 0
-        if total_distance:
-            efficiency = float('{:.2f}'.format(total_kasa/total_distance))
-        formatted_distance = float('{:.2f}'.format(total_distance)) if total_distance is not None else 0.00
-        return efficiency, formatted_distance, total_kasa, vehicle_drivers
+    total_kasa = efficiency_objects.aggregate(kasa=Sum('total_kasa'), default=0)['kasa']
+    total_distance = efficiency_objects.aggregate(total_distance=Sum('mileage'), default=0)['total_distance']
+    efficiency = float('{:.2f}'.format(total_kasa/total_distance)) if total_distance else 0
+    formatted_distance = float('{:.2f}'.format(total_distance)) if total_distance is not None else 0.00
+    return efficiency, formatted_distance, total_kasa, vehicle_drivers
 
 
 def get_efficiency(manager_id=None, start=None, end=None):
@@ -307,29 +298,24 @@ def get_efficiency(manager_id=None, start=None, end=None):
     vehicles = get_drivers_vehicles_list(manager_id, Vehicle)[0]
     for vehicle in vehicles:
         effect = calculate_efficiency(vehicle, start, end)
-        if effect:
-            drivers = ", ".join(effect[3])
-            if end == yesterday:
-                yesterday_efficiency = CarEfficiency.objects.filter(report_from=yesterday,
-                                                                    vehicle=vehicle).first()
-                efficiency = float(yesterday_efficiency.efficiency) if yesterday_efficiency else 0
-                distance = float(yesterday_efficiency.mileage) if yesterday_efficiency else 0
-                amount = float(yesterday_efficiency.total_kasa) if yesterday_efficiency else 0
-                effective_vehicle[vehicle.licence_plate] = {
-                    'Водії': drivers,
-                    'Середня ефективність(грн/км)': effect[0],
-                    'Ефективність(грн/км)': efficiency,
-                    'КМ всього': effect[1],
-                    'КМ учора': distance,
-                    'Загальна каса': effect[2],
-                    'Каса вчора': amount
-                                                            }
-            else:
-                effective_vehicle[vehicle.licence_plate] = {
-                    'Водії': drivers,
-                    'Середня ефективність(грн/км)': effect[0],
-                    'КМ всього': effect[1],
-                    'Загальна каса': effect[2]}
+        drivers = ", ".join(effect[3])
+        if end == yesterday:
+            yesterday_effect = calculate_efficiency(vehicle, end, end)
+            effective_vehicle[vehicle.licence_plate] = {
+                'Водії': drivers,
+                'Середня ефективність(грн/км)': effect[0],
+                'Ефективність(грн/км)': yesterday_effect[0],
+                'КМ всього': effect[1],
+                'КМ учора': yesterday_effect[1],
+                'Загальна каса': effect[2],
+                'Каса вчора': yesterday_effect[2]
+                                                        }
+        else:
+            effective_vehicle[vehicle.licence_plate] = {
+                'Водії': drivers,
+                'Середня ефективність(грн/км)': effect[0],
+                'КМ всього': effect[1],
+                'Загальна каса': effect[2]}
     sorted_effective_driver = dict(sorted(effective_vehicle.items(),
                                    key=lambda x: x[1]['Середня ефективність(грн/км)'],
                                    reverse=True))
@@ -339,36 +325,40 @@ def get_efficiency(manager_id=None, start=None, end=None):
 
 
 def calculate_efficiency_driver(driver, start, end):
-    efficiency_objects = DriverEfficiency.objects.filter(report_from__range=(start, end),
-                                                         driver=driver)
+    efficiency_objects = DriverEfficiency.objects.filter(report_from__range=(start, end), driver=driver)
+
     unique_vehicles = set()
     driver_vehicles = []
+
     for obj in efficiency_objects:
         vehicles = obj.vehicles.all().values_list('licence_plate', flat=True)
         unique_vehicles.update(vehicles)
+
     driver_vehicles.extend(unique_vehicles)
-    if efficiency_objects:
-        efficiency = 0
-        accept_percent = 0
-        avg_price = 0
-        aggregations = efficiency_objects.aggregate(
-            total_kasa=Sum('total_kasa'),
-            total_distance=Sum('mileage'),
-            total_orders=Sum('total_orders'),
-            total_hours=Sum('road_time')
-        )
-        if aggregations['total_orders']:
-            accept_percent = float('{:.2f}'.format(efficiency_objects.exclude(accept_percent=0).aggregate(
-                accept=Avg('accept_percent'))['accept']))
-            avg_price = float('{:.2f}'.format(aggregations['total_kasa'] / aggregations['total_orders']))
-        if aggregations['total_distance']:
-            efficiency = float('{:.2f}'.format(aggregations['total_kasa'] / aggregations['total_distance']))
-        total_seconds = int(aggregations['total_hours'].total_seconds()) if aggregations['total_hours'] else 0
-        hours, remainder = divmod(total_seconds, 3600)
-        minutes, seconds = divmod(remainder, 60)
-        total_hours_formatted = f"{hours:02}:{minutes:02}:{seconds:02}"
-        return (efficiency, aggregations['total_orders'], accept_percent,
-                avg_price, aggregations['total_distance'], total_hours_formatted, driver_vehicles)
+
+    aggregations = efficiency_objects.aggregate(
+        total_kasa=Sum('total_kasa', default=0),
+        total_distance=Sum('mileage', default=0),
+        total_orders=Sum('total_orders', default=0),
+        total_hours=Sum('road_time', default=timedelta())
+    )
+
+    total_orders = aggregations['total_orders']
+    total_distance = aggregations['total_distance']
+    total_hours = aggregations['total_hours']
+
+    accept_percent = 0 if total_orders == 0 else float('{:.2f}'.format(
+        efficiency_objects.exclude(accept_percent=0).aggregate(accept=Avg('accept_percent'))['accept']
+    ))
+    avg_price = 0 if total_orders == 0 else float('{:.2f}'.format(aggregations['total_kasa'] / total_orders))
+    efficiency = 0 if total_distance == 0 else float('{:.2f}'.format(aggregations['total_kasa'] / total_distance))
+
+    total_seconds = int(total_hours.total_seconds()) if total_hours else 0
+    hours, remainder = divmod(total_seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    total_hours_formatted = f"{hours:02}:{minutes:02}:{seconds:02}"
+
+    return efficiency, total_orders, accept_percent, avg_price, total_distance, total_hours_formatted, driver_vehicles
 
 
 def get_driver_efficiency_report(manager_id, schema=None, start=None, end=None):
@@ -381,6 +371,7 @@ def get_driver_efficiency_report(manager_id, schema=None, start=None, end=None):
             drivers = drivers.filter(schema=schema)
         else:
             report_time = timezone.localtime()
+            drivers = drivers.filter(schema__isnull=False)
         end = yesterday
         start = report_time - timedelta(days=report_time.weekday()) if report_time.weekday() else \
             report_time - timedelta(weeks=1)
@@ -389,52 +380,41 @@ def get_driver_efficiency_report(manager_id, schema=None, start=None, end=None):
 
     for driver in drivers:
         effect = calculate_efficiency_driver(driver, start, end)
-        if effect:
-            licence_plates = ', '.join(effect[6])
+        total_kasa, total_rent = calculate_daily_reports(start, end, driver)
+        licence_plates = ', '.join(effect[6])
+        if end == yesterday:
+            yesterday_effect = calculate_efficiency_driver(driver, end, end)
             day_kasa, rent_daily = calculate_daily_reports(end, end, driver)
-            total_kasa, total_rent = calculate_daily_reports(start, end, driver)
-            if end == yesterday:
-                efficiency = 0
-                orders = 0
-                accept_percent = 0
-                average_price = 0
-                distance = 0
-                car_plates = "-"
-                road_time = timedelta()
-                yesterday_efficiency = DriverEfficiency.objects.filter(report_from=yesterday,
-                                                                       driver=driver).first()
-                if yesterday_efficiency:
-                    efficiency = float(yesterday_efficiency.efficiency)
-                    cars = yesterday_efficiency.vehicles.all().values_list('licence_plate', flat=True)
-                    car_plates = ', '.join(cars)
-                    orders = yesterday_efficiency.total_orders
-                    accept_percent = yesterday_efficiency.accept_percent
-                    average_price = yesterday_efficiency.average_price
-                    distance = yesterday_efficiency.mileage
-                    road_time = yesterday_efficiency.road_time
-                effective_driver[driver] = {
-                    'Автомобілі': f"{licence_plates} ({car_plates})",
-                    'Каса': f"{total_kasa} (+{day_kasa}) грн",
-                    'Оренда': f"{total_rent} (+{rent_daily}) км",
-                    'Ефективність': f"{effect[0]} (+{efficiency}) грн/км",
-                    'Кількість замовлень': f"{effect[1]} (+{orders})",
-                    'Прийнято замовлень': f"{effect[2]} ({accept_percent}) %",
-                    'Cередній чек': f"{effect[3]} ({average_price}) грн",
-                    'Пробіг': f"{effect[4]} (+{distance}) км",
-                    'Час в дорозі': f"{effect[5]}(+{road_time})"
-                                            }
-            else:
-                effective_driver[driver] = {
-                    'Автомобілі': f"{licence_plates}",
-                    'Каса': f"{total_kasa} грн",
-                    'Оренда': f"{total_rent} км",
-                    'Ефективність': f"{effect[0]} грн/км",
-                    'Кількість замовлень': f"{effect[1]}",
-                    'Прийнято замовлень': f"{effect[2]}%",
-                    'Cередній чек': f"{effect[3]} грн",
-                    'Пробіг': f"{effect[4]} км",
-                    'Час в дорозі': f"{effect[5]}"
-                                            }
+            efficiency = yesterday_effect[0]
+            car_plates = ', '.join(yesterday_effect[6])
+            orders = yesterday_effect[1]
+            accept_percent = yesterday_effect[2]
+            average_price = yesterday_effect[3]
+            distance = yesterday_effect[4]
+            road_time = yesterday_effect[5]
+            effective_driver[driver] = {
+                'Автомобілі': f"{licence_plates} ({car_plates})",
+                'Каса': f"{total_kasa} (+{day_kasa}) грн",
+                'Оренда': f"{total_rent} (+{rent_daily}) км",
+                'Ефективність': f"{effect[0]} (+{efficiency}) грн/км",
+                'Кількість замовлень': f"{effect[1]} (+{orders})",
+                'Прийнято замовлень': f"{effect[2]} ({accept_percent}) %",
+                'Cередній чек': f"{effect[3]} ({average_price}) грн",
+                'Пробіг': f"{effect[4]} (+{distance}) км",
+                'Час в дорозі': f"{effect[5]}(+{road_time})"
+                                        }
+        else:
+            effective_driver[driver] = {
+                'Автомобілі': f"{licence_plates}",
+                'Каса': f"{total_kasa} грн",
+                'Оренда': f"{total_rent} км",
+                'Ефективність': f"{effect[0]} грн/км",
+                'Кількість замовлень': f"{effect[1]}",
+                'Прийнято замовлень': f"{effect[2]}%",
+                'Cередній чек': f"{effect[3]} грн",
+                'Пробіг': f"{effect[4]} км",
+                'Час в дорозі': f"{effect[5]}"
+                                        }
     sorted_effective_driver = dict(sorted(effective_driver.items(),
                                    key=lambda x: float(x[1]['Каса'].split()[0]),
                                    reverse=True))
@@ -450,7 +430,7 @@ def get_vehicle_income(driver, start, end, spending_rate, rent_price):
     while start <= end:
         start_time = timezone.make_aware(datetime.combine(start, time.min))
         end_time = timezone.make_aware(datetime.combine(start, time.max))
-        vehicles = check_reshuffle(driver, start_time)
+        vehicles = check_reshuffle(driver, start_time, end_time)
         uber_uklon_income = 0
         for vehicle, reshuffles in vehicles.items():
             if reshuffles:
@@ -458,7 +438,7 @@ def get_vehicle_income(driver, start, end, spending_rate, rent_price):
                     vehicle = reshuffle.swap_vehicle
                     investor_payments = InvestorPayments.objects.filter(
                         vehicle=vehicle, report_from=start).aggregate(
-                        total_payment=Coalesce(Sum("sum_before_transaction"), Decimal(0)))['total_payment'] or 0
+                        total_payment=Coalesce(Sum("earning"), Decimal(0)))['total_payment'] or 0
                     bolt_income = FleetOrder.objects.filter(
                         fleet="Bolt",
                         accepted_time__date=start,
@@ -487,8 +467,8 @@ def get_vehicle_income(driver, start, end, spending_rate, rent_price):
                     for fleet in fleets:
                         uber_uklon_income += fleet.get_earnings_per_driver(driver, start_period, end_period)
                         print(uber_uklon_income)
-                    total_bolt_income = (bolt_income['total_price'] * 0.75004 +
-                                         bolt_income['total_tips'] + compensations + bonuses)
+                    total_bolt_income = Decimal(bolt_income['total_price'] * 0.75004 +
+                                                bolt_income['total_tips'] + compensations + bonuses)
                     print(total_bolt_income)
                     total_income = (Decimal((total_bolt_income + uber_uklon_income)) * spending_rate -
                                     investor_payments + total_rent * rent_price)
@@ -503,7 +483,7 @@ def get_vehicle_income(driver, start, end, spending_rate, rent_price):
             elif vehicle:
                 investor_payments = InvestorPayments.objects.filter(
                     vehicle=vehicle, report_from=start).aggregate(
-                    total_payment=Sum("sum_before_transaction"))['total_payment'] or 0
+                    total_payment=Sum("earning"))['total_payment'] or 0
                 print(f"investor {investor_payments}")
                 bolt_income = FleetOrder.objects.filter(
                     fleet="Bolt",
@@ -525,8 +505,8 @@ def get_vehicle_income(driver, start, end, spending_rate, rent_price):
                     total_rent = rent_distance.aggregate(distance=Sum(overall_rent))['distance']
                 else:
                     total_rent = 0
-                total_bolt_income = (bolt_income['total_price'] * 0.75004 +
-                                     bolt_income['total_tips'] + compensations + bonuses)
+                total_bolt_income = Decimal(bolt_income['total_price'] * 0.75004 +
+                                            bolt_income['total_tips'] + compensations + bonuses)
                 total_income = (Decimal((total_bolt_income + uber_uklon_income)) * spending_rate
                                 - investor_payments + total_rent * rent_price)
                 print(f"total {total_income}")
