@@ -31,7 +31,7 @@ def get_time_for_task(schema, day=None):
     return start, end, previous_start, previous_end
 
 
-def create_driver_payments(start, end, driver, schema):
+def create_driver_payments(start, end, driver, schema, delete=None):
 
     driver_report = SummaryReport.objects.filter(report_from__range=(start, end),
                                                  driver=driver).aggregate(
@@ -41,17 +41,12 @@ def create_driver_payments(start, end, driver, schema):
     rent = calculate_rent(start, end, driver)
     rent_value = rent * schema.rent_price
     if driver_report['kasa']:
-        if driver.deleted_at is not None:
-            salary = '%.2f' % driver_report['kasa'] * schema.rate - driver_report['cash'] - rent_value
-        elif schema.schema == "DYNAMIC":
+        if delete:
+            salary = '%.2f' % (driver_report['kasa'] * schema.rate - driver_report['cash'] - rent_value)
+        elif schema.is_dynamic():
             driver_spending = calculate_by_rate(driver, driver_report['kasa'])
             salary = '%.2f' % (driver_spending - driver_report['cash'] - rent_value)
-        elif schema.schema in ("HALF", "CUSTOM"):
-            salary = '%.2f' % (driver_report['kasa'] * schema.rate - driver_report['cash'] - (
-                (schema.plan - driver_report['kasa']) * Decimal(1 - schema.rate)
-                if driver_report['kasa'] < schema.plan else 0) - rent_value
-            )
-        else:
+        elif schema.is_rent():
             overall_distance = DriverEfficiency.objects.filter(
                 report_from__range=(start, end),
                 driver=driver).aggregate(
@@ -60,16 +55,19 @@ def create_driver_payments(start, end, driver, schema):
             rent_value = rent * schema.rent_price
             salary = '%.2f' % (driver_report['kasa'] * schema.rate -
                                driver_report['cash'] - schema.rental - rent_value)
-
+        else:
+            salary = '%.2f' % (driver_report['kasa'] * schema.rate - driver_report['cash'] - (
+                (schema.plan - driver_report['kasa']) * Decimal(1 - schema.rate)
+                if driver_report['kasa'] < schema.plan else 0) - rent_value
+            )
         DriverPayments.objects.create(report_from=start,
                                       report_to=end,
-                                      report_type=schema.salary_calculation,
                                       driver=driver,
                                       rent_distance=rent,
                                       rent_price=schema.rent_price,
                                       kasa=driver_report['kasa'],
                                       cash=driver_report['cash'],
-                                      salary=salary,
+                                      earning=salary,
                                       rent=rent_value,
                                       partner=schema.partner)
 
@@ -200,32 +198,38 @@ def generate_message_report(chat_id, schema_id=None, daily=None):
     drivers_dict = {}
     balance = 0
     for driver in drivers:
-        payment = DriverPayments.objects.filter(report_from=start, report_to=end, driver=driver).first()
         driver_message = ''
-        if payment:
-            driver_message += f"{driver} каса: {payment.kasa}\n"
-            if payment.rent:
-                driver_message += "Оренда авто: {0} * {1} = {2}\n".format(
-                    payment.rent_distance, payment.rent_price, payment.rent)
-            if driver.schema.schema in ("HALF", "CUSTOM"):
-                driver_message += 'Зарплата {0} * {1} - Готівка {2}'.format(
-                    payment.kasa, driver.schema.rate, payment.cash)
-                if payment.kasa < driver.schema.plan:
-                    incomplete = (driver.schema.plan - payment.kasa) * Decimal(1 - driver.schema.rate)
-                    driver_message += " - План {:.2f}".format(incomplete)
-            elif driver.schema.schema == "DYNAMIC":
-                driver_message += 'Зарплата {0} - Готівка {1}'.format(
-                    payment.salary + payment.cash + payment.rent,  payment.cash)
-            else:
-                driver_message += 'Зарплата {0} * {1} - Готівка {2} - Абонплата {3}'.format(
-                    payment.kasa, driver.schema.rate, payment.cash, driver.schema.rental)
-            if payment.rent:
-                driver_message += f" - Оренда {payment.rent}"
-            driver_message += f" = {payment.salary}\n"
-            balance += payment.kasa - payment.salary - payment.cash
-            if driver.chat_id:
-                drivers_dict[driver.chat_id] = driver_message
-            message += driver_message
+        if driver.deleted_at in (start, end):
+            payment = DriverPayments.objects.filter(driver=driver).last()
+            driver_message = f"{driver} каса: {payment.kasa}\n" \
+                             f"Зарплата {payment.kasa} - Готівка {payment.cash}" \
+                             f" - Оренда {payment.rent} = {payment.earning}\n"
+        else:
+            payment = DriverPayments.objects.filter(report_from=start, report_to=end, driver=driver).first()
+            if payment:
+                driver_message += f"{driver} каса: {payment.kasa}\n"
+                if payment.rent:
+                    driver_message += "Оренда авто: {0} * {1} = {2}\n".format(
+                        payment.rent_distance, payment.rent_price, payment.rent)
+                if driver.schema.is_rent():
+                    driver_message += 'Зарплата {0} * {1} - Готівка {2} - Абонплата {3}'.format(
+                        payment.kasa, driver.schema.rate, payment.cash, driver.schema.rental)
+                elif driver.schema.is_dynamic():
+                    driver_message += 'Зарплата {0} - Готівка {1}'.format(
+                        payment.earning + payment.cash + payment.rent,  payment.cash)
+                else:
+                    driver_message += 'Зарплата {0} * {1} - Готівка {2}'.format(
+                        payment.kasa, driver.schema.rate, payment.cash)
+                    if payment.kasa < driver.schema.plan:
+                        incomplete = (driver.schema.plan - payment.kasa) * Decimal(1 - driver.schema.rate)
+                        driver_message += " - План {:.2f}".format(incomplete)
+                if payment.rent:
+                    driver_message += f" - Оренда {payment.rent}"
+                driver_message += f" = {payment.earning}\n"
+                balance += payment.kasa - payment.earning - payment.cash
+                if driver.chat_id:
+                    drivers_dict[driver.chat_id] = driver_message
+                message += driver_message
         if driver_message:
             message += "*" * 39 + '\n'
     if message and user:
@@ -247,7 +251,7 @@ def generate_report_period(chat_id, start, end):
             period_kasa=Sum('kasa') or 0,
             period_cash=Sum('cash') or 0,
             period_rent_distance=Sum('rent_distance') or 0,
-            period_salary=Sum('salary') or 0,
+            period_salary=Sum('earning') or 0,
             period_rent=Sum('rent') or 0
         )
         if payment:

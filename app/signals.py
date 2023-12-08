@@ -32,7 +32,7 @@ def calculate_fired_driver(sender, instance, **kwargs):
     if instance.schema and instance.schema.is_weekly():
         end = timezone.localtime().date()
         start = end - timedelta(days=end.weekday())
-        create_driver_payments(start, end, instance, instance.schema)
+        create_driver_payments(start, end, instance, instance.schema, delete=True)
 
 
 @receiver(post_save, sender=Partner)

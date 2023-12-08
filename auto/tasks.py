@@ -18,8 +18,8 @@ from app.models import RawGPS, Vehicle, Order, Driver, JobApplication, ParkSetti
     Payments, SummaryReport, Manager, Partner, DriverEfficiency, FleetOrder, ReportTelegramPayments, \
     InvestorPayments, VehicleSpending, DriverReshuffle, DriverPayments, SalaryCalculation, \
     PaymentTypes, TaskScheduler, DriverEffVehicleKasa, Schema, CustomReport, FleetsDriversVehiclesRate, Fleet, \
-    VehicleGPS, PartnerEarnings
-from django.db.models import Sum, IntegerField, FloatField, Q, Value
+    VehicleGPS, PartnerEarnings, Investor
+from django.db.models import Sum, IntegerField, FloatField, Q, Value, DecimalField
 from django.db.models.functions import Cast, Coalesce
 from app.utils import get_schedule, create_task
 from auto_bot.handlers.driver_manager.utils import get_daily_report, get_efficiency, generate_message_report, \
@@ -380,9 +380,10 @@ def get_driver_efficiency(self, partner_pk, schema, day=None):
                 total_orders = orders.count()
                 if total_orders:
                     canceled = orders.filter(state=FleetOrder.DRIVER_CANCEL).count()
+                    completed = orders.filter(state=FleetOrder.COMPLETED).count()
                     accepted_orders = total_orders - canceled
                     accept = accepted_orders / total_orders * 100
-                    avg_price = Decimal(total_kasa) / Decimal(accepted_orders)
+                    avg_price = Decimal(total_kasa) / Decimal(completed)
                 hours_online = timedelta()
                 using_info = UseOfCars.objects.filter(created_at__range=(start, end), user_vehicle=driver)
                 for report in using_info:
@@ -689,26 +690,33 @@ def check_personal_orders(self):
 @app.task(bind=True, queue='beat_tasks')
 def add_money_to_vehicle(self, partner_pk):
     day = timezone.localtime() - timedelta(days=1)
-    for vehicle in Vehicle.objects.filter(partner=partner_pk, investor_car__isnull=False):
-        efficiency = CarEfficiency.objects.filter(report_from=day.date(), vehicle=vehicle).first()
-        kasa = efficiency.total_kasa if efficiency else 0
-        currency = vehicle.currency_back
-        total_kasa = kasa * vehicle.investor_percentage
-        if currency != Vehicle.Currency.UAH:
-            car_earnings, rate = convert_to_currency(float(total_kasa), currency)
-        else:
-            car_earnings = total_kasa
-            rate = 0.00
-        InvestorPayments.objects.get_or_create(
-            report_from=day.date(),
-            vehicle=vehicle,
-            investor=vehicle.investor_car,
-            partner_id=partner_pk,
-            defaults={
-                "sum_before_transaction": total_kasa,
-                "currency": currency,
-                "currency_rate": rate,
-                "sum_after_transaction": car_earnings})
+    investor_vehicles = Vehicle.objects.filter(investor_car__isnull=False, partner=partner_pk)
+    kasa = SummaryReport.objects.filter(report_from=day.date(), vehicle__in=investor_vehicles).aggregate(
+        kasa=Coalesce(Sum('total_amount_without_fee'), 0, output_field=DecimalField())
+    )['kasa']
+    for investor in Investor.objects.filter(partner=partner_pk):
+        vehicles = Vehicle.objects.filter(investor_car=investor)
+        if vehicles:
+            vehicle_kasa = kasa / vehicles.count()
+            for vehicle in vehicles:
+                currency = vehicle.currency_back
+                earning = vehicle_kasa * vehicle.investor_percentage
+                if currency != Vehicle.Currency.UAH:
+                    car_earnings, rate = convert_to_currency(float(earning), currency)
+                else:
+                    car_earnings = earning
+                    rate = 0.00
+                InvestorPayments.objects.get_or_create(
+                    report_from=day.date(),
+                    report_to=day.date(),
+                    vehicle=vehicle,
+                    investor=vehicle.investor_car,
+                    partner_id=partner_pk,
+                    defaults={
+                        "earning": earning,
+                        "currency": currency,
+                        "currency_rate": rate,
+                        "sum_after_transaction": car_earnings})
 
 
 @app.task(bind=True, queue='beat_tasks')
@@ -1032,7 +1040,7 @@ def calculate_driver_reports(self, partner_pk, schema, day=None):
 def calculate_vehicle_earnings(self, partner_pk, day=None):
     if not day:
         day = timezone.localtime() - timedelta(days=1)
-    drivers = Driver.objects.get_active(partner=partner_pk, schema__isnull=False).select_related('partner')
+    drivers = Driver.objects.filter(partner=partner_pk, schema__isnull=False).select_related('partner')
     for driver in drivers:
         payment = DriverPayments.objects.filter(report_to=day, driver=driver, partner=driver.partner).first()
         if payment:

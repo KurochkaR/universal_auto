@@ -139,6 +139,9 @@ class Schema(models.Model):
     def is_rent(self):
         return True if self.schema == "RENT" else False
 
+    def is_dynamic(self):
+        return True if self.schema == "DYNAMIC" else False
+
     class Meta:
         verbose_name = 'Схему роботи'
         verbose_name_plural = 'Схеми роботи'
@@ -315,24 +318,6 @@ class Vehicle(models.Model):
         return f'{self.licence_plate}'
 
 
-class InvestorPayments(models.Model):
-    report_from = models.DateField(verbose_name="Виплата за")
-    vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Автомобіль')
-    investor = models.ForeignKey(Investor, on_delete=models.SET_NULL, null=True, verbose_name='Інвестор')
-    sum_before_transaction = models.DecimalField(decimal_places=2, max_digits=10, verbose_name="Сума в гривні")
-    currency = models.CharField(max_length=4, verbose_name='Валюта покупки')
-    currency_rate = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name="Курс валюти")
-    sum_after_transaction = models.DecimalField(decimal_places=2, max_digits=10, verbose_name="Сума у валюті")
-    partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
-
-    class Meta:
-        verbose_name = 'Виплату інвестору'
-        verbose_name_plural = 'Виплати інвестору'
-
-    def __str__(self) -> str:
-        return f'{self.vehicle} {self.sum_before_transaction} {self.currency}'
-
-
 class VehicleSpending(models.Model):
     class Category(models.TextChoices):
         FUEL = 'FUEL', 'Паливо'
@@ -394,13 +379,55 @@ class FiredDriver(Driver):
         proxy = True
 
 
-class PartnerEarnings(models.Model):
+class Earnings(PolymorphicModel):
+    PAYMENT_STATUS_CHOICES = [
+        ('checking', 'Перевіряється'),
+        ('pending', 'Очікується'),
+        ('completed', 'Виплачений'),
+        ('failed', 'Не сплачений'),
+    ]
+
     report_from = models.DateField(verbose_name="Дохід з")
     report_to = models.DateField(verbose_name="Дохід по")
+    earning = models.DecimalField(decimal_places=2, max_digits=10, verbose_name='Сума доходу')
+    status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='checking')
+    partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
+
+
+class DriverPayments(Earnings):
+    driver = models.ForeignKey(Driver, on_delete=models.CASCADE, verbose_name="Водій")
+    kasa = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Заробіток за період')
+    cash = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Готівка')
+    rent_distance = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Орендована дистанція')
+    rent_price = models.IntegerField(default=6, verbose_name='Ціна оренди')
+    rent = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Оренда авто')
+
+    class Meta:
+        verbose_name = 'Виплати водію'
+        verbose_name_plural = 'Виплати водіям'
+
+    def __str__(self):
+        return f"{self.driver}"
+
+
+class InvestorPayments(Earnings):
+    vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Автомобіль')
+    investor = models.ForeignKey(Investor, on_delete=models.SET_NULL, null=True, verbose_name='Інвестор')
+    currency = models.CharField(max_length=4, verbose_name='Валюта покупки')
+    currency_rate = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name="Курс валюти")
+    sum_after_transaction = models.DecimalField(decimal_places=2, max_digits=10, verbose_name="Сума у валюті")
+
+    class Meta:
+        verbose_name = 'Виплату інвестору'
+        verbose_name_plural = 'Виплати інвестору'
+
+    def __str__(self) -> str:
+        return f'{self.vehicle} {self.sum_before_transaction} {self.currency}'
+
+
+class PartnerEarnings(Earnings):
     vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Автомобіль')
     driver = models.ForeignKey(Driver, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Водій')
-    partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
-    earning = models.DecimalField(decimal_places=2, max_digits=10, verbose_name='Сума доходу')
 
     class Meta:
         verbose_name = 'Дохід'
@@ -1000,25 +1027,7 @@ class DriverEfficiency(models.Model):
         return f"{self.driver}"
 
 
-class DriverPayments(models.Model):
-    report_from = models.DateField(verbose_name='Звіт з')
-    report_to = models.DateField(verbose_name='Звіт по')
-    report_type = models.CharField(max_length=25, choices=SalaryCalculation.choices, verbose_name='Тип звіту')
-    driver = models.ForeignKey(Driver, on_delete=models.CASCADE, verbose_name="Водій")
-    kasa = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Заробіток за період')
-    cash = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Готівка')
-    rent_distance = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Орендована дистанція')
-    rent_price = models.IntegerField(default=6, verbose_name='Ціна оренди')
-    rent = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Оренда авто')
-    salary = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Виплачено водію')
-    partner = models.ForeignKey(Partner, on_delete=models.CASCADE, verbose_name="Партнер")
 
-    class Meta:
-        verbose_name = 'Виплати водію'
-        verbose_name_plural = 'Виплати водіям'
-
-    def __str__(self):
-        return f"{self.driver}"
 
 
 class UseOfCars(models.Model):
