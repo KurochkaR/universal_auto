@@ -1153,6 +1153,7 @@ $(document).ready(function () {
 			});
 
 			function updShiftForm(clickedDayId, calendarId, dataName, startTime, endTime, driverId, vehicleId, idReshuffle) {
+				const modalShiftTitle = $('.modal-shift-title h2');
 				const shiftForm = $('#modal-shift');
 				const modalShiftDate = $('.modal-shift-date');
 				const shiftDriver = $('#shift-driver');
@@ -1165,6 +1166,7 @@ $(document).ready(function () {
 					reshuffle_id: idReshuffle
 				};
 
+				modalShiftTitle.text("Редагування зміни");
 				modalShiftDate.text(clickedDayId);
 				shiftDriver.val(driverId);
 				startTimeInput.val(startTime);
@@ -1239,6 +1241,7 @@ $(document).ready(function () {
 			}
 
 			function openShiftForm(clickedDayId, calendarId) {
+				const modalShiftTitle = $('.modal-shift-title h2');
 				const shiftForm = $('#modal-shift');
 				const shiftBtn = $('.shift-btn').show();
 				const recurrence = $('.recurrence').show();
@@ -1253,6 +1256,7 @@ $(document).ready(function () {
 				const shiftDriver = $('#shift-driver');
 				const csrfTokenInput = $('input[name="csrfmiddlewaretoken"]');
 
+				modalShiftTitle.text("Створення змінни");
 				modalShiftDate.text(clickedDayId);
 				shiftForm.show();
 
