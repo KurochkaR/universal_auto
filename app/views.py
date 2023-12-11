@@ -1,6 +1,5 @@
 import datetime
 import json
-import logging
 
 from django.http import JsonResponse
 from django.shortcuts import render
@@ -11,8 +10,6 @@ from rest_framework.response import Response
 from django.views.generic import TemplateView
 from telegram import Update
 
-# from auto.celery import app
-from auto.settings import DEBUG
 from auto_bot.dispatcher import dispatcher
 from auto_bot.main import bot
 from scripts.driversrating import DriversRatingMixin

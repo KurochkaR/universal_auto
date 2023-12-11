@@ -19,13 +19,8 @@ import sentry_sdk
 sentry_sdk.init(
     dsn=os.getenv("SENTRY_DSN"),
     enable_tracing=True,
-    # Set traces_sample_rate to 1.0 to capture 100%
-    # of transactions for performance monitoring.
-    traces_sample_rate=1.0,
-    # Set profiles_sample_rate to 1.0 to profile 100%
-    # of sampled transactions.
-    # We recommend adjusting this value in production.
-    profiles_sample_rate=1.0,
+    traces_sample_rate=0.1,
+    profiles_sample_rate=0.1,
 )
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -53,6 +48,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django_extensions',
+    'django_celery_beat',
     'app.apps.AppConfig',
     'fake_uklon',
     'polymorphic',
@@ -168,7 +164,8 @@ REST_FRAMEWORK = {
 
 CELERY_BROKER_URL = os.environ['CELERY_BROKER_URL']
 CELERY_RESULT_BACKEND = os.environ['CELERY_RESULT_BACKEND']
-
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+CELERY_TIMEZONE = "Europe/Kiev"
 CELERY_IMPORTS = [
     'auto.tasks',
 ]

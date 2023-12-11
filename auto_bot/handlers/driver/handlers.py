@@ -3,7 +3,7 @@ from django.utils import timezone
 from telegram import ReplyKeyboardRemove, InlineKeyboardMarkup
 from telegram.ext import ConversationHandler
 
-from app.models import Driver, Vehicle, Report_of_driver_debt, Event
+from app.models import Driver, Vehicle, ReportDriveDebt, Event
 from auto_bot.handlers.driver.keyboards import service_auto_buttons, inline_debt_keyboard, inline_dates_kb
 from auto_bot.handlers.driver.static_text import *
 from auto_bot.handlers.main.keyboards import markup_keyboard_onetime, back_to_main_menu
@@ -69,7 +69,7 @@ def save_debt_report(update, context):
         image = update.message.photo[-1].get_file()
         filename = f'{image.file_unique_id}.jpg'
         image.download(filename)
-        Report_of_driver_debt.objects.create(
+        ReportDriveDebt.objects.create(
             driver=driver,
             image=f'static/{filename}'
         )

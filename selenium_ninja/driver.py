@@ -17,7 +17,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver import DesiredCapabilities
 from selenium.common import TimeoutException, NoSuchElementException, InvalidArgumentException
 
-from app.models import FleetOrder, Partner, Vehicle, Fleets_drivers_vehicles_rate, UberService, UberSession, \
+from app.models import FleetOrder, Partner, Vehicle, FleetsDriversVehiclesRate, UberService, UberSession, \
     UaGpsService, NewUklonService
 from app.uklon_sync import UklonRequest
 from auto import settings
@@ -278,12 +278,13 @@ class SeleniumTools:
             if re.search(pattern, file):
                 return file
 
-    def payments_order_file_name(self, day=None):
-        return self.report_file_name(self.file_pattern(day))
+    def payments_order_file_name(self, start, end):
+        return self.report_file_name(self.file_pattern(start, end))
 
-    def file_pattern(self, day, fleet="Uber"):
-        sd, sy, sm = day.strftime("%d"), day.strftime("%Y"), day.strftime("%m")
-        return f'{fleet} {sy}{sm}{sd}-{self.partner}.csv'
+    def file_pattern(self, start, end, fleet="Uber"):
+        sd, sy, sm = start.strftime("%d"), start.strftime("%Y"), start.strftime("%m")
+        ed, ey, em = end.strftime("%d"), end.strftime("%Y"), end.strftime("%m")
+        return f'{fleet} {sy}{sm}{sd}-{ey}{em}{ed}-{self.partner}.csv'
 
     def click_uber_calendar(self, month, year, day):
         self.driver.find_element(By.XPATH, UberService.get_value('UBER_CALENDAR_1')).click()
@@ -295,7 +296,7 @@ class SeleniumTools:
         self.driver.find_element(By.XPATH,
                                  f'{UberService.get_value("UBER_CALENDAR_4")}{day}]').click()
 
-    def generate_payments_order(self, day):
+    def generate_payments_order(self, start, end):
         url = f"{UberService.get_value('UBER_GENERATE_PAYMENTS_ORDER_1')}{str(self.get_uber_session().uber_uuid)}/reports"
         xpath = UberService.get_value('UBER_GENERATE_PAYMENTS_ORDER_2')
         self.driver.get(UberService.get_value('BASE_URL'))
@@ -310,21 +311,21 @@ class SeleniumTools:
             xpath = UberService.get_value('UBER_GENERATE_TRIPS_2')
             WebDriverWait(self.driver, self.sleep).until(ec.presence_of_element_located((By.XPATH, xpath))).click()
         self.driver.find_element(By.XPATH, UberService.get_value('UBER_GENERATE_PAYMENTS_ORDER_4')).click()
-        self.click_uber_calendar(day.strftime("%B"),
-                                 day.strftime("%Y"),
-                                 day.day)
-        self.click_uber_calendar(day.strftime("%B"),
-                                 day.strftime("%Y"),
-                                 day.day)
+        self.click_uber_calendar(start.strftime("%B"),
+                                 start.strftime("%Y"),
+                                 start.day)
+        self.click_uber_calendar(end.strftime("%B"),
+                                 end.strftime("%Y"),
+                                 end.day)
         self.driver.find_element(By.XPATH, UberService.get_value('UBER_GENERATE_PAYMENTS_ORDER_5')).click()
-        return f'{self.payments_order_file_name(day)}'
+        return f'{self.payments_order_file_name(start, end)}'
 
-    def download_payments_order(self, day):
-        if os.path.exists(f'{self.payments_order_file_name(day)}'):
+    def download_payments_order(self, start, end):
+        if os.path.exists(f'{self.payments_order_file_name(start, end)}'):
             self.logger.info('Report already downloaded')
             return
 
-        self.generate_payments_order(day)
+        self.generate_payments_order(start, end)
         download_button = f"{UberService.get_value('UBER_DOWNLOAD_PAYMENTS_ORDER_1')}"
         try:
             in_progress_text = f"{UberService.get_value('UBER_DOWNLOAD_PAYMENTS_ORDER_2')}"
@@ -334,17 +335,17 @@ class SeleniumTools:
             self.driver.refresh()
         WebDriverWait(self.driver, 60).until(ec.element_to_be_clickable((By.XPATH, download_button))).click()
         time.sleep(self.sleep)
-        self.get_last_downloaded_file_from_remote(self.file_pattern(day))
+        self.get_last_downloaded_file_from_remote(self.file_pattern(start, end))
 
-    def save_trips_report(self, day):
+    def save_trips_report(self, start, end):
         states = {"completed": FleetOrder.COMPLETED,
                   "delivery_failed": FleetOrder.SYSTEM_CANCEL,
                   "rider_cancelled": FleetOrder.CLIENT_CANCEL,
                   "driver_cancelled": FleetOrder.DRIVER_CANCEL
                   }
 
-        self.logger.info(self.file_pattern(day))
-        file_path = self.payments_order_file_name(day)
+        self.logger.info(self.file_pattern(start, end))
+        file_path = self.payments_order_file_name(start, end)
         if file_path is not None:
             with open(file_path, encoding="utf-8") as file:
                 reader = csv.reader(file)
@@ -356,7 +357,7 @@ class SeleniumTools:
                         finish = timezone.make_aware(datetime.strptime(row[8], "%Y-%m-%d %H:%M:%S"))
                     except ValueError:
                         finish = None
-                    driver = Fleets_drivers_vehicles_rate.objects.filter(driver_external_id=row[1]).first()
+                    driver = FleetsDriversVehiclesRate.objects.filter(driver_external_id=row[1]).first()
                     if driver:
                         vehicle = Vehicle.objects.get(licence_plate=row[5])
                         order = {"order_id": row[0],

@@ -453,7 +453,12 @@ def cancel_order_report(response, report, cancel):
     if isinstance(response, list):
         report_for_client = f'{return_money_from_system} {get_money} {cancel}{report.currency}'
     else:
-        report_for_client = f'{bad_response_portmone}{report.provider_payment_charge_id}\n' \
+        bad_response = bad_response_portmone(ParkSettings.get_value("NINJA_PHONE"),
+                                             ParkSettings.get_value("NINJA_EMAIL"),
+                                             ParkSettings.get_value("NINJA_ADDRESS"),
+                                             report.provider_payment_charge_id
+                                             )
+        report_for_client = f'{bad_response}\n' \
                             f'{get_money} {cancel}{report.currency}'
     return report_for_client
 
