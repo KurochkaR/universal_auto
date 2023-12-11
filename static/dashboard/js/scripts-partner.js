@@ -1362,44 +1362,23 @@ $(document).ready(function () {
 });
 
 function validateInputTime(input) {
-	input.value = input.value.replace(/[^0-9:]/g, '');
+  input.addEventListener('input', function () {
+    let valueWithoutColon = input.value.replace(/:/g, '');
+    if (valueWithoutColon.length < 2) {
+      return;
+    }
+    let hours = valueWithoutColon.slice(0, 2);
+    input.value = hours + ':' + valueWithoutColon.slice(2, 5);
 
-	if (input.value.length > 5) {
-		input.value = input.value.slice(0, 5);
-	}
+    input.value = input.value.slice(0, 5);
 
-	if (input.value.length > 0) {
-		const firstChar = input.value.charAt(0);
-		if (!['0', '1', '2'].includes(firstChar)) {
-			input.value = input.value.slice(1);
-		}
-	}
+    var isValid = /^([0-1]?[0-9]|2[0-4]):([0-5][0-9])(:[0-5][0-9])?$/.test(input.value);
 
-	if (input.value.length > 1) {
-		const secondChar = input.value.charAt(1);
-		const allowedSecondChars = (input.value.charAt(0) === '2') ? ['0', '1', '2', '3'] : ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
-		if (!allowedSecondChars.includes(secondChar)) {
-			input.value = input.value.slice(0, 1);
-		}
-	}
-
-	if (input.value.length > 2 && input.value.charAt(2) !== ':') {
-		input.value = input.value.slice(0, 2) + ':' + input.value.slice(2);
-	}
-
-	if (input.value.length > 3) {
-		const fourthChar = input.value.charAt(3);
-		const allowedFourthChars = ['0', '1', '2', '3', '4', '5'];
-		if (!allowedFourthChars.includes(fourthChar)) {
-			input.value = input.value.slice(0, 3);
-		}
-	}
-
-	if (input.value.length > 4) {
-		const fifthChar = input.value.charAt(4);
-		const allowedFifthChars = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
-		if (!allowedFifthChars.includes(fifthChar)) {
-			input.value = input.value.slice(0, 4);
-		}
-	}
+    if (isValid) {
+      input.style.backgroundColor = '#bfa';
+    } else {
+      input.style.backgroundColor = '#fba';
+    }
+  });
 }
+
