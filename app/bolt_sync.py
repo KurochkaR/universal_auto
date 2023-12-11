@@ -91,79 +91,72 @@ class BoltRequest(Fleet, Synchronizer):
         response = requests.post(url, json=json, params=params, headers=headers)
         return response.json()
 
-    def save_report(self, start, end, schema, custom=None):
+    def save_report(self, start, end, driver, custom=None):
+        time.sleep(0.5)
         format_start = start.strftime("%Y-%m-%d")
         format_end = end.strftime("%Y-%m-%d")
         param = self.param()
         if not custom:
             param.update({"period": "ongoing_day",
+                          "search": str(driver),
                           "offset": 0,
                           "limit": 50})
             reports = self.get_target_url(f'{self.base_url}getDriverEarnings/recent', param)
         else:
             param.update({"start_date": format_start,
                           "end_date": format_end,
+                          "search": str(driver),
                           "offset": 0,
                           "limit": 50})
             reports = self.get_target_url(f'{self.base_url}getDriverEarnings/dateRange', param)
-        for driver in reports['data']['drivers']:
-            try:
-                db_driver = FleetsDriversVehiclesRate.objects.get(driver_external_id=driver['id'],
-                                                                  partner=self.partner).driver
-            except ObjectDoesNotExist:
-                get_logger().error(self, driver['id'])
-                continue
-            driver_obj = Driver.objects.get(pk=db_driver)
-            if driver_obj.schema:
-                if driver_obj.schema.pk != schema:
-                    continue
-                rides = FleetOrder.objects.filter(fleet=self.name,
-                                                  accepted_time__gte=start,
-                                                  state=FleetOrder.COMPLETED,
-                                                  driver=db_driver).count()
-                vehicle = check_vehicle(db_driver, end, max_time=True)[0]
-                report = {
-                    "report_from": start,
-                    "report_to": end,
-                    "vendor_name": self.name,
-                    "full_name": driver['name'],
-                    "driver_id": driver['id'],
-                    "total_amount_cash": driver['cash_in_hand'],
-                    "total_amount": driver['gross_revenue'],
-                    "tips": driver['tips'],
-                    "partner": self.partner,
-                    "bonuses": driver['bonuses'],
-                    "cancels": driver['cancellation_fees'],
-                    "fee": -(driver['gross_revenue'] - driver['net_earnings']),
-                    "total_amount_without_fee": driver['net_earnings'],
-                    "compensations": driver['compensations'],
-                    "refunds": driver['expense_refunds'],
-                    "total_rides": rides,
-                    "vehicle": vehicle
-                }
-                if custom:
-                    bolt_custom = CustomReport.objects.filter(report_from__date=start,
-                                                              driver_id=driver['id'],
-                                                              vendor_name=self.name,
-                                                              partner=self.partner).last()
-                    if bolt_custom:
-                        report.update(
-                            {"total_amount_cash": driver['cash_in_hand'] - bolt_custom.total_amount_cash,
-                             "total_amount": driver['gross_revenue'] - bolt_custom.total_amount,
-                             "tips": driver['tips'] - bolt_custom.tips,
-                             "bonuses": driver['bonuses'] - bolt_custom.bonuses,
-                             "cancels": driver['cancellation_fees'] - bolt_custom.cancels,
-                             "fee": Decimal(-(driver['gross_revenue'] - driver['net_earnings'])) + bolt_custom.fee,
-                             "total_amount_without_fee": Decimal(
-                                 driver['net_earnings']) - bolt_custom.total_amount_without_fee,
-                             "compensations": Decimal(driver['compensations']) - bolt_custom.compensations,
-                             "refunds": Decimal(driver['expense_refunds']) - bolt_custom.refunds,
-                             })
-                db_report = CustomReport.objects.filter(report_from=start,
-                                                        driver_id=driver['id'],
-                                                        vendor_name=self.name,
-                                                        partner=self.partner)
-                db_report.update(**report) if db_report else CustomReport.objects.create(**report)
+        for driver_report in reports['data']['drivers']:
+            rides = FleetOrder.objects.filter(fleet=self.name,
+                                              accepted_time__gte=start,
+                                              state=FleetOrder.COMPLETED,
+                                              driver=driver).count()
+            vehicle = check_vehicle(driver, end, max_time=True)[0]
+            report = {
+                "report_from": start,
+                "report_to": end,
+                "vendor_name": self.name,
+                "full_name": driver_report['name'],
+                "driver_id": driver_report['id'],
+                "total_amount_cash": driver_report['cash_in_hand'],
+                "total_amount": driver_report['gross_revenue'],
+                "tips": driver_report['tips'],
+                "partner": self.partner,
+                "bonuses": driver_report['bonuses'],
+                "cancels": driver_report['cancellation_fees'],
+                "fee": -(driver_report['gross_revenue'] - driver_report['net_earnings']),
+                "total_amount_without_fee": driver_report['net_earnings'],
+                "compensations": driver_report['compensations'],
+                "refunds": driver_report['expense_refunds'],
+                "total_rides": rides,
+                "vehicle": vehicle
+            }
+            if custom:
+                bolt_custom = CustomReport.objects.filter(report_from__date=start,
+                                                          driver_id=driver_report['id'],
+                                                          vendor_name=self.name,
+                                                          partner=self.partner).last()
+                if bolt_custom:
+                    report.update(
+                        {"total_amount_cash": driver_report['cash_in_hand'] - bolt_custom.total_amount_cash,
+                         "total_amount": driver_report['gross_revenue'] - bolt_custom.total_amount,
+                         "tips": driver_report['tips'] - bolt_custom.tips,
+                         "bonuses": driver_report['bonuses'] - bolt_custom.bonuses,
+                         "cancels": driver_report['cancellation_fees'] - bolt_custom.cancels,
+                         "fee": Decimal(-(driver_report['gross_revenue'] - driver_report['net_earnings'])) + bolt_custom.fee,
+                         "total_amount_without_fee": Decimal(
+                             driver_report['net_earnings']) - bolt_custom.total_amount_without_fee,
+                         "compensations": Decimal(driver_report['compensations']) - bolt_custom.compensations,
+                         "refunds": Decimal(driver_report['expense_refunds']) - bolt_custom.refunds,
+                         })
+            db_report = CustomReport.objects.filter(report_from=start,
+                                                    driver_id=driver_report['id'],
+                                                    vendor_name=self.name,
+                                                    partner=self.partner)
+            db_report.update(**report) if db_report else CustomReport.objects.create(**report)
 
     def get_drivers_table(self):
         driver_list = []
@@ -196,7 +189,7 @@ class BoltRequest(Fleet, Synchronizer):
             time.sleep(0.5)
         return driver_list
 
-    def get_fleet_orders(self, start, end, pk):
+    def get_fleet_orders(self, start, end, pk, driver_id):
         bolt_states = {
             "client_did_not_show": FleetOrder.CLIENT_CANCEL,
             "finished": FleetOrder.COMPLETED,
@@ -205,58 +198,56 @@ class BoltRequest(Fleet, Synchronizer):
             "driver_rejected": FleetOrder.DRIVER_CANCEL
         }
         driver = Driver.objects.get(pk=pk)
-        driver_id = driver.get_driver_external_id(self.name)
-        if driver_id:
-            format_start = start.strftime("%Y-%m-%d")
-            format_end = end.strftime("%Y-%m-%d")
-            payload = {
-                      "offset": 0,
-                      "limit": 50,
-                      "from_date": format_start,
-                      "to_date": format_end,
-                      "driver_id": driver_id,
-                      "orders_state_statuses": [
-                                                "client_did_not_show",
-                                                "finished",
-                                                "client_cancelled",
-                                                "driver_cancelled_after_accept",
-                                                "driver_rejected"
-                                                ]
-                    }
-            report = self.post_target_url(f'{self.base_url}getOrdersHistory', self.param(), payload)
-            time.sleep(0.5)
-            if report.get('data'):
-                for order in report['data']['rows']:
-                    try:
-                        finish = timezone.make_aware(
-                            datetime.fromtimestamp(order['order_stops'][-1]['arrived_at']))
-                    except TypeError:
-                        finish = None
-                    try:
-                        price = order['total_price']
-                    except KeyError:
-                        price = 0
-                    vehicle = Vehicle.objects.get(licence_plate=order['car_reg_number'])
-                    data = {"order_id": order['order_id'],
-                            "fleet": self.name,
-                            "driver": driver,
-                            "from_address": order['pickup_address'],
-                            "accepted_time": timezone.make_aware(datetime.fromtimestamp(order['accepted_time'])),
-                            "state": bolt_states.get(order['order_try_state']),
-                            "finish_time": finish,
-                            "payment": PaymentTypes.map_payments(order['payment_method']),
-                            "destination": order['order_stops'][-1]['address'],
-                            "vehicle": vehicle,
-                            "price": price,
-                            "partner": self.partner
-                            }
-                    if check_vehicle(driver)[0] != vehicle:
-                        redis_instance().hset(f"wrong_vehicle_{self.partner}", pk, order['car_reg_number'])
-                    obj, created = FleetOrder.objects.get_or_create(order_id=order['order_id'], defaults=data)
-                    if not created:
-                        for key, value in data.items():
-                            setattr(obj, key, value)
-                        obj.save()
+        format_start = start.strftime("%Y-%m-%d")
+        format_end = end.strftime("%Y-%m-%d")
+        payload = {
+                  "offset": 0,
+                  "limit": 50,
+                  "from_date": format_start,
+                  "to_date": format_end,
+                  "driver_id": driver_id,
+                  "orders_state_statuses": [
+                                            "client_did_not_show",
+                                            "finished",
+                                            "client_cancelled",
+                                            "driver_cancelled_after_accept",
+                                            "driver_rejected"
+                                            ]
+                }
+        report = self.post_target_url(f'{self.base_url}getOrdersHistory', self.param(), payload)
+        time.sleep(0.5)
+        if report.get('data'):
+            for order in report['data']['rows']:
+                try:
+                    finish = timezone.make_aware(
+                        datetime.fromtimestamp(order['order_stops'][-1]['arrived_at']))
+                except TypeError:
+                    finish = None
+                try:
+                    price = order['total_price']
+                except KeyError:
+                    price = 0
+                vehicle = Vehicle.objects.get(licence_plate=order['car_reg_number'])
+                data = {"order_id": order['order_id'],
+                        "fleet": self.name,
+                        "driver": driver,
+                        "from_address": order['pickup_address'],
+                        "accepted_time": timezone.make_aware(datetime.fromtimestamp(order['accepted_time'])),
+                        "state": bolt_states.get(order['order_try_state']),
+                        "finish_time": finish,
+                        "payment": PaymentTypes.map_payments(order['payment_method']),
+                        "destination": order['order_stops'][-1]['address'],
+                        "vehicle": vehicle,
+                        "price": price,
+                        "partner": self.partner
+                        }
+                if check_vehicle(driver)[0] != vehicle:
+                    redis_instance().hset(f"wrong_vehicle_{self.partner}", pk, order['car_reg_number'])
+                obj, created = FleetOrder.objects.get_or_create(order_id=order['order_id'], defaults=data)
+                if not created:
+                    for key, value in data.items():
+                        setattr(obj, key, value)
+                    obj.save()
 
     def get_drivers_status(self):
         with_client = []

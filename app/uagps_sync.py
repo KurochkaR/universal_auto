@@ -105,12 +105,16 @@ class UaGpsSynchronizer(Fleet):
             for vehicle, reshuffles in vehicles.items():
                 if reshuffles:
                     for reshuffle in reshuffles:
+                        start_report = timezone.localtime(reshuffle.swap_time)
+                        end_report = timezone.localtime(reshuffle.end_time)
+                        if reshuffle.swap_time < start:
+                            start_report = start
+                        if reshuffle.end_time > end:
+                            end_report = end
                         completed += FleetOrder.objects.filter(driver=driver,
                                                                state=FleetOrder.COMPLETED,
-                                                               accepted_time__gte=timezone.localtime(
-                                                                   reshuffle.swap_time),
-                                                               accepted_time__lt=timezone.localtime(
-                                                                   reshuffle.end_time)).order_by('accepted_time')
+                                                               accepted_time__gte=start_report,
+                                                               accepted_time__lt=end_report).order_by('accepted_time')
                 elif vehicle:
                     completed = FleetOrder.objects.filter(driver=driver,
                                                           state=FleetOrder.COMPLETED,
@@ -182,27 +186,36 @@ class UaGpsSynchronizer(Fleet):
         return distance
 
     def calc_total_km(self, driver, start, end):
+        driver_vehicles = []
         total_km = 0
         vehicles = check_reshuffle(driver, start, end)
         for vehicle, reshuffles in vehicles.items():
             try:
                 if reshuffles:
                     for reshuffle in reshuffles:
+                        driver_vehicles.append(reshuffle.swap_vehicle)
+                        start_report = reshuffle.swap_time
+                        end_report = reshuffle.end_time
+                        if reshuffle.swap_time < start:
+                            start_report = start
+                        if reshuffle.end_time > end:
+                            end_report = end
                         total_km += self.total_per_day(reshuffle.swap_vehicle.gps.gps_id,
-                                                       reshuffle.swap_time,
-                                                       reshuffle.end_time)
+                                                       start_report,
+                                                       end_report)
                 elif vehicle:
+                    driver_vehicles.append(vehicle)
                     total_km = self.total_per_day(driver.vehicle.gps.gps_id, start, end)
             except AttributeError as e:
                 get_logger().error(e)
                 continue
-        return total_km
+        return total_km, driver_vehicles
 
     def save_daily_rent(self, start, end, schema):
         in_road = self.get_road_distance(start, end, schema)
         for driver, result in in_road.items():
             distance, road_time = result[0], result[1]
-            total_km = self.calc_total_km(driver, start, end)
+            total_km = self.calc_total_km(driver, start, end)[0]
 
             rent_distance = total_km - distance
             DriverEfficiency.objects.filter(driver=driver, report_from=start).update(road_time=road_time)
