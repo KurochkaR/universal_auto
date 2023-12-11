@@ -899,6 +899,7 @@ $(document).ready(function () {
 		endDate.setDate(endDate.getDate() + daysToShow - 1);
 		let formattedEndDate = formatDateForDatabase(endDate);
 
+		fetchCalendarData(formattedStartDate, formattedEndDate);
 
 		function reshuffleHandler (data) {
 			$('.driver-calendar').empty();
@@ -1164,8 +1165,6 @@ $(document).ready(function () {
 					reshuffle_id: idReshuffle
 				};
 
-				console.log(driverId, vehicleId);
-
 				modalShiftDate.text(clickedDayId);
 				shiftDriver.val(driverId);
 				startTimeInput.val(startTime);
@@ -1187,7 +1186,7 @@ $(document).ready(function () {
 						type: 'POST',
 						data: { action, ...ajaxData },
 						success: function (response) {
-								console.log("response", response);
+								fetchCalendarData(formattedStartDate, formattedEndDate);
 						},
 					});
 					shiftForm.hide();
@@ -1222,7 +1221,7 @@ $(document).ready(function () {
 							...ajaxData
 						},
 						success: function (response) {
-								console.log("response", response);
+								fetchCalendarData(formattedStartDate, formattedEndDate);
 						},
 					});
 					shiftForm.hide();
@@ -1278,7 +1277,7 @@ $(document).ready(function () {
 								csrfmiddlewaretoken: csrfTokenInput.val()
 							},
 							success: function (response) {
-								console.log(response);
+								fetchCalendarData(formattedStartDate, formattedEndDate);
 							},
 						});
 						shiftForm.hide();
@@ -1327,19 +1326,21 @@ $(document).ready(function () {
 				});
 			});
 		}
+		function fetchCalendarData(formattedStartDate, formattedEndDate) {
 
-		apiUrl = `/api/reshuffle/${formattedStartDate}/${formattedEndDate}/`;
-		$.ajax({
-			url: apiUrl,
-			type: 'GET',
-			dataType: 'json',
-			success: function (data) {
-				reshuffleHandler(data);
-			},
-			error: function (error) {
-				console.error(error);
-			}
-		});
+			apiUrl = `/api/reshuffle/${formattedStartDate}/${formattedEndDate}/`;
+			$.ajax({
+				url: apiUrl,
+				type: 'GET',
+				dataType: 'json',
+				success: function (data) {
+					reshuffleHandler(data);
+				},
+				error: function (error) {
+					console.error(error);
+				}
+			});
+		}
 	});
 
 //modal-shift
