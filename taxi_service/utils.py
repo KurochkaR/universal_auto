@@ -2,9 +2,12 @@ import json
 import random
 import secrets
 from datetime import timedelta, date, datetime, time
+
+from django.db.models import Q
 from django.utils import timezone
 from django.core.mail import send_mail
 from django.contrib.auth.models import User
+from django.core.serializers import serialize
 from django.core.serializers.json import DjangoJSONEncoder
 from django.contrib.auth import authenticate, login, logout
 from django.core.exceptions import ObjectDoesNotExist
@@ -291,6 +294,31 @@ def check_aggregators(user_pk):
     return list(aggregators), list(fleets)
 
 
+def is_conflict(driver, start_time, end_time, reshuffle_id_to_exclude=None):
+    conflicts = DriverReshuffle.objects.filter(
+        Q(driver_start=driver) &
+        (
+                (Q(swap_time__range=(start_time, end_time)) | Q(end_time__range=(start_time, end_time))) |
+                (Q(swap_time__lte=start_time, end_time__gte=end_time))
+        )
+    )
+
+    if reshuffle_id_to_exclude:
+        conflicts = conflicts.exclude(id=reshuffle_id_to_exclude)
+
+    overlapping_shifts = conflicts.filter(
+        (Q(swap_time__lte=start_time) & Q(end_time__gt=start_time)) |
+        (Q(swap_time__lt=end_time) & Q(end_time__gte=end_time)) |
+        (Q(swap_time__gte=start_time) & Q(end_time__lte=end_time))
+    )
+
+    if overlapping_shifts.exists():
+        conflicting_shift = overlapping_shifts.first()
+        return False, conflicting_shift.swap_vehicle
+    else:
+        return True, None
+
+
 def add_shift(licence_plate, date, start_time, end_time, driver_id, recurrence, partner):
     vehicle = Vehicle.objects.filter(licence_plate=licence_plate).first()
     driver = Driver.objects.get(id=driver_id)
@@ -314,6 +342,10 @@ def add_shift(licence_plate, date, start_time, end_time, driver_id, recurrence, 
 
         current_swap_time = current_date.replace(hour=start_datetime.hour, minute=start_datetime.minute)
         current_end_time = current_date.replace(hour=end_datetime.hour, minute=end_datetime.minute)
+
+        status, conflicting_vehicle = is_conflict(driver, current_swap_time, current_end_time)
+        if not status:
+            return False, conflicting_vehicle.licence_plate
 
         reshuffle = DriverReshuffle.objects.create(
             swap_vehicle=vehicle,
@@ -346,8 +378,11 @@ def upd_shift(action, licence_id, start_time, end_time, date, driver_id, reshuff
     start_datetime = datetime.strptime(date + ' ' + start_time, '%Y-%m-%d %H:%M')
     end_datetime = datetime.strptime(date + ' ' + end_time, '%Y-%m-%d %H:%M')
 
-    if action == 'update_shift':
+    status, conflicting_vehicle = is_conflict(driver_id, start_datetime, end_datetime, reshuffle_id)
+    if not status:
+        return False, conflicting_vehicle.licence_plate
 
+    if action == 'update_shift':
         DriverReshuffle.objects.filter(id=reshuffle_id).update(
             swap_time=start_datetime,
             end_time=end_datetime,
@@ -367,8 +402,14 @@ def upd_shift(action, licence_id, start_time, end_time, date, driver_id, reshuff
         )
 
         for reshuffle in reshuffle_upd:
-            reshuffle.swap_time = datetime.combine(reshuffle.swap_time.date(), start_datetime.time())
-            reshuffle.end_time = datetime.combine(reshuffle.end_time.date(), end_datetime.time())
+
+            status, conflicting_vehicle = is_conflict(driver_id, start_datetime, end_datetime, reshuffle.id)
+            if not status:
+                return False, conflicting_vehicle.licence_plate
+
+            reshuffle.swap_time = datetime.combine(timezone.localtime(reshuffle.swap_time).date(),
+                                                   start_datetime.time())
+            reshuffle.end_time = datetime.combine(timezone.localtime(reshuffle.end_time).date(), end_datetime.time())
             reshuffle.driver_start = Driver.objects.get(id=driver_id)
             reshuffle.swap_vehicle = Vehicle.objects.get(id=licence_id)
             reshuffle.save()
