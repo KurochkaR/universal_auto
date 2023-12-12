@@ -527,6 +527,12 @@ function customDateRange() {
 	fetchDriverEfficiencyData(selectedPeriod, startDate, endDate);
 }
 
+function getUrlCalendar(){
+	let url = window.location.href;
+	let urlArr = url.split('#');
+	let urlCalendar = urlArr[urlArr.length - 1];
+	return urlCalendar
+}
 
 $(document).ready(function () {
 	let $table = $('.driver-table');
@@ -868,7 +874,11 @@ $(document).ready(function () {
 
 	//calendar
 
-	$('#workCalendarBtnContainer').click(function () {
+	$('#workCalendarBtnContainer').on('click', function () {
+		console.log('workCalendarBtnContainer');
+		if (window.location.href.indexOf('#calendar') === -1) {
+			window.location.href = window.location.href + '#calendar';
+    }
 		$('.driver-calendar').show();
 		$('.search-vehicle-calendar').show();
 		$('.search-shift-driver').show();
@@ -1270,7 +1280,7 @@ $(document).ready(function () {
 				const shiftDriver = $('#shift-driver');
 				const csrfTokenInput = $('input[name="csrfmiddlewaretoken"]');
 
-				modalShiftTitle.text("Створення змінни");
+				modalShiftTitle.text("Створення зміни");
 				modalShiftDate.text(clickedDayId);
 				shiftForm.show();
 
@@ -1405,6 +1415,10 @@ $(document).ready(function () {
 		});
 	});
 
+	const calendarVehicle = getUrlCalendar();
+	if (calendarVehicle === 'calendar') {
+		$('#workCalendarBtnContainer').click();
+	}
 	//modal-shift
 
 	const timeList = document.getElementById('timeList');
