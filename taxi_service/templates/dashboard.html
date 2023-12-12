@@ -339,7 +339,8 @@
         <input type="date" id="start_report_driver" name="start_date">
         <label for="end_date">{% trans 'Кінцева дата:' %}</label>
         <input type="date" id="end_report_driver" name="end_date">
-        <input class="apply-filter-button_driver" type="button" onclick="applyCustomDateRangeVehicle()" value={% trans 'Фільтрувати'%}>
+        <input class="apply-filter-button_driver" type="button" onclick="applyCustomDateRangeVehicle()"
+               value={% trans 'Фільтрувати'%}>
       </div>
       <table class="driver-table">
         <thead>
@@ -392,7 +393,8 @@
         <span class="modal-shift-date"></span>
         <span class="shift-close-btn">
           <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28" fill="none">
-            <path d="M26.5 2L14.25 14.25M2 26.5L14.25 14.25M14.25 14.25L2 2L26.5 26.5" stroke="white" stroke-width="3" stroke-linejoin="round"/>
+            <path d="M26.5 2L14.25 14.25M2 26.5L14.25 14.25M14.25 14.25L2 2L26.5 26.5" stroke="white" stroke-width="3"
+                  stroke-linejoin="round"/>
           </svg>
         </span>
       </div>
@@ -442,6 +444,14 @@
           <button class="upd-btn">{% trans "Змінити зміну" %}</button>
           <button class="upd-all-btn">{% trans "Змінити усі" %}</button>
           <button class="shift-btn">{% trans "Створити зміну" %}</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="shift-success-message" id="shift-success-message">
+      <div class="container">
+        <div class="message-box">
+          <h2>"Зміни було успішно збережено."</h2>
         </div>
       </div>
     </div>

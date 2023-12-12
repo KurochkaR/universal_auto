@@ -314,7 +314,13 @@ def is_conflict(driver, start_time, end_time, reshuffle_id_to_exclude=None):
 
     if overlapping_shifts.exists():
         conflicting_shift = overlapping_shifts.first()
-        return False, conflicting_shift.swap_vehicle
+        conflicting_time = (f"{timezone.localtime(conflicting_shift.swap_time).strftime('%Y-%m-%d %H:%M:%S')} "
+                            f"{timezone.localtime(conflicting_shift.end_time).time()}")
+        conflicting_vehicle_data = {
+            'licence_plate': conflicting_shift.swap_vehicle.licence_plate,
+            'conflicting_time': conflicting_time
+        }
+        return False, conflicting_vehicle_data
     else:
         return True, None
 
@@ -345,7 +351,7 @@ def add_shift(licence_plate, date, start_time, end_time, driver_id, recurrence, 
 
         status, conflicting_vehicle = is_conflict(driver, current_swap_time, current_end_time)
         if not status:
-            return False, conflicting_vehicle.licence_plate
+            return False, conflicting_vehicle
 
         reshuffle = DriverReshuffle.objects.create(
             swap_vehicle=vehicle,

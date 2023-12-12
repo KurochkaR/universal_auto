@@ -1188,7 +1188,7 @@ $(document).ready(function () {
 						type: 'POST',
 						data: { action, ...ajaxData },
 						success: function (response) {
-								fetchCalendarData(formattedStartDate, formattedEndDate);
+							fetchCalendarData(formattedStartDate, formattedEndDate);
 						},
 					});
 					shiftForm.hide();
@@ -1223,7 +1223,12 @@ $(document).ready(function () {
 							...ajaxData
 						},
 						success: function (response) {
+							if (response.data === true) {
 								fetchCalendarData(formattedStartDate, formattedEndDate);
+								showShiftMessage(true, true);
+							} else {
+								showShiftMessage(response.data[0], response.data[1]['conflicting_time'], response.data[1]['licence_plate']);
+							}
 						},
 					});
 					shiftForm.hide();
@@ -1281,7 +1286,12 @@ $(document).ready(function () {
 								csrfmiddlewaretoken: csrfTokenInput.val()
 							},
 							success: function (response) {
-								fetchCalendarData(formattedStartDate, formattedEndDate);
+							  if (response.data === true) {
+									fetchCalendarData(formattedStartDate, formattedEndDate);
+									showShiftMessage(true);
+							  } else {
+							  	showShiftMessage(response.data[0], false, response.data[1]['conflicting_time'], response.data[1]['licence_plate']);
+							  }
 							},
 						});
 						shiftForm.hide();
@@ -1385,5 +1395,25 @@ function validateInputTime(input) {
       input.style.backgroundColor = '#fba';
     }
   });
+}
+
+function showShiftMessage(success, upd, time, vehicle) {
+	if (success) {
+		$(".shift-success-message").show();
+		if (upd) {
+			$(".shift-success-message h2").text("Зміна успішно оновлена");
+		} else {
+			$(".shift-success-message h2").text("Зміна успішно створена");
+		}
+		setTimeout(function () {
+			$(".shift-success-message").hide();
+		}, 5000);
+	} else {
+		$(".shift-success-message").show();
+		$(".shift-success-message h2").text("Помилка створення зміни. У водія існує зміна в " + time + " на авто " + vehicle);
+		setTimeout(function () {
+			$(".shift-success-message").hide();
+		}, 8000);
+	}
 }
 
