@@ -704,6 +704,9 @@ $(document).ready(function () {
 
 	$('#VehicleBtnContainer').click(function () {
 		$('.payback-car').css('display', 'flex');
+		$('.search-vehicle-calendar').hide();
+		$('.search-shift-driver').hide();
+		$('.refresh-search').hide();
 		$('.charts').hide();
 		$('.main-cards').hide();
 		$('.info-driver').hide();
@@ -718,6 +721,9 @@ $(document).ready(function () {
 	$('#DriverBtnContainer').click(function () {
 		fetchDriverEfficiencyData('yesterday');
 		$('.info-driver').show();
+		$('.search-vehicle-calendar').hide();
+		$('.search-shift-driver').hide();
+		$('.refresh-search').hide();
 		$('.payback-car').hide();
 		$('.charts').hide();
 		$('.main-cards').hide();
@@ -864,6 +870,9 @@ $(document).ready(function () {
 
 	$('#workCalendarBtnContainer').click(function () {
 		$('.driver-calendar').show();
+		$('.search-vehicle-calendar').show();
+		$('.search-shift-driver').show();
+		$('.refresh-search').show();
 		$('.charts').hide();
 		$('.main-cards').hide();
 		$('.info-driver').hide();
@@ -1355,9 +1364,58 @@ $(document).ready(function () {
 				}
 			});
 		}
+		$("#search-vehicle-calendar").change(function() {
+			var vehicleId = $(this).val();
+			var selectedText = $(this).find("option:selected").text();
+			apiUrl = `/api/reshuffle/${formattedStartDate}/${formattedEndDate}/`;
+
+			$.ajax({
+				url: apiUrl,
+				type: 'GET',
+				dataType: 'json',
+				success: function (data) {
+					var filteredData = data;
+					if (vehicleId !== "all") {
+						filteredData = data.filter(function(item) {
+								return item.swap_licence === selectedText;
+						});
+					}
+					reshuffleHandler(filteredData);
+				}
+			});
+		});
+
+		$("#search-shift-driver").change(function() {
+    	var driverId = $(this).val();
+    	var selectedText = $(this).find("option:selected").text();
+    	apiUrl = `/api/reshuffle/${formattedStartDate}/${formattedEndDate}/`;
+
+			$.ajax({
+				url: apiUrl,
+				type: 'GET',
+				dataType: 'json',
+				success: function (data) {
+					var filteredData = data;
+
+					if (driverId !== "all") {
+						filteredData = data.filter(function(item) {
+							return item.reshuffles.some(function(reshuffle) {
+								return reshuffle.driver_name === selectedText;
+							});
+						});
+					}
+					reshuffleHandler(filteredData);
+				}
+			});
+		});
+
+		$(".refresh-search").click(function() {
+			$("#search-vehicle-calendar").val("all").change();
+			$("#search-shift-driver").val("all").change();
+		});
 	});
 
-//modal-shift
+	//modal-shift
 
 	const timeList = document.getElementById('timeList');
 
@@ -1416,4 +1474,3 @@ function showShiftMessage(success, upd, time, vehicle) {
 		}, 8000);
 	}
 }
-
