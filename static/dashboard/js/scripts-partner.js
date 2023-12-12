@@ -1364,54 +1364,44 @@ $(document).ready(function () {
 				}
 			});
 		}
-		$("#search-vehicle-calendar").change(function() {
-			var vehicleId = $(this).val();
+
+		function fetchDataAndHandle(filterProperty, reshuffleProperty) {
+			var selectedValue = $(this).val();
 			var selectedText = $(this).find("option:selected").text();
 			apiUrl = `/api/reshuffle/${formattedStartDate}/${formattedEndDate}/`;
 
-			$.ajax({
+			return $.ajax({
 				url: apiUrl,
 				type: 'GET',
 				dataType: 'json',
-				success: function (data) {
-					var filteredData = data;
-					if (vehicleId !== "all") {
-						filteredData = data.filter(function(item) {
-								return item.swap_licence === selectedText;
-						});
-					}
-					reshuffleHandler(filteredData);
-				}
-			});
-		});
-
-		$("#search-shift-driver").change(function() {
-    	var driverId = $(this).val();
-    	var selectedText = $(this).find("option:selected").text();
-    	apiUrl = `/api/reshuffle/${formattedStartDate}/${formattedEndDate}/`;
-
-			$.ajax({
-				url: apiUrl,
-				type: 'GET',
-				dataType: 'json',
-				success: function (data) {
-					var filteredData = data;
-
-					if (driverId !== "all") {
-						filteredData = data.filter(function(item) {
-							return item.reshuffles.some(function(reshuffle) {
+			}).then(function (data) {
+				var filteredData = data;
+				if (selectedValue !== "all") {
+					filteredData = data.filter(function (item) {
+						return item[filterProperty] === selectedText ||
+							(item[reshuffleProperty] && item[reshuffleProperty].some(function (reshuffle) {
 								return reshuffle.driver_name === selectedText;
-							});
-						});
-					}
-					reshuffleHandler(filteredData);
+							}));
+					});
 				}
+				return filteredData;
 			});
-		});
+		}
 
-		$(".refresh-search").click(function() {
-			$("#search-vehicle-calendar").val("all").change();
-			$("#search-shift-driver").val("all").change();
+		function handleSearchChange($element, filterProperty, reshuffleProperty) {
+			$element.change(function () {
+				fetchDataAndHandle.call(this, filterProperty, reshuffleProperty)
+				.then(function (filteredData) {
+					reshuffleHandler(filteredData);
+				})
+			});
+		}
+
+		handleSearchChange($("#search-vehicle-calendar"), "swap_licence", null);
+		handleSearchChange($("#search-shift-driver"), null, "reshuffles");
+
+		$(".refresh-search").click(function () {
+			$("#search-vehicle-calendar, #search-shift-driver").val("all").change();
 		});
 	});
 
