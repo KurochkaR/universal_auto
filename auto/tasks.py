@@ -418,8 +418,9 @@ def get_driver_efficiency(self, partner_pk, schema, day=None):
                 total_orders = orders.count()
                 if total_orders:
                     canceled = orders.filter(state=FleetOrder.DRIVER_CANCEL).count()
+                    completed = orders.filter(state=FleetOrder.COMPLETED).count()
                     accept = int((total_orders - canceled) / total_orders * 100) if canceled else 100
-                    avg_price = Decimal(total_kasa) / Decimal(total_orders)
+                    avg_price = Decimal(total_kasa) / Decimal(completed) if completed else 0
                 hours_online = timedelta()
                 using_info = UseOfCars.objects.filter(created_at__range=(start, end), user_vehicle=driver)
                 for report in using_info:
@@ -634,7 +635,7 @@ def send_daily_statistic(self, partner_pk, schema):
                 dict_msg[partner_pk] += message
             else:
                 dict_msg[partner_pk] = message
-    return dict_msg, driver_dict_msg
+    return dict_msg, driver_dict_msg, driver_schema.title
 
 
 @app.task(bind=True, queue='beat_tasks')
@@ -676,7 +677,7 @@ def send_driver_efficiency(self, partner_pk, schema):
                 dict_msg[partner_pk] += message
             else:
                 dict_msg[partner_pk] = message
-    return dict_msg, driver_dict_msg
+    return dict_msg, driver_dict_msg, driver_schema.title
 
 
 @app.task(bind=True, queue='bot_tasks')

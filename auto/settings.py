@@ -52,7 +52,6 @@ INSTALLED_APPS = [
     'app.apps.AppConfig',
     'fake_uklon',
     'polymorphic',
-    'fake_uber',
     'taxi_service',
     'rest_framework',
     'rest_framework.authtoken',

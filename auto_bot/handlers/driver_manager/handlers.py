@@ -317,13 +317,15 @@ def create_period_efficiency(update, context):
 def send_into_group(sender=None, **kwargs):
     yesterday = timezone.localtime() - timedelta(days=1)
     if sender in (send_daily_statistic, send_driver_efficiency):
-        messages, drivers_messages = kwargs.get('retval')
+        messages, drivers_messages, schema = kwargs.get('retval')
         for partner, message in messages.items():
+            schema_message = f'Схема роботи: "{schema}"\n'
+            schema_message += message
             if message and ParkSettings.get_value('DRIVERS_CHAT', partner=partner):
-                bot.send_message(chat_id=ParkSettings.get_value('DRIVERS_CHAT', partner=partner), text=message)
+                bot.send_message(chat_id=ParkSettings.get_value('DRIVERS_CHAT', partner=partner), text=schema_message)
             else:
                 try:
-                    bot.send_message(chat_id=Partner.get_partner(partner).chat_id, text=message)
+                    bot.send_message(chat_id=Partner.get_partner(partner).chat_id, text=schema_message)
                 except BadRequest:
                     pass
         for pk, message in drivers_messages.items():
