@@ -294,14 +294,17 @@ def check_aggregators(user_pk):
     return list(aggregators), list(fleets)
 
 
-def is_conflict(driver, start_time, end_time, reshuffle_id_to_exclude=None):
-    conflicts = DriverReshuffle.objects.filter(
-        Q(driver_start=driver) &
-        (
-                (Q(swap_time__range=(start_time, end_time)) | Q(end_time__range=(start_time, end_time))) |
-                (Q(swap_time__lte=start_time, end_time__gte=end_time))
-        )
+def is_conflict(driver, vehicle, start_time, end_time, reshuffle_id_to_exclude=None):
+    reshuffles = DriverReshuffle.objects.filter(
+        Q(driver_start=driver) |
+        Q(swap_vehicle=vehicle)
     )
+
+    conflicts = reshuffles.filter(
+        (Q(swap_time__range=(start_time, end_time)) | Q(end_time__range=(start_time, end_time))) |
+        (Q(swap_time__lte=start_time, end_time__gte=end_time))
+    )
+
     if reshuffle_id_to_exclude:
         conflicts = conflicts.exclude(id=reshuffle_id_to_exclude)
 
@@ -310,6 +313,7 @@ def is_conflict(driver, start_time, end_time, reshuffle_id_to_exclude=None):
         (Q(swap_time__lt=end_time) & Q(end_time__gte=end_time)) |
         (Q(swap_time__gte=start_time) & Q(end_time__lte=end_time))
     )
+
     if overlapping_shifts.exists():
         conflicting_shift = overlapping_shifts.first()
         conflicting_time = (f"{timezone.localtime(conflicting_shift.swap_time).strftime('%Y-%m-%d %H:%M:%S')} "
@@ -330,6 +334,14 @@ def add_shift(licence_plate, date, start_time, end_time, driver_id, recurrence, 
     start_datetime = datetime.strptime(f"{date} {start_time}", "%Y-%m-%d %H:%M")
     end_datetime = datetime.strptime(f"{date} {end_time}", "%Y-%m-%d %H:%M")
 
+    today_reshuffle = DriverReshuffle.objects.filter(
+        swap_time__date=date,
+        swap_vehicle=vehicle
+    ).count()
+
+    if today_reshuffle > 3:
+        return False, f"Авто {licence_plate} не може мати більше 4 змін на день"
+
     interval = range(1)
 
     if recurrence == 'daily':
@@ -347,7 +359,7 @@ def add_shift(licence_plate, date, start_time, end_time, driver_id, recurrence, 
         current_swap_time = current_date.replace(hour=start_datetime.hour, minute=start_datetime.minute)
         current_end_time = current_date.replace(hour=end_datetime.hour, minute=end_datetime.minute)
 
-        status, conflicting_vehicle = is_conflict(driver, current_swap_time, current_end_time)
+        status, conflicting_vehicle = is_conflict(driver, vehicle, current_swap_time, current_end_time)
         if not status:
             return False, conflicting_vehicle
 

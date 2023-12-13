@@ -1074,7 +1074,9 @@ $(document).ready(function () {
 					$('.driver-photo-container').each(function(index, container) {
 						var photos = $(container).find('.driver-photo img');
 
-						if (photos.length > 2) {
+						if (photos.length > 3) {
+							$(container).addClass('photo-small-2');
+						} else if (photos.length > 2) {
 							$(container).addClass('photo-small');
 						}
 					});
@@ -1148,7 +1150,9 @@ $(document).ready(function () {
 					$('.driver-photo-container').each(function (index, container) {
 						var photos = $(container).find('.driver-photo img');
 
-						if (photos.length > 2) {
+						if (photos.length > 3) {
+							$(container).addClass('photo-small-2');
+						} else if (photos.length > 2) {
 							$(container).addClass('photo-small');
 						}
 					});
@@ -1341,7 +1345,7 @@ $(document).ready(function () {
 									filterCheck();
 									showShiftMessage(response.data[0], response.data[1]);
 							  } else {
-							  	showShiftMessage(response.data[0], false, response.data[1]['conflicting_time'], response.data[1]['licence_plate']);
+							  	showShiftMessage(response.data[0], response.data[1], response.data[1]['conflicting_time'], response.data[1]['licence_plate']);
 							  }
 							},
 						});
@@ -1538,7 +1542,11 @@ function showShiftMessage(success, showText, time, vehicle) {
 		}, 5000);
 	} else {
 		$(".shift-success-message").show();
-		$(".shift-success-message h2").text("Помилка оновлення зміни, існує зміна в " + time + " на авто " + vehicle);
+		if (time === undefined || time === null || time === "") {
+			$(".shift-success-message h2").text(showText);
+		} else {
+			$(".shift-success-message h2").text("Помилка оновлення зміни, існує зміна в " + time + " на авто " + vehicle);
+		}
 		setTimeout(function () {
 			$(".shift-success-message").hide();
 		}, 8000);

@@ -1413,6 +1413,11 @@ select:focus {
 	height: 38px;
 }
 
+.photo-small-2 .driver-photo img {
+	width: 25px;
+	height: 25px;
+}
+
 .driver-info-reshuffle {
 	display: none;
 	z-index: 1;
