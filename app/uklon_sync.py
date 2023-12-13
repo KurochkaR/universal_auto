@@ -5,6 +5,7 @@ import requests
 from _decimal import Decimal
 from django.utils import timezone
 from django.db import models
+from requests import JSONDecodeError
 from app.models import ParkSettings, FleetsDriversVehiclesRate, Driver, Service, FleetOrder, \
     CredentialPartner, Vehicle, PaymentTypes, CustomReport, Fleet
 from auto_bot.handlers.order.utils import check_vehicle
@@ -53,15 +54,30 @@ class UklonRequest(Fleet, Synchronizer):
         response = requests.post(f"{self.base_url}auth", json=payload)
         if response.status_code == 201:
             token = response.json()["access_token"]
+            refresh_token = response.json()["refresh_token"]
             redis_instance().set(f"{partner}_{self.name}_token", token)
+            redis_instance().set(f"{partner}_{self.name}_refresh", refresh_token)
             return token
         elif response.status_code == 429:
-            if self.partner:
-                return self.create_session(self.partner.id)
-            else:
-                raise AuthenticationError(f"{self.name} service unavailable.")
+            bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"), text=f"{payload}\n{response.json()}")
+            raise AuthenticationError(f"{self.name} service unavailable.")
         else:
             raise AuthenticationError(f"{self.name} login or password incorrect.")
+
+    def get_access_token(self):
+        client_id = CredentialPartner.get_value(key='CLIENT_ID', partner=self.partner)
+        refresh = redis_instance().get(f"{self.partner.id}_{self.name}_refresh")
+        data = {
+            'grant_type': 'refresh_token',
+            'refresh_token': refresh,
+            'client_id': client_id,
+        }
+        response = requests.post("https://fleets.uklon.com.ua/api/auth", data=data)
+        if response.status_code == 200:
+            token = response.json()['access_token']
+        else:
+            token = self.create_session(self.partner.id)
+        redis_instance().set(f"{self.partner}_{self.name}_token", token)
 
     @staticmethod
     def request_method(url: str = None,
@@ -84,10 +100,10 @@ class UklonRequest(Fleet, Synchronizer):
                       data=None,
                       headers: dict = None,
                       pjson: dict = None,
-                      method: str = None) -> dict:
+                      method: str = None) -> dict or None:
 
         if not redis_instance().exists(f"{self.partner.id}_{self.name}_token"):
-            self.create_session(self.partner.id)
+            self.get_access_token()
         response = self.request_method(url=url,
                                        params=params,
                                        headers=self.get_header() if headers is None else headers,
@@ -95,9 +111,12 @@ class UklonRequest(Fleet, Synchronizer):
                                        data=data,
                                        method=method)
         if response.status_code in (401, 403):
-            self.create_session(self.partner.id)
+            self.get_access_token()
             return self.response_data(url, params, data, headers, pjson, method)
-        return response.json()
+        try:
+            return response.json()
+        except JSONDecodeError:
+            return None
 
     @staticmethod
     def to_float(number: int, div=100) -> Decimal:
