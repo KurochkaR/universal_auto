@@ -421,9 +421,6 @@ class InvestorPayments(Earnings):
         verbose_name = 'Виплату інвестору'
         verbose_name_plural = 'Виплати інвестору'
 
-    def __str__(self) -> str:
-        return f'{self.vehicle} {self.sum_before_transaction} {self.currency}'
-
 
 class PartnerEarnings(Earnings):
     vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Автомобіль')
