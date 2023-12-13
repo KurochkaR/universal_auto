@@ -1627,3 +1627,25 @@ select:focus {
 	height: 50px;
 	cursor: pointer;
 }
+
+.pagination {
+	display: flex;
+	justify-content: flex-start;
+	align-items: center;
+	margin-top: 20px;
+}
+
+.pagination #nextPageBtn,
+.pagination #prevPageBtn {
+	background: none;
+	border: none;
+}
+
+.pagination #pageInfo {
+	text-align: center;
+	color: #26392C;
+	font-size: 25px;
+	font-style: normal;
+	font-weight: 400;
+	line-height: normal;
+}
