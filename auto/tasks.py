@@ -360,7 +360,10 @@ def get_car_efficiency(self, partner_pk):
         vehicle_drivers = {}
         total_spending = VehicleSpending.objects.filter(
             vehicle=vehicle,  created_at__range=(start, end)).aggregate(Sum('amount'))['amount__sum'] or 0
-        reshuffles = DriverReshuffle.objects.filter(Q(end_time=end) | Q(swap_time=start), swap_vehicle=vehicle)
+        reshuffles = DriverReshuffle.objects.filter(end_time__lte=end,
+                                                    swap_time__gte=start,
+                                                    swap_vehicle=vehicle,
+                                                    partner=partner_pk)
         drivers = [reshuffle.driver_start for reshuffle in reshuffles] if reshuffles \
             else Driver.objects.filter(vehicle=vehicle)
         total_kasa = 0
@@ -521,16 +524,18 @@ def schedule_for_detaching_uklon(self, partner_pk):
                     partner=partner_pk
                     )
     for reshuffle in reshuffles:
-        eta = reshuffle.end_time
-        detaching_the_driver_from_the_car.apply_async((partner_pk, reshuffle.swap_vehicle.licence_plate), eta=eta)
+        eta = timezone.localtime(reshuffle.end_time)
+        detaching_the_driver_from_the_car.apply_async((partner_pk, reshuffle.swap_vehicle.licence_plate, eta), eta=eta)
 
 
 @app.task(bind=True, queue='bot_tasks', retry_backoff=30, max_retries=4)
-def detaching_the_driver_from_the_car(self, partner_pk, licence_plate):
+def detaching_the_driver_from_the_car(self, partner_pk, licence_plate, eta):
     try:
-        fleet = UklonRequest.objects.get(partner=partner_pk)
-        fleet.detaching_the_driver_from_the_car(licence_plate)
-        logger.info(f'Car {licence_plate} was detached')
+        bot.send_message(chat_id=ParkSettings.get_value('DEVELOPER_CHAT_ID'),
+                         text=f"Авто {licence_plate} відключено {eta}")
+        # fleet = UklonRequest.objects.get(partner=partner_pk)
+        # fleet.detaching_the_driver_from_the_car(licence_plate)
+        # logger.info(f'Car {licence_plate} was detached')
     except Exception as e:
         logger.error(e)
         retry_delay = retry_logic(e, self.request.retries + 1)
