@@ -1272,8 +1272,6 @@ $(document).ready(function () {
 							...ajaxData
 						},
 						success: function (response) {
-							console.log(response);
-							console.log(response.data[0]);
 							if (response.data[0] === true) {
 								fetchCalendarData(formattedStartDate, formattedEndDate);
 								filterCheck();
@@ -1338,7 +1336,6 @@ $(document).ready(function () {
 								csrfmiddlewaretoken: csrfTokenInput.val()
 							},
 							success: function (response) {
-								console.log(response);
 							  if (response.data[0] === true) {
 									fetchCalendarData(formattedStartDate, formattedEndDate);
 									filterCheck();
