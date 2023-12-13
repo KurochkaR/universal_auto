@@ -5,6 +5,7 @@ import requests
 from _decimal import Decimal
 from django.utils import timezone
 from django.db import models
+from requests import JSONDecodeError
 from app.models import ParkSettings, FleetsDriversVehiclesRate, Driver, Service, FleetOrder, \
     CredentialPartner, Vehicle, PaymentTypes, CustomReport, Fleet
 from auto_bot.handlers.order.utils import check_vehicle
@@ -99,7 +100,7 @@ class UklonRequest(Fleet, Synchronizer):
                       data=None,
                       headers: dict = None,
                       pjson: dict = None,
-                      method: str = None) -> dict:
+                      method: str = None) -> dict or None:
 
         if not redis_instance().exists(f"{self.partner.id}_{self.name}_token"):
             self.get_access_token()
@@ -112,7 +113,10 @@ class UklonRequest(Fleet, Synchronizer):
         if response.status_code in (401, 403):
             self.get_access_token()
             return self.response_data(url, params, data, headers, pjson, method)
-        return response.json()
+        try:
+            return response.json()
+        except JSONDecodeError:
+            return None
 
     @staticmethod
     def to_float(number: int, div=100) -> Decimal:

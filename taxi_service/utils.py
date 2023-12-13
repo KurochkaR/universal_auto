@@ -73,7 +73,7 @@ def restart_order(id_order, car_delivery_price, action):
 
 
 def get_dates(period=None):
-    current_date = datetime.combine(timezone.localtime(), time.min)
+    current_date = timezone.make_aware(datetime.combine(timezone.localtime(), time.min))
 
     if period == 'yesterday':
         previous_date = current_date - timedelta(days=1)
