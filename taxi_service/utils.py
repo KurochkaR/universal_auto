@@ -278,5 +278,5 @@ def send_reset_code(email, user_login):
 
 def check_aggregators(user_pk):
     aggregators = Fleet.objects.filter(partner=user_pk).values_list('name', flat=True)
-    fleets = Fleet.objects.all().values_list('name', flat=True)
+    fleets = Fleet.objects.all().values_list('name', flat=True).distinct()
     return list(aggregators), list(fleets)
