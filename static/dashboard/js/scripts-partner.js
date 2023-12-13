@@ -1237,6 +1237,7 @@ $(document).ready(function () {
 						success: function (response) {
 							fetchCalendarData(formattedStartDate, formattedEndDate);
 							filterCheck()
+							showShiftMessage(true, response.data[1]);
 						},
 					});
 					shiftForm.hide();
@@ -1271,12 +1272,14 @@ $(document).ready(function () {
 							...ajaxData
 						},
 						success: function (response) {
-							if (response.data === true) {
+							console.log(response);
+							console.log(response.data[0]);
+							if (response.data[0] === true) {
 								fetchCalendarData(formattedStartDate, formattedEndDate);
 								filterCheck();
-								showShiftMessage(true, true);
+								showShiftMessage(true, response.data[1]);
 							} else {
-								showShiftMessage(response.data[0], response.data[1]['conflicting_time'], response.data[1]['licence_plate']);
+								showShiftMessage(response.data[0], false, response.data[1]['conflicting_time'], response.data[1]['licence_plate']);
 							}
 						},
 					});
@@ -1335,10 +1338,11 @@ $(document).ready(function () {
 								csrfmiddlewaretoken: csrfTokenInput.val()
 							},
 							success: function (response) {
-							  if (response.data === true) {
+								console.log(response);
+							  if (response.data[0] === true) {
 									fetchCalendarData(formattedStartDate, formattedEndDate);
 									filterCheck();
-									showShiftMessage(true);
+									showShiftMessage(response.data[0], response.data[1]);
 							  } else {
 							  	showShiftMessage(response.data[0], false, response.data[1]['conflicting_time'], response.data[1]['licence_plate']);
 							  }
@@ -1389,6 +1393,7 @@ $(document).ready(function () {
 						}
 				});
 			});
+
 			function showCalendars(page) {
 				$('.calendar-container').hide();
 
@@ -1426,7 +1431,6 @@ $(document).ready(function () {
 			showCalendars(currentPage);
 		}
 		function fetchCalendarData(formattedStartDate, formattedEndDate) {
-
 			apiUrl = `/api/reshuffle/${formattedStartDate}/${formattedEndDate}/`;
 			$.ajax({
 				url: apiUrl,
@@ -1527,20 +1531,17 @@ function validateInputTime(input) {
   });
 }
 
-function showShiftMessage(success, upd, time, vehicle) {
+function showShiftMessage(success, showText, time, vehicle) {
 	if (success) {
 		$(".shift-success-message").show();
-		if (upd) {
-			$(".shift-success-message h2").text("Зміна успішно оновлена");
-		} else {
-			$(".shift-success-message h2").text("Зміна успішно створена");
-		}
+		$(".shift-success-message h2").text(showText);
+
 		setTimeout(function () {
 			$(".shift-success-message").hide();
 		}, 5000);
 	} else {
 		$(".shift-success-message").show();
-		$(".shift-success-message h2").text("Помилка створення зміни. У водія існує зміна в " + time + " на авто " + vehicle);
+		$(".shift-success-message h2").text("Помилка оновлення зміни, існує зміна в " + time + " на авто " + vehicle);
 		setTimeout(function () {
 			$(".shift-success-message").hide();
 		}, 8000);

@@ -302,7 +302,6 @@ def is_conflict(driver, start_time, end_time, reshuffle_id_to_exclude=None):
                 (Q(swap_time__lte=start_time, end_time__gte=end_time))
         )
     )
-
     if reshuffle_id_to_exclude:
         conflicts = conflicts.exclude(id=reshuffle_id_to_exclude)
 
@@ -311,7 +310,6 @@ def is_conflict(driver, start_time, end_time, reshuffle_id_to_exclude=None):
         (Q(swap_time__lt=end_time) & Q(end_time__gte=end_time)) |
         (Q(swap_time__gte=start_time) & Q(end_time__lte=end_time))
     )
-
     if overlapping_shifts.exists():
         conflicting_shift = overlapping_shifts.first()
         conflicting_time = (f"{timezone.localtime(conflicting_shift.swap_time).strftime('%Y-%m-%d %H:%M:%S')} "
@@ -361,13 +359,14 @@ def add_shift(licence_plate, date, start_time, end_time, driver_id, recurrence, 
             partner=partner
         )
         reshuffle.save()
-    return True
+    return True, "Зміна успішно додана"
 
 
 def delete_shift(action, reshuffle_id):
     reshuffle = DriverReshuffle.objects.get(id=reshuffle_id)
     if action == 'delete_shift':
         reshuffle.delete()
+        return True, "Зміна успішно видалена"
     elif action == 'delete_all_shift':
         reshuffle_del = DriverReshuffle.objects.filter(
             swap_time__gte=timezone.localtime(reshuffle.swap_time),
@@ -376,25 +375,27 @@ def delete_shift(action, reshuffle_id):
             driver_start=reshuffle.driver_start,
             swap_vehicle=reshuffle.swap_vehicle
         )
+        reshuffle_count = reshuffle_del.count()
         reshuffle_del.delete()
-    return True
+    return True, f"Видалено {reshuffle_count} змін"
 
 
 def upd_shift(action, licence_id, start_time, end_time, date, driver_id, reshuffle_id):
     start_datetime = datetime.strptime(date + ' ' + start_time, '%Y-%m-%d %H:%M')
     end_datetime = datetime.strptime(date + ' ' + end_time, '%Y-%m-%d %H:%M')
 
-    status, conflicting_vehicle = is_conflict(driver_id, start_datetime, end_datetime, reshuffle_id)
-    if not status:
-        return False, conflicting_vehicle.licence_plate
-
     if action == 'update_shift':
+        status, conflicting_vehicle = is_conflict(driver_id, start_datetime, end_datetime, reshuffle_id)
+        if not status:
+            return False, conflicting_vehicle.licence_plate
+
         DriverReshuffle.objects.filter(id=reshuffle_id).update(
             swap_time=start_datetime,
             end_time=end_datetime,
             driver_start=driver_id,
             swap_vehicle=licence_id
         )
+        return True, "Зміна успішно оновленна"
 
     elif action == 'update_all_shift':
         selected_reshuffle = DriverReshuffle.objects.get(id=reshuffle_id)
@@ -405,18 +406,21 @@ def upd_shift(action, licence_id, start_time, end_time, date, driver_id, reshuff
             end_time__time=timezone.localtime(selected_reshuffle.end_time).time(),
             driver_start=selected_reshuffle.driver_start,
             swap_vehicle=selected_reshuffle.swap_vehicle
-        )
+        ).order_by('id')
 
+        successful_updates = 0
         for reshuffle in reshuffle_upd:
-
-            status, conflicting_vehicle = is_conflict(driver_id, start_datetime, end_datetime, reshuffle.id)
+            start = datetime.combine(timezone.localtime(reshuffle.swap_time).date(), start_datetime.time())
+            end = datetime.combine(timezone.localtime(reshuffle.end_time).date(), end_datetime.time())
+            status, conflicting_vehicle = is_conflict(driver_id, start, end, reshuffle.id)
             if not status:
-                return False, conflicting_vehicle.licence_plate
+                return False, conflicting_vehicle
 
-            reshuffle.swap_time = datetime.combine(timezone.localtime(reshuffle.swap_time).date(),
-                                                   start_datetime.time())
-            reshuffle.end_time = datetime.combine(timezone.localtime(reshuffle.end_time).date(), end_datetime.time())
+            reshuffle.swap_time = start
+            reshuffle.end_time = end
             reshuffle.driver_start = Driver.objects.get(id=driver_id)
             reshuffle.swap_vehicle = Vehicle.objects.get(id=licence_id)
             reshuffle.save()
+            successful_updates += 1
+        return True, f"Оновленно {successful_updates} змін"
     return True
