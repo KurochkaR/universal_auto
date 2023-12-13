@@ -105,16 +105,20 @@ class UaGpsSynchronizer(Fleet):
             for vehicle, reshuffles in vehicles.items():
                 if reshuffles:
                     for reshuffle in reshuffles:
+                        print(reshuffle)
                         start_report = timezone.localtime(reshuffle.swap_time)
                         end_report = timezone.localtime(reshuffle.end_time)
-                        if reshuffle.swap_time < start:
+                        print(start_report, end_report)
+                        if start_report < start:
                             start_report = start
-                        if reshuffle.end_time > end:
+                        if end_report > end:
                             end_report = end
+
                         completed += FleetOrder.objects.filter(driver=driver,
                                                                state=FleetOrder.COMPLETED,
                                                                accepted_time__gte=start_report,
                                                                accepted_time__lt=end_report).order_by('accepted_time')
+                        print(completed)
                 elif vehicle:
                     completed = FleetOrder.objects.filter(driver=driver,
                                                           state=FleetOrder.COMPLETED,
@@ -231,10 +235,12 @@ class UaGpsSynchronizer(Fleet):
         in_road = self.get_road_distance(start, end)
         for driver, result in in_road.items():
             distance, road_time, end_time = result
+            print(result)
             total_km = 0
             if not end_time:
                 end_time = timezone.localtime()
             vehicles = check_reshuffle(driver, start, end)
+            print(vehicles)
             for vehicle, reshuffles in vehicles.items():
                 try:
                     if reshuffles:
@@ -249,6 +255,7 @@ class UaGpsSynchronizer(Fleet):
                                                                end_time)
                             else:
                                 continue
+                            print(total_km)
                     elif vehicle:
                         total_km = self.total_per_day(driver.vehicle.gps.gps_id,
                                                       start,
@@ -258,5 +265,5 @@ class UaGpsSynchronizer(Fleet):
                     continue
             rent_distance = total_km - distance
             time_now = timezone.localtime(end_time).strftime("%H:%M")
-            bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"),
-                             text=f"Орендовано на {time_now} {driver} - {rent_distance}")
+            # bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"),
+            #                  text=f"Орендовано на {time_now} {driver} - {rent_distance}")

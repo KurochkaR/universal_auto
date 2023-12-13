@@ -186,8 +186,8 @@ def get_today_orders(self, partner_pk):
 @app.task(bind=True, queue='beat_tasks', retry_backoff=30, max_retries=4)
 def check_card_cash_value(self, partner_pk):
     try:
-        today = timezone.localtime().date()
-        start_week = today - timedelta(days=today.weekday())
+        today = timezone.localtime()
+        start_week = timezone.make_aware(datetime.combine(today, time.min)) - timedelta(days=today.weekday())
         for driver in Driver.objects.filter(partner=partner_pk, schema__isnull=False):
             if driver.schema.is_weekly():
                 orders = FleetOrder.objects.filter(accepted_time__range=(start_week, today),
@@ -196,7 +196,7 @@ def check_card_cash_value(self, partner_pk):
                 rent = calculate_rent(start_week, today, driver)
             else:
                 yesterday = today - timedelta(days=1)
-                orders = FleetOrder.objects.filter(accepted_time__date=timezone.localtime().date(),
+                orders = FleetOrder.objects.filter(accepted_time__date=today.date(),
                                                    state=FleetOrder.COMPLETED,
                                                    driver=driver)
                 rent = calculate_rent(yesterday, today, driver)
@@ -998,6 +998,8 @@ def get_driver_reshuffles(self, partner, delta=0):
                 except KeyError:
                     swap_time = datetime.strptime(event['start']['dateTime'], "%Y-%m-%dT%H:%M:%S%z")
                     end_time = datetime.strptime(event['end']['dateTime'], "%Y-%m-%dT%H:%M:%S%z")
+                if timezone.localtime(end_time).time() == time.min:
+                    end_time = timezone.make_aware(datetime.combine(swap_time, time.max))
                 obj_data = {
                     "calendar_event_id": calendar_event_id,
                     "swap_vehicle": vehicle,
