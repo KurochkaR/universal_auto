@@ -18,6 +18,7 @@ def add_user_ptr(apps, schema_editor):
         user = CustomUser.objects.create_user(
             username=name,
             password=passw,
+            role="PARTNER",
             is_staff=True,
             is_active=True,
             is_superuser=False,
@@ -29,6 +30,7 @@ def add_user_ptr(apps, schema_editor):
         user = CustomUser.objects.create_user(
             username=obj.email,
             password=obj.password,
+            role="INVESTOR",
             is_staff=True,
             is_active=True,
             is_superuser=False,
@@ -43,6 +45,7 @@ def add_user_ptr(apps, schema_editor):
         user = CustomUser.objects.create_user(
             username=obj.email,
             password=obj.password,
+            role="DRIVER_MANAGER",
             is_staff=True,
             is_active=True,
             is_superuser=False,

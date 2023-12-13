@@ -30,7 +30,7 @@ from auto_bot.handlers.main.keyboards import back_to_main_menu
 def remove_cash_driver(sender=None, **kwargs):
     if sender == manager_paid_weekly:
         partner_pk = kwargs.get('retval')
-        for manager in Manager.objects.filter(partner=partner_pk):
+        for manager in Manager.objects.filter(managers_partner=partner_pk):
             for driver in Driver.objects.filter(manager=manager):
                 bot.send_message(chat_id=manager.chat_id, text=ask_driver_paid(driver),
                                  reply_markup=inline_driver_paid_kb(driver.id))

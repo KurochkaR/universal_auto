@@ -1,5 +1,6 @@
 import os
 import socket
+from contextlib import contextmanager
 from datetime import datetime, timedelta, time
 import time as tm
 import requests
@@ -7,6 +8,7 @@ from _decimal import Decimal
 from celery import current_app, chain
 from celery.exceptions import MaxRetriesExceededError
 from celery.utils.log import get_task_logger
+from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import IntegrityError
 from django.utils import timezone
@@ -52,6 +54,18 @@ def retry_logic(exc, retries):
     retry_delay = 30 * (retries + 1)
     logger.warning(f"Retry attempt {retries + 1} in {retry_delay} seconds. Exception: {exc}")
     return retry_delay
+
+
+@contextmanager
+def memcache_lock(lock_id, oid):
+    lock = 600
+    timeout_at = tm.monotonic() + lock - 3
+    status = cache.add(lock_id, oid, lock)
+    try:
+        yield status
+    finally:
+        if tm.monotonic() < timeout_at and status:
+            cache.set(lock_id, oid, 10)
 
 
 @app.task(queue='bot_tasks')
@@ -360,7 +374,8 @@ def get_car_efficiency(self, partner_pk):
         vehicle_drivers = {}
         total_spending = VehicleSpending.objects.filter(
             vehicle=vehicle,  created_at__range=(start, end)).aggregate(Sum('amount'))['amount__sum'] or 0
-        reshuffles = DriverReshuffle.objects.filter(Q(end_time=end) | Q(swap_time=start), swap_vehicle=vehicle)
+        reshuffles = DriverReshuffle.objects.filter(Q(end_time__lte=end) & Q(swap_time__gte=start),
+                                                    swap_vehicle=vehicle)
         drivers = [reshuffle.driver_start for reshuffle in reshuffles] if reshuffles \
             else Driver.objects.filter(vehicle=vehicle)
         total_kasa = 0
@@ -449,39 +464,43 @@ def get_driver_efficiency(self, partner_pk, schema, day=None):
 
 @app.task(bind=True, queue='beat_tasks')
 def update_driver_status(self, partner_pk):
-    status_online = set()
-    status_with_client = set()
-    fleets = Fleet.objects.filter(partner=partner_pk).exclude(name='Gps')
-    for fleet in fleets:
-        statuses = fleet.get_drivers_status()
-        logger.info(f"{fleet} {statuses}")
-        status_online = status_online.union(set(statuses['wait']))
-        status_with_client = status_with_client.union(set(statuses['with_client']))
-    drivers = Driver.objects.filter(partner=partner_pk)
-    for driver in drivers:
-        active_order = Order.objects.filter(driver=driver, status_order=Order.IN_PROGRESS)
-        work_ninja = UseOfCars.objects.filter(user_vehicle=driver, partner=partner_pk,
-                                              created_at__date=timezone.localtime().date(), end_at=None).first()
-        if active_order or (driver.name, driver.second_name) in status_with_client:
-            current_status = Driver.WITH_CLIENT
-        elif (driver.name, driver.second_name) in status_online:
-            current_status = Driver.ACTIVE
+    with memcache_lock(self.name, self.app.oid) as acquired:
+        if acquired:
+            status_online = set()
+            status_with_client = set()
+            fleets = Fleet.objects.filter(partner=partner_pk).exclude(name='Gps')
+            for fleet in fleets:
+                statuses = fleet.get_drivers_status()
+                logger.info(f"{fleet} {statuses}")
+                status_online = status_online.union(set(statuses['wait']))
+                status_with_client = status_with_client.union(set(statuses['with_client']))
+            drivers = Driver.objects.filter(partner=partner_pk)
+            for driver in drivers:
+                active_order = Order.objects.filter(driver=driver, status_order=Order.IN_PROGRESS)
+                work_ninja = UseOfCars.objects.filter(user_vehicle=driver, partner=partner_pk,
+                                                      created_at__date=timezone.localtime().date(), end_at=None).first()
+                if active_order or (driver.name, driver.second_name) in status_with_client:
+                    current_status = Driver.WITH_CLIENT
+                elif (driver.name, driver.second_name) in status_online:
+                    current_status = Driver.ACTIVE
+                else:
+                    current_status = Driver.OFFLINE
+                driver.driver_status = current_status
+                driver.save()
+                if current_status != Driver.OFFLINE:
+                    vehicle = check_vehicle(driver)[0]
+                    if not work_ninja and vehicle and driver.chat_id:
+                        UseOfCars.objects.create(user_vehicle=driver,
+                                                 partner=Partner.get_partner(partner_pk),
+                                                 licence_plate=vehicle.licence_plate,
+                                                 chat_id=driver.chat_id)
+                    logger.info(f'{driver}: {current_status}')
+                else:
+                    if work_ninja:
+                        work_ninja.end_at = timezone.localtime()
+                        work_ninja.save()
         else:
-            current_status = Driver.OFFLINE
-        driver.driver_status = current_status
-        driver.save()
-        if current_status != Driver.OFFLINE:
-            vehicle = check_vehicle(driver)[0]
-            if not work_ninja and vehicle and driver.chat_id:
-                UseOfCars.objects.create(user_vehicle=driver,
-                                         partner=Partner.get_partner(partner_pk),
-                                         licence_plate=vehicle.licence_plate,
-                                         chat_id=driver.chat_id)
-            logger.info(f'{driver}: {current_status}')
-        else:
-            if work_ninja:
-                work_ninja.end_at = timezone.localtime()
-                work_ninja.save()
+            logger.info(f'{self.name}: passed')
 
 
 @app.task(bind=True, queue='bot_tasks')
@@ -521,16 +540,18 @@ def schedule_for_detaching_uklon(self, partner_pk):
                     partner=partner_pk
                     )
     for reshuffle in reshuffles:
-        eta = reshuffle.end_time
+        eta = timezone.make_aware(reshuffle.end_time)
         detaching_the_driver_from_the_car.apply_async((partner_pk, reshuffle.swap_vehicle.licence_plate), eta=eta)
 
 
 @app.task(bind=True, queue='bot_tasks', retry_backoff=30, max_retries=4)
 def detaching_the_driver_from_the_car(self, partner_pk, licence_plate):
     try:
-        fleet = UklonRequest.objects.get(partner=partner_pk)
-        fleet.detaching_the_driver_from_the_car(licence_plate)
-        logger.info(f'Car {licence_plate} was detached')
+        bot.send_message(chat_id=515224934,
+                         text=f"Авто відключено {licence_plate}")
+        # fleet = UklonRequest.objects.get(partner=partner_pk)
+        # fleet.detaching_the_driver_from_the_car(licence_plate)
+        # logger.info(f'Car {licence_plate} was detached')
     except Exception as e:
         logger.error(e)
         retry_delay = retry_logic(e, self.request.retries + 1)
@@ -614,7 +635,8 @@ def send_daily_statistic(self, partner_pk, schema):
     dict_msg = {}
     driver_schema = Schema.objects.get(pk=schema)
     managers = list(Manager.objects.filter(
-        partner=partner_pk, chat_id__isnull=False).exclude(chat_id='').values('chat_id') or Partner.objects.filter(
+        managers_partner=partner_pk, chat_id__isnull=False).exclude(chat_id='').values('chat_id') or
+                    Partner.objects.filter(
         pk=partner_pk, chat_id__isnull=False).exclude(chat_id='').values('chat_id'))
     for manager in managers:
         result = get_daily_report(manager['chat_id'], driver_schema)
@@ -636,7 +658,7 @@ def send_daily_statistic(self, partner_pk, schema):
 def send_efficiency_report(self, partner_pk):
     message = ''
     dict_msg = {}
-    managers = list(Manager.objects.filter(partner=partner_pk).values('chat_id'))
+    managers = list(Manager.objects.filter(managers_partner=partner_pk).values('chat_id'))
     if not managers:
         managers = [Partner.objects.filter(pk=partner_pk).values('chat_id').first()]
     for manager in managers:
@@ -657,7 +679,7 @@ def send_driver_efficiency(self, partner_pk, schema):
     driver_dict_msg = {}
     dict_msg = {}
     driver_schema = Schema.objects.get(pk=schema)
-    managers = list(Manager.objects.filter(partner=partner_pk).values_list('chat_id', flat=True))
+    managers = list(Manager.objects.filter(managers_partner=partner_pk).values_list('chat_id', flat=True))
     if not managers:
         managers = [Partner.objects.filter(pk=partner_pk).values_list('chat_id', flat=True).first()]
     for manager in managers:
@@ -976,46 +998,43 @@ def get_driver_reshuffles(self, partner, delta=0):
     day = timezone.localtime().date() - timedelta(days=delta)
     start = timezone.make_aware(datetime.combine(day, time.min))
     end = timezone.make_aware(datetime.combine(day, time.max))
-    obj_partner = list(Partner.objects.filter(pk=partner))
-    managers = list(Manager.objects.filter(partner=partner))
-    users = obj_partner + managers
-    for user in users:
-        try:
-            events = GoogleCalendar().get_list_events(user.calendar, start, end)
-            list_events = []
-            for event in events['items']:
-                calendar_event_id = event['id']
-                list_events.append(calendar_event_id)
-                event_summary = event['summary'].split(',')
-                licence_plate, driver = event_summary
-                name, second_name = driver.split()
-                driver_start = Driver.objects.filter(Q(name=name, second_name=second_name) |
-                                                     Q(name=second_name, second_name=name)).first()
-                vehicle = Vehicle.objects.filter(licence_plate=licence_plate.split()[0]).first()
-                try:
-                    swap_time = timezone.make_aware(datetime.strptime(event['start']['date'], "%Y-%m-%d"))
-                    end_time = timezone.make_aware(datetime.combine(swap_time, time.max))
-                except KeyError:
-                    swap_time = datetime.strptime(event['start']['dateTime'], "%Y-%m-%dT%H:%M:%S%z")
-                    end_time = datetime.strptime(event['end']['dateTime'], "%Y-%m-%dT%H:%M:%S%z")
-                obj_data = {
-                    "calendar_event_id": calendar_event_id,
-                    "swap_vehicle": vehicle,
-                    "driver_start": driver_start,
-                    "swap_time": swap_time,
-                    "end_time": end_time,
-                    "partner_id": partner
-                }
-                reshuffle = DriverReshuffle.objects.filter(calendar_event_id=calendar_event_id)
-                reshuffle.update(**obj_data) if reshuffle else DriverReshuffle.objects.create(**obj_data)
-            if delta:
-                deleted_reshuffles = DriverReshuffle.objects.filter(
-                    partner=partner,
-                    swap_time__date=day).exclude(calendar_event_id__in=list_events)
-                for reshuffle in deleted_reshuffles:
-                    reshuffle.delete()
-        except socket.timeout:
-            self.retry(args=[partner, delta], countdown=600)
+    user = Partner.objects.get(pk=partner)
+    try:
+        events = GoogleCalendar().get_list_events(user.calendar, start, end)
+        list_events = []
+        for event in events['items']:
+            calendar_event_id = event['id']
+            list_events.append(calendar_event_id)
+            event_summary = event['summary'].split(',')
+            licence_plate, driver = event_summary
+            name, second_name = driver.split()
+            driver_start = Driver.objects.filter(Q(name=name, second_name=second_name) |
+                                                 Q(name=second_name, second_name=name)).first()
+            vehicle = Vehicle.objects.filter(licence_plate=licence_plate.split()[0]).first()
+            try:
+                swap_time = timezone.make_aware(datetime.strptime(event['start']['date'], "%Y-%m-%d"))
+                end_time = timezone.make_aware(datetime.combine(swap_time, time.max))
+            except KeyError:
+                swap_time = datetime.strptime(event['start']['dateTime'], "%Y-%m-%dT%H:%M:%S%z")
+                end_time = datetime.strptime(event['end']['dateTime'], "%Y-%m-%dT%H:%M:%S%z")
+            obj_data = {
+                "calendar_event_id": calendar_event_id,
+                "swap_vehicle": vehicle,
+                "driver_start": driver_start,
+                "swap_time": swap_time,
+                "end_time": end_time,
+                "partner_id": partner
+            }
+            reshuffle = DriverReshuffle.objects.filter(calendar_event_id=calendar_event_id)
+            reshuffle.update(**obj_data) if reshuffle else DriverReshuffle.objects.create(**obj_data)
+        if delta:
+            deleted_reshuffles = DriverReshuffle.objects.filter(
+                partner=partner,
+                swap_time__date=day).exclude(calendar_event_id__in=list_events)
+            for reshuffle in deleted_reshuffles:
+                reshuffle.delete()
+    except socket.timeout:
+        self.retry(args=[partner, delta], countdown=600)
 
 
 def save_report_to_ninja_payment(start, end, partner_pk, schema, fleet_name='Ninja'):

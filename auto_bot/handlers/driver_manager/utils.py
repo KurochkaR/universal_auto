@@ -20,7 +20,7 @@ def get_time_for_task(schema, day=None):
     :return: start, end, previous_start, previous_end
     """
     schema_obj = Schema.objects.get(pk=schema)
-    date = day.strftime("%Y-%m-%d") if day else timezone.localtime()
+    date = datetime.strptime(day, "%Y-%m-%d") if day else timezone.localtime()
     start = timezone.make_aware(datetime.combine(date, time.min))
     yesterday = date - timedelta(days=1)
     previous_end = timezone.make_aware(datetime.combine(yesterday, time.max))

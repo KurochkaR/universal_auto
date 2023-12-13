@@ -1,18 +1,13 @@
 from django.contrib import admin
-from django.contrib.auth.models import User as AuthUser
-from django.contrib.auth.models import Group, Permission
-from django.contrib.contenttypes.models import ContentType
-from django.core.exceptions import FieldError
+from django.contrib.auth.models import Group
 from django.db.models import Q
-from polymorphic.admin import PolymorphicChildModelFilter, PolymorphicParentModelAdmin
+from polymorphic.admin import PolymorphicParentModelAdmin
 
 from scripts.google_calendar import GoogleCalendar
-from .bolt_sync import BoltRequest
 from .filters import VehicleEfficiencyUserFilter, DriverEfficiencyUserFilter, RentInformationUserFilter, \
-    TransactionInvestorUserFilter, ReportUserFilter, VehicleManagerFilter, SummaryReportUserFilter, FleetRelatedFilter, \
-    ChildModelFilter
+    TransactionInvestorUserFilter, ReportUserFilter, VehicleManagerFilter, SummaryReportUserFilter,\
+    FleetRelatedFilter, ChildModelFilter
 from .models import *
-
 
 
 class SupportManagerClientInline(admin.TabularInline):
@@ -114,7 +109,7 @@ class SchemaAdmin(admin.ModelAdmin):
         else:
             obj.rental = obj.plan * (1 - obj.rate)
         if request.user.is_partner():
-            obj.partner = request.user
+            obj.partner_id = request.user.pk
         super().save_model(request, obj, form, change)
 
     def get_fieldsets(self, request, obj=None):
@@ -616,6 +611,7 @@ class InvestorAdmin(admin.ModelAdmin):
                 user = CustomUser.objects.create_user(
                     username=obj.email,
                     password=obj.password,
+                    role=Role.INVESTOR,
                     is_staff=True,
                     is_active=True,
                     is_superuser=False,
@@ -667,13 +663,11 @@ class ManagerAdmin(admin.ModelAdmin):
 
     def save_model(self, request, obj, form, change):
         if request.user.is_partner():
-            gc = GoogleCalendar()
-            emails = [obj.email,
-                      request.user.email]
             if not change:
                 user = CustomUser.objects.create_user(
                     username=obj.email,
                     password=obj.password,
+                    role=Role.DRIVER_MANAGER,
                     is_staff=True,
                     is_active=True,
                     is_superuser=False,
@@ -684,17 +678,8 @@ class ManagerAdmin(admin.ModelAdmin):
                 user.groups.add(Group.objects.get(name='Manager'))
                 obj.customuser_ptr = user
                 obj.managers_partner_id = request.user.pk
-                cal_id = gc.create_calendar(f"Розклад водіїв {obj.first_name} {obj.last_name}")
-                obj.calendar = cal_id
-                for email in emails:
-                    permissions = gc.add_permission(email)
-                    gc.service.acl().insert(calendarId=cal_id, body=permissions).execute()
             if change and not obj.is_active:
                 obj.partner = None
-                existing_acl = gc.service.acl().list(calendarId=obj.calendar).execute()
-                for acl_rule in existing_acl.get('items', []):
-                    if acl_rule['scope']['type'] == 'user' and acl_rule['scope']['value'] in emails:
-                        gc.service.acl().delete(calendarId=obj.calendar, ruleId=acl_rule['id']).execute()
                 CustomUser.objects.filter(username=obj.email).delete()
         super().save_model(request, obj, form, change)
 
@@ -1056,16 +1041,6 @@ class FleetsDriversVehiclesRateAdmin(admin.ModelAdmin):
 
             return fieldsets
         return super().get_fieldsets(request)
-
-    def get_queryset(self, request):
-        queryset = super().get_queryset(request).select_related("driver", "fleet")
-        if request.user.groups.filter(name='Partner').exists():
-            queryset = queryset.filter(partner__user=request.user,
-                                       driver__worked=True)
-        elif request.user.groups.filter(name='Manager').exists():
-            queryset = queryset.filter(driver__manager__user=request.user,
-                                       driver__worked=True)
-        return queryset
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == "driver":

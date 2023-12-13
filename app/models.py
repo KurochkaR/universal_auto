@@ -26,14 +26,15 @@ class CustomUser(AbstractUser):
     chat_id = models.CharField(blank=True, null=True, max_length=10, verbose_name='Ідентифікатор чата')
     role = models.CharField(max_length=25, default=Role.CLIENT, choices=Role.choices)
 
+
     def is_partner(self):
-        return self.role == "PARTNER"
+        return self.role == Role.PARTNER
 
     def is_manager(self):
-        return self.role == "DRIVER_MANAGER"
+        return self.role == Role.DRIVER_MANAGER
 
     def is_investor(self):
-        return self.role == "INVESTOR"
+        return self.role == Role.INVESTOR
 
     @staticmethod
     def get_by_chat_id(chat_id):
