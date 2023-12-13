@@ -1236,6 +1236,7 @@ $(document).ready(function () {
 						data: { action, ...ajaxData },
 						success: function (response) {
 							fetchCalendarData(formattedStartDate, formattedEndDate);
+							filterCheck()
 						},
 					});
 					shiftForm.hide();
@@ -1272,6 +1273,7 @@ $(document).ready(function () {
 						success: function (response) {
 							if (response.data === true) {
 								fetchCalendarData(formattedStartDate, formattedEndDate);
+								filterCheck();
 								showShiftMessage(true, true);
 							} else {
 								showShiftMessage(response.data[0], response.data[1]['conflicting_time'], response.data[1]['licence_plate']);
@@ -1335,6 +1337,7 @@ $(document).ready(function () {
 							success: function (response) {
 							  if (response.data === true) {
 									fetchCalendarData(formattedStartDate, formattedEndDate);
+									filterCheck();
 									showShiftMessage(true);
 							  } else {
 							  	showShiftMessage(response.data[0], false, response.data[1]['conflicting_time'], response.data[1]['licence_plate']);
@@ -1541,5 +1544,18 @@ function showShiftMessage(success, upd, time, vehicle) {
 		setTimeout(function () {
 			$(".shift-success-message").hide();
 		}, 8000);
+	}
+}
+
+function filterCheck() {
+	const vehicleFilter = $("#search-vehicle-calendar").val();
+	const driverFilter = $("#search-shift-driver").val();
+
+	if (vehicleFilter !== "all") {
+		$("#search-vehicle-calendar").change();
+	}
+
+	if (driverFilter !== "all") {
+		$("#search-shift-driver").change();
 	}
 }
