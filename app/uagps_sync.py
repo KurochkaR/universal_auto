@@ -107,10 +107,11 @@ class UaGpsSynchronizer(Fleet):
                     for reshuffle in reshuffles:
                         start_report = timezone.localtime(reshuffle.swap_time)
                         end_report = timezone.localtime(reshuffle.end_time)
-                        if reshuffle.swap_time < start:
+                        if start_report < start:
                             start_report = start
-                        if reshuffle.end_time > end:
+                        if end_report > end:
                             end_report = end
+
                         completed += FleetOrder.objects.filter(driver=driver,
                                                                state=FleetOrder.COMPLETED,
                                                                accepted_time__gte=start_report,

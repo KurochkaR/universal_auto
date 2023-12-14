@@ -186,8 +186,8 @@ def get_today_orders(self, partner_pk):
 @app.task(bind=True, queue='beat_tasks', retry_backoff=30, max_retries=4)
 def check_card_cash_value(self, partner_pk):
     try:
-        today = timezone.localtime().date()
-        start_week = today - timedelta(days=today.weekday())
+        today = timezone.localtime()
+        start_week = timezone.make_aware(datetime.combine(today, time.min)) - timedelta(days=today.weekday())
         for driver in Driver.objects.filter(partner=partner_pk, schema__isnull=False):
             if driver.schema.is_weekly():
                 orders = FleetOrder.objects.filter(accepted_time__range=(start_week, today),
@@ -196,7 +196,7 @@ def check_card_cash_value(self, partner_pk):
                 rent = calculate_rent(start_week, today, driver)
             else:
                 yesterday = today - timedelta(days=1)
-                orders = FleetOrder.objects.filter(accepted_time__date=timezone.localtime().date(),
+                orders = FleetOrder.objects.filter(accepted_time__date=today.date(),
                                                    state=FleetOrder.COMPLETED,
                                                    driver=driver)
                 rent = calculate_rent(yesterday, today, driver)
@@ -360,7 +360,10 @@ def get_car_efficiency(self, partner_pk):
         vehicle_drivers = {}
         total_spending = VehicleSpending.objects.filter(
             vehicle=vehicle,  created_at__range=(start, end)).aggregate(Sum('amount'))['amount__sum'] or 0
-        reshuffles = DriverReshuffle.objects.filter(Q(end_time=end) | Q(swap_time=start), swap_vehicle=vehicle)
+        reshuffles = DriverReshuffle.objects.filter(end_time__lte=end,
+                                                    swap_time__gte=start,
+                                                    swap_vehicle=vehicle,
+                                                    partner=partner_pk)
         drivers = [reshuffle.driver_start for reshuffle in reshuffles] if reshuffles \
             else Driver.objects.filter(vehicle=vehicle)
         total_kasa = 0
@@ -415,8 +418,9 @@ def get_driver_efficiency(self, partner_pk, schema, day=None):
                 total_orders = orders.count()
                 if total_orders:
                     canceled = orders.filter(state=FleetOrder.DRIVER_CANCEL).count()
+                    completed = orders.filter(state=FleetOrder.COMPLETED).count()
                     accept = int((total_orders - canceled) / total_orders * 100) if canceled else 100
-                    avg_price = Decimal(total_kasa) / Decimal(total_orders)
+                    avg_price = Decimal(total_kasa) / Decimal(completed) if completed else 0
                 hours_online = timedelta()
                 using_info = UseOfCars.objects.filter(created_at__range=(start, end), user_vehicle=driver)
                 for report in using_info:
@@ -521,16 +525,18 @@ def schedule_for_detaching_uklon(self, partner_pk):
                     partner=partner_pk
                     )
     for reshuffle in reshuffles:
-        eta = reshuffle.end_time
-        detaching_the_driver_from_the_car.apply_async((partner_pk, reshuffle.swap_vehicle.licence_plate), eta=eta)
+        eta = timezone.localtime(reshuffle.end_time)
+        detaching_the_driver_from_the_car.apply_async((partner_pk, reshuffle.swap_vehicle.licence_plate, eta), eta=eta)
 
 
 @app.task(bind=True, queue='bot_tasks', retry_backoff=30, max_retries=4)
-def detaching_the_driver_from_the_car(self, partner_pk, licence_plate):
+def detaching_the_driver_from_the_car(self, partner_pk, licence_plate, eta):
     try:
-        fleet = UklonRequest.objects.get(partner=partner_pk)
-        fleet.detaching_the_driver_from_the_car(licence_plate)
-        logger.info(f'Car {licence_plate} was detached')
+        bot.send_message(chat_id=ParkSettings.get_value('DEVELOPER_CHAT_ID'),
+                         text=f"Авто {licence_plate} відключено {eta}")
+        # fleet = UklonRequest.objects.get(partner=partner_pk)
+        # fleet.detaching_the_driver_from_the_car(licence_plate)
+        # logger.info(f'Car {licence_plate} was detached')
     except Exception as e:
         logger.error(e)
         retry_delay = retry_logic(e, self.request.retries + 1)
@@ -629,7 +635,7 @@ def send_daily_statistic(self, partner_pk, schema):
                 dict_msg[partner_pk] += message
             else:
                 dict_msg[partner_pk] = message
-    return dict_msg, driver_dict_msg
+    return dict_msg, driver_dict_msg, driver_schema.title
 
 
 @app.task(bind=True, queue='beat_tasks')
@@ -671,7 +677,7 @@ def send_driver_efficiency(self, partner_pk, schema):
                 dict_msg[partner_pk] += message
             else:
                 dict_msg[partner_pk] = message
-    return dict_msg, driver_dict_msg
+    return dict_msg, driver_dict_msg, driver_schema.title
 
 
 @app.task(bind=True, queue='bot_tasks')
@@ -998,6 +1004,8 @@ def get_driver_reshuffles(self, partner, delta=0):
                 except KeyError:
                     swap_time = datetime.strptime(event['start']['dateTime'], "%Y-%m-%dT%H:%M:%S%z")
                     end_time = datetime.strptime(event['end']['dateTime'], "%Y-%m-%dT%H:%M:%S%z")
+                if timezone.localtime(end_time).time() == time.min:
+                    end_time = timezone.make_aware(datetime.combine(swap_time, time.max))
                 obj_data = {
                     "calendar_event_id": calendar_event_id,
                     "swap_vehicle": vehicle,
