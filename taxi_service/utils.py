@@ -1,7 +1,7 @@
 import json
 import random
 import secrets
-from datetime import timedelta, date
+from datetime import timedelta, date, datetime, time
 from django.utils import timezone
 from django.core.mail import send_mail
 from django.contrib.auth.models import User
@@ -74,7 +74,7 @@ def restart_order(id_order, car_delivery_price, action):
 
 
 def get_dates(period=None):
-    current_date = timezone.now().date()
+    current_date = timezone.make_aware(datetime.combine(timezone.localtime(), time.min))
 
     if period == 'yesterday':
         previous_date = current_date - timedelta(days=1)
@@ -144,6 +144,21 @@ def get_dates(period=None):
         end_date = current_date
 
     return start_date, end_date
+
+
+def get_start_end(period):
+    if period in ('yesterday', 'current_week', 'current_month', 'current_quarter',
+                  'last_week', 'last_month', 'last_quarter'):
+        start, end = get_dates(period)
+        format_start = start.strftime("%d.%m.%Y")
+        format_end = end.strftime("%d.%m.%Y")
+    else:
+        start_str, end_str = period.split('&')
+        start = timezone.make_aware(datetime.strptime(start_str, "%Y-%m-%d"))
+        end = timezone.make_aware(datetime.strptime(end_str, "%Y-%m-%d"))
+        format_start = ".".join(start_str.split("-")[::-1])
+        format_end = ".".join(end_str.split("-")[::-1])
+    return start, end, format_start, format_end
 
 
 def update_park_set(partner, key, value, description=None, check_value=True, park=True):
@@ -220,8 +235,10 @@ def partner_logout(aggregator, partner_pk):
 def login_in_investor(request, login_name, password):
     user = authenticate(username=login_name, password=password)
     if user is not None:
-        if user.is_active and not user.is_superuser:
+        if user.is_active:
             login(request, user)
+            if user.is_superuser:
+                return {'success': True}
             user_name = user.username
             role = user.groups.first().name
 

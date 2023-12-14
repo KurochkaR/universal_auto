@@ -27,6 +27,7 @@ class PackageHandler:
     def __init__(self):
         self.imei = ''
 
+
     async def _l_handler(self, **kwargs):
         imei = kwargs['msg'].split(';')[0]
         if imei:
@@ -40,16 +41,16 @@ class PackageHandler:
             imei,  client_ip, client_port = self.imei, kwargs['addr'][0], kwargs['addr'][1]
             data, created_at = kwargs['msg'], await sync_to_async(now)()
             database_url = os.environ.get('DATABASE_URL')
-            conn = await asyncpg.connect(dsn=database_url)
+            db_conn = await asyncpg.connect(dsn=database_url)
             try:
                 query = """
                             INSERT INTO app_rawgps (imei, client_ip, client_port, data, created_at)
                             VALUES ($1, $2, $3, $4, $5)
                         """
-                await conn.execute(query, imei, client_ip, client_port, data, created_at)
-                obj_id = await conn.fetchval("SELECT lastval();")
+                await db_conn.execute(query, imei, client_ip, client_port, data, created_at)
+                obj_id = await db_conn.fetchval("SELECT lastval();")
                 obj_id = int(obj_id)
-                await conn.close()
+                await db_conn.close()
                 raw_gps_handler.delay(obj_id)
 
                 return self.answer_data
@@ -57,7 +58,7 @@ class PackageHandler:
                 print("Error inserting GPS data:", error)
                 return self.answer_bad_data
             finally:
-                await conn.close()
+                db_conn.close()
         else:
             return self.answer_bad_data
 

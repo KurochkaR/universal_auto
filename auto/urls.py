@@ -21,6 +21,10 @@ from app.views import *
 from auto import settings
 from django.views.decorators.csrf import csrf_exempt
 
+admin.site.site_header = "Ninja Admin"
+admin.site.site_title = "Ninja Admin Portal"
+admin.site.index_title = "Welcome to Ninja Taxi"
+
 urlpatterns = [
     path('admin/', admin.site.urls, name='admin'),
     path('api/', include('api.urls')),
@@ -28,7 +32,6 @@ urlpatterns = [
     path('drivers_total_weekly_rating/', drivers_total_weekly_rating, name='app/drivers_total_weekly_rating'),
     path('gps/data', GpsData.as_view()),
     path('fake_uklon/', include('fake_uklon.urls')),
-    path('fake_uber/', include('fake_uber.urls')),
     path('cars/', gps_cars, name='map'),
     path('', include('taxi_service.urls')),
     path('webhook/', csrf_exempt(TelegramBotWebhookView.as_view())),

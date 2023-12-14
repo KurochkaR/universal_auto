@@ -470,9 +470,13 @@ input[type="button"] {
 	}
 
 	.car-select {
+	    position: static;
 		left: 0;
 		top: 100px;
 	}
+	.charts-card .weekly-income-dates {
+        float: none !important;
+    }
 
 	#area-chart {
     top: 35px;
