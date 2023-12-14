@@ -397,9 +397,9 @@ def upd_shift(action, licence_id, start_time, end_time, date, driver_id, reshuff
     end_datetime = datetime.strptime(date + ' ' + end_time, '%Y-%m-%d %H:%M')
 
     if action == 'update_shift':
-        status, conflicting_vehicle = is_conflict(driver_id, start_datetime, end_datetime, reshuffle_id)
+        status, conflicting_vehicle = is_conflict(driver_id, licence_id, start_datetime, end_datetime, reshuffle_id)
         if not status:
-            return False, conflicting_vehicle.licence_plate
+            return False, conflicting_vehicle
 
         DriverReshuffle.objects.filter(id=reshuffle_id).update(
             swap_time=start_datetime,
@@ -424,7 +424,7 @@ def upd_shift(action, licence_id, start_time, end_time, date, driver_id, reshuff
         for reshuffle in reshuffle_upd:
             start = datetime.combine(timezone.localtime(reshuffle.swap_time).date(), start_datetime.time())
             end = datetime.combine(timezone.localtime(reshuffle.end_time).date(), end_datetime.time())
-            status, conflicting_vehicle = is_conflict(driver_id, start, end, reshuffle.id)
+            status, conflicting_vehicle = is_conflict(driver_id, licence_id, start, end, reshuffle.id)
             if not status:
                 return False, conflicting_vehicle
 
