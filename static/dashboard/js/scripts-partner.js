@@ -1520,7 +1520,7 @@ $(document).ready(function () {
 });
 
 function validateInputTime(input, field) {
-  input.addEventListener('input', function () {
+  $(input).on('input', function () {
     let valueWithoutColon = input.value.replace(/:/g, '');
     if (valueWithoutColon.length < 2) {
       return;
@@ -1535,25 +1535,40 @@ function validateInputTime(input, field) {
 
     if (isValid) {
       input.style.backgroundColor = '#bfa';
-      $('.shift-btn').attr('disabled', false);
+      blockBtn(false);
 
       if (field === 'endTime') {
         if (input.value === '00:00') {
           input.value = '23:59';
         }
-        const startTimeInput = $('#startTime');
-        const startTimeValue = startTimeInput.value;
+        const startTimeInput = $('#startTime').val();
 
-        if (compareTimes(startTimeValue, input.value) > 0) {
+        if (compareTimes(startTimeInput, input.value) > 0) {
           input.style.backgroundColor = '#fba';
-          $('.shift-btn').attr('disabled', true);
+          blockBtn(true);
         }
       }
     } else {
       input.style.backgroundColor = '#fba';
-      $('.shift-btn').attr('disabled', true);
+      blockBtn(true);
     }
   });
+}
+
+function blockBtn(arg) {
+	if (arg === true) {
+		$('delete-all-btn').attr('disabled', true);
+		$('.delete-btn').attr('disabled', true);
+		$('.upd-btn').attr('disabled', true);
+		$('.upd-all-btn').attr('disabled', true);
+		$('.shift-btn').attr('disabled', true);
+	} else {
+		$('delete-all-btn').attr('disabled', false);
+		$('.delete-btn').attr('disabled', false);
+		$('.upd-btn').attr('disabled', false);
+		$('.upd-all-btn').attr('disabled', false);
+		$('.shift-btn').attr('disabled', false);
+	}
 }
 
 function compareTimes(time1, time2) {
