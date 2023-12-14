@@ -596,7 +596,11 @@ $(document).ready(function () {
 	});
 
 	$("#updateDatabaseContainer").click(function () {
+		$(".confirmation-update-database").show();
+	});
 
+	$("#confirmation-btn-on").click(function () {
+		$(".confirmation-update-database").hide();
 		$("#loadingModal").css("display", "block")
 		$(".loading-content").css("display", "block");
 
@@ -643,6 +647,10 @@ $(document).ready(function () {
 				}, 5000);
 			}
 		});
+	});
+
+	$("#confirmation-btn-off").click(function () {
+		$(".confirmation-update-database").hide();
 	});
 
 	$("#logout-dashboard").click(function () {

@@ -1654,3 +1654,56 @@ select:focus {
 	font-weight: 400;
 	line-height: normal;
 }
+
+/* confirmation update database */
+
+.confirmation-update-database {
+	display: none;
+	background-color: #A1E8B9;
+	padding: 20px;
+	text-align: center;
+	position: fixed;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	border-radius: 62px;
+	width: 50%;
+	height: auto;
+}
+
+.confirmation-box {
+	background-color: white;
+	padding: 20px;
+	margin: 25px 25px;
+	border-radius: 62px;
+}
+
+.confirmation-box h2 {
+	color: #EC6323;
+	margin: 0px 0px;
+	text-align: center;
+	font-size: 28px;
+	font-style: normal;
+	font-weight: 700;
+	line-height: normal;
+}
+
+.confirmation-box .btn-box {
+	display: flex;
+	justify-content: space-evenly;
+	margin-top: 20px;
+}
+
+.confirmation-box .btn-box button {
+	width: 70px;
+	padding: 5px 17px;
+	border-radius: 62px;
+	border: 3px solid #EC6323;
+	background: #EC6323;
+	color: #FFF;
+	font-size: 15px;
+	font-style: normal;
+	font-weight: 700;
+	line-height: normal;
+	cursor: pointer;
+}
