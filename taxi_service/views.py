@@ -53,6 +53,11 @@ class PostRequestView(View):
             "update_password": handler.handler_change_password,
             "upd_database": handler.handler_update_database,
             "free_access_or_consult": handler.handler_free_access,
+            "add_shift": handler.handler_add_shift,
+            "delete_shift": handler.handler_delete_shift,
+            "delete_all_shift": handler.handler_delete_shift,
+            "update_shift": handler.handler_update_shift,
+            "update_all_shift": handler.handler_update_shift,
         }
 
         if action in method:
@@ -127,8 +132,10 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
         if user.is_manager():
             context["get_all_vehicle"] = Vehicle.objects.filter(manager=user)
+            context["get_all_driver"] = Driver.objects.filter(manager=user, worked=True)
         elif user.is_partner():
             context["get_all_vehicle"] = Vehicle.objects.filter(partner=user)
+            context["get_all_driver"] = Driver.objects.filter(partner=user, worked=True)
 
         context["car_piggy_bank"] = CarsInformationListView.get_queryset(self)
 

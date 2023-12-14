@@ -6,7 +6,7 @@ from .views import (
     CarEfficiencyListView,
     CarsInformationListView,
     DriverEfficiencyListView,
-    InvestorCarsEarningsView,
+    InvestorCarsEarningsView, DriverReshuffleListView,
 )
 
 urlpatterns = [
@@ -18,4 +18,5 @@ urlpatterns = [
     path("vehicles_info/", CarsInformationListView.as_view()),
     path("investor_info/<str:period>/", InvestorCarsEarningsView.as_view()),
     path("drivers_info/<str:period>/", DriverEfficiencyListView.as_view()),
+    path("reshuffle/<str:start_date>/<str:end_date>/", DriverReshuffleListView.as_view())
 ]

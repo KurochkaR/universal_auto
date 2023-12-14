@@ -1,11 +1,11 @@
 import json
 
 from celery.result import AsyncResult
-from django.contrib.auth import logout
 from django.core.serializers.json import DjangoJSONEncoder
 from django.http import JsonResponse, HttpResponse
 from django.contrib.auth.models import User
 from django.forms.models import model_to_dict
+from django.contrib.auth import logout
 
 
 from app.models import SubscribeUsers, Manager
@@ -14,7 +14,7 @@ from taxi_service.utils import (update_order_sum_or_status, restart_order,
                                 partner_logout, login_in_investor,
                                 change_password_investor, send_reset_code,
                                 active_vehicles_gps, order_confirm,
-                                check_aggregators)
+                                check_aggregators, add_shift, delete_shift, upd_shift)
 
 from auto.tasks import update_driver_data, get_session
 
@@ -168,6 +168,43 @@ class PostRequestHandler:
             response_data = {'success': True}
 
         json_data = JsonResponse(response_data, safe=False)
+        response = HttpResponse(json_data, content_type='application/json')
+        return response
+
+    def handler_add_shift(self, request):
+        partner = Partner.objects.get(user=request.user)
+        licence_plate = request.POST.get('vehicle_licence')
+        date = request.POST.get('date')
+        start_time = request.POST.get('start_time')
+        end_time = request.POST.get('end_time')
+        driver_id = request.POST.get('driver_id')
+        recurrence = request.POST.get('recurrence')
+
+        result = add_shift(licence_plate, date, start_time, end_time, driver_id, recurrence, partner)
+        json_data = JsonResponse({'data': result}, safe=False)
+        response = HttpResponse(json_data, content_type='application/json')
+        return response
+
+    def handler_delete_shift(self, request):
+        action = request.POST.get('action')
+        reshuffle_id = request.POST.get('reshuffle_id')
+
+        result = delete_shift(action, reshuffle_id)
+        json_data = JsonResponse({'data': result}, safe=False)
+        response = HttpResponse(json_data, content_type='application/json')
+        return response
+
+    def handler_update_shift(self, request):
+        action = request.POST.get('action')
+        licence_id = request.POST.get('vehicle_licence')
+        date = request.POST.get('date')
+        start_time = request.POST.get('start_time')
+        end_time = request.POST.get('end_time')
+        driver_id = request.POST.get('driver_id')
+        reshuffle_id = request.POST.get('reshuffle_id')
+
+        result = upd_shift(action, licence_id, start_time, end_time, date, driver_id, reshuffle_id)
+        json_data = JsonResponse({'data': result}, safe=False)
         response = HttpResponse(json_data, content_type='application/json')
         return response
 
