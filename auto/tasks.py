@@ -1102,7 +1102,7 @@ def calculate_vehicle_earnings(self, partner_pk, day=None):
             print(spending_rate)
             print(payment)
             vehicles_income = get_vehicle_income(driver, payment.report_from, payment.report_to,
-                                                 spending_rate, payment.rent_price)
+                                                 spending_rate, payment.rent)
             print(vehicles_income)
             for vehicle, income in vehicles_income.items():
                 PartnerEarnings.objects.get_or_create(
