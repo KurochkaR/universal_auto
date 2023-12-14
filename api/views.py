@@ -191,7 +191,7 @@ class DriverReshuffleListView(CombinedPermissionsMixin, generics.ListAPIView):
     serializer_class = ReshuffleSerializer
 
     def get_queryset(self):
-        vehicles = ManagerFilterMixin.get_queryset(self, Vehicle)
+        vehicles = ManagerFilterMixin.get_queryset(Vehicle, self.request.user)
         qs = DriverReshuffle.objects.filter(
             swap_vehicle__in=vehicles,
             swap_time__range=(self.kwargs['start_date'], self.kwargs['end_date'])

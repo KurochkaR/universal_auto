@@ -3,12 +3,11 @@ import json
 from celery.result import AsyncResult
 from django.core.serializers.json import DjangoJSONEncoder
 from django.http import JsonResponse, HttpResponse
-from django.contrib.auth.models import User
 from django.forms.models import model_to_dict
 from django.contrib.auth import logout
 
 
-from app.models import SubscribeUsers, Manager
+from app.models import SubscribeUsers, Manager, CustomUser
 from taxi_service.forms import MainOrderForm, CommentForm
 from taxi_service.utils import (update_order_sum_or_status, restart_order,
                                 partner_logout, login_in_investor,
@@ -119,7 +118,7 @@ class PostRequestHandler:
 
         if request.POST.get('action') == 'send_reset_code':
             email = request.POST.get('email')
-            user = User.objects.filter(email=email).first()
+            user = CustomUser.objects.filter(email=email).first()
 
             if user:
                 user_login = user.username
@@ -134,7 +133,7 @@ class PostRequestHandler:
         if request.POST.get('action') == 'update_password':
             email = request.POST.get('email')
             new_password = request.POST.get('newPassword')
-            user = User.objects.filter(email=email).first()
+            user = CustomUser.objects.filter(email=email).first()
             if user:
                 user.set_password(new_password)
                 user.save()
@@ -172,7 +171,8 @@ class PostRequestHandler:
         return response
 
     def handler_add_shift(self, request):
-        partner = Partner.objects.get(user=request.user)
+        user = request.user
+        partner = Manager.objects.get(pk=user.pk).managers_partner if user.is_manager() else user
         licence_plate = request.POST.get('vehicle_licence')
         date = request.POST.get('date')
         start_time = request.POST.get('start_time')

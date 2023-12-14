@@ -6,7 +6,6 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse
 from django.shortcuts import render, redirect
 from django.contrib.auth import login, logout
-from django.contrib.auth.models import User as AuUser
 from django.core.paginator import Paginator
 from django.http import HttpResponseRedirect
 from django.views.generic import View, TemplateView
@@ -17,7 +16,7 @@ from api.views import CarsInformationListView
 from taxi_service.forms import SubscriberForm, MainOrderForm
 from taxi_service.handlers import PostRequestHandler, GetRequestHandler
 from taxi_service.seo_keywords import seo_index, seo_park_page
-from app.models import Driver, Vehicle
+from app.models import Driver, Vehicle, CustomUser
 from auto_bot.main import bot
 
 
@@ -154,7 +153,7 @@ class GoogleAuthView(View):
         redirect_url = reverse("index")
 
         if email:
-            user = AuUser.objects.filter(email=email).first()
+            user = CustomUser.objects.filter(email=email).first()
             if user:
                 user.backend = "django.contrib.auth.backends.ModelBackend"
                 login(request, user)

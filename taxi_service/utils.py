@@ -369,8 +369,8 @@ def delete_shift(action, reshuffle_id):
     reshuffle = DriverReshuffle.objects.get(id=reshuffle_id)
     if action == 'delete_shift':
         reshuffle.delete()
-        return True, "Зміна успішно видалена"
-    elif action == 'delete_all_shift':
+        text = "Зміна успішно видалена"
+    else:
         reshuffle_del = DriverReshuffle.objects.filter(
             swap_time__gte=timezone.localtime(reshuffle.swap_time),
             swap_time__time=timezone.localtime(reshuffle.swap_time).time(),
@@ -380,7 +380,8 @@ def delete_shift(action, reshuffle_id):
         )
         reshuffle_count = reshuffle_del.count()
         reshuffle_del.delete()
-    return True, f"Видалено {reshuffle_count} змін"
+        text = f"Видалено {reshuffle_count} змін"
+    return True, text
 
 
 def upd_shift(action, licence_id, start_time, end_time, date, driver_id, reshuffle_id):
@@ -421,8 +422,8 @@ def upd_shift(action, licence_id, start_time, end_time, date, driver_id, reshuff
 
             reshuffle.swap_time = start
             reshuffle.end_time = end
-            reshuffle.driver_start = Driver.objects.get(id=driver_id)
-            reshuffle.swap_vehicle = Vehicle.objects.get(id=licence_id)
+            reshuffle.driver_start_id = driver_id
+            reshuffle.swap_vehicle_id = licence_id
             reshuffle.save()
             successful_updates += 1
         return True, f"Оновленно {successful_updates} змін"
