@@ -1,8 +1,7 @@
 from django.contrib import admin
 
 from app.models import CarEfficiency, Vehicle, DriverEfficiency, Driver, RentInformation, \
-    TransactionsConversation, SummaryReport, Payments, FleetOrder, FleetsDriversVehiclesRate, Manager, Partner, \
-    Investor
+    TransactionsConversation, SummaryReport, Payments, FleetOrder, FleetsDriversVehiclesRate
 
 
 class VehicleEfficiencyUserFilter(admin.SimpleListFilter):

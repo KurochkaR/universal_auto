@@ -542,7 +542,7 @@ def send_on_job_application_on_driver(self, job_id):
 def schedule_for_detaching_uklon(self, partner_pk):
     today = timezone.localtime().date()
     reshuffles = DriverReshuffle.objects.filter(
-                    end_time__date=today,
+                    swap_time__date=today,
                     end_time__lt=timezone.make_aware(datetime.combine(today, time.max)),
                     partner=partner_pk
                     )

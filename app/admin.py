@@ -578,21 +578,36 @@ class SummaryReportAdmin(admin.ModelAdmin):
 
 @admin.register(Partner)
 class PartnerAdmin(admin.ModelAdmin):
-    list_display = ('chat_id', 'gps_url', 'contacts')
+    list_display = ('username', 'chat_id', 'gps_url', 'contacts')
     list_per_page = 25
 
     fieldsets = [
-        (None, {'fields': ['chat_id', 'gps_url', 'contacts']}),
+        ('Інформація про інвестора', {'fields': ['email', 'password', 'first_name', 'last_name', 'chat_id',
+                                                 'gps_url', 'contacts']}),
     ]
 
     def save_model(self, request, obj, form, change):
         if not change:
+            user = Partner.objects.create_user(
+                username=obj.email,
+                password=obj.password,
+                role=Role.PARTNER,
+                is_staff=True,
+                is_active=True,
+                is_superuser=False,
+                first_name=obj.first_name,
+                last_name=obj.last_name,
+                email=obj.email,
+                contacts=obj.contacts,
+                gps_url=obj.gps_url
+            )
+            user.groups.add(Group.objects.get(name='Partner'))
             gc = GoogleCalendar()
             cal_id = gc.create_calendar()
-            obj.calendar = cal_id
+            user.calendar = cal_id
             permissions = gc.add_permission(obj.email)
             gc.service.acl().insert(calendarId=cal_id, body=permissions).execute()
-        super().save_model(request, obj, form, change)
+            user.save()
 
 
 @admin.register(CustomUser)
@@ -616,6 +631,7 @@ class InvestorAdmin(admin.ModelAdmin):
                 is_superuser=False,
                 first_name=obj.first_name,
                 last_name=obj.last_name,
+                phone_number=obj.phone_number,
                 email=obj.email
             )
             user.groups.add(Group.objects.get(name='Investor'))
@@ -668,6 +684,8 @@ class ManagerAdmin(admin.ModelAdmin):
                 is_superuser=False,
                 first_name=obj.first_name,
                 last_name=obj.last_name,
+                phone_number=obj.phone_number,
+                chat_id=obj.chat_id,
                 email=obj.email
             )
             user.groups.add(Group.objects.get(name='Manager'))
