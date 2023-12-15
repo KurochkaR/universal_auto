@@ -41,7 +41,7 @@ def start(update, context):
         else:
             update.message.reply_text(share_phone_text, reply_markup=markup_keyboard([contact_keyboard]))
     else:
-        if any(user.role == "OWNER" for user in users):
+        if any(user.role == "PARTNER" for user in users):
             reply_markup = inline_owner_kb()
         elif any(user.role == "DRIVER_MANAGER" for user in users):
             reply_markup = inline_manager_kb()
@@ -66,7 +66,7 @@ def start_query(update, context):
         user = users[0]
         reply_markup = get_start_kb(user)
     else:
-        if any(user.role == "OWNER" for user in users):
+        if any(user.role == "PARTNER" for user in users):
             reply_markup = inline_owner_kb()
         elif any(user.role == "DRIVER_MANAGER" for user in users):
             reply_markup = inline_manager_kb()

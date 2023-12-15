@@ -107,8 +107,8 @@ def remove_cash_by_manager(update, context):
 def get_drivers_from_fleets(update, context):
     query = update.callback_query
     manager = Manager.get_by_chat_id(query.from_user.id)
-    partner = manager.partner if manager else Partner.get_by_chat_id(query.from_user.id)
-    update_driver_data.delay(partner.id, query.from_user.id)
+    partner_id = manager.managers_partner if manager else Partner.get_by_chat_id(query.from_user.id).pk
+    update_driver_data.delay(partner_id, query.from_user.id)
     query.edit_message_text(get_drivers_text)
 
 
@@ -361,9 +361,8 @@ def send_week_report(sender=None, **kwargs):
 
 def get_partner_vehicles(update, context):
     query = update.callback_query
-    manager = Manager.get_by_chat_id(query.from_user.id)
-    partner = Partner.get_by_chat_id(query.from_user.id)
-    vehicles = Vehicle.objects.filter(manager=manager) if manager else Vehicle.objects.filter(partner=partner)
+    user = CustomUser.get_by_chat_id(query.from_user.id)
+    vehicles = Vehicle.objects.filter(manager=user) if user.is_manager() else Vehicle.objects.filter(partner=user)
     if vehicles:
         if query.data == "Pin_vehicle_to_driver":
             callback = 'select_vehicle'
@@ -380,9 +379,8 @@ def get_partner_vehicles(update, context):
 def get_partner_drivers(update, context):
     query = update.callback_query
     pk_vehicle = query.data.split()[1]
-    manager = Manager.get_by_chat_id(query.from_user.id)
-    partner = Partner.get_by_chat_id(query.from_user.id)
-    drivers = Driver.objects.filter(manager=manager) if manager else Driver.objects.filter(partner=partner)
+    user = CustomUser.get_by_chat_id(query.from_user.id)
+    drivers = Driver.objects.filter(manager=user) if user.is_manager() else Driver.objects.filter(partner=user)
     if drivers:
         query.edit_message_text(partner_drivers)
         query.edit_message_reply_markup(reply_markup=inline_partner_drivers(pin_vehicle_callback, drivers,

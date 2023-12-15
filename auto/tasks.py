@@ -276,11 +276,8 @@ def download_nightly_report(self, partner_pk, schema, day=None):
         start, end = get_time_for_task(schema, day)[2:]
         fleets = Fleet.objects.filter(partner=partner_pk).exclude(name='Gps')
         for fleet in fleets:
-            print(fleet)
             for driver in Driver.objects.filter(schema=schema):
-                print(driver)
                 driver_id = driver.get_driver_external_id(fleet.name)
-                print(driver_id)
                 if driver_id:
                     if isinstance(fleet, UberRequest):
                         fleet.save_report(start, end, driver)
