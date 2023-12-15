@@ -2,7 +2,7 @@ from datetime import datetime
 import requests
 from django.db import models
 from app.models import UberService, UberSession, FleetsDriversVehiclesRate, FleetOrder, Driver, \
-    CustomReport, Fleet
+    CustomReport, Fleet, CredentialPartner
 from auto_bot.handlers.order.utils import check_vehicle
 from scripts.redis_conn import get_logger
 from selenium_ninja.driver import SeleniumTools
@@ -27,6 +27,9 @@ class UberRequest(Fleet, Synchronizer):
 
     @staticmethod
     def create_session(partner, login, password):
+        if not login:
+            login = CredentialPartner.get_value(key='UBER_NAME', partner=partner)
+            password = CredentialPartner.get_value(key='UBER_PASSWORD', partner=partner)
         SeleniumTools(partner).create_uber_session(login, password)
 
     @staticmethod

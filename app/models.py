@@ -23,9 +23,8 @@ class Role(models.TextChoices):
 
 
 class CustomUser(AbstractUser):
-    chat_id = models.CharField(blank=True, null=True, max_length=10, verbose_name='Ідентифікатор чата')
+    chat_id = models.CharField(blank=True, max_length=10, verbose_name='Ідентифікатор чата')
     role = models.CharField(max_length=25, default=Role.CLIENT, choices=Role.choices)
-
 
     def is_partner(self):
         return self.role == Role.PARTNER
@@ -42,6 +41,9 @@ class CustomUser(AbstractUser):
             return CustomUser.objects.get(chat_id=chat_id)
         except ObjectDoesNotExist:
             return None
+
+    def __str__(self):
+        return f"{self.first_name} {self.last_name}"
 
 
 class SalaryCalculation(models.TextChoices):
@@ -89,14 +91,11 @@ class TaskScheduler(models.Model):
         verbose_name = 'Розклад задач'
         verbose_name_plural = 'Розклад задач'
 
+
 class Partner(CustomUser):
     gps_url = models.URLField(null=True, verbose_name='Сторінка логіну Gps')
     calendar = models.CharField(max_length=255, verbose_name='Календар змін водіїв')
     contacts = models.BooleanField(default=False, verbose_name='Доступ до контактів')
-
-    @classmethod
-    def get_partner(cls, pk):
-        return cls.objects.get(id=pk)
 
     class Meta:
         verbose_name = 'Власника'
@@ -238,23 +237,6 @@ class Manager(CustomUser):
         verbose_name = 'Менеджера'
         verbose_name_plural = 'Менеджери'
 
-    @classmethod
-    def get_by_chat_id(cls, chat_id):
-        """
-        Returns user by chat_id
-        :param chat_id: chat_id by which we need to find the user
-        :type chat_id: str
-        :return: user object or None if a user with such ID does not exist
-        """
-        try:
-            user = cls.objects.get(chat_id=chat_id)
-            return user
-        except ObjectDoesNotExist:
-            return None
-
-    def __str__(self):
-        return f"{self.first_name} {self.last_name}"
-
 
 class Investor(CustomUser):
     phone_number = models.CharField(max_length=13, blank=True, null=True, verbose_name='Номер телефона')
@@ -263,9 +245,6 @@ class Investor(CustomUser):
     class Meta:
         verbose_name = 'Інвестора'
         verbose_name_plural = 'Інвестори'
-
-    def __str__(self) -> str:
-        return f"{self.first_name} {self.last_name}"
 
 
 class GPSNumber(models.Model):

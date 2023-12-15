@@ -14,7 +14,7 @@ from selenium_ninja.driver import SeleniumTools
 class UaGpsSynchronizer(Fleet):
 
     def create_session(self, partner, login, password):
-        partner_obj = Partner.get_partner(partner)
+        partner_obj = Partner.objects.get(pk=partner)
         token = SeleniumTools(partner).create_gps_session(login, password, partner_obj.gps_url)
         return token
 

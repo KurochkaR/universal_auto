@@ -324,7 +324,7 @@ def send_into_group(sender=None, **kwargs):
                 bot.send_message(chat_id=ParkSettings.get_value('DRIVERS_CHAT', partner=partner), text=schema_message)
             else:
                 try:
-                    bot.send_message(chat_id=Partner.get_partner(partner).chat_id, text=schema_message)
+                    bot.send_message(chat_id=Partner.objects.get(pk=partner).chat_id, text=schema_message)
                 except BadRequest:
                     pass
         for pk, message in drivers_messages.items():
@@ -344,7 +344,7 @@ def send_vehicle_efficiency(sender=None, **kwargs):
                 bot.send_message(chat_id=ParkSettings.get_value('DRIVERS_CHAT', partner=partner), text=message)
             else:
                 try:
-                    bot.send_message(chat_id=Partner.get_partner(partner).chat_id, text=message)
+                    bot.send_message(chat_id=Partner.objects.get(pk=partner).chat_id, text=message)
                 except BadRequest:
                     pass
 
@@ -354,8 +354,9 @@ def send_week_report(sender=None, **kwargs):
     if sender == send_driver_report:
         result = kwargs.get('retval')
         for messages in result:
-            for user, message in messages.items():
-                bot.send_message(chat_id=user, text=message)
+            if messages:
+                for user, message in messages.items():
+                    bot.send_message(chat_id=user, text=message)
 
 
 def get_partner_vehicles(update, context):

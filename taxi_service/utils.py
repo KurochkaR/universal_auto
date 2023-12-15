@@ -6,14 +6,13 @@ from datetime import timedelta, date, datetime, time
 from django.db.models import Q
 from django.utils import timezone
 from django.core.mail import send_mail
-from django.core.serializers import serialize
 from django.core.serializers.json import DjangoJSONEncoder
 from django.contrib.auth import authenticate, login, logout
 from django.core.exceptions import ObjectDoesNotExist
 
 from app.bolt_sync import BoltRequest
-from app.models import Driver, UseOfCars, VehicleGPS, Order, Partner, ParkSettings, CredentialPartner, Fleet, \
-    NewUklonService, UberService, UaGpsService, BoltService, Vehicle, DriverReshuffle, CustomUser
+from app.models import Driver, UseOfCars, VehicleGPS, Order, ParkSettings, CredentialPartner, Fleet, \
+    Vehicle, DriverReshuffle, CustomUser
 from app.uagps_sync import UaGpsSynchronizer
 from app.uber_sync import UberRequest
 from app.uklon_sync import UklonRequest
@@ -318,15 +317,15 @@ def is_conflict(driver, vehicle, start_time, end_time, reshuffle_id_to_exclude=N
         return True, None
 
 
-def add_shift(licence_plate, date, start_time, end_time, driver_id, recurrence, partner):
+def add_shift(licence_plate, shift_date, start_time, end_time, driver_id, recurrence, partner):
     vehicle = Vehicle.objects.filter(licence_plate=licence_plate).first()
     driver = Driver.objects.get(id=driver_id)
 
-    start_datetime = datetime.strptime(f"{date} {start_time}", "%Y-%m-%d %H:%M")
-    end_datetime = datetime.strptime(f"{date} {end_time}", "%Y-%m-%d %H:%M")
+    start_datetime = datetime.strptime(f"{shift_date} {start_time}", "%Y-%m-%d %H:%M")
+    end_datetime = datetime.strptime(f"{shift_date} {end_time}", "%Y-%m-%d %H:%M")
 
     today_reshuffle = DriverReshuffle.objects.filter(
-        swap_time__date=date,
+        swap_time__date=shift_date,
         swap_vehicle=vehicle
     ).count()
 
@@ -359,7 +358,7 @@ def add_shift(licence_plate, date, start_time, end_time, driver_id, recurrence, 
             driver_start=driver,
             swap_time=current_swap_time,
             end_time=current_end_time,
-            partner=partner
+            partner_id=partner.pk
         )
         reshuffle.save()
     return True, "Зміна успішно додана"
@@ -384,9 +383,9 @@ def delete_shift(action, reshuffle_id):
     return True, text
 
 
-def upd_shift(action, licence_id, start_time, end_time, date, driver_id, reshuffle_id):
-    start_datetime = datetime.strptime(date + ' ' + start_time, '%Y-%m-%d %H:%M')
-    end_datetime = datetime.strptime(date + ' ' + end_time, '%Y-%m-%d %H:%M')
+def upd_shift(action, licence_id, start_time, end_time, shift_date, driver_id, reshuffle_id):
+    start_datetime = datetime.strptime(shift_date + ' ' + start_time, '%Y-%m-%d %H:%M')
+    end_datetime = datetime.strptime(shift_date + ' ' + end_time, '%Y-%m-%d %H:%M')
 
     if action == 'update_shift':
         status, conflicting_vehicle = is_conflict(driver_id, licence_id, start_datetime, end_datetime, reshuffle_id)
@@ -399,7 +398,7 @@ def upd_shift(action, licence_id, start_time, end_time, date, driver_id, reshuff
             driver_start=driver_id,
             swap_vehicle=licence_id
         )
-        return True, "Зміна успішно оновленна"
+        return True, "Зміна успішно оновлена"
 
     elif action == 'update_all_shift':
         selected_reshuffle = DriverReshuffle.objects.get(id=reshuffle_id)
@@ -426,5 +425,5 @@ def upd_shift(action, licence_id, start_time, end_time, date, driver_id, reshuff
             reshuffle.swap_vehicle_id = licence_id
             reshuffle.save()
             successful_updates += 1
-        return True, f"Оновленно {successful_updates} змін"
+        return True, f"Оновлено {successful_updates} змін"
     return True

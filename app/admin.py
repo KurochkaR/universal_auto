@@ -606,26 +606,22 @@ class InvestorAdmin(admin.ModelAdmin):
     list_per_page = 25
 
     def save_model(self, request, obj, form, change):
-        if request.user.is_partner():
-            if not change:
-                user = CustomUser.objects.create_user(
-                    username=obj.email,
-                    password=obj.password,
-                    role=Role.INVESTOR,
-                    is_staff=True,
-                    is_active=True,
-                    is_superuser=False,
-                    first_name=obj.first_name,
-                    last_name=obj.last_name,
-                    email=obj.email
-                )
-                obj.customuser_ptr = user
-                user.groups.add(Group.objects.get(name='Investor'))
-                obj.investors_partner_id = request.user.pk
-            if change and not obj.is_active:
-                obj.investors_partner = None
-                CustomUser.objects.filter(username=obj.email).delete()
-        super().save_model(request, obj, form, change)
+        if not change:
+            user = Investor.objects.create_user(
+                username=obj.email,
+                password=obj.password,
+                role=Role.INVESTOR,
+                is_staff=True,
+                is_active=True,
+                is_superuser=False,
+                first_name=obj.first_name,
+                last_name=obj.last_name,
+                email=obj.email
+            )
+            user.groups.add(Group.objects.get(name='Investor'))
+            if request.user.is_partner():
+                user.investors_partner_id = request.user.pk
+                user.save()
 
     def get_fieldsets(self, request, obj=None):
         if request.user.is_superuser:
@@ -633,7 +629,7 @@ class InvestorAdmin(admin.ModelAdmin):
                 ('Інформація про інвестора',
                  {'fields': ['email', 'password',
                              'last_name', 'first_name',
-                             'phone_number', 'investors_partner',]}),
+                             'phone_number', 'investors_partner']}),
             ]
             return fieldsets
         if obj:
@@ -662,26 +658,22 @@ class ManagerAdmin(admin.ModelAdmin):
     list_per_page = 25
 
     def save_model(self, request, obj, form, change):
-        if request.user.is_partner():
-            if not change:
-                user = CustomUser.objects.create_user(
-                    username=obj.email,
-                    password=obj.password,
-                    role=Role.DRIVER_MANAGER,
-                    is_staff=True,
-                    is_active=True,
-                    is_superuser=False,
-                    first_name=obj.first_name,
-                    last_name=obj.last_name,
-                    email=obj.email
-                )
-                user.groups.add(Group.objects.get(name='Manager'))
-                obj.customuser_ptr = user
-                obj.managers_partner_id = request.user.pk
-            if change and not obj.is_active:
-                obj.partner = None
-                CustomUser.objects.filter(username=obj.email).delete()
-        super().save_model(request, obj, form, change)
+        if not change:
+            user = Manager.objects.create_user(
+                username=obj.email,
+                password=obj.password,
+                role=Role.DRIVER_MANAGER,
+                is_staff=True,
+                is_active=True,
+                is_superuser=False,
+                first_name=obj.first_name,
+                last_name=obj.last_name,
+                email=obj.email
+            )
+            user.groups.add(Group.objects.get(name='Manager'))
+            if request.user.is_partner():
+                user.managers_partner_id = request.user.pk
+                user.save()
 
     def get_list_display(self, request):
         if request.user.is_superuser:
@@ -693,10 +685,9 @@ class ManagerAdmin(admin.ModelAdmin):
         if request.user.is_superuser:
             fieldsets = [
                 ('Інформація про менеджера',
-                 {'fields': ['email', 'password',
-                             'last_name', 'first_name',
-                             'chat_id', 'phone_number', 'partner',
-                             'calendar', 'user']}),
+                 {'fields': ['email', 'last_name', 'first_name',
+                             'chat_id', 'phone_number', 'managers_partner',
+                             ]}),
             ]
             return fieldsets
         if obj:

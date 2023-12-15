@@ -121,14 +121,15 @@ def auto_send_task_bot(self):
     requests.post(webhook_url, json=message_data)
 
 
-@app.task(bind=True, queue='bot_tasks', retry_backoff=30, max_retries=4)
+@app.task(bind=True, queue='bot_tasks', retry_backoff=30, max_retries=3)
 def get_session(self, partner_pk, aggregator='Uber', login=None, password=None):
     fleet = Fleet.objects.get(name=aggregator, partner=None)
     try:
         token = fleet.create_session(partner_pk, login=login, password=password)
-        success = login_in(aggregator=aggregator, partner_id=partner_pk,
-                           login_name=login, password=password, token=token)
-        return partner_pk, success
+        if login and password:
+            success = login_in(aggregator=aggregator, partner_id=partner_pk,
+                               login_name=login, password=password, token=token)
+            return partner_pk, success
     except AuthenticationError as e:
         logger.error(e)
         success = False
@@ -275,8 +276,11 @@ def download_nightly_report(self, partner_pk, schema, day=None):
         start, end = get_time_for_task(schema, day)[2:]
         fleets = Fleet.objects.filter(partner=partner_pk).exclude(name='Gps')
         for fleet in fleets:
+            print(fleet)
             for driver in Driver.objects.filter(schema=schema):
+                print(driver)
                 driver_id = driver.get_driver_external_id(fleet.name)
+                print(driver_id)
                 if driver_id:
                     if isinstance(fleet, UberRequest):
                         fleet.save_report(start, end, driver)
@@ -325,7 +329,7 @@ def generate_payments(self, partner_pk, schema, day=None):
                     "fares": report["fares"],
                     "fee": report["fee"],
                     "total_amount_without_fee": report["without_fee"],
-                    "partner": Partner.get_partner(partner_pk),
+                    "partner_id": partner_pk,
                     "vehicle": auto
                 }
                 Payments.objects.get_or_create(report_from=start,
@@ -349,7 +353,7 @@ def generate_summary_report(self, partner_pk, schema, day=None):
                                        report_to=end,
                                        driver=driver,
                                        vehicle=driver.vehicle,
-                                       partner=Partner.get_partner(partner_pk))
+                                       partner_id=partner_pk)
                 fields = ("total_rides", "total_distance", "total_amount_cash",
                           "total_amount_on_card", "total_amount", "tips",
                           "bonuses", "fee", "total_amount_without_fee", "fares",
@@ -461,7 +465,7 @@ def get_driver_efficiency(self, partner_pk, schema, day=None):
                                                                     mileage=total_km or 0,
                                                                     online_time=hours_online,
                                                                     efficiency=result,
-                                                                    partner=Partner.get_partner(partner_pk))
+                                                                    partner_id=partner_pk)
                 driver_efficiency.vehicles.add(*driver_vehicles)
 
 
@@ -494,7 +498,7 @@ def update_driver_status(self, partner_pk):
                     vehicle = check_vehicle(driver)[0]
                     if not work_ninja and vehicle and driver.chat_id:
                         UseOfCars.objects.create(user_vehicle=driver,
-                                                 partner=Partner.get_partner(partner_pk),
+                                                 partner_id=partner_pk,
                                                  licence_plate=vehicle.licence_plate,
                                                  chat_id=driver.chat_id)
                     logger.info(f'{driver}: {current_status}')
@@ -623,7 +627,7 @@ def manager_paid_weekly(self, partner_pk):
 def send_driver_report(self, partner_pk, schema):
     result = []
     managers = list(Manager.objects.filter(
-        partner=partner_pk, chat_id__isnull=False).exclude(chat_id='').values_list('chat_id', flat=True))
+        managers_partner=partner_pk, chat_id__isnull=False).exclude(chat_id='').values_list('chat_id', flat=True))
     managers.extend(list(Partner.objects.filter(
         pk=partner_pk, chat_id__isnull=False).exclude(chat_id='').values_list('chat_id', flat=True)))
     for manager in managers:
@@ -1071,7 +1075,7 @@ def save_report_to_ninja_payment(start, end, partner_pk, schema, fleet_name='Nin
                 total_amount_cash=total_amount_cash,
                 total_amount_on_card=total_amount_card,
                 total_amount_without_fee=total_amount,
-                partner=Partner.get_partner(partner_pk))
+                partner_id=partner_pk)
             try:
                 report.save()
             except IntegrityError:
@@ -1133,7 +1137,7 @@ def calculate_driver_reports(self, partner_pk, schema, day=None):
                                           cash=driver_report['cash'],
                                           salary=salary,
                                           rent=rent_value,
-                                          partner=Partner.get_partner(partner_pk))
+                                          partner_id=partner_pk)
 
 
 @app.task(bind=True, queue='beat_tasks')
