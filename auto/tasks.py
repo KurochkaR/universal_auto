@@ -329,7 +329,7 @@ def generate_payments(self, partner_pk, schema, day=None):
                     "fares": report["fares"],
                     "fee": report["fee"],
                     "total_amount_without_fee": report["without_fee"],
-                    "partner_id": partner_pk,
+                    "partner": Partner.objects.get(pk=partner_pk),
                     "vehicle": auto
                 }
                 Payments.objects.get_or_create(report_from=start,
