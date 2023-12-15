@@ -1,0 +1,183 @@
+{% load static %}
+{% load i18n %}
+<html lang="en" xmlns="http://www.w3.org/1999/html">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Admin Dashboard</title>
+  <!-- Montserrat Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500&family=Open+Sans&display=swap"
+        rel="stylesheet">
+  <!-- Material Icons -->
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined"
+        rel="stylesheet">
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="{% static 'dashboard/css/styles.css' %}">
+  <link
+    href="https://cdn.jsdelivr.net/npm/apexcharts@3.41.0/dist/apexcharts.min.css"
+    rel="stylesheet">
+  <link rel="shortcut icon" href="{% static 'app/images/favicon.webp' %}"/>
+  <script src="https://kit.fontawesome.com/3f8b10f3dc.js" crossorigin="anonymous"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+  <script src="{% url 'javascript-catalog' %}"></script>
+</head>
+<body>
+<div class="grid-container">
+
+  <!-- Header -->
+  <header class="header">
+    <div class="menu-icon" onclick="toggleSidebar()">
+      <span class="material-icons-outlined">menu</span>
+    </div>
+    <div class="header-right">
+      {% if user.is_authenticated %}
+      <span id="account_circle">{{user.first_name}} {{user.last_name}}</span>
+      {% endif %}
+    </div>
+    {% if user.is_authenticated %}
+    <div class="burger-menu">
+      <div class="stripes">
+        <div class="stripe top-stripe"></div>
+        <div class="stripe middle-stripe"></div>
+        <div class="stripe bottom-stripe"></div>
+      </div>
+      <div class="burger-content">
+        <button id="changePassword" type="button">{% trans 'Змінити пароль' %}</button>
+        <button id="logout-dashboard" type="button">{% trans 'Вийти' %}</button>
+      </div>
+    </div>
+    {% endif %}
+    <div id="passwordChangeForm" style="display: none;">
+      <span class="close-btn">&times;</span>
+      <h2>{% trans 'Після зміни пароля потрібно перезайти.' %}</h2>
+      <form id="passwordForm">
+        {% csrf_token %}
+        <h4>{% trans 'Старий пароль:' %}</h4>
+        <input type="password" id="oldPassword" name="oldPassword" required>
+        <p class="error-message" id="oldPasswordMessage"
+           style="display:none; color: red">{% trans 'Вказано неправильний пароль' %}</p>
+        <h4>{% trans 'Новий пароль:' %}</h4>
+        <input type="password" id="newPassword" name="newPassword" required>
+        <p class="error-message" id="ChangeErrorMessage"
+           style="display:none; color: red">{% trans 'Пароль не співпадає' %}</p>
+        <h4>{% trans 'Підтвердити новий пароль:' %}</h4>
+        <input type="password" id="confirmPassword" name="confirmPassword" required>
+
+        <button id="submitPassword" type="button">{% trans 'Змінити' %}</button>
+      </form>
+    </div>
+
+  </header>
+  <!-- End Header -->
+
+  <!-- Sidebar -->
+  <aside id="sidebar">
+    <div class="sidebar-title">
+      <a class="navbar-brand" href="{% url 'index' %}">
+        <img class="logo-1" src="{% static 'app/images/logo-2.svg' %}" width="142" height="50" alt="Ninja Taxi">
+        <img class="logo-2" src="{% static 'app/images/logo.svg' %}" width="142" height="50" alt="Ninja Taxi">
+      </a>
+    </div>
+    <ul class="sidebar-list">
+      <div id="sidebar-toggle" class="sidebar-toggle">
+        <i class="fas fa-angle-double-right"></i>
+      </div>
+      <li class="sidebar-list-item" onclick="window.location='{% url 'dashboard' %}'">
+        <i class="fas fa-home"></i><span>{% trans 'Інформаційна панель' %}</span>
+      </li>
+      <div id="VehicleBtnContainer">
+        <li class="sidebar-list-item" onclick="window.location='{% url 'dashboard_vehicle' %}'">
+          <i class="fas fa-car-side"></i><span>{% trans 'Автомобілі' %}</span>
+        </li>
+      </div>
+      {% if partner_group or manager_group %}
+      <div id="DriverBtnContainer">
+        <li class="sidebar-list-item" onclick="window.location='{% url 'dashboard_driver' %}'">
+          <i class="fas fa-users"></i><span>{% trans 'Водії' %}</span>
+        </li>
+      </div>
+      <div id="paymentsDriverBtnContainer">
+        <li class="sidebar-list-item" onclick="window.location='{% url 'dashboard_payment' %}'">
+          <i class="fas fa-coins"></i><span>{% trans 'Виплати  Водіїв' %}</span>
+        </li>
+      </div>
+      <div id="workCalendarBtnContainer">
+        <li class="sidebar-list-item" onclick="window.location='{% url 'dashboard_calendar' %}'">
+          <i class="fas fa-calendar-alt"></i><span>{% trans 'Розклад водіїв' %}</span>
+        </li>
+      </div>
+      <li class="sidebar-list-item admin" data-url="{% url 'admin:index' %}">
+        <i class="fas fa-gem"></i><span>{% trans 'Керування автопарком' %}</span>
+      </li>
+      <div id="updateDatabaseContainer">
+        <li class="sidebar-list-item">
+          <i class="fas fa-cogs"></i><span>{% trans 'Оновлення бази даних' %}</span>
+        </li>
+      </div>
+      <!-- Модальне вікно -->
+      <div id="loadingModal" class="modal">
+        <div class="modal-content">
+          <div class="loading-content">
+            <p id="loadingMessage">{% trans 'Зачекайте, будь ласка, поки оновлюється база даних...' %}</p>
+            <div id="loader" class="loader"></div>
+            <div id="checkmark" class="checkmark"></div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+      {% if partner_group %}
+      <div id="settingBtnContainer">
+        <li class="sidebar-list-item">
+          <i class="fas fa-pencil-alt"></i><span>{% trans 'Підключення агрегаторів' %}</span>
+        </li>
+      </div>
+      <div id="settingsWindow" class="settings-window">
+        <div class="settings-content">
+          <span class="close-btn">&times;</span>
+          <h2>{% trans 'Компанії агрегаторів' %}</h2>
+
+          <form id="partnerForm">
+            {% csrf_token %}
+            <h3>{% trans 'Виберіть агрегатор:' %}</h3>
+            <div class="partner-options">
+              <input type="radio" id="uberOption" name="partner" value="Uber" checked>
+              <label for="uberOption">Uber</label>
+
+              <input type="radio" id="boltOption" name="partner" value="Bolt">
+              <label for="boltOption">Bolt</label>
+
+              <input type="radio" id="uklonOption" name="partner" value="Uklon">
+              <label for="uklonOption">Uklon</label>
+
+              <input type="radio" id="gpsOption" name="partner" value="Gps">
+              <label for="gpsOption">Gps</label>
+            </div>
+            <p class="error-message" id="loginErrorMessage"
+               style="display:none; color: red">{% trans 'Вказано неправильний логін або пароль' %}</p>
+            <input type="text" id="partnerLogin" name="partnerLogin" placeholder="{% trans 'Логін' %}" required>
+            <input class="showPassword partnerPassword" type="password" id="partnerPassword" name="partnerPassword"
+                   placeholder="{% trans 'Пароль' %}" required>
+            <div class="loader-login"></div>
+          </form>
+
+          <p class="opt-partnerForm">
+            <input type="checkbox" class="showPasswordCheckbox" id="showPasswordPartner">
+            <label for="showPasswordPartner"><span>{% trans 'Показати пароль' %}</span></label>
+            <button type="button" class="login-btn">{% trans 'Увійти' %}</button>
+          </p>
+          <div class="login-ok">
+            <span class='successful-message'>{% trans "Зв'язок встановлено!" %}</span>
+            <button class='logout-btn' data-form='logout'>{% trans "Розірвати зв'язок" %}</button>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+    </ul>
+  </aside>
+  <!-- End Sidebar -->

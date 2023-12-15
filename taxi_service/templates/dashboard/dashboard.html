@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+{% load static %}
+{% load i18n %}
+{% include 'dashboard/dashboard-header-sidebar.html' %}
+
+  <!-- Main Manager-->
+  <main class="main-container">
+    <div class="main-title">
+      <h2>{% trans 'Інформаційна панель' %}</h2>
+      <div class="search-vehicle-calendar">
+        <label for="search-vehicle-calendar">{% trans "Автомобіль" %}</label>
+        <select id="search-vehicle-calendar">
+          <option value="all">--------</option>
+          {% for vehicle in get_all_vehicle %}
+          <option value="{{ vehicle.id }}">{{ vehicle }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="search-shift-driver">
+        <label for="search-shift-driver">{% trans "Водії" %}</label>
+        <select id="search-shift-driver">
+          <option value="all">--------</option>
+          {% for driver in get_all_driver %}
+          <option value="{{ driver.id }}">{{ driver }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="refresh-search">
+        <svg version="1.0" xmlns="http://www.w3.org/2000/svg" width="1280.000000pt" height="1138.000000pt"
+             viewBox="0 0 1280.000000 1138.000000" preserveAspectRatio="xMidYMid meet">
+          <g transform="translate(0.000000,1138.000000) scale(0.100000,-0.100000)" fill="#EC6323" stroke="none">
+            <path style="fill:#EC6323;" d="M10552 10542 c-18 -423 -51 -733 -117 -1103 -51 -292 -76 -400 -92
+            -406 -10 -4 -54 33 -121 99 -821 805 -1806 1353 -2820 1568 -567 120 -1084
+            145 -1622 79 -708 -87 -1384 -333 -1965 -714 -533 -349 -1016 -805 -1420
+            -1341 -448 -594 -821 -1277 -1081 -1980 -43 -117 -95 -276 -91 -280 1 -2 33
+            22 71 52 349 280 961 620 1474 820 130 50 150 53 156 22 65 -306 215 -797 321
+            -1047 88 -208 193 -411 213 -411 4 0 18 44 31 98 106 442 316 970 548 1382 95
+            168 276 435 399 590 126 159 402 437 528 534 215 164 391 270 593 358 260 111
+            520 182 823 224 174 24 594 24 775 1 697 -92 1372 -375 2005 -841 52 -38 137
+            -103 188 -144 76 -60 91 -77 80 -87 -7 -7 -74 -29 -148 -50 -456 -127 -924
+            -329 -1285 -554 l-90 -56 65 -8 c302 -35 575 -103 890 -219 675 -250 1335
+            -647 2025 -1218 77 -64 145 -119 152 -123 15 -10 34 51 73 240 50 239 85 510
+            122 943 20 228 16 1017 -5 1265 -75 863 -224 1525 -505 2236 -53 135 -141 339
+            -152 351 -3 5 -11 -121 -18 -280z"/>
+            <path style="fill:#EC6323;" d="M1740 5605 c0 -3 -13 -79 -29 -168 -73 -404 -112 -688 -143 -1027
+            -20 -226 -17 -1044 5 -1280 55 -587 128 -1013 253 -1470 88 -320 247 -764 366
+            -1020 l45 -95 7 205 c17 507 62 905 152 1358 24 123 46 228 50 233 11 19 29 7
+            118 -79 1069 -1028 2251 -1587 3560 -1683 193 -15 658 -6 831 15 1080 132
+            1957 547 2785 1320 747 696 1420 1772 1796 2870 24 71 43 131 41 132 -2 2 -44
+            -28 -93 -67 -217 -173 -593 -403 -937 -573 -271 -133 -605 -276 -647 -276 -13
+            0 -28 46 -73 229 -67 268 -153 541 -244 771 -94 237 -228 500 -245 480 -3 -3
+            -22 -72 -43 -155 -138 -546 -405 -1153 -708 -1605 -175 -261 -297 -411 -501
+            -615 -232 -232 -439 -383 -711 -521 -300 -151 -604 -242 -970 -290 -181 -23
+            -552 -23 -740 0 -733 91 -1418 384 -2090 892 -197 149 -222 171 -210 182 6 5
+            71 26 145 47 303 85 590 192 860 322 179 86 433 225 485 267 l30 24 -50 6
+            c-154 19 -328 50 -446 80 -558 141 -1198 438 -1784 829 -223 149 -345 242
+            -607 465 -212 180 -258 215 -258 197z"/>
+          </g>
+        </svg>
+      </div>
+    </div>
+    <div class="common-period" id="period-window">
+      <label for="period-common">{% trans 'Виберіть період:' %}</label>
+      <div class="custom-select" id="period-common">
+        <span class="selected-option">{% trans 'Вчора' %}</span>
+        <i class="fas fa-angle-down"></i>
+        <ul class="options">
+          <li data-value="yesterday">{% trans 'Вчора' %}</li>
+          <li data-value="current_week">{% trans 'Поточний тиждень' %}</li>
+          <li data-value="last_week">{% trans 'Минулий тиждень' %}</li>
+          <li data-value="current_month">{% trans 'Поточний місяць' %}</li>
+          <li data-value="last_month">{% trans 'Минулий місяць' %}</li>
+          <li data-value="current_quarter">{% trans 'Поточний квартал' %}</li>
+          <li data-value="last_quarter">{% trans 'Минулий квартал' %}</li>
+          <li data-value="custom">{% trans 'Вибрати період >' %}</li>
+        </ul>
+      </div>
+    </div>
+    <div id="datePicker" style="display: none;">
+      <label for="start_report">{% trans 'Початкова дата:' %}</label>
+      <input type="date" id="start_report" name="start_date">
+      <label for="end_report">{% trans 'Кінцева дата:' %}</label>
+      <input type="date" id="end_report" name="end_date">
+      <input class="apply-filter-button" type="button" onclick="applyCustomDateRange()"
+             value="{% trans 'Фільтрувати' %}">
+    </div>
+    <div class="main-cards">
+      <div class="card">
+        <h2>{% trans 'Загальний дохід' %}</h2>
+        <span class="weekly-income-amount"></span>
+        <h2>{% trans 'Період' %}</h2>
+        <span class="weekly-income-dates"></span>
+      </div>
+      {% if investor_group %}
+      <div class="card">
+        <h2>{% trans 'Загальний пробіг' %}</h2>
+        <span class="income-km"></span>
+        <h2>{% trans 'Період' %}</h2>
+        <span class="weekly-income-dates"></span>
+      </div>
+      <div class="card">
+        <h2>{% trans 'Загальні витрати на авто' %}</h2>
+        <span class="spending-all"></span>
+        <h2>{% trans 'Період' %}</h2>
+        <span class="weekly-income-dates"></span>
+      </div>
+      {% else %}
+      <div class="card">
+        <h2>{% trans 'Холостий пробіг' %}</h2>
+        <span class="weekly-income-rent"></span>
+        <h2>{% trans 'Загальний пробіг' %}</h2>
+        <span class="income-km"></span>
+        <h2>{% trans 'Період' %}</h2>
+        <span class="weekly-income-dates"></span>
+      </div>
+      <div class="card">
+        <h2>{% trans 'Середня ефективність автомобілів' %}</h2>
+        <span class="income-efficiency"></span>
+        <h2>{% trans 'Період' %}</h2>
+        <span class="weekly-income-dates"></span>
+      </div>
+      {% endif %}
+    </div>
+    <div class="charts">
+      {% if investor_group %}
+      <div class="charts-card">
+        <h2 class="chart-title">{% trans 'Дохід' %}</h2>
+        <div class="noDataMessage1" style="display: none;">{% trans "За обраний період відсутні дані." %}</div>
+        <div id="investor-bar-chart" style="width: 100%; height: 600px;"></div>
+      </div>
+      <div class="charts-card">
+        <h2 class="chart-title">{% trans 'Пробіг автомобіля' %}</h2>
+        <div class="noDataMessage2" style="display: none;">{% trans "За обраний період відсутні дані." %}</div>
+        <div id="investor-area-chart" style="width: 100%; height: 600px;"></div>
+      </div>
+      {% else %}
+      <div class="charts-card">
+        <h2 class="chart-title">{% trans 'Доходи водіїв' %}</h2>
+        <span class="weekly-income-dates"></span>
+        <div class="noDataMessage1" style="display: none;">{% trans "За обраний період відсутні дані." %}</div>
+        <div id="bar-chart" style="width: 100%; height: 600px;"></div>
+      </div>
+      <div class="charts-card">
+        <h2 class="chart-title">{% trans 'Ефективність автомобіля' %}</h2>
+        <span class="weekly-income-dates"></span>
+        <div class="car-select">
+          <div class="custom-dropdown">
+            <div class="selected-option" id="selected-vehicle">
+              <span>{% trans 'Виберіть авто' %}</span>
+              <i class="fas fa-angle-down"></i>
+            </div>
+            <ul class="dropdown-options" id="vehicle-options">
+              {% for vehicle in get_all_vehicle %}
+              <li data-value="{{ vehicle.id }}">{{ vehicle }}</li>
+              {% endfor %}
+            </ul>
+          </div>
+        </div>
+
+        <div class="noDataMessage2" style="display: none;">{% trans "За обраний період відсутні дані." %}</div>
+        <div id="area-chart" style="width: 100%; height: 600px;"></div>
+      </div>
+      <div class="charts-card">
+        <h2 class="chart-title">{% trans 'Середня ефективність автомобіля' %}</h2>
+        <span class="weekly-income-dates"></span>
+        <div class="noDataMessage1" style="display: none;">{% trans "За обраний період відсутні дані." %}</div>
+        <div id="bar-three-chart" style="width: 100%; height: 600px;"></div>
+      </div>
+      {% endif %}
+    </div>
+
+  </main>
+  <!-- End Main Manager-->
+</div>
+
+<!-- Scripts -->
+<script>
+  const VehicleImg = "{% static 'app/images/index-one-block-2.webp' %}";
+  const logoImageUrl = "{% static 'app/images/logo-2.svg' %}";
+  let ajaxPostUrl = "{% url 'post_request' %}";
+  let ajaxGetUrl = "{% url 'get_request' %}";
+</script>
+<!-- ApexCharts -->
+<script src="https://cdn.jsdelivr.net/npm/apexcharts@3.41.0/dist/apexcharts.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.6.3/dist/jquery.min.js" defer></script>
+{% if partner_group %}
+<script src="{% static 'dashboard/js/partner.js' %}" defer></script>
+{% endif %}
+{% if investor_group %}
+<script src="{% static 'dashboard/js/scripts-investor.js' %}" defer></script>
+{% else %}
+<script src="{% static 'dashboard/js/scripts-partner.js' %}" defer></script>
+{% endif %}
+<script src="{% static 'dashboard/js/header-sidebar.js' %}" defer></script>
+</body>
+</html>

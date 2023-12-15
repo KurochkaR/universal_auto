@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+{% load static %}
+{% load i18n %}
+{% include 'dashboard/dashboard-header-sidebar.html' %}
+<!-- Content -->
+<main class="main-container">
+  <div class="main-title">
+    <h2>{% trans 'Автомобілі' %}</h2>
+  </div>
+  {% for car in car_piggy_bank %}
+  <div class="payback-car">
+    <div class="car-item">
+      <div class="car-image">
+        <img src="{% static 'app/images/index-one-block-2.webp' %}" alt="Зображення авто">
+        <p>{{ car.licence_plate }}</p>
+      </div>
+      <div class="car-details">
+        <p>{% trans 'Заробіток:' %}<br><span>₴ {{ car.kasa }}</span></p>
+        <p>{% trans 'Витрати:' %}<br><span>₴ {{ car.spending }}</span></p>
+        <div class="progress-bar">
+          <div class="progress" style="width: {{ car.progress_percentage }}%; max-width: 100%">
+            <div class="progress-label" style="color: #0a0a0a">{{ car.progress_percentage }}%</div>
+          </div>
+        </div>
+        <p>{% trans 'Вартість авто:' %}<br><span>₴ {{ car.price }}</span></p>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</main>
+
+<!-- End Content -->
+</div>
+<!-- Scripts -->
+<script>
+  const VehicleImg = "{% static 'app/images/index-one-block-2.webp' %}";
+  const logoImageUrl = "{% static 'app/images/logo-2.svg' %}";
+  let ajaxPostUrl = "{% url 'post_request' %}";
+  let ajaxGetUrl = "{% url 'get_request' %}";
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.6.3/dist/jquery.min.js" defer></script>
+<script src="{% static 'dashboard/js/header-sidebar.js' %}" defer></script>
+</body>
+</html>

@@ -504,7 +504,7 @@ input[type="button"] {
 /*vehicle-block*/
 
 .payback-car {
-  display: none;
+  display: flex;
   flex-wrap: wrap;
   gap: 20px;
   padding: 25px 10px 15px 10px;
@@ -952,7 +952,7 @@ input[type="button"] {
 /* Стилізація контейнера "info-driver" */
 
 .info-driver {
-  display: none;
+  display: block;
   padding: 20px;
   border-radius: 10px;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
@@ -1317,9 +1317,7 @@ select:focus {
 /* driver-calendar */
 
 .driver-calendar {
-	display: none;
-	flex-direction: column;
-	align-items: center;
+	display: block;
 	margin-top: 20px;
 }
 
@@ -1618,13 +1616,13 @@ select:focus {
 
 .search-vehicle-calendar,
 .search-shift-driver {
-	display: none;
+	display: block;
 	width: 230px;
 	margin-left: 20px;
 }
 
 .refresh-search {
-	display: none;
+	display: block;
 }
 
 .refresh-search svg {

@@ -118,8 +118,7 @@ class DriversView(TemplateView):
         return context
 
 
-class DashboardView(LoginRequiredMixin, TemplateView):
-    template_name = "dashboard.html"
+class BaseDashboardView(LoginRequiredMixin, TemplateView):
     login_url = "index"
 
     def dispatch(self, request, *args, **kwargs):
@@ -129,23 +128,54 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["investor_group"] = self.request.user.groups.filter(
-            name="Investor"
-        ).exists()
-        context["partner_group"] = self.request.user.groups.filter(
-            name="Partner"
-        ).exists()
-        context["manager_group"] = self.request.user.groups.filter(
-            name="Manager"
-        ).exists()
+        context["investor_group"] = self.request.user.groups.filter(name="Investor").exists()
+        context["partner_group"] = self.request.user.groups.filter(name="Partner").exists()
+        context["manager_group"] = self.request.user.groups.filter(name="Manager").exists()
+        return context
+
+
+class DashboardView(BaseDashboardView):
+    template_name = "dashboard/dashboard.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
         context["get_all_vehicle"] = Vehicle.objects.filter(
             Q(manager__user=self.request.user) | Q(partner__user=self.request.user)
         )
         context["get_all_driver"] = Driver.objects.filter(
             Q(manager__user=self.request.user) | Q(partner__user=self.request.user), worked=True
         )
-        context["car_piggy_bank"] = CarsInformationListView.get_queryset(self)
+        return context
 
+
+class DashboardPaymentView(BaseDashboardView):
+    template_name = "dashboard/dashboard-payments.html"
+
+
+class DashboardVehicleView(BaseDashboardView):
+    template_name = "dashboard/dashboard-vehicle.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["car_piggy_bank"] = CarsInformationListView.get_queryset(self)
+        return context
+
+
+class DashboardDriversView(BaseDashboardView):
+    template_name = "dashboard/dashboard-drivers.html"
+
+
+class DashboardCalendarView(BaseDashboardView):
+    template_name = "dashboard/dashboard-calendar.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["get_all_vehicle"] = Vehicle.objects.filter(
+            Q(manager__user=self.request.user) | Q(partner__user=self.request.user)
+        )
+        context["get_all_driver"] = Driver.objects.filter(
+            Q(manager__user=self.request.user) | Q(partner__user=self.request.user), worked=True
+        )
         return context
 
 
