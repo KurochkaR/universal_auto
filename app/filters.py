@@ -99,8 +99,14 @@ class DriverRelatedFilter(admin.SimpleListFilter):
             queryset = queryset.filter(driver__in=drivers)
         if user.is_partner():
             queryset = queryset.filter(partner=user)
-        driver_ids = queryset.values_list('driver_id', flat=True)
-        driver_labels = [f'{item.driver.name} {item.driver.second_name}' for item in queryset]
+        drivers_data = queryset.values('driver_id', 'driver__name', 'driver__second_name')
+
+        driver_id_to_name = {item['driver_id']: f"{item['driver__name']} {item['driver__second_name']}" for item in
+                             drivers_data}
+
+        driver_ids = list(driver_id_to_name.keys())
+        driver_labels = list(driver_id_to_name.values())
+
         return set(zip(driver_ids, driver_labels))
 
     def queryset(self, request, queryset):

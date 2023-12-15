@@ -582,8 +582,8 @@ class PartnerAdmin(admin.ModelAdmin):
     list_per_page = 25
 
     fieldsets = [
-        ('Інформація про інвестора', {'fields': ['email', 'password', 'first_name', 'last_name', 'chat_id',
-                                                 'gps_url', 'contacts']}),
+        ('Інформація про власника', {'fields': ['email', 'password', 'first_name', 'last_name', 'chat_id',
+                                                'gps_url', 'contacts']}),
     ]
 
     def save_model(self, request, obj, form, change):
@@ -608,6 +608,8 @@ class PartnerAdmin(admin.ModelAdmin):
             permissions = gc.add_permission(obj.email)
             gc.service.acl().insert(calendarId=cal_id, body=permissions).execute()
             user.save()
+        else:
+            super().save_model(request, obj, form, change)
 
 
 @admin.register(CustomUser)
@@ -638,6 +640,8 @@ class InvestorAdmin(admin.ModelAdmin):
             if request.user.is_partner():
                 user.investors_partner_id = request.user.pk
                 user.save()
+        else:
+            super().save_model(request, obj, form, change)
 
     def get_fieldsets(self, request, obj=None):
         if request.user.is_superuser:
@@ -692,6 +696,8 @@ class ManagerAdmin(admin.ModelAdmin):
             if request.user.is_partner():
                 user.managers_partner_id = request.user.pk
                 user.save()
+        else:
+            super().save_model(request, obj, form, change)
 
     def get_list_display(self, request):
         if request.user.is_superuser:
