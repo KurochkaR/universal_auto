@@ -596,7 +596,11 @@ $(document).ready(function () {
 	});
 
 	$("#updateDatabaseContainer").click(function () {
+		$(".confirmation-update-database").show();
+	});
 
+	$("#confirmation-btn-on").click(function () {
+		$(".confirmation-update-database").hide();
 		$("#loadingModal").css("display", "block")
 		$(".loading-content").css("display", "block");
 
@@ -643,6 +647,10 @@ $(document).ready(function () {
 				}, 5000);
 			}
 		});
+	});
+
+	$("#confirmation-btn-off").click(function () {
+		$(".confirmation-update-database").hide();
 	});
 
 	$("#logout-dashboard").click(function () {
@@ -1512,25 +1520,79 @@ $(document).ready(function () {
 	});
 });
 
-function validateInputTime(input) {
-  input.addEventListener('input', function () {
+function validateInputTime(input, field) {
+  $(input).on('input', function () {
     let valueWithoutColon = input.value.replace(/:/g, '');
     if (valueWithoutColon.length < 2) {
       return;
     }
+
     let hours = valueWithoutColon.slice(0, 2);
     input.value = hours + ':' + valueWithoutColon.slice(2, 5);
 
     input.value = input.value.slice(0, 5);
 
-    var isValid = /^([0-1]?[0-9]|2[0-4]):([0-5][0-9])(:[0-5][0-9])?$/.test(input.value);
+    var isValid = /^([0-1]?[0-9]|2[0-3]):([0-5][0-9])$/.test(input.value);
 
     if (isValid) {
       input.style.backgroundColor = '#bfa';
+      blockBtn(false);
+
+      if (field === 'endTime') {
+        if (input.value === '00:00') {
+          input.value = '23:59';
+        }
+        const startTimeInput = $('#startTime').val();
+
+        if (compareTimes(startTimeInput, input.value) > 0) {
+          input.style.backgroundColor = '#fba';
+          blockBtn(true);
+        }
+      }
     } else {
       input.style.backgroundColor = '#fba';
+      blockBtn(true);
     }
   });
+}
+
+function blockBtn(arg) {
+	if (arg === true) {
+		$('delete-all-btn').attr('disabled', true);
+		$('.delete-btn').attr('disabled', true);
+		$('.upd-btn').attr('disabled', true);
+		$('.upd-all-btn').attr('disabled', true);
+		$('.shift-btn').attr('disabled', true);
+	} else {
+		$('delete-all-btn').attr('disabled', false);
+		$('.delete-btn').attr('disabled', false);
+		$('.upd-btn').attr('disabled', false);
+		$('.upd-all-btn').attr('disabled', false);
+		$('.shift-btn').attr('disabled', false);
+	}
+}
+
+function compareTimes(time1, time2) {
+  const [hours1, minutes1] = time1.split(':').map(Number);
+  const [hours2, minutes2] = time2.split(':').map(Number);
+
+  if (hours1 !== hours2) {
+    return hours1 - hours2;
+  }
+
+  return minutes1 - minutes2;
+}
+
+
+function compareTimes(time1, time2) {
+  const [hours1, minutes1] = time1.split(':').map(Number);
+  const [hours2, minutes2] = time2.split(':').map(Number);
+
+  if (hours1 !== hours2) {
+    return hours1 - hours2;
+  }
+
+  return minutes1 - minutes2;
 }
 
 function showShiftMessage(success, showText, time, vehicle) {

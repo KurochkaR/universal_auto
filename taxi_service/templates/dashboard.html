@@ -454,11 +454,12 @@
         <div class="shift-time">
           <div class="shift-start-time">
             <label for="startTime">{% trans "Час початку" %}</label>
-            <input type="text" id="startTime" list="timeList" value="00:00" oninput="validateInputTime(this)">
+            <input type="text" id="startTime" list="timeList" value="00:00"
+                   oninput="validateInputTime(this, 'startTime')">
           </div>
           <div class="shift-end-time">
             <label for="endTime">{% trans "Час закінчення" %}</label>
-            <input type="text" id="endTime" list="timeList" value="23:59" oninput="validateInputTime(this)">
+            <input type="text" id="endTime" list="timeList" value="23:59" oninput="validateInputTime(this, 'endTime')">
           </div>
           <div class="recurrence">
             <label for="recurrence">{% trans "Циклічність" %}</label>
@@ -504,6 +505,18 @@
       <div class="container">
         <div class="message-box">
           <h2>"Зміни було успішно збережено."</h2>
+        </div>
+      </div>
+    </div>
+
+    <div class="confirmation-update-database">
+      <div class="container">
+        <div class="confirmation-box">
+          <h2>{% trans "Бажаєте оновити базу даних?" %}</h2>
+          <div class="btn-box">
+            <button class="confirmation-btn-on" id="confirmation-btn-on">{% trans "Так" %}</button>
+            <button class="confirmation-btn-off" id="confirmation-btn-off">{% trans "Ні" %}</button>
+          </div>
         </div>
       </div>
     </div>
