@@ -45,7 +45,7 @@ from app.uagps_sync import UaGpsSynchronizer
 from app.uber_sync import UberRequest
 from app.uklon_sync import UklonRequest
 from scripts.nbu_conversion import convert_to_currency
-from taxi_service.utils import login_in
+from taxi_service.utils import login_in, partner_logout
 
 logger = get_task_logger(__name__)
 
@@ -140,6 +140,14 @@ def get_session(self, partner_pk, aggregator='Uber', login=None, password=None):
         raise self.retry(exc=e, countdown=retry_delay)
 
 
+@app.task(bind=True, queue='bot_tasks')
+def remove_gps_partner(self, partner_pk):
+    if redis_instance().exists(f"{partner_pk}_remove_gps"):
+        bot.send_message(chat_id=515224934,
+                         text="Не вдалося отримати дані по Gps, будь ласка, перевірте оплату послуги")
+        redis_instance().delete(f"{partner_pk}_remove_gps")
+
+
 @app.task(bind=True, queue='beat_tasks', retry_backoff=30, max_retries=4)
 def get_orders_from_fleets(self, partner_pk, schema=None, day=None):
     try:
@@ -219,16 +227,20 @@ def check_card_cash_value(self, partner_pk):
             rent_payment = rent * driver.schema.rent_price
             if kasa > int(ParkSettings.get_value("START_CHECK_CASH", partner=partner_pk)):
                 card = orders.filter(payment=PaymentTypes.CARD,
-                                     driver=driver).aggregate(card_kasa=Sum('price'))['card_kasa']
+                                     driver=driver).aggregate(card_kasa=Coalesce(Sum('price'), Value(0)))['card_kasa']
                 ratio = (card - rent_payment) / kasa
                 if driver.schema.is_rent():
                     rate = float(ParkSettings.get_value("RENT_CASH_RATE", partner=partner_pk))
                 else:
                     rate = driver.schema.rate
-                enable = 'false' if ratio < rate else 'true'
+                enable = int(ratio > rate)
+                result = fleets_cash_trips.delay(partner_pk, driver.pk, enable)
+                if all(result):
+                    text = f"Водій {driver} може приймати готівкові замовлення"
+                else:
+                    text = f"Готівкові замовлення вимкнено у водія {driver}"
                 bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"),
-                                 text=f"Готівка {enable} у {driver}")
-                fleets_cash_trips.delay(partner_pk, driver.pk, enable)
+                                 text=text)
     except Exception as e:
         logger.error(e)
         retry_delay = retry_logic(e, self.request.retries + 1)
@@ -366,7 +378,7 @@ def generate_summary_report(self, partner_pk, schema, day=None):
 def get_car_efficiency(self, partner_pk):
     end = timezone.make_aware(datetime.combine(timezone.localtime().date(), time.min))
     start = end - timedelta(days=1)
-    for vehicle in Vehicle.objects.filter(partner=partner_pk):
+    for vehicle in Vehicle.objects.filter(partner=partner_pk, gps__isnull=False):
         efficiency = CarEfficiency.objects.filter(report_from=start,
                                                   partner=partner_pk,
                                                   vehicle=vehicle)
@@ -580,6 +592,8 @@ def get_today_rent(self, partner_pk):
     try:
         gps = UaGpsSynchronizer.objects.get(partner=partner_pk)
         gps.check_today_rent()
+    except ObjectDoesNotExist:
+        return
     except Exception as e:
         logger.error(e)
         retry_delay = retry_logic(e, self.request.retries + 1)
@@ -590,13 +604,14 @@ def get_today_rent(self, partner_pk):
 def fleets_cash_trips(self, partner_pk, pk, enable):
     try:
         driver = Driver.objects.get(pk=pk)
+        status = []
         fleets = Fleet.objects.filter(partner=partner_pk).exclude(name='Gps')
         for fleet in fleets:
             driver_id = driver.get_driver_external_id(fleet.name)
             if driver_id:
-                fleet.disable_cash(driver_id, enable)
-        message = f"Cash enabled for {driver}" if enable == 'true' else f"Cash disabled for {driver}"
-        logger.info(message)
+                result = fleet.disable_cash(driver_id, enable)
+                status.append(result)
+        return status
     except Exception as e:
         logger.error(e)
         retry_delay = retry_logic(e, self.request.retries + 1)
@@ -608,6 +623,8 @@ def withdraw_uklon(self, partner_pk):
     try:
         fleet = UklonRequest.objects.get(partner=partner_pk)
         fleet.withdraw_money()
+    except ObjectDoesNotExist:
+        return
     except Exception as exc:
         logger.error(exc)
         retry_delay = retry_logic(exc, self.request.retries + 1)

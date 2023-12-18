@@ -24,6 +24,11 @@ class UaGpsSynchronizer(Fleet):
             'params': json.dumps({"token": CredentialPartner.get_value('UAGPS_TOKEN', partner=self.partner)})
         }
         response = requests.get(f"{self.partner.gps_url}wialon/ajax.html", params=params)
+        if response.json().get("error"):
+            if not redis_instance().exists(f"{self.partner.id}_remove_gps"):
+                redis_instance().set(f"{self.partner.id}_remove_gps", response.json().get("error"), ex=86400)
+            return
+        redis_instance().delete(f"{self.partner.id}_remove_gps")
         return response.json()['eid']
 
     def get_gps_id(self):

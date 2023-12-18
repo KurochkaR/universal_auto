@@ -30,7 +30,8 @@ class UberRequest(Fleet, Synchronizer):
         if not login:
             login = CredentialPartner.get_value(key='UBER_NAME', partner=partner)
             password = CredentialPartner.get_value(key='UBER_PASSWORD', partner=partner)
-        SeleniumTools(partner).create_uber_session(login, password)
+        if login and password:
+            SeleniumTools(partner).create_uber_session(login, password)
 
     @staticmethod
     def remove_dup(text):
@@ -319,6 +320,7 @@ class UberRequest(Fleet, Synchronizer):
                     "earnerUuid": {"value": driver_id},
                     "effectiveAt": {"value": period}
         }
-        query = unblock_query if enable == 'true' else block_query
+        query = unblock_query if enable else block_query
         data = self.get_payload(query, variables)
         requests.post(str(self.base_url), headers=self.get_header(), json=data)
+        return True
