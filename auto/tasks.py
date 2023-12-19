@@ -1090,31 +1090,39 @@ def calculate_driver_reports(self, partner_pk, schema, day=None):
         create_driver_payments(start, end, driver, schema_obj)
 
 
-@app.task(bind=True, queue='beat_tasks')
-def calculate_vehicle_earnings(self, partner_pk, day=None):
-    if not day:
-        day = timezone.localtime() - timedelta(days=1)
-    drivers = Driver.objects.filter(partner=partner_pk, schema__isnull=False).select_related('partner')
-    for driver in drivers:
-        payment = DriverPayments.objects.filter(report_to=day, driver=driver, partner=partner_pk).first()
-        if payment:
-            spending_rate = 1 - round((payment.earning + payment.cash + payment.rent) / payment.kasa, 6)
-            print(spending_rate)
-            print(payment)
-            vehicles_income = get_vehicle_income(driver, payment.report_from, payment.report_to,
-                                                 spending_rate, payment.rent_price)
-            print(vehicles_income)
-            for vehicle, income in vehicles_income.items():
-                PartnerEarnings.objects.get_or_create(
-                    report_from=payment.report_from,
-                    report_to=payment.report_to,
-                    vehicle_id=vehicle.id,
-                    driver=driver,
-                    partner=driver.partner,
-                    defaults={
-                        "earning": income,
-                    }
-                )
+@app.task(bind=True, queue='bot_tasks')
+def calculate_vehicle_earnings(self, payment_pk):
+    payment = DriverPayments.objects.get(pk=payment_pk)
+    driver = payment.driver
+    spending_rate = 1 - round((payment.earning + payment.cash + payment.rent) / payment.kasa, 6)
+    vehicles_income = get_vehicle_income(driver, payment.report_from, payment.report_to,
+                                         spending_rate, payment.rent_price)
+    for vehicle, income in vehicles_income.items():
+        PartnerEarnings.objects.get_or_create(
+            report_from=payment.report_from,
+            report_to=payment.report_to,
+            vehicle_id=vehicle.id,
+            driver=driver,
+            partner=driver.partner,
+            defaults={
+                "earning": income,
+            }
+        )
+
+
+@app.task(bind=True, queue='bot_tasks')
+def calculate_vehicle_spending(self, payment_pk):
+    payment = InvestorPayments.objects.get(pk=payment_pk)
+    spending = -payment.earning
+    PartnerEarnings.objects.get_or_create(
+        report_from=payment.report_from,
+        report_to=payment.report_to,
+        vehicle_id=payment.vehicle.id,
+        partner=payment.partner,
+        defaults={
+            "earning": spending,
+        }
+    )
 
 
 @app.task(bind=True, queue='beat_tasks')

@@ -393,6 +393,9 @@ class Earnings(PolymorphicModel):
     status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='checking')
     partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
 
+    def is_completed(self):
+        return True if self.status == "completed" else False
+
 
 class DriverPayments(Earnings):
     driver = models.ForeignKey(Driver, on_delete=models.CASCADE, verbose_name="Водій")

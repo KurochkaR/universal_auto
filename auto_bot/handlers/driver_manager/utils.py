@@ -436,9 +436,6 @@ def get_vehicle_income(driver, start, end, spending_rate, rent_price):
             if reshuffles:
                 for reshuffle in reshuffles:
                     vehicle = reshuffle.swap_vehicle
-                    investor_payments = InvestorPayments.objects.filter(
-                        vehicle=vehicle, report_from=start).aggregate(
-                        total_payment=Coalesce(Sum("earning"), Decimal(0)))['total_payment'] or 0
                     bolt_income = FleetOrder.objects.filter(
                         fleet="Bolt",
                         accepted_time__date=start,
@@ -470,8 +467,8 @@ def get_vehicle_income(driver, start, end, spending_rate, rent_price):
                     total_bolt_income = Decimal(bolt_income['total_price'] * 0.75004 +
                                                 bolt_income['total_tips'] + compensations + bonuses)
                     print(total_bolt_income)
-                    total_income = (Decimal((total_bolt_income + uber_uklon_income)) * spending_rate -
-                                    investor_payments + total_rent * rent_price)
+                    total_income = (Decimal((total_bolt_income + uber_uklon_income)) * spending_rate
+                                    + total_rent * rent_price)
                     print(f"total_income={total_income} {start}")
                     if not vehicle_income.get(vehicle):
                         driver_bolt_income[vehicle] = total_bolt_income
@@ -481,10 +478,6 @@ def get_vehicle_income(driver, start, end, spending_rate, rent_price):
                         driver_bolt_income[vehicle] += total_bolt_income
                         vehicle_income[vehicle] += total_income
             elif vehicle:
-                investor_payments = InvestorPayments.objects.filter(
-                    vehicle=vehicle, report_from=start).aggregate(
-                    total_payment=Sum("earning"))['total_payment'] or 0
-                print(f"investor {investor_payments}")
                 bolt_income = FleetOrder.objects.filter(
                     fleet="Bolt",
                     accepted_time__date=start,
@@ -508,7 +501,7 @@ def get_vehicle_income(driver, start, end, spending_rate, rent_price):
                 total_bolt_income = Decimal(bolt_income['total_price'] * 0.75004 +
                                             bolt_income['total_tips'] + compensations + bonuses)
                 total_income = (Decimal((total_bolt_income + uber_uklon_income)) * spending_rate
-                                - investor_payments + total_rent * rent_price)
+                                + total_rent * rent_price)
                 print(f"total {total_income}")
                 if not vehicle_income.get(vehicle):
                     vehicle_income[vehicle] = total_income
