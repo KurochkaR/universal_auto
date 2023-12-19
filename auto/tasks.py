@@ -1096,7 +1096,7 @@ def calculate_vehicle_earnings(self, payment_pk):
     driver = payment.driver
     spending_rate = 1 - round((payment.earning + payment.cash + payment.rent) / payment.kasa, 6)
     vehicles_income = get_vehicle_income(driver, payment.report_from, payment.report_to,
-                                         spending_rate, payment.rent_price)
+                                         spending_rate, payment.rent)
     for vehicle, income in vehicles_income.items():
         PartnerEarnings.objects.get_or_create(
             report_from=payment.report_from,
