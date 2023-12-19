@@ -143,7 +143,7 @@ def get_session(self, partner_pk, aggregator='Uber', login=None, password=None):
 @app.task(bind=True, queue='bot_tasks')
 def remove_gps_partner(self, partner_pk):
     if redis_instance().exists(f"{partner_pk}_remove_gps"):
-        bot.send_message(chat_id=515224934,
+        bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"),
                          text="Не вдалося отримати дані по Gps, будь ласка, перевірте оплату послуги")
         redis_instance().delete(f"{partner_pk}_remove_gps")
 
@@ -213,7 +213,7 @@ def check_card_cash_value(self, partner_pk):
         start_week = timezone.make_aware(datetime.combine(today, time.min)) - timedelta(days=today.weekday())
         for driver in Driver.objects.filter(partner=partner_pk, schema__isnull=False):
             if driver.schema.is_weekly():
-                orders = FleetOrder.objects.filter(accepted_time__range=(start_week, today),
+                orders = FleetOrder.objects.filter(accepted_time__gt=start_week,
                                                    state=FleetOrder.COMPLETED,
                                                    driver=driver)
                 rent = calculate_rent(start_week, today, driver)
@@ -234,13 +234,7 @@ def check_card_cash_value(self, partner_pk):
                 else:
                     rate = driver.schema.rate
                 enable = int(ratio > rate)
-                result = fleets_cash_trips.delay(partner_pk, driver.pk, enable)
-                if all(result):
-                    text = f"Водій {driver} може приймати готівкові замовлення"
-                else:
-                    text = f"Готівкові замовлення вимкнено у водія {driver}"
-                bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"),
-                                 text=text)
+                fleets_cash_trips.delay(partner_pk, driver.pk, enable)
     except Exception as e:
         logger.error(e)
         retry_delay = retry_logic(e, self.request.retries + 1)
@@ -604,14 +598,22 @@ def get_today_rent(self, partner_pk):
 def fleets_cash_trips(self, partner_pk, pk, enable):
     try:
         driver = Driver.objects.get(pk=pk)
-        status = []
+        if not redis_instance().exists(f"{driver.id}_cash_enable"):
+            redis_instance().set(f"{driver.id}_cash_enable", enable)
         fleets = Fleet.objects.filter(partner=partner_pk).exclude(name='Gps')
         for fleet in fleets:
             driver_id = driver.get_driver_external_id(fleet.name)
             if driver_id:
-                result = fleet.disable_cash(driver_id, enable)
-                status.append(result)
-        return status
+                fleet.disable_cash(driver_id, enable)
+        if int(redis_instance().get(f"{driver.id}_cash_enable")) != enable:
+            if enable:
+                text = f"Водій {driver} може приймати готівкові замовлення"
+            else:
+                text = f"Готівкові замовлення вимкнено у водія {driver}"
+            bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"),
+                             text=text)
+        redis_instance().set(f"{driver.id}_cash_enable", enable)
+
     except Exception as e:
         logger.error(e)
         retry_delay = retry_logic(e, self.request.retries + 1)
@@ -775,8 +777,9 @@ def check_personal_orders(self):
 
 
 @app.task(bind=True, queue='beat_tasks')
-def add_money_to_vehicle(self, partner_pk, schema):
-    start, end = get_time_for_task(schema)
+def add_money_to_vehicle(self, partner_pk):
+    end = timezone.make_aware(datetime.combine(timezone.localtime().date(), time.min))
+    start = end - timedelta(days=1)
     car_efficiency_records = CarEfficiency.objects.filter(report_from=start, partner=partner_pk)
     sum_by_plate = car_efficiency_records.values('vehicle__licence_plate').annotate(total_sum=Sum('total_kasa'))
     for result in sum_by_plate:
@@ -1205,8 +1208,13 @@ def update_schedule(self):
                 )
         else:
             day = '1' if db_task.weekly else '*'
-            hours = f"*/{db_task.task_time.strftime('%H')}" if db_task.periodic else db_task.task_time.strftime('%H')
+            hours = db_task.task_time.strftime('%H')
             minutes = db_task.task_time.strftime('%M')
+            if db_task.periodic:
+                if hours == "00":
+                    minutes = f"*/{minutes}"
+                else:
+                    hours = f"*/{hours}"
             schedule = get_schedule(hours, minutes, day)
 
             for partner in partners:

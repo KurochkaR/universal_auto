@@ -323,4 +323,3 @@ class UberRequest(Fleet, Synchronizer):
         query = unblock_query if enable else block_query
         data = self.get_payload(query, variables)
         requests.post(str(self.base_url), headers=self.get_header(), json=data)
-        return True

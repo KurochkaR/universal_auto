@@ -96,6 +96,7 @@ class BoltRequest(Fleet, Synchronizer):
         return response.json()
 
     def save_report(self, start, end, driver, custom=None):
+        time.sleep(0.5)
         format_start = start.strftime("%Y-%m-%d")
         format_end = end.strftime("%Y-%m-%d")
         param = self.param()
@@ -267,19 +268,13 @@ class BoltRequest(Fleet, Synchronizer):
                 'with_client': with_client}
 
     def disable_cash(self, driver_id, enable):
-        params = {
-            "id": driver_id,
+        payload = {
+            "driver_id": driver_id,
+            "has_cash_payment": enable
         }
-        params.update(self.param())
-        driver_info = self.get_target_url(f'{self.base_url}getDriver', params)
-        if driver_info.get("data", {}).get("has_cash_payment") != enable:
-            payload = {
-                "driver_id": driver_id,
-                "has_cash_payment": enable
-            }
-            self.get_target_url(f'{self.base_url}driver/toggleCash', self.param(), payload, method="POST")
-            FleetsDriversVehiclesRate.objects.filter(driver_external_id=driver_id).update(pay_cash=enable)
-            return True
+        self.get_target_url(f'{self.base_url}driver/toggleCash', self.param(), payload, method="POST")
+        FleetsDriversVehiclesRate.objects.filter(driver_external_id=driver_id).update(pay_cash=enable)
+        return True
 
     def add_driver(self, job_application):
         headers = {

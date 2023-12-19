@@ -2,6 +2,7 @@ import json
 import secrets
 from datetime import datetime, time
 import requests
+import time as tm
 from _decimal import Decimal
 from django.utils import timezone
 from django.db import models
@@ -215,7 +216,7 @@ class UklonRequest(Fleet, Synchronizer):
         url = f"{Service.get_value('UKLON_5')}{self.uklon_id()}"
         url += Service.get_value('UKLON_6')
         data = self.response_data(url, params={'limit': '50', 'offset': '0'})
-        for driver in data.get('data', 0):
+        for driver in data.get('data', []):
             name, second_name = driver['first_name'].split()[0], driver['last_name'].split()[0]
             first_data = (second_name, name)
             second_data = (name, second_name)
@@ -329,16 +330,13 @@ class UklonRequest(Fleet, Synchronizer):
         headers = self.get_header()
         headers.update({"Content-Type": "application/json"})
         payload = {"type": "Cash"}
-        response = self.response_data(url=url, headers=headers)
-        if (enable and response.get("items")) or (not enable and not response.get("items")):
-            method = 'DELETE' if enable else 'PUT'
-            self.response_data(url=url,
-                               headers=headers,
-                               data=json.dumps(payload),
-                               method=method)
+        method = 'DELETE' if enable else 'PUT'
+        self.response_data(url=url,
+                           headers=headers,
+                           data=json.dumps(payload),
+                           method=method)
 
-            FleetsDriversVehiclesRate.objects.filter(driver_external_id=driver_id).update(pay_cash=enable)
-            return True
+        FleetsDriversVehiclesRate.objects.filter(driver_external_id=driver_id).update(pay_cash=enable)
 
     def withdraw_money(self):
         base_url = f"{Service.get_value('UKLON_1')}{self.uklon_id()}"
