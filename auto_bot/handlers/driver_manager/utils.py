@@ -487,20 +487,10 @@ def get_vehicle_income(driver, start, end, spending_rate, rent):
                 print(f"bolt={bolt_income} {start}")
                 for fleet in fleets:
                     uber_uklon_income += fleet.get_earnings_per_driver(driver, start_time, end_time)
-                rent_distance = VehicleRent.objects.filter(
-                    vehicle=vehicle,
-                    rent_distance__gt=driver.schema.limit_distance,
-                    report_to__date=start)
-                if rent_distance:
-                    overall_rent = ExpressionWrapper(F('rent_distance') - driver.schema.limit_distance,
-                                                     output_field=DecimalField())
-                    total_rent = rent_distance.aggregate(distance=Sum(overall_rent))['distance']
-                else:
-                    total_rent = 0
                 total_bolt_income = Decimal(bolt_income['total_price'] * 0.75004 +
                                             bolt_income['total_tips'] + compensations + bonuses)
                 total_income = (Decimal((total_bolt_income + uber_uklon_income)) * spending_rate
-                                + total_rent)
+                                + rent)
                 print(f"total {total_income}")
                 if not vehicle_income.get(vehicle):
                     vehicle_income[vehicle] = total_income
