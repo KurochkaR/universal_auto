@@ -218,8 +218,9 @@ def check_card_cash_value(self, partner_pk):
                                                    driver=driver)
                 rent = calculate_rent(start_week, today, driver)
             else:
+                start = get_time_for_task(driver.schema_id)[2]
                 yesterday = today - timedelta(days=1)
-                orders = FleetOrder.objects.filter(accepted_time__date=today.date(),
+                orders = FleetOrder.objects.filter(accepted_time__gt=start,
                                                    state=FleetOrder.COMPLETED,
                                                    driver=driver)
                 rent = calculate_rent(yesterday, today, driver)
@@ -1213,6 +1214,7 @@ def update_schedule(self):
             if db_task.periodic:
                 if hours == "00":
                     minutes = f"*/{minutes}"
+                    hours = "*"
                 else:
                     hours = f"*/{hours}"
             schedule = get_schedule(hours, minutes, day)
