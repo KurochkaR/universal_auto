@@ -24,7 +24,7 @@ class SummaryReportListView(CombinedPermissionsMixin,
 
     def get_queryset(self):
         start, end, format_start, format_end = get_start_end(self.kwargs['period'])
-        queryset = ManagerFilterMixin.get_queryset(self, SummaryReport)
+        queryset = ManagerFilterMixin.get_queryset(SummaryReport, self.request.user)
         filtered_qs = queryset.filter(report_from__range=(start, end))
         rent_amount_subquery = RentInformation.objects.filter(
             report_from__range=(start, end)
@@ -54,7 +54,7 @@ class InvestorCarsEarningsView(CombinedPermissionsMixin,
     def get_queryset(self):
         start, end, format_start, format_end = get_start_end(self.kwargs['period'])
         queryset = CarEfficiency.objects.none()
-        investor_queryset = InvestorFilterMixin.get_queryset(self, CarEfficiency)
+        investor_queryset = InvestorFilterMixin.get_queryset(CarEfficiency, self.request.user)
         if investor_queryset:
             queryset = investor_queryset
         filtered_qs = queryset.filter(report_from__range=(start, end))
@@ -75,7 +75,7 @@ class CarEfficiencyListView(CombinedPermissionsMixin,
 
     def get_queryset(self):
         start, end = get_start_end(self.kwargs['period'])[:2]
-        queryset = ManagerFilterMixin.get_queryset(self, CarEfficiency)
+        queryset = ManagerFilterMixin.get_queryset(CarEfficiency, self.request.user)
         filtered_qs = queryset.filter(
             report_from__range=(start, end))
         return filtered_qs
@@ -119,7 +119,7 @@ class DriverEfficiencyListView(CombinedPermissionsMixin,
 
     def get_queryset(self):
         start, end, format_start, format_end = get_start_end(self.kwargs['period'])
-        queryset = ManagerFilterMixin.get_queryset(self, DriverEfficiency)
+        queryset = ManagerFilterMixin.get_queryset(DriverEfficiency, self.request.user)
         filtered_qs = queryset.filter(report_from__range=(start, end)).exclude(total_orders=0)
         qs = filtered_qs.values('driver_id').annotate(
             total_kasa=Sum('total_kasa'),
@@ -149,7 +149,7 @@ class CarsInformationListView(CombinedPermissionsMixin,
     serializer_class = CarDetailSerializer
 
     def get_queryset(self):
-        investor_queryset = InvestorFilterMixin.get_queryset(self, Vehicle)
+        investor_queryset = InvestorFilterMixin.get_queryset(Vehicle, self.request.user)
         if investor_queryset:
             queryset = investor_queryset
             queryset = queryset.values('licence_plate').annotate(
@@ -168,7 +168,7 @@ class CarsInformationListView(CombinedPermissionsMixin,
                 )
             )
         else:
-            queryset = ManagerFilterMixin.get_queryset(self, Vehicle)
+            queryset = ManagerFilterMixin.get_queryset(Vehicle, self.request.user)
             queryset = queryset.values('licence_plate').annotate(
                 price=F('purchase_price'),
                 kasa=Coalesce(Sum('carefficiency__total_kasa'), Decimal(0)),
@@ -191,7 +191,7 @@ class DriverReshuffleListView(CombinedPermissionsMixin, generics.ListAPIView):
     serializer_class = ReshuffleSerializer
 
     def get_queryset(self):
-        vehicles = ManagerFilterMixin.get_queryset(self, Vehicle)
+        vehicles = ManagerFilterMixin.get_queryset(Vehicle, self.request.user)
         qs = DriverReshuffle.objects.filter(
             swap_vehicle__in=vehicles,
             swap_time__range=(self.kwargs['start_date'], self.kwargs['end_date'])

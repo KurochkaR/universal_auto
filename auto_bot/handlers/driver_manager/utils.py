@@ -8,7 +8,7 @@ from django.utils import timezone
 
 from app.models import CarEfficiency, Driver, SummaryReport, Manager, \
     Vehicle, RentInformation, DriverEfficiency, Partner, Role, DriverSchemaRate, SalaryCalculation, \
-    DriverPayments, Schema
+    DriverPayments, Schema, CustomUser
 
 
 def get_time_for_task(schema, day=None):
@@ -51,14 +51,12 @@ def validate_sum(sum_str):
 
 def get_drivers_vehicles_list(chat_id, cls):
     objects = []
-    user = Manager.get_by_chat_id(chat_id)
-    if not user:
-        user = Partner.get_by_chat_id(chat_id)
-    if user:
-        if user.role == Role.DRIVER_MANAGER:
-            objects = cls.objects.filter(manager=user.pk)
-        elif user.role == Role.OWNER:
-            objects = cls.objects.filter(partner=user.pk)
+    user = CustomUser.get_by_chat_id(chat_id)
+
+    if user.is_manager():
+        objects = cls.objects.filter(manager=user.pk)
+    elif user.is_partner():
+        objects = cls.objects.filter(partner=user.pk)
     return objects, user
 
 
@@ -134,8 +132,8 @@ def get_daily_report(manager_id, schema_obj=None):
 
 def generate_message_report(chat_id, schema_id=None, daily=None):
     drivers, user = get_drivers_vehicles_list(chat_id, Driver)
-    schema = Schema.objects.get(pk=schema_id)
     if schema_id:
+        schema = Schema.objects.get(pk=schema_id)
         if schema.salary_calculation == SalaryCalculation.WEEK:
             if not timezone.localtime().weekday():
                 start = timezone.localtime() - timedelta(weeks=1)

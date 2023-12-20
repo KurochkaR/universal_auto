@@ -2,6 +2,7 @@ import json
 import secrets
 from datetime import datetime, time
 import requests
+import time as tm
 from _decimal import Decimal
 from django.utils import timezone
 from django.db import models
@@ -37,7 +38,7 @@ class UklonRequest(Fleet, Synchronizer):
         payload = {
             'client_id': client_id,
             'contact': login,
-            'device_id': "c16d1c46-61d9-443c-af02-f491bdcda103",
+            'device_id': "38c13dc5-2ef3-4637-99f5-8de26b2e8216",
             'grant_type': "password_mfa",
             'password': password,
         }
@@ -84,7 +85,6 @@ class UklonRequest(Fleet, Synchronizer):
                        headers: dict = None,
                        params: dict = None,
                        data: dict = None,
-                       pjson: dict = None,
                        method: str = None):
         http_methods = {
             "POST": requests.post,
@@ -92,14 +92,13 @@ class UklonRequest(Fleet, Synchronizer):
             "DELETE": requests.delete,
         }
         http_method_function = http_methods.get(method, requests.get)
-        response = http_method_function(url=url, headers=headers, data=data, json=pjson, params=params)
+        response = http_method_function(url=url, headers=headers, data=data, params=params)
         return response
 
     def response_data(self, url: str = None,
                       params: dict = None,
                       data=None,
                       headers: dict = None,
-                      pjson: dict = None,
                       method: str = None) -> dict or None:
 
         if not redis_instance().exists(f"{self.partner.id}_{self.name}_token"):
@@ -107,12 +106,11 @@ class UklonRequest(Fleet, Synchronizer):
         response = self.request_method(url=url,
                                        params=params,
                                        headers=self.get_header() if headers is None else headers,
-                                       pjson=pjson,
                                        data=data,
                                        method=method)
         if response.status_code in (401, 403):
             self.get_access_token()
-            return self.response_data(url, params, data, headers, pjson, method)
+            return self.response_data(url, params, data, headers, method)
         try:
             return response.json()
         except JSONDecodeError:
@@ -218,7 +216,7 @@ class UklonRequest(Fleet, Synchronizer):
         url = f"{Service.get_value('UKLON_5')}{self.uklon_id()}"
         url += Service.get_value('UKLON_6')
         data = self.response_data(url, params={'limit': '50', 'offset': '0'})
-        for driver in data['data']:
+        for driver in data.get('data', []):
             name, second_name = driver['first_name'].split()[0], driver['last_name'].split()[0]
             first_data = (second_name, name)
             second_data = (name, second_name)
@@ -332,12 +330,13 @@ class UklonRequest(Fleet, Synchronizer):
         headers = self.get_header()
         headers.update({"Content-Type": "application/json"})
         payload = {"type": "Cash"}
-        method, pay_cash = ('DELETE', True) if enable == 'true' else ('PUT', False)
+        method = 'DELETE' if enable else 'PUT'
         self.response_data(url=url,
                            headers=headers,
                            data=json.dumps(payload),
                            method=method)
-        FleetsDriversVehiclesRate.objects.filter(driver_external_id=driver_id).update(pay_cash=pay_cash)
+
+        FleetsDriversVehiclesRate.objects.filter(driver_external_id=driver_id).update(pay_cash=enable)
 
     def withdraw_money(self):
         base_url = f"{Service.get_value('UKLON_1')}{self.uklon_id()}"

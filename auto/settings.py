@@ -175,6 +175,8 @@ EMAIL_USE_TLS = True
 EMAIL_PORT = 587
 EMAIL_HOST_USER = os.getenv('EMAIL_USER')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_PASSWORD')
+
+AUTH_USER_MODEL = "app.CustomUser"
 #
 # LOGGING = {
 #     'version': 1,

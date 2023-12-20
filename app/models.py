@@ -8,7 +8,7 @@ from django.utils import timezone
 from django.db import models, ProgrammingError
 from django.utils.safestring import mark_safe
 from polymorphic.models import PolymorphicModel
-from django.contrib.auth.models import User as AuUser
+from django.contrib.auth.models import AbstractUser
 from cryptography.fernet import Fernet
 
 
@@ -18,8 +18,32 @@ class Role(models.TextChoices):
     DRIVER_MANAGER = 'DRIVER_MANAGER', 'Менеджер водіїв'
     SERVICE_STATION_MANAGER = 'SERVICE_STATION_MANAGER', 'Сервісний менеджер'
     SUPPORT_MANAGER = 'SUPPORT_MANAGER', 'Менеджер підтримки'
-    OWNER = 'OWNER', 'Власник'
+    PARTNER = 'PARTNER', 'Власник'
     INVESTOR = 'INVESTOR', 'Інвестор'
+
+
+class CustomUser(AbstractUser):
+    chat_id = models.CharField(blank=True, max_length=10, verbose_name='Ідентифікатор чата')
+    role = models.CharField(max_length=25, default=Role.CLIENT, choices=Role.choices)
+
+    def is_partner(self):
+        return self.role == Role.PARTNER
+
+    def is_manager(self):
+        return self.role == Role.DRIVER_MANAGER
+
+    def is_investor(self):
+        return self.role == Role.INVESTOR
+
+    @staticmethod
+    def get_by_chat_id(chat_id):
+        try:
+            return CustomUser.objects.get(chat_id=chat_id)
+        except ObjectDoesNotExist:
+            return None
+
+    def __str__(self):
+        return f"{self.first_name} {self.last_name}"
 
 
 class SalaryCalculation(models.TextChoices):
@@ -68,27 +92,10 @@ class TaskScheduler(models.Model):
         verbose_name_plural = 'Розклад задач'
 
 
-class Partner(models.Model):
-    role = models.CharField(max_length=25, default=Role.OWNER, choices=Role.choices)
-    user = models.OneToOneField(AuUser, on_delete=models.SET_NULL, null=True)
-    chat_id = models.CharField(blank=True, null=True, max_length=10, verbose_name='Ідентифікатор чата')
+class Partner(CustomUser):
     gps_url = models.URLField(null=True, verbose_name='Сторінка логіну Gps')
     calendar = models.CharField(max_length=255, verbose_name='Календар змін водіїв')
     contacts = models.BooleanField(default=False, verbose_name='Доступ до контактів')
-
-    @classmethod
-    def get_partner(cls, pk):
-        return cls.objects.get(id=pk)
-
-    @staticmethod
-    def get_by_chat_id(chat_id):
-        try:
-            return Partner.objects.get(chat_id=chat_id)
-        except ObjectDoesNotExist:
-            return None
-
-    def __str__(self):
-        return str(self.user.username) if self.user else ''
 
     class Meta:
         verbose_name = 'Власника'
@@ -222,57 +229,22 @@ class User(models.Model):
                 return valid_phone_number
 
 
-class Manager(models.Model):
-    login = models.CharField(max_length=255, verbose_name='Логін')
-    password = models.CharField(max_length=255, verbose_name='Пароль')
-    first_name = models.CharField(max_length=255, verbose_name="Ім'я")
-    last_name = models.CharField(max_length=255, verbose_name='Прізвище')
-    email = models.EmailField(max_length=254, verbose_name='Електронна пошта')
+class Manager(CustomUser):
     phone_number = models.CharField(max_length=13, blank=True, null=True, verbose_name='Номер телефона')
-    chat_id = models.CharField(max_length=10, blank=True, null=True, verbose_name='Ідентифікатор чата')
-    partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
-    user = models.OneToOneField(AuUser, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Користувач')
-    role = models.CharField(max_length=25, default=Role.DRIVER_MANAGER, choices=Role.choices)
-    calendar = models.CharField(max_length=255, verbose_name='Календар змін водіїв')
+    managers_partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
 
     class Meta:
         verbose_name = 'Менеджера'
         verbose_name_plural = 'Менеджери'
 
-    @classmethod
-    def get_by_chat_id(cls, chat_id):
-        """
-        Returns user by chat_id
-        :param chat_id: chat_id by which we need to find the user
-        :type chat_id: str
-        :return: user object or None if a user with such ID does not exist
-        """
-        try:
-            user = cls.objects.get(chat_id=chat_id)
-            return user
-        except ObjectDoesNotExist:
-            return None
 
-    def __str__(self):
-        return f"{self.first_name} {self.last_name}"
-
-
-class Investor(models.Model):
-    password = models.CharField(max_length=255, verbose_name='Пароль')
-    first_name = models.CharField(max_length=255, verbose_name="Ім'я")
-    last_name = models.CharField(max_length=255, verbose_name='Прізвище')
-    email = models.EmailField(max_length=254, verbose_name='Електронна пошта')
+class Investor(CustomUser):
     phone_number = models.CharField(max_length=13, blank=True, null=True, verbose_name='Номер телефона')
-    role = models.CharField(max_length=25, default=Role.INVESTOR, choices=Role.choices)
-    partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
-    user = models.OneToOneField(AuUser, on_delete=models.SET_NULL, null=True)
+    investors_partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
 
     class Meta:
         verbose_name = 'Інвестора'
         verbose_name_plural = 'Інвестори'
-
-    def __str__(self) -> str:
-        return f"{self.first_name} {self.last_name}"
 
 
 class GPSNumber(models.Model):

@@ -6,15 +6,13 @@ from datetime import timedelta, date, datetime, time
 from django.db.models import Q
 from django.utils import timezone
 from django.core.mail import send_mail
-from django.contrib.auth.models import User
-from django.core.serializers import serialize
 from django.core.serializers.json import DjangoJSONEncoder
 from django.contrib.auth import authenticate, login, logout
 from django.core.exceptions import ObjectDoesNotExist
 
 from app.bolt_sync import BoltRequest
-from app.models import Driver, UseOfCars, VehicleGPS, Order, Partner, ParkSettings, CredentialPartner, Fleet, \
-    NewUklonService, UberService, UaGpsService, BoltService, Vehicle, DriverReshuffle
+from app.models import Driver, UseOfCars, VehicleGPS, Order, ParkSettings, CredentialPartner, Fleet, \
+    Vehicle, DriverReshuffle, CustomUser
 from app.uagps_sync import UaGpsSynchronizer
 from app.uber_sync import UberRequest
 from app.uklon_sync import UklonRequest
@@ -172,8 +170,7 @@ def update_park_set(partner, key, value, description=None, check_value=True, par
                 setting.value = value
                 setting.save()
         except ObjectDoesNotExist:
-            partner = Partner.get_partner(partner)
-            ParkSettings.objects.create(key=key, value=value, description=description, partner=partner)
+            ParkSettings.objects.create(key=key, value=value, description=description, partner_id=partner)
     else:
         try:
             setting = CredentialPartner.objects.get(key=key, partner=partner)
@@ -181,17 +178,15 @@ def update_park_set(partner, key, value, description=None, check_value=True, par
                 setting.value = CredentialPartner.encrypt_credential(value)
                 setting.save()
         except ObjectDoesNotExist:
-            partner = Partner.get_partner(partner)
             value = CredentialPartner.encrypt_credential(value)
-            CredentialPartner.objects.create(key=key, value=value, partner=partner)
+            CredentialPartner.objects.create(key=key, value=value, partner_id=partner)
 
 
 def login_in(aggregator=None, partner_id=None, login_name=None, password=None, token=None):
     if aggregator == 'Bolt':
         update_park_set(partner_id, 'BOLT_PASSWORD', password, description='Пароль користувача Bolt', park=False)
         update_park_set(partner_id, 'BOLT_NAME', login_name, description='Ім\'я користувача Bolt', park=False)
-        BoltRequest.objects.create(name=aggregator,
-                                   partner=Partner.get_partner(partner_id))
+        BoltRequest.objects.create(name=aggregator, partner_id=partner_id)
     elif aggregator == 'Uklon':
         update_park_set(partner_id, 'UKLON_PASSWORD', password, description='Пароль користувача Uklon', park=False)
         update_park_set(partner_id, 'UKLON_NAME', login_name, description='Ім\'я користувача Uklon', park=False)
@@ -201,17 +196,14 @@ def login_in(aggregator=None, partner_id=None, login_name=None, password=None, t
         update_park_set(
             partner_id, 'CLIENT_ID', random_hex,
             description='Ідентифікатор клієнта Uklon', check_value=False, park=False)
-        UklonRequest.objects.create(name=aggregator,
-                                    partner=Partner.get_partner(partner_id))
+        UklonRequest.objects.create(name=aggregator, partner_id=partner_id)
     elif aggregator == 'Uber':
         update_park_set(partner_id, 'UBER_PASSWORD', password, description='Пароль користувача Uber', park=False)
         update_park_set(partner_id, 'UBER_NAME', login_name, description='Ім\'я користувача Uber', park=False)
-        UberRequest.objects.create(name=aggregator,
-                                   partner=Partner.get_partner(partner_id))
+        UberRequest.objects.create(name=aggregator, partner_id=partner_id)
     elif aggregator == 'Gps':
         update_park_set(partner_id, 'UAGPS_TOKEN', token, description='Токен для GPS сервісу', park=False)
-        UaGpsSynchronizer.objects.create(name=aggregator,
-                                         partner=Partner.get_partner(partner_id))
+        UaGpsSynchronizer.objects.create(name=aggregator, partner_id=partner_id)
     return True
 
 
@@ -243,9 +235,8 @@ def login_in_investor(request, login_name, password):
             if user.is_superuser:
                 return {'success': True}
             user_name = user.username
-            role = user.groups.first().name
 
-            return {'success': True, 'user_name': user_name, 'role': role}
+            return {'success': True, 'user_name': user_name}
         else:
             return {'success': False, 'message': 'User is not active'}
     else:
@@ -253,7 +244,7 @@ def login_in_investor(request, login_name, password):
 
 
 def change_password_investor(request, password, new_password, user_email):
-    user = User.objects.filter(email=user_email).first()
+    user = CustomUser.objects.filter(email=user_email).first()
     if user is not None:
         user = authenticate(username=user.username, password=password)
         if user.is_active:
@@ -288,9 +279,8 @@ def send_reset_code(email, user_login):
 
 
 def check_aggregators(user_pk):
-    partner = Partner.objects.get(user_id=user_pk)
-    aggregators = Fleet.objects.filter(partner=partner).values_list('name', flat=True)
-    fleets = Fleet.objects.all().values_list('name', flat=True)
+    aggregators = Fleet.objects.filter(partner=user_pk).values_list('name', flat=True)
+    fleets = Fleet.objects.all().values_list('name', flat=True).distinct()
     return list(aggregators), list(fleets)
 
 
@@ -327,15 +317,15 @@ def is_conflict(driver, vehicle, start_time, end_time, reshuffle_id_to_exclude=N
         return True, None
 
 
-def add_shift(licence_plate, date, start_time, end_time, driver_id, recurrence, partner):
+def add_shift(licence_plate, shift_date, start_time, end_time, driver_id, recurrence, partner):
     vehicle = Vehicle.objects.filter(licence_plate=licence_plate).first()
     driver = Driver.objects.get(id=driver_id)
 
-    start_datetime = datetime.strptime(f"{date} {start_time}", "%Y-%m-%d %H:%M")
-    end_datetime = datetime.strptime(f"{date} {end_time}", "%Y-%m-%d %H:%M")
+    start_datetime = datetime.strptime(f"{shift_date} {start_time}", "%Y-%m-%d %H:%M")
+    end_datetime = datetime.strptime(f"{shift_date} {end_time}", "%Y-%m-%d %H:%M")
 
     today_reshuffle = DriverReshuffle.objects.filter(
-        swap_time__date=date,
+        swap_time__date=shift_date,
         swap_vehicle=vehicle
     ).count()
 
@@ -368,7 +358,7 @@ def add_shift(licence_plate, date, start_time, end_time, driver_id, recurrence, 
             driver_start=driver,
             swap_time=current_swap_time,
             end_time=current_end_time,
-            partner=partner
+            partner_id=partner.pk
         )
         reshuffle.save()
     return True, "Зміна успішно додана"
@@ -378,8 +368,8 @@ def delete_shift(action, reshuffle_id):
     reshuffle = DriverReshuffle.objects.get(id=reshuffle_id)
     if action == 'delete_shift':
         reshuffle.delete()
-        return True, "Зміна успішно видалена"
-    elif action == 'delete_all_shift':
+        text = "Зміна успішно видалена"
+    else:
         reshuffle_del = DriverReshuffle.objects.filter(
             swap_time__gte=timezone.localtime(reshuffle.swap_time),
             swap_time__time=timezone.localtime(reshuffle.swap_time).time(),
@@ -389,12 +379,13 @@ def delete_shift(action, reshuffle_id):
         )
         reshuffle_count = reshuffle_del.count()
         reshuffle_del.delete()
-    return True, f"Видалено {reshuffle_count} змін"
+        text = f"Видалено {reshuffle_count} змін"
+    return True, text
 
 
-def upd_shift(action, licence_id, start_time, end_time, date, driver_id, reshuffle_id):
-    start_datetime = datetime.strptime(date + ' ' + start_time, '%Y-%m-%d %H:%M')
-    end_datetime = datetime.strptime(date + ' ' + end_time, '%Y-%m-%d %H:%M')
+def upd_shift(action, licence_id, start_time, end_time, shift_date, driver_id, reshuffle_id):
+    start_datetime = datetime.strptime(shift_date + ' ' + start_time, '%Y-%m-%d %H:%M')
+    end_datetime = datetime.strptime(shift_date + ' ' + end_time, '%Y-%m-%d %H:%M')
 
     if action == 'update_shift':
         status, conflicting_vehicle = is_conflict(driver_id, licence_id, start_datetime, end_datetime, reshuffle_id)
@@ -407,7 +398,7 @@ def upd_shift(action, licence_id, start_time, end_time, date, driver_id, reshuff
             driver_start=driver_id,
             swap_vehicle=licence_id
         )
-        return True, "Зміна успішно оновленна"
+        return True, "Зміна успішно оновлена"
 
     elif action == 'update_all_shift':
         selected_reshuffle = DriverReshuffle.objects.get(id=reshuffle_id)
@@ -430,9 +421,9 @@ def upd_shift(action, licence_id, start_time, end_time, date, driver_id, reshuff
 
             reshuffle.swap_time = start
             reshuffle.end_time = end
-            reshuffle.driver_start = Driver.objects.get(id=driver_id)
-            reshuffle.swap_vehicle = Vehicle.objects.get(id=licence_id)
+            reshuffle.driver_start_id = driver_id
+            reshuffle.swap_vehicle_id = licence_id
             reshuffle.save()
             successful_updates += 1
-        return True, f"Оновленно {successful_updates} змін"
+        return True, f"Оновлено {successful_updates} змін"
     return True

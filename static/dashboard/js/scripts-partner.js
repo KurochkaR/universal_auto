@@ -843,8 +843,9 @@ $(document).ready(function () {
 	const vehicle_lc = firstVehicle.text();
 
 	fetchSummaryReportData('yesterday');
-	fetchCarEfficiencyData('yesterday', vehicleId, vehicle_lc);
-
+	if (vehicleId !== undefined) {
+	    fetchCarEfficiencyData('yesterday', vehicleId, vehicle_lc);
+       }
 	initializeCustomSelect(customSelect, selectedOption, optionsList, iconDown, datePicker, vehicleId, vehicle_lc);
 
 

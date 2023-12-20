@@ -40,6 +40,11 @@ class BoltRequest(Fleet, Synchronizer):
             refresh_token = response.json()["data"]["refresh_token"]
             redis_instance().set(f"{partner_id}_{self.name}_refresh", refresh_token)
 
+    def get_header(self):
+        token = redis_instance().get(f"{self.partner.id}_{self.name}_access")
+        headers = {'Authorization': f'Bearer {token}'}
+        return headers
+
     @staticmethod
     def param():
         return {"language": "uk-ua", "version": "FO.3.03"}
@@ -57,7 +62,7 @@ class BoltRequest(Fleet, Synchronizer):
                                      params=self.param(),
                                      json=access_payload)
             if not response.json()['code']:
-                return response.json()["data"]["access_token"]
+                redis_instance().set(f"{self.partner.id}_{self.name}_access", response.json()["data"]["access_token"])
         elif token:
             access_payload = {
                 "refresh_token": token
@@ -79,16 +84,15 @@ class BoltRequest(Fleet, Synchronizer):
             self.create_session()
             self.get_access_token()
 
-    def get_target_url(self, url, params):
-        new_token = self.get_access_token()
-        headers = {'Authorization': f'Bearer {new_token}'}
-        response = requests.get(url, params=params, headers=headers)
-        return response.json()
-
-    def post_target_url(self, url, params, json):
-        new_token = self.get_access_token()
-        headers = {'Authorization': f'Bearer {new_token}'}
-        response = requests.post(url, json=json, params=params, headers=headers)
+    def get_target_url(self, url, params, json=None, method=None):
+        http_methods = {
+            "POST": requests.post
+        }
+        http_method_function = http_methods.get(method, requests.get)
+        response = http_method_function(url, headers=self.get_header(), params=params, json=json)
+        if response.json().get("code") in (999, 503):
+            self.get_access_token()
+            return self.get_target_url(url, params, json=json, method=method)
         return response.json()
 
     def save_report(self, start, end, driver, custom=None):
@@ -186,7 +190,6 @@ class BoltRequest(Fleet, Synchronizer):
                     'vin_code': '',
                     'worked': True,
                 })
-            time.sleep(0.5)
         return driver_list
 
     def get_fleet_orders(self, start, end, pk, driver_id):
@@ -214,8 +217,7 @@ class BoltRequest(Fleet, Synchronizer):
                                             "driver_rejected"
                                             ]
                 }
-        report = self.post_target_url(f'{self.base_url}getOrdersHistory', self.param(), payload)
-        time.sleep(0.5)
+        report = self.get_target_url(f'{self.base_url}getOrdersHistory', self.param(), payload, method="POST")
         if report.get('data'):
             for order in report['data']['rows']:
                 try:
@@ -270,9 +272,9 @@ class BoltRequest(Fleet, Synchronizer):
             "driver_id": driver_id,
             "has_cash_payment": enable
         }
-        self.post_target_url(f'{self.base_url}driver/toggleCash', self.param(), payload)
-        pay_cash = True if enable == 'true' else False
-        FleetsDriversVehiclesRate.objects.filter(driver_external_id=driver_id).update(pay_cash=pay_cash)
+        self.get_target_url(f'{self.base_url}driver/toggleCash', self.param(), payload, method="POST")
+        FleetsDriversVehiclesRate.objects.filter(driver_external_id=driver_id).update(pay_cash=enable)
+        return True
 
     def add_driver(self, job_application):
         headers = {
@@ -283,7 +285,7 @@ class BoltRequest(Fleet, Synchronizer):
                         "phone": f"{job_application.phone_number}",
                         "referral_code": ""
                 }
-        response = self.post_target_url(f'{self.base_url}addDriverRegistration', self.param(), payload)
+        response = self.get_target_url(f'{self.base_url}addDriverRegistration', self.param(), payload, method="POST")
         payload_form = {
             'hash': response['data']['hash'],
             'last_step': 'step_2',
