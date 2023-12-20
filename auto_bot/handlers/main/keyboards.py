@@ -120,7 +120,7 @@ def get_start_kb(user):
         "DRIVER": inline_start_driver_kb(),
         "CLIENT": inline_user_kb(),
         "DRIVER_MANAGER": inline_manager_kb(),
-        "OWNER": inline_owner_kb()
+        "PARTNER": inline_owner_kb()
     }
     reply_markup = role_reply_markup.get(user.role, inline_user_kb())
     return reply_markup

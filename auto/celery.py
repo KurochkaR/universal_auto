@@ -17,7 +17,6 @@ app.conf.task_queues = {
         'routing_key': 'bot_tasks',
     },
 }
-
 app.conf.update(
     task_serializer='json',
     result_serializer='json',
@@ -25,6 +24,7 @@ app.conf.update(
     worker_heartbeat_interval=25,
     task_prefetch_multiplier=1,
     redis_max_connections=50,
+    broker_connection_retry_on_startup=True,
     broker_transport_options={
                                 'visibility_timeout': 1800,
                                 'health_check_interval': 10,

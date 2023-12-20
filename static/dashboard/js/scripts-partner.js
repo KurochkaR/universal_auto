@@ -298,11 +298,25 @@ function fetchSummaryReportData(period, start, end) {
 				$('#bar-chart').show();
 				const driversData = data[0]['drivers'];
 				const categories = driversData.map(driver => driver.full_name);
+				const formattedNamesList = [];
+				categories.forEach(name => {
+					if (name.includes('-')) {
+							const formattedName = name.replace('-', '-\n');
+							formattedNamesList.push(formattedName);
+					} else if (name.length > 15) {
+							const halfLength = Math.floor(name.length / 2);
+							const formattedName = name.substring(0, halfLength) + '-\n' + name.substring(halfLength);
+							formattedNamesList.push(formattedName);
+					} else {
+							formattedNamesList.push(name);
+					}
+			});
+				console.log(formattedNamesList);
 				const total_card = driversData.map(driver => driver.total_card);
 				const total_cash = driversData.map(driver => driver.total_cash);
 				barChartOptions.series[1].data = total_card;
 				barChartOptions.series[0].data = total_cash;
-				barChartOptions.xAxis.data = categories;
+				barChartOptions.xAxis.data = formattedNamesList;
 				barChart.setOption(barChartOptions);
 			} else {
 				$(".noDataMessage1").show();
@@ -367,6 +381,7 @@ function fetchCarEfficiencyData(period, vehicleId, vehicle_lc, start, end) {
 				$('.car-select').hide();
 			};
 			$('.weekly-income-amount').text(data["kasa"] + ' ' + gettext('грн'));
+			$('.weekly-clean-amount').text(data["earning"] + ' ' + gettext('грн'));
 			$('.income-km').text(data["total_mileage"] + ' ' + gettext("км"));
 			$('.income-efficiency').text(data["average_efficiency"].toFixed(2) + ' ' + gettext('грн/км'));
 		},
@@ -521,8 +536,9 @@ $(document).ready(function () {
 	const vehicle_lc = firstVehicle.text();
 
 	fetchSummaryReportData('yesterday');
-	fetchCarEfficiencyData('yesterday', vehicleId, vehicle_lc);
-
+	if (vehicleId !== undefined) {
+	    fetchCarEfficiencyData('yesterday', vehicleId, vehicle_lc);
+       }
 	initializeCustomSelect(customSelect, selectedOption, optionsList, iconDown, datePicker, vehicleId, vehicle_lc);
 
 	$(".custom-dropdown .selected-option").click(function () {
