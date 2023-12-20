@@ -545,14 +545,17 @@ def send_on_job_application_on_driver(self, job_id):
 @app.task(bind=True, queue='bot_tasks')
 def schedule_for_detaching_uklon(self, partner_pk):
     today = timezone.localtime().date()
-    reshuffles = DriverReshuffle.objects.filter(
-                    swap_time__date=today,
-                    end_time__lt=timezone.make_aware(datetime.combine(today, time.max)),
-                    partner=partner_pk
-                    )
-    for reshuffle in reshuffles:
-        eta = timezone.localtime(reshuffle.end_time)
-        detaching_the_driver_from_the_car.apply_async((partner_pk, reshuffle.swap_vehicle.licence_plate, eta), eta=eta)
+    for vehicle in Vehicle.objects.filter(partner=partner_pk):
+        reshuffles = DriverReshuffle.objects.filter(
+                        swap_time__date=today,
+                        swap_vehicle=vehicle,
+                        end_time__lt=timezone.make_aware(datetime.combine(today, time.max)),
+                        partner=partner_pk
+                        )
+        for reshuffle in reshuffles:
+            eta = timezone.localtime(reshuffle.end_time)
+            detaching_the_driver_from_the_car.apply_async((partner_pk, reshuffle.swap_vehicle.licence_plate, eta),
+                                                          eta=eta)
 
 
 @app.task(bind=True, queue='bot_tasks', retry_backoff=30, max_retries=4)
@@ -608,9 +611,9 @@ def fleets_cash_trips(self, partner_pk, pk, enable):
                 fleet.disable_cash(driver_id, enable)
         if int(redis_instance().get(f"{driver.id}_cash_enable")) != enable:
             if enable:
-                text = f"Водій {driver} може приймати готівкові замовлення"
+                text = f"Готівка {driver} \U0001F7E2"
             else:
-                text = f"Готівкові замовлення вимкнено у водія {driver}"
+                text = f"Готівка {driver} \U0001F534"
             bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"),
                              text=text)
         redis_instance().set(f"{driver.id}_cash_enable", enable)
@@ -659,9 +662,10 @@ def send_daily_statistic(self, partner_pk, schema):
     dict_msg = {}
     driver_schema = Schema.objects.get(pk=schema)
     managers = list(Manager.objects.filter(
-        managers_partner=partner_pk, chat_id__isnull=False).exclude(chat_id='').values('chat_id') or
-                    Partner.objects.filter(
-        pk=partner_pk, chat_id__isnull=False).exclude(chat_id='').values('chat_id'))
+        managers_partner=partner_pk, chat_id__isnull=False).exclude(chat_id='').values('chat_id'))
+    if not managers:
+        managers = list(Partner.objects.filter(
+            pk=partner_pk, chat_id__isnull=False).exclude(chat_id='').values('chat_id'))
     for manager in managers:
         result = get_daily_report(manager['chat_id'], driver_schema)
         if result:

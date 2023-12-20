@@ -154,7 +154,7 @@ class DriverRateLevelsAdmin(admin.ModelAdmin):
 
     def save_model(self, request, obj, form, change):
         if request.user.is_partner():
-            obj.partner = request.user
+            obj.partner_id = request.user.pk
         super().save_model(request, obj, form, change)
 
 
