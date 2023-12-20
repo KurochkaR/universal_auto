@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, time
 import time as tm
 import requests
 from _decimal import Decimal
-from celery import current_app, chain
+from celery import chain
 from celery.exceptions import MaxRetriesExceededError
 from celery.utils.log import get_task_logger
 from django.core.cache import cache
@@ -46,7 +46,7 @@ from app.uagps_sync import UaGpsSynchronizer
 from app.uber_sync import UberRequest
 from app.uklon_sync import UklonRequest
 from scripts.nbu_conversion import convert_to_currency
-from taxi_service.utils import login_in, partner_logout
+from taxi_service.utils import login_in
 
 logger = get_task_logger(__name__)
 

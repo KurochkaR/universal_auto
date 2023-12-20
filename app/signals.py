@@ -28,7 +28,8 @@ def calculate_fired_driver(sender, instance, **kwargs):
         create_driver_payments(start, end, instance, instance.schema, delete=True)
 
 
-@receiver(post_save, sender__in=(DriverPayments, InvestorPayments))
+@receiver(post_save, sender=DriverPayments)
+@receiver(post_save, sender=InvestorPayments)
 def create_park_settings(sender, instance, created, **kwargs):
     if instance.status.is_completed():
         if isinstance(instance, DriverPayments):
@@ -71,7 +72,8 @@ def create_status_change(sender, instance, **kwargs):
         status_change.save()
 
 
-@receiver(pre_delete, sender__in=(Schema, Partner))
+@receiver(pre_delete, sender=Partner)
+@receiver(pre_delete, sender=Schema)
 def remove_tasks_for_deleted_schema(sender, instance, **kwargs):
     partner_id = instance.pk if isinstance(instance, Partner) else instance.partner
     tasks = PeriodicTask.objects.filter(args__contains=[partner_id, instance.pk])

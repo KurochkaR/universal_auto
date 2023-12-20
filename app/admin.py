@@ -844,7 +844,7 @@ class ManagerAdmin(admin.ModelAdmin):
 
 
 @admin.register(Driver)
-class DriverAdmin(admin.ModelAdmin, , SoftDeleteAdmin):
+class DriverAdmin(SoftDeleteAdmin):
     search_fields = ('name', 'second_name')
     ordering = ('name', 'second_name')
     list_display_links = ('name', 'second_name')
@@ -854,9 +854,9 @@ class DriverAdmin(admin.ModelAdmin, , SoftDeleteAdmin):
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         if request.user.is_partner():
-            return qs.filter(partner=request.user, worked=True).select_related('schema', 'manager')
+            return qs.filter(partner=request.user).select_related('schema', 'manager')
         if request.user.is_manager():
-            return qs.filter(manager=request.user, worked=True).select_related('schema')
+            return qs.filter(manager=request.user).select_related('schema')
         return qs
 
     def get_list_editable(self, request):
@@ -1200,18 +1200,18 @@ class FleetsDriversVehiclesRateAdmin(admin.ModelAdmin):
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == "driver":
             if request.user.is_partner():
-                kwargs["queryset"] = Driver.objects.filter(partner=request.user, worked=True)
+                kwargs["queryset"] = Driver.objects.get_active(partner=request.user)
             if request.user.is_manager():
-                kwargs["queryset"] = Driver.objects.filter(manager=request.user, worked=True)
+                kwargs["queryset"] = Driver.objects.get_active(manager=request.user)
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         if request.user.is_partner():
-            return qs.filter(partner=request.user, worked=True)
+            return qs.filter(partner=request.user)
         elif request.user.is_manager():
             manager = Manager.objects.get(pk=request.user.pk)
-            return qs.filter(partner=manager.managers_partner, worked=True)
+            return qs.filter(partner=manager.managers_partner)
         return qs
 
 
