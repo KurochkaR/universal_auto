@@ -2,16 +2,19 @@ import json
 import random
 import secrets
 from datetime import timedelta, date, datetime, time
+
+from django.db.models import Q
 from django.utils import timezone
 from django.core.mail import send_mail
 from django.contrib.auth.models import User
+from django.core.serializers import serialize
 from django.core.serializers.json import DjangoJSONEncoder
 from django.contrib.auth import authenticate, login, logout
 from django.core.exceptions import ObjectDoesNotExist
 
 from app.bolt_sync import BoltRequest
 from app.models import Driver, UseOfCars, VehicleGPS, Order, Partner, ParkSettings, CredentialPartner, Fleet, \
-    NewUklonService, UberService, UaGpsService, BoltService
+    NewUklonService, UberService, UaGpsService, BoltService, Vehicle, DriverReshuffle
 from app.uagps_sync import UaGpsSynchronizer
 from app.uber_sync import UberRequest
 from app.uklon_sync import UklonRequest
@@ -287,12 +290,149 @@ def send_reset_code(email, user_login):
 def check_aggregators(user_pk):
     partner = Partner.objects.get(user_id=user_pk)
     aggregators = Fleet.objects.filter(partner=partner).values_list('name', flat=True)
-
-    # aggregator_results = {
-    #     'Bolt': CredentialPartner.objects.filter(partner=partner, key='BOLT_NAME').exists(),
-    #     'Uklon': CredentialPartner.objects.filter(partner=partner, key='UKLON_NAME').exists(),
-    #     'Uber': CredentialPartner.objects.filter(partner=partner, key='UBER_NAME').exists(),
-    #     'Gps': CredentialPartner.objects.filter(partner=partner, key='UAGPS_TOKEN').exists(),
-    # }
     fleets = Fleet.objects.all().values_list('name', flat=True)
     return list(aggregators), list(fleets)
+
+
+def is_conflict(driver, vehicle, start_time, end_time, reshuffle_id_to_exclude=None):
+    reshuffles = DriverReshuffle.objects.filter(
+        Q(driver_start=driver) |
+        Q(swap_vehicle=vehicle)
+    )
+
+    conflicts = reshuffles.filter(
+        (Q(swap_time__range=(start_time, end_time)) | Q(end_time__range=(start_time, end_time))) |
+        (Q(swap_time__lte=start_time, end_time__gte=end_time))
+    )
+
+    if reshuffle_id_to_exclude:
+        conflicts = conflicts.exclude(id=reshuffle_id_to_exclude)
+
+    overlapping_shifts = conflicts.filter(
+        (Q(swap_time__lte=start_time) & Q(end_time__gt=start_time)) |
+        (Q(swap_time__lt=end_time) & Q(end_time__gte=end_time)) |
+        (Q(swap_time__gte=start_time) & Q(end_time__lte=end_time))
+    )
+
+    if overlapping_shifts.exists():
+        conflicting_shift = overlapping_shifts.first()
+        conflicting_time = (f"{timezone.localtime(conflicting_shift.swap_time).strftime('%Y-%m-%d %H:%M:%S')} "
+                            f"{timezone.localtime(conflicting_shift.end_time).time()}")
+        conflicting_vehicle_data = {
+            'licence_plate': conflicting_shift.swap_vehicle.licence_plate,
+            'conflicting_time': conflicting_time
+        }
+        return False, conflicting_vehicle_data
+    else:
+        return True, None
+
+
+def add_shift(licence_plate, date, start_time, end_time, driver_id, recurrence, partner):
+    vehicle = Vehicle.objects.filter(licence_plate=licence_plate).first()
+    driver = Driver.objects.get(id=driver_id)
+
+    start_datetime = datetime.strptime(f"{date} {start_time}", "%Y-%m-%d %H:%M")
+    end_datetime = datetime.strptime(f"{date} {end_time}", "%Y-%m-%d %H:%M")
+
+    today_reshuffle = DriverReshuffle.objects.filter(
+        swap_time__date=date,
+        swap_vehicle=vehicle
+    ).count()
+
+    if today_reshuffle > 3:
+        return False, f"Авто {licence_plate} не може мати більше 4 змін на день"
+
+    interval = range(1)
+
+    if recurrence == 'daily':
+        interval = range(0, 7)
+    elif recurrence == 'everyOtherDay':
+        interval = range(0, 7, 2)
+    elif recurrence == 'every2Days':
+        interval = range(0, 7, 4)
+    elif recurrence == 'every3Days':
+        interval = range(0, 7, 6)
+
+    for day_offset in interval:
+        current_date = start_datetime + timedelta(days=day_offset)
+
+        current_swap_time = current_date.replace(hour=start_datetime.hour, minute=start_datetime.minute)
+        current_end_time = current_date.replace(hour=end_datetime.hour, minute=end_datetime.minute)
+
+        status, conflicting_vehicle = is_conflict(driver, vehicle, current_swap_time, current_end_time)
+        if not status:
+            return False, conflicting_vehicle
+
+        reshuffle = DriverReshuffle.objects.create(
+            swap_vehicle=vehicle,
+            driver_start=driver,
+            swap_time=current_swap_time,
+            end_time=current_end_time,
+            partner=partner
+        )
+        reshuffle.save()
+    return True, "Зміна успішно додана"
+
+
+def delete_shift(action, reshuffle_id):
+    reshuffle = DriverReshuffle.objects.get(id=reshuffle_id)
+    if action == 'delete_shift':
+        reshuffle.delete()
+        return True, "Зміна успішно видалена"
+    elif action == 'delete_all_shift':
+        reshuffle_del = DriverReshuffle.objects.filter(
+            swap_time__gte=timezone.localtime(reshuffle.swap_time),
+            swap_time__time=timezone.localtime(reshuffle.swap_time).time(),
+            end_time__time=timezone.localtime(reshuffle.end_time).time(),
+            driver_start=reshuffle.driver_start,
+            swap_vehicle=reshuffle.swap_vehicle
+        )
+        reshuffle_count = reshuffle_del.count()
+        reshuffle_del.delete()
+    return True, f"Видалено {reshuffle_count} змін"
+
+
+def upd_shift(action, licence_id, start_time, end_time, date, driver_id, reshuffle_id):
+    start_datetime = datetime.strptime(date + ' ' + start_time, '%Y-%m-%d %H:%M')
+    end_datetime = datetime.strptime(date + ' ' + end_time, '%Y-%m-%d %H:%M')
+
+    if action == 'update_shift':
+        status, conflicting_vehicle = is_conflict(driver_id, licence_id, start_datetime, end_datetime, reshuffle_id)
+        if not status:
+            return False, conflicting_vehicle
+
+        DriverReshuffle.objects.filter(id=reshuffle_id).update(
+            swap_time=start_datetime,
+            end_time=end_datetime,
+            driver_start=driver_id,
+            swap_vehicle=licence_id
+        )
+        return True, "Зміна успішно оновленна"
+
+    elif action == 'update_all_shift':
+        selected_reshuffle = DriverReshuffle.objects.get(id=reshuffle_id)
+
+        reshuffle_upd = DriverReshuffle.objects.filter(
+            swap_time__gte=timezone.localtime(selected_reshuffle.swap_time),
+            swap_time__time=timezone.localtime(selected_reshuffle.swap_time).time(),
+            end_time__time=timezone.localtime(selected_reshuffle.end_time).time(),
+            driver_start=selected_reshuffle.driver_start,
+            swap_vehicle=selected_reshuffle.swap_vehicle
+        ).order_by('id')
+
+        successful_updates = 0
+        for reshuffle in reshuffle_upd:
+            start = datetime.combine(timezone.localtime(reshuffle.swap_time).date(), start_datetime.time())
+            end = datetime.combine(timezone.localtime(reshuffle.end_time).date(), end_datetime.time())
+            status, conflicting_vehicle = is_conflict(driver_id, licence_id, start, end, reshuffle.id)
+            if not status:
+                return False, conflicting_vehicle
+
+            reshuffle.swap_time = start
+            reshuffle.end_time = end
+            reshuffle.driver_start = Driver.objects.get(id=driver_id)
+            reshuffle.swap_vehicle = Vehicle.objects.get(id=licence_id)
+            reshuffle.save()
+            successful_updates += 1
+        return True, f"Оновленно {successful_updates} змін"
+    return True
