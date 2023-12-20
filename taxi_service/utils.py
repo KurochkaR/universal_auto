@@ -12,7 +12,7 @@ from django.core.exceptions import ObjectDoesNotExist
 
 from app.bolt_sync import BoltRequest
 from app.models import Driver, UseOfCars, VehicleGPS, Order, ParkSettings, CredentialPartner, Fleet, \
-    Vehicle, DriverReshuffle, CustomUser
+    Vehicle, DriverReshuffle, CustomUser, Partner
 from app.uagps_sync import UaGpsSynchronizer
 from app.uber_sync import UberRequest
 from app.uklon_sync import UklonRequest

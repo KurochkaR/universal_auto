@@ -16,11 +16,6 @@ class Migration(migrations.Migration):
             field=models.CharField(blank=True, max_length=10, null=True, verbose_name='Індетифікатор чата'),
         ),
         migrations.AlterField(
-            model_name='driver',
-            name='schema',
-            field=models.CharField(choices=[('RENT', 'Схема оренди'), ('HALF', 'Схема 50/50'), ('CUSTOM', 'Індивідуальний відсоток')], default='HALF', max_length=20, verbose_name='Схема роботи'),
-        ),
-        migrations.AlterField(
             model_name='user',
             name='email',
             field=models.EmailField(blank=True, max_length=254, null=True, verbose_name='Електрона пошта'),

@@ -1,8 +1,6 @@
-from django.utils import timezone
 
-from app.bolt_sync import BoltRequest
+from auto.tasks import calculate_vehicle_earnings
 
 
 def run():
-    day = timezone.localtime()
-    BoltRequest.objects.get(partner=1).save_report(day, day, 2)
+    calculate_vehicle_earnings.delay(1, "2023-11-12")

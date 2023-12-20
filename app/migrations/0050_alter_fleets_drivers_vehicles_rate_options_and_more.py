@@ -30,11 +30,6 @@ class Migration(migrations.Migration):
             field=models.DecimalField(decimal_places=2, default=0, max_digits=10, null=True, verbose_name='Витрати'),
         ),
         migrations.AlterField(
-            model_name='driver',
-            name='schema',
-            field=models.CharField(choices=[('RENT', 'Схема оренди'), ('HALF', 'Схема 50/50'), ('BUYER', 'Схема під викуп'), ('CUSTOM', 'Індивідуальний відсоток')], default='HALF', max_length=20, verbose_name='Схема роботи'),
-        ),
-        migrations.AlterField(
             model_name='driverefficiency',
             name='driver',
             field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, to='app.driver', verbose_name='Водій'),

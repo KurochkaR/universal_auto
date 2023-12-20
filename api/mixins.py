@@ -1,7 +1,7 @@
 from django.db.models import Q
 from rest_framework import authentication
 
-from app.models import SummaryReport, Driver, CarEfficiency, DriverEfficiency, Vehicle
+from app.models import SummaryReport, Driver, CarEfficiency, DriverEfficiency, Vehicle, InvestorPayments
 from .permissions import IsPartnerUser, IsManagerUser, IsInvestorUser
 from api.authentication import TokenAuthentication
 
@@ -37,8 +37,8 @@ class InvestorFilterMixin:
     def get_queryset(model, user):
         if isinstance(model(), Vehicle):
             queryset = model.objects.filter(investor_car=user)
-        elif isinstance(model(), CarEfficiency):
-            queryset = model.objects.filter(vehicle__investor_car=user)
+        elif isinstance(model(), InvestorPayments):
+            queryset = model.objects.filter(investor=user)
         else:
             queryset = model.objects.none()
         return queryset

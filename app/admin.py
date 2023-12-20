@@ -1,13 +1,115 @@
 from django.contrib import admin
-from django.contrib.auth.models import Group
+from django.contrib.auth.models import User as AuthUser
+from django.contrib.auth.models import Group, Permission
+from django.contrib.contenttypes.models import ContentType
+from django.core.exceptions import FieldError
+from django.http import HttpResponseRedirect
+from django.urls import reverse
+from django.utils.translation import gettext_lazy as _
+from django.shortcuts import redirect
 from django.db.models import Q
 from polymorphic.admin import PolymorphicParentModelAdmin
-
 from scripts.google_calendar import GoogleCalendar
 from .filters import VehicleEfficiencyUserFilter, DriverEfficiencyUserFilter, RentInformationUserFilter, \
     TransactionInvestorUserFilter, ReportUserFilter, VehicleManagerFilter, SummaryReportUserFilter,\
     FleetRelatedFilter, ChildModelFilter
 from .models import *
+
+
+class SoftDeleteAdmin(admin.ModelAdmin):
+    actions = ['delete_selected']
+
+    def delete_selected(self, model, request, queryset):
+        deleted = queryset
+        for item in queryset:
+            post_delete.send(sender=item.__class__, instance=item)
+        deleted.update(deleted_at=timezone.localtime())
+
+    def delete_view(self, request, object_id, extra_context=None):
+        obj = self.get_object(request, object_id)
+        if obj:
+            obj.deleted_at = timezone.localtime()
+            obj.save()
+            post_delete.send(sender=obj.__class__, instance=obj)
+        return redirect(f'admin:app_{self.model._meta.model_name}_changelist')
+
+    def get_actions(self, request):
+        actions = super().get_actions(request)
+        actions['delete_selected'] = (
+            self.delete_selected, 'delete_selected', _(f"Видалити обрані {self.model._meta.verbose_name_plural}"))
+        return actions
+
+    # Override get_queryset to exclude soft-deleted instances by default
+    def get_queryset(self, request):
+        return super().get_queryset(request).exclude(deleted_at__isnull=False)
+
+
+def filter_queryset_by_group(*groups):
+    def decorator(model_admin_class):
+        class FilteredModelAdmin(model_admin_class):
+            def get_queryset(self, request):
+                queryset = super().get_queryset(request)
+                if request.user.groups.filter(name='Investor').exists():
+
+                    try:
+                        queryset = queryset.filter(vehicle__investor_car__user=request.user)
+                    except FieldError:
+                        queryset = queryset.filter(investor_car__user=request.user)
+                if request.user.groups.filter(name='Manager').exists():
+                    try:
+                        queryset = queryset.filter(manager__user=request.user)
+                    except FieldError:
+                        pass
+
+                if request.user.groups.filter(name='Partner').exists():
+                    queryset = queryset.filter(partner__user=request.user)
+
+                return queryset
+
+        return FilteredModelAdmin
+
+    return decorator
+
+
+# class FleetChildAdmin(PolymorphicChildModelAdmin):
+#     base_model = Fleet
+#     show_in_index = False
+#
+#
+# @admin.register(UberFleet)
+# class UberFleetAdmin(FleetChildAdmin):
+#     base_model = UberFleet
+#     show_in_index = False
+#
+#
+# @admin.register(BoltFleet)
+# class BoltFleetAdmin(FleetChildAdmin):
+#     base_model = BoltFleet
+#     show_in_index = False
+#
+#
+# @admin.register(UklonFleet)
+# class UklonFleetAdmin(FleetChildAdmin):
+#     base_model = UklonFleet
+#     show_in_index = False
+#
+# @admin.register(NewUklonFleet)
+# class UklonFleetAdmin(FleetChildAdmin):
+#     base_model = NewUklonFleet
+#     show_in_index = False
+#
+#
+# @admin.register(Fleet)
+# class FleetParentAdmin(PolymorphicParentModelAdmin):
+#     base_model = Fleet
+#     child_models = (UberFleet, BoltFleet, UklonFleet, NewUklonFleet, NinjaFleet)
+#     list_filter = PolymorphicChildModelFilter
+#
+#
+#  @admin.register(NinjaFleet)
+# class NinjaFleetAdmin(FleetChildAdmin):
+#     base_model = NinjaFleet
+#     show_in_index = False
 
 
 class SupportManagerClientInline(admin.TabularInline):
@@ -353,7 +455,7 @@ class VehicleSpendingAdmin(admin.ModelAdmin):
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
 
-@admin.register(TransactionsConversation)
+@admin.register(InvestorPayments)
 class TransactionsConversationAdmin(admin.ModelAdmin):
     list_filter = (TransactionInvestorUserFilter, )
 
@@ -742,7 +844,7 @@ class ManagerAdmin(admin.ModelAdmin):
 
 
 @admin.register(Driver)
-class DriverAdmin(admin.ModelAdmin):
+class DriverAdmin(SoftDeleteAdmin):
     search_fields = ('name', 'second_name')
     ordering = ('name', 'second_name')
     list_display_links = ('name', 'second_name')
@@ -752,9 +854,9 @@ class DriverAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         if request.user.is_partner():
-            return qs.filter(partner=request.user, worked=True).select_related('schema', 'manager')
+            return qs.filter(partner=request.user).select_related('schema', 'manager')
         if request.user.is_manager():
-            return qs.filter(manager=request.user, worked=True).select_related('schema')
+            return qs.filter(manager=request.user).select_related('schema')
         return qs
 
     def get_list_editable(self, request):
@@ -847,6 +949,42 @@ class DriverAdmin(admin.ModelAdmin):
                                                      )
 
         super().save_model(request, obj, form, change)
+
+
+@admin.register(FiredDriver)
+class FiredDriverAdmin(admin.ModelAdmin):
+
+    def get_model_perms(self, request):
+        perms = super().get_model_perms(request)
+        if request.user.is_partner():
+            perms.update(view=True, change=True, add=True, delete=True)
+        return perms
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request).filter(deleted_at__isnull=False)
+        if request.user.is_partner():
+            return qs.filter(partner_id=request.user.pk)
+        return qs
+
+    change_form_template = 'admin/change_form_fired_driver.html'
+
+    def change_view(self, request, object_id, form_url='', extra_context=None):
+        extra_context = extra_context or {}
+
+        if 'restore_driver' in request.POST:
+            # Add your custom restore logic here
+            instance = self.get_object(request, object_id)
+            if instance:
+                instance.deleted_at = None
+                instance.save()
+
+                self.message_user(request, 'Object restored successfully.')
+
+                # Redirect to the change form again
+                list_url = reverse('admin:app_fireddriver_changelist')
+                return HttpResponseRedirect(list_url)
+
+        return super().change_view(request, object_id, form_url, extra_context)
 
 
 @admin.register(Vehicle)
@@ -1027,6 +1165,8 @@ class FleetOrderAdmin(admin.ModelAdmin):
                                                           ]}),
             ('Час',                        {'fields': ['accepted_time', 'finish_time',
                                                        ]}),
+            ('Ціна',                        {'fields': ['price', 'payment', 'tips',
+                                ]}),
         ]
 
         return fieldsets
@@ -1060,18 +1200,18 @@ class FleetsDriversVehiclesRateAdmin(admin.ModelAdmin):
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == "driver":
             if request.user.is_partner():
-                kwargs["queryset"] = Driver.objects.filter(partner=request.user, worked=True)
+                kwargs["queryset"] = Driver.objects.get_active(partner=request.user)
             if request.user.is_manager():
-                kwargs["queryset"] = Driver.objects.filter(manager=request.user, worked=True)
+                kwargs["queryset"] = Driver.objects.get_active(manager=request.user)
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         if request.user.is_partner():
-            return qs.filter(partner=request.user, worked=True)
+            return qs.filter(partner=request.user)
         elif request.user.is_manager():
             manager = Manager.objects.get(pk=request.user.pk)
-            return qs.filter(partner=manager.managers_partner, worked=True)
+            return qs.filter(partner=manager.managers_partner)
         return qs
 
 

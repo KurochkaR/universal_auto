@@ -162,6 +162,24 @@ class BoltRequest(Fleet, Synchronizer):
                                                     partner=self.partner)
             db_report.update(**report) if db_report else CustomReport.objects.create(**report)
 
+    def get_bonuses_info(self, driver, start, end):
+        bonuses = 0
+        compensations = 0
+        format_start = start.strftime("%Y-%m-%d")
+        format_end = end.strftime("%Y-%m-%d")
+        param = self.param()
+        param.update({"start_date": format_start,
+                      "end_date": format_end,
+                      "offset": 0,
+                      "search": str(driver),
+                      "limit": 50})
+        reports = self.get_target_url(f'{self.base_url}getDriverEarnings/dateRange', param)
+        if reports['data']['drivers']:
+            report_driver = reports['data']['drivers'][0]
+            bonuses = report_driver['bonuses']
+            compensations = report_driver['compensations']
+        return bonuses, compensations
+
     def get_drivers_table(self):
         driver_list = []
         start = end = datetime.now().strftime('%Y-%m-%d')
@@ -188,7 +206,6 @@ class BoltRequest(Fleet, Synchronizer):
                     'licence_plate': '',
                     'vehicle_name': '',
                     'vin_code': '',
-                    'worked': True,
                 })
         return driver_list
 
@@ -227,8 +244,10 @@ class BoltRequest(Fleet, Synchronizer):
                     finish = None
                 try:
                     price = order['total_price']
+                    tip = order["tip"]
                 except KeyError:
                     price = 0
+                    tip = 0
                 vehicle = Vehicle.objects.get(licence_plate=order['car_reg_number'])
                 data = {"order_id": order['order_id'],
                         "fleet": self.name,
@@ -241,6 +260,7 @@ class BoltRequest(Fleet, Synchronizer):
                         "destination": order['order_stops'][-1]['address'],
                         "vehicle": vehicle,
                         "price": price,
+                        "tips": tip,
                         "partner": self.partner
                         }
                 if check_vehicle(driver)[0] != vehicle:
