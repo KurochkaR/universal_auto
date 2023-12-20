@@ -6,7 +6,7 @@ from telegram import ReplyKeyboardRemove
 from telegram.error import BadRequest
 
 from app.models import Manager, Vehicle, User, Driver, FleetsDriversVehiclesRate, Fleet, JobApplication, \
-    Payments, ParkSettings, VehicleSpending, Partner
+    Payments, ParkSettings, VehicleSpending, Partner, CustomUser
 from auto_bot.handlers.driver.static_text import BROKEN
 from auto_bot.handlers.driver_job.static_text import driver_job_name
 from auto_bot.handlers.driver_manager.keyboards import create_user_keyboard, role_keyboard, fleets_keyboard, \
@@ -30,7 +30,7 @@ from auto_bot.handlers.main.keyboards import back_to_main_menu
 def remove_cash_driver(sender=None, **kwargs):
     if sender == manager_paid_weekly:
         partner_pk = kwargs.get('retval')
-        for manager in Manager.objects.filter(partner=partner_pk):
+        for manager in Manager.objects.filter(managers_partner=partner_pk):
             for driver in Driver.objects.filter(manager=manager):
                 bot.send_message(chat_id=manager.chat_id, text=ask_driver_paid(driver),
                                  reply_markup=inline_driver_paid_kb(driver.id))
@@ -107,16 +107,15 @@ def remove_cash_by_manager(update, context):
 def get_drivers_from_fleets(update, context):
     query = update.callback_query
     manager = Manager.get_by_chat_id(query.from_user.id)
-    partner = manager.partner if manager else Partner.get_by_chat_id(query.from_user.id)
-    update_driver_data.delay(partner.id, query.from_user.id)
+    partner_id = manager.managers_partner if manager else Partner.get_by_chat_id(query.from_user.id).pk
+    update_driver_data.delay(partner_id, query.from_user.id)
     query.edit_message_text(get_drivers_text)
 
 
 def get_earning_report(update, context):
     query = update.callback_query
-    manager = Manager.get_by_chat_id(update.effective_chat.id)
-    partner = Partner.get_by_chat_id(update.effective_chat.id)
-    drivers = Driver.objects.filter(manager=manager) if manager else Driver.objects.filter(partner=partner)
+    user = CustomUser.get_by_chat_id(update.effective_chat.id)
+    drivers = Driver.objects.filter(manager=user) if user.is_manager() else Driver.objects.filter(partner=user)
     if drivers:
         query.edit_message_text(choose_period_text)
         query.edit_message_reply_markup(inline_earning_report_kb('Get_statistic'))
@@ -325,7 +324,7 @@ def send_into_group(sender=None, **kwargs):
                 bot.send_message(chat_id=ParkSettings.get_value('DRIVERS_CHAT', partner=partner), text=schema_message)
             else:
                 try:
-                    bot.send_message(chat_id=Partner.get_partner(partner).chat_id, text=schema_message)
+                    bot.send_message(chat_id=Partner.objects.get(pk=partner).chat_id, text=schema_message)
                 except BadRequest:
                     pass
         for pk, message in drivers_messages.items():
@@ -345,7 +344,7 @@ def send_vehicle_efficiency(sender=None, **kwargs):
                 bot.send_message(chat_id=ParkSettings.get_value('DRIVERS_CHAT', partner=partner), text=message)
             else:
                 try:
-                    bot.send_message(chat_id=Partner.get_partner(partner).chat_id, text=message)
+                    bot.send_message(chat_id=Partner.objects.get(pk=partner).chat_id, text=message)
                 except BadRequest:
                     pass
 
@@ -355,15 +354,15 @@ def send_week_report(sender=None, **kwargs):
     if sender == send_driver_report:
         result = kwargs.get('retval')
         for messages in result:
-            for user, message in messages.items():
-                bot.send_message(chat_id=user, text=message)
+            if messages:
+                for user, message in messages.items():
+                    bot.send_message(chat_id=user, text=message)
 
 
 def get_partner_vehicles(update, context):
     query = update.callback_query
-    manager = Manager.get_by_chat_id(query.from_user.id)
-    partner = Partner.get_by_chat_id(query.from_user.id)
-    vehicles = Vehicle.objects.filter(manager=manager) if manager else Vehicle.objects.filter(partner=partner)
+    user = CustomUser.get_by_chat_id(query.from_user.id)
+    vehicles = Vehicle.objects.filter(manager=user) if user.is_manager() else Vehicle.objects.filter(partner=user)
     if vehicles:
         if query.data == "Pin_vehicle_to_driver":
             callback = 'select_vehicle'
@@ -380,9 +379,8 @@ def get_partner_vehicles(update, context):
 def get_partner_drivers(update, context):
     query = update.callback_query
     pk_vehicle = query.data.split()[1]
-    manager = Manager.get_by_chat_id(query.from_user.id)
-    partner = Partner.get_by_chat_id(query.from_user.id)
-    drivers = Driver.objects.filter(manager=manager) if manager else Driver.objects.filter(partner=partner)
+    user = CustomUser.get_by_chat_id(query.from_user.id)
+    drivers = Driver.objects.filter(manager=user) if user.is_manager() else Driver.objects.filter(partner=user)
     if drivers:
         query.edit_message_text(partner_drivers)
         query.edit_message_reply_markup(reply_markup=inline_partner_drivers(pin_vehicle_callback, drivers,

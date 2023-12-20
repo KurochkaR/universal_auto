@@ -14,7 +14,7 @@ from selenium_ninja.driver import SeleniumTools
 class UaGpsSynchronizer(Fleet):
 
     def create_session(self, partner, login, password):
-        partner_obj = Partner.get_partner(partner)
+        partner_obj = Partner.objects.get(pk=partner)
         token = SeleniumTools(partner).create_gps_session(login, password, partner_obj.gps_url)
         return token
 
@@ -24,6 +24,11 @@ class UaGpsSynchronizer(Fleet):
             'params': json.dumps({"token": CredentialPartner.get_value('UAGPS_TOKEN', partner=self.partner)})
         }
         response = requests.get(f"{self.partner.gps_url}wialon/ajax.html", params=params)
+        if response.json().get("error"):
+            if not redis_instance().exists(f"{self.partner.id}_remove_gps"):
+                redis_instance().set(f"{self.partner.id}_remove_gps", response.json().get("error"), ex=86400)
+            return
+        redis_instance().delete(f"{self.partner.id}_remove_gps")
         return response.json()['eid']
 
     def get_gps_id(self):
@@ -41,51 +46,53 @@ class UaGpsSynchronizer(Fleet):
         return redis_instance().get(f"{self.partner.id}_gps_id")
 
     def synchronize(self):
-        params = {
-            'sid': self.get_session(),
-            'svc': 'core/update_data_flags',
-            'params': json.dumps({"spec": [{"type": "type",
-                                            "data": "avl_unit",
-                                            "flags": 1,
-                                            "mode": 0}]})
-        }
-        response = requests.get(f"{self.partner.gps_url}wialon/ajax.html", params=params)
-        for vehicle in response.json():
-            data = {"name": vehicle['d']['nm'],
-                    "partner": self.partner}
-            obj, created = GPSNumber.objects.get_or_create(gps_id=vehicle['i'],
-                                                           defaults=data)
-            if not created:
-                for key, value in data.items():
-                    setattr(obj, key, value)
-                obj.save()
+        if not redis_instance().exists(f"{self.partner.id}_remove_gps"):
+            params = {
+                'sid': self.get_session(),
+                'svc': 'core/update_data_flags',
+                'params': json.dumps({"spec": [{"type": "type",
+                                                "data": "avl_unit",
+                                                "flags": 1,
+                                                "mode": 0}]})
+            }
+            response = requests.get(f"{self.partner.gps_url}wialon/ajax.html", params=params)
+            for vehicle in response.json():
+                data = {"name": vehicle['d']['nm'],
+                        "partner": self.partner}
+                obj, created = GPSNumber.objects.get_or_create(gps_id=vehicle['i'],
+                                                               defaults=data)
+                if not created:
+                    for key, value in data.items():
+                        setattr(obj, key, value)
+                    obj.save()
 
     def generate_report(self, start_time, end_time, vehicle_id):
-        parameters = {
-            "reportResourceId": self.get_gps_id(),
-            "reportObjectId": vehicle_id,
-            "reportObjectSecId": 0,
-            "reportTemplateId": 1,
-            "reportTemplate": None,
-            "interval": {
-                "from": start_time,
-                "to": end_time,
-                "flags": 16777216
+        if not redis_instance().exists(f"{self.partner.id}_remove_gps"):
+            parameters = {
+                "reportResourceId": self.get_gps_id(),
+                "reportObjectId": vehicle_id,
+                "reportObjectSecId": 0,
+                "reportTemplateId": 1,
+                "reportTemplate": None,
+                "interval": {
+                    "from": start_time,
+                    "to": end_time,
+                    "flags": 16777216
+                }
             }
-        }
 
-        params = {
-            'svc': 'report/exec_report',
-            'sid': self.get_session(),
-            'params': json.dumps(parameters)
-        }
-        report = requests.get(f"{self.partner.gps_url}wialon/ajax.html", params=params)
-        raw_time = report.json()['reportResult']['stats'][4][1]
-        clean_time = [int(i) for i in raw_time.split(':')]
-        road_time = timedelta(hours=clean_time[0], minutes=clean_time[1], seconds=clean_time[2])
-        raw_distance = report.json()['reportResult']['stats'][5][1]
-        road_distance = Decimal(raw_distance.split(' ')[0])
-        return road_distance, road_time
+            params = {
+                'svc': 'report/exec_report',
+                'sid': self.get_session(),
+                'params': json.dumps(parameters)
+            }
+            report = requests.get(f"{self.partner.gps_url}wialon/ajax.html", params=params)
+            raw_time = report.json()['reportResult']['stats'][4][1]
+            clean_time = [int(i) for i in raw_time.split(':')]
+            road_time = timedelta(hours=clean_time[0], minutes=clean_time[1], seconds=clean_time[2])
+            raw_distance = report.json()['reportResult']['stats'][5][1]
+            road_distance = Decimal(raw_distance.split(' ')[0])
+            return road_distance, road_time
 
     @staticmethod
     def get_timestamp(timeframe):

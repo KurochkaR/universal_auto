@@ -92,3 +92,19 @@ class InvestorCarsSerializer(serializers.Serializer):
     totals = TotalEarningsSerializer()
     start = serializers.CharField()
     end = serializers.CharField()
+
+
+class DriverChangesSerializer(serializers.Serializer):
+    date = serializers.DateField()
+    driver_name = serializers.CharField()
+    driver_id = serializers.IntegerField()
+    vehicle_id = serializers.IntegerField()
+    driver_photo = serializers.CharField()
+    start_shift = serializers.TimeField()
+    end_shift = serializers.TimeField()
+    reshuffle_id = serializers.IntegerField()
+
+
+class ReshuffleSerializer(serializers.Serializer):
+    swap_licence = serializers.CharField()
+    reshuffles = DriverChangesSerializer(many=True)

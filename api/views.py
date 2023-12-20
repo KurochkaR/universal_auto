@@ -1,17 +1,21 @@
+from collections import defaultdict
 from datetime import timedelta
 
 from _decimal import Decimal
+from itertools import groupby
+from operator import itemgetter
+
 from django.db.models import Sum, F, OuterRef, Subquery, DecimalField, Avg, Value, CharField, ExpressionWrapper, Case, \
     When, Func, FloatField, Exists
-from django.db.models.functions import Concat, Round, Coalesce
+from django.db.models.functions import Concat, Round, Coalesce, TruncTime
 from rest_framework import generics
 from rest_framework.response import Response
 
 from api.mixins import CombinedPermissionsMixin, ManagerFilterMixin, InvestorFilterMixin
 from api.serializers import SummaryReportSerializer, CarEfficiencySerializer, CarDetailSerializer, \
-    DriverEfficiencyRentSerializer, InvestorCarsSerializer
-from app.models import SummaryReport, CarEfficiency, Vehicle, DriverEfficiency, RentInformation, InvestorPayments, \
-    PartnerEarnings
+    DriverEfficiencyRentSerializer, InvestorCarsSerializer, ReshuffleSerializer
+from app.models import SummaryReport, CarEfficiency, Vehicle, DriverEfficiency, RentInformation, DriverReshuffle, \
+    PartnerEarnings, InvestorPayments
 from taxi_service.utils import get_start_end
 
 
@@ -28,7 +32,7 @@ class SummaryReportListView(CombinedPermissionsMixin,
 
     def get_queryset(self):
         start, end, format_start, format_end = get_start_end(self.kwargs['period'])
-        queryset = ManagerFilterMixin.get_queryset(self, SummaryReport)
+        queryset = ManagerFilterMixin.get_queryset(SummaryReport, self.request.user)
         filtered_qs = queryset.filter(report_from__range=(start, end))
         rent_amount_subquery = RentInformation.objects.filter(
             report_from__range=(start, end)
@@ -92,7 +96,7 @@ class CarEfficiencyListView(CombinedPermissionsMixin,
 
     def get_queryset(self):
         start, end = get_start_end(self.kwargs['period'])[:2]
-        queryset = ManagerFilterMixin.get_queryset(self, CarEfficiency)
+        queryset = ManagerFilterMixin.get_queryset(CarEfficiency, self.request.user)
         filtered_qs = queryset.filter(
             report_from__range=(start, end))
         earning = PartnerEarnings.objects.filter(
@@ -140,7 +144,7 @@ class DriverEfficiencyListView(CombinedPermissionsMixin,
 
     def get_queryset(self):
         start, end, format_start, format_end = get_start_end(self.kwargs['period'])
-        queryset = ManagerFilterMixin.get_queryset(self, DriverEfficiency)
+        queryset = ManagerFilterMixin.get_queryset(DriverEfficiency, self.request.user)
         filtered_qs = queryset.filter(report_from__range=(start, end)).exclude(total_orders=0)
         qs = filtered_qs.values('driver_id').annotate(
             total_kasa=Sum('total_kasa'),
@@ -170,7 +174,7 @@ class CarsInformationListView(CombinedPermissionsMixin,
     serializer_class = CarDetailSerializer
 
     def get_queryset(self):
-        investor_queryset = InvestorFilterMixin.get_queryset(self, Vehicle)
+        investor_queryset = InvestorFilterMixin.get_queryset(Vehicle, self.request.user)
         if investor_queryset:
             queryset = investor_queryset
             earning_subquery = InvestorPayments.objects.all().values('vehicle__licence_plate').annotate(
@@ -220,3 +224,49 @@ class CarsInformationListView(CombinedPermissionsMixin,
                 )
             )
         return queryset
+
+
+class DriverReshuffleListView(CombinedPermissionsMixin, generics.ListAPIView):
+    serializer_class = ReshuffleSerializer
+
+    def get_queryset(self):
+        vehicles = ManagerFilterMixin.get_queryset(Vehicle, self.request.user)
+        qs = DriverReshuffle.objects.filter(
+            swap_vehicle__in=vehicles,
+            swap_time__range=(self.kwargs['start_date'], self.kwargs['end_date'])
+        ).annotate(
+            licence_plate=F('swap_vehicle__licence_plate'),
+            vehicle_id=F('swap_vehicle__pk'),
+            driver_name=Concat(
+                F("driver_start__user_ptr__name"),
+                Value(" "),
+                F("driver_start__user_ptr__second_name")),
+            driver_id=F('driver_start__pk'),
+            driver_photo=F('driver_start__photo'),
+            start_shift=F('swap_time__time'),
+            end_shift=F('end_time__time'),
+            date=F('swap_time__date'),
+            reshuffle_id=F('pk')
+        ).values('licence_plate', 'vehicle_id', 'driver_name', 'driver_id', 'driver_photo', 'start_shift', 'end_shift',
+                 'date', 'reshuffle_id').order_by('start_shift')
+        sorted_reshuffles = sorted(qs, key=itemgetter('licence_plate'))
+        grouped_by_licence_plate = defaultdict(list)
+        for key, group in groupby(sorted_reshuffles, key=itemgetter('licence_plate')):
+            grouped_by_licence_plate[key].extend(group)
+
+        for vehicle in vehicles:
+            if vehicle.licence_plate not in grouped_by_licence_plate:
+                grouped_by_licence_plate[vehicle.licence_plate] = []
+        reshuffles_list = []
+        for licence_plate, reshuffles in grouped_by_licence_plate.items():
+            reshuffle_data = {
+                "swap_licence": licence_plate,
+                "reshuffles": reshuffles
+            }
+            reshuffles_list.append(reshuffle_data)
+        return reshuffles_list
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)

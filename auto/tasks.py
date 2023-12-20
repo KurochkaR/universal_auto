@@ -1,5 +1,6 @@
 import os
 import socket
+from contextlib import contextmanager
 from datetime import datetime, timedelta, time
 import time as tm
 import requests
@@ -7,6 +8,7 @@ from _decimal import Decimal
 from celery import current_app, chain
 from celery.exceptions import MaxRetriesExceededError
 from celery.utils.log import get_task_logger
+from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import IntegrityError
 from django.utils import timezone
@@ -44,7 +46,7 @@ from app.uagps_sync import UaGpsSynchronizer
 from app.uber_sync import UberRequest
 from app.uklon_sync import UklonRequest
 from scripts.nbu_conversion import convert_to_currency
-from taxi_service.utils import login_in
+from taxi_service.utils import login_in, partner_logout
 
 logger = get_task_logger(__name__)
 
@@ -53,6 +55,18 @@ def retry_logic(exc, retries):
     retry_delay = 30 * (retries + 1)
     logger.warning(f"Retry attempt {retries + 1} in {retry_delay} seconds. Exception: {exc}")
     return retry_delay
+
+
+@contextmanager
+def memcache_lock(lock_id, oid):
+    lock = 600
+    timeout_at = tm.monotonic() + lock - 3
+    status = cache.add(lock_id, oid, lock)
+    try:
+        yield status
+    finally:
+        if tm.monotonic() < timeout_at and status:
+            cache.set(lock_id, oid, 10)
 
 
 @app.task(queue='bot_tasks')
@@ -108,14 +122,15 @@ def auto_send_task_bot(self):
     requests.post(webhook_url, json=message_data)
 
 
-@app.task(bind=True, queue='bot_tasks', retry_backoff=30, max_retries=4)
+@app.task(bind=True, queue='bot_tasks', retry_backoff=30, max_retries=3)
 def get_session(self, partner_pk, aggregator='Uber', login=None, password=None):
     fleet = Fleet.objects.get(name=aggregator, partner=None)
     try:
         token = fleet.create_session(partner_pk, login=login, password=password)
-        success = login_in(aggregator=aggregator, partner_id=partner_pk,
-                           login_name=login, password=password, token=token)
-        return partner_pk, success
+        if login and password:
+            success = login_in(aggregator=aggregator, partner_id=partner_pk,
+                               login_name=login, password=password, token=token)
+            return partner_pk, success
     except AuthenticationError as e:
         logger.error(e)
         success = False
@@ -124,6 +139,14 @@ def get_session(self, partner_pk, aggregator='Uber', login=None, password=None):
         logger.error(e)
         retry_delay = retry_logic(e, self.request.retries + 1)
         raise self.retry(exc=e, countdown=retry_delay)
+
+
+@app.task(bind=True, queue='bot_tasks')
+def remove_gps_partner(self, partner_pk):
+    if redis_instance().exists(f"{partner_pk}_remove_gps"):
+        bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"),
+                         text="Не вдалося отримати дані по Gps, будь ласка, перевірте оплату послуги")
+        redis_instance().delete(f"{partner_pk}_remove_gps")
 
 
 @app.task(bind=True, queue='beat_tasks', retry_backoff=30, max_retries=4)
@@ -191,13 +214,14 @@ def check_card_cash_value(self, partner_pk):
         start_week = timezone.make_aware(datetime.combine(today, time.min)) - timedelta(days=today.weekday())
         for driver in Driver.objects.get_active(partner=partner_pk, schema__isnull=False):
             if driver.schema.is_weekly():
-                orders = FleetOrder.objects.filter(accepted_time__range=(start_week, today),
+                orders = FleetOrder.objects.filter(accepted_time__gt=start_week,
                                                    state=FleetOrder.COMPLETED,
                                                    driver=driver)
                 rent = calculate_rent(start_week, today, driver)
             else:
+                start = get_time_for_task(driver.schema_id)[2]
                 yesterday = today - timedelta(days=1)
-                orders = FleetOrder.objects.filter(accepted_time__date=today.date(),
+                orders = FleetOrder.objects.filter(accepted_time__gt=start,
                                                    state=FleetOrder.COMPLETED,
                                                    driver=driver)
                 rent = calculate_rent(yesterday, today, driver)
@@ -205,15 +229,13 @@ def check_card_cash_value(self, partner_pk):
             rent_payment = rent * driver.schema.rent_price
             if kasa > int(ParkSettings.get_value("START_CHECK_CASH", partner=partner_pk)):
                 card = orders.filter(payment=PaymentTypes.CARD,
-                                     driver=driver).aggregate(card_kasa=Sum('price'))['card_kasa']
+                                     driver=driver).aggregate(card_kasa=Coalesce(Sum('price'), Value(0)))['card_kasa']
                 ratio = (card - rent_payment) / kasa
                 if driver.schema.is_rent():
                     rate = float(ParkSettings.get_value("RENT_CASH_RATE", partner=partner_pk))
                 else:
                     rate = driver.schema.rate
-                enable = 'false' if ratio < rate else 'true'
-                bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"),
-                                 text=f"Готівка {enable} у {driver}")
+                enable = int(ratio > rate)
                 fleets_cash_trips.delay(partner_pk, driver.pk, enable)
     except Exception as e:
         logger.error(e)
@@ -312,7 +334,7 @@ def generate_payments(self, partner_pk, schema, day=None):
                     "fares": report["fares"],
                     "fee": report["fee"],
                     "total_amount_without_fee": report["without_fee"],
-                    "partner": Partner.get_partner(partner_pk),
+                    "partner": Partner.objects.get(pk=partner_pk),
                     "vehicle": auto
                 }
                 Payments.objects.get_or_create(report_from=start,
@@ -336,7 +358,7 @@ def generate_summary_report(self, partner_pk, schema, day=None):
                                        report_to=end,
                                        driver=driver,
                                        vehicle=driver.vehicle,
-                                       partner=Partner.get_partner(partner_pk))
+                                       partner_id=partner_pk)
                 fields = ("total_rides", "total_distance", "total_amount_cash",
                           "total_amount_on_card", "total_amount", "tips",
                           "bonuses", "fee", "total_amount_without_fee", "fares",
@@ -352,7 +374,7 @@ def generate_summary_report(self, partner_pk, schema, day=None):
 def get_car_efficiency(self, partner_pk):
     end = timezone.make_aware(datetime.combine(timezone.localtime().date(), time.min))
     start = end - timedelta(days=1)
-    for vehicle in Vehicle.objects.filter(partner=partner_pk):
+    for vehicle in Vehicle.objects.filter(partner=partner_pk, gps__isnull=False):
         efficiency = CarEfficiency.objects.filter(report_from=start,
                                                   partner=partner_pk,
                                                   vehicle=vehicle)
@@ -454,42 +476,43 @@ def get_driver_efficiency(self, partner_pk, schema, day=None):
 
 @app.task(bind=True, queue='beat_tasks')
 def update_driver_status(self, partner_pk):
-    try:
-        status_online = set()
-        status_with_client = set()
-        fleets = Fleet.objects.filter(partner=partner_pk).exclude(name='Gps')
-        for fleet in fleets:
-            statuses = fleet.get_drivers_status()
-            logger.info(f"{fleet} {statuses}")
-            status_online = status_online.union(set(statuses['wait']))
-            status_with_client = status_with_client.union(set(statuses['with_client']))
-        drivers = Driver.objects.get_active(partner=partner_pk)
-        for driver in drivers:
-            active_order = Order.objects.filter(driver=driver, status_order=Order.IN_PROGRESS)
-            work_ninja = UseOfCars.objects.filter(user_vehicle=driver, partner=partner_pk,
-                                                  created_at__date=timezone.localtime().date(), end_at=None).first()
-            if active_order or (driver.name, driver.second_name) in status_with_client:
-                current_status = Driver.WITH_CLIENT
-            elif (driver.name, driver.second_name) in status_online:
-                current_status = Driver.ACTIVE
-            else:
-                current_status = Driver.OFFLINE
-            driver.driver_status = current_status
-            driver.save()
-            if current_status != Driver.OFFLINE:
-                vehicle = check_vehicle(driver)[0]
-                if not work_ninja and vehicle and driver.chat_id:
-                    UseOfCars.objects.create(user_vehicle=driver,
-                                             partner_id=partner_pk,
-                                             licence_plate=vehicle.licence_plate,
-                                             chat_id=driver.chat_id)
-                logger.info(f'{driver}: {current_status}')
-            else:
-                if work_ninja:
-                    work_ninja.end_at = timezone.localtime()
-                    work_ninja.save()
-    except Exception as e:
-        logger.error(e)
+    with memcache_lock(self.name, self.app.oid) as acquired:
+        if acquired:
+            status_online = set()
+            status_with_client = set()
+            fleets = Fleet.objects.filter(partner=partner_pk).exclude(name='Gps')
+            for fleet in fleets:
+                statuses = fleet.get_drivers_status()
+                logger.info(f"{fleet} {statuses}")
+                status_online = status_online.union(set(statuses['wait']))
+                status_with_client = status_with_client.union(set(statuses['with_client']))
+            drivers = Driver.objects.get_active(partner=partner_pk)
+            for driver in drivers:
+                active_order = Order.objects.filter(driver=driver, status_order=Order.IN_PROGRESS)
+                work_ninja = UseOfCars.objects.filter(user_vehicle=driver, partner=partner_pk,
+                                                      created_at__date=timezone.localtime().date(), end_at=None).first()
+                if active_order or (driver.name, driver.second_name) in status_with_client:
+                    current_status = Driver.WITH_CLIENT
+                elif (driver.name, driver.second_name) in status_online:
+                    current_status = Driver.ACTIVE
+                else:
+                    current_status = Driver.OFFLINE
+                driver.driver_status = current_status
+                driver.save()
+                if current_status != Driver.OFFLINE:
+                    vehicle = check_vehicle(driver)[0]
+                    if not work_ninja and vehicle and driver.chat_id:
+                        UseOfCars.objects.create(user_vehicle=driver,
+                                                 partner_id=partner_pk,
+                                                 licence_plate=vehicle.licence_plate,
+                                                 chat_id=driver.chat_id)
+                    logger.info(f'{driver}: {current_status}')
+                else:
+                    if work_ninja:
+                        work_ninja.end_at = timezone.localtime()
+                        work_ninja.save()
+        else:
+            logger.info(f'{self.name}: passed')
 
 
 @app.task(bind=True, queue='bot_tasks')
@@ -521,14 +544,17 @@ def send_on_job_application_on_driver(self, job_id):
 @app.task(bind=True, queue='bot_tasks')
 def schedule_for_detaching_uklon(self, partner_pk):
     today = timezone.localtime().date()
-    reshuffles = DriverReshuffle.objects.filter(
-                    end_time__date=today,
-                    end_time__lt=timezone.make_aware(datetime.combine(today, time.max)),
-                    partner=partner_pk
-                    )
-    for reshuffle in reshuffles:
-        eta = timezone.localtime(reshuffle.end_time)
-        detaching_the_driver_from_the_car.apply_async((partner_pk, reshuffle.swap_vehicle.licence_plate, eta), eta=eta)
+    for vehicle in Vehicle.objects.filter(partner=partner_pk):
+        reshuffles = DriverReshuffle.objects.filter(
+                        swap_time__date=today,
+                        swap_vehicle=vehicle,
+                        end_time__lt=timezone.make_aware(datetime.combine(today, time.max)),
+                        partner=partner_pk
+                        )
+        for reshuffle in reshuffles:
+            eta = timezone.localtime(reshuffle.end_time)
+            detaching_the_driver_from_the_car.apply_async((partner_pk, reshuffle.swap_vehicle.licence_plate, eta),
+                                                          eta=eta)
 
 
 @app.task(bind=True, queue='bot_tasks', retry_backoff=30, max_retries=4)
@@ -563,6 +589,8 @@ def get_today_rent(self, partner_pk):
     try:
         gps = UaGpsSynchronizer.objects.get(partner=partner_pk)
         gps.check_today_rent()
+    except ObjectDoesNotExist:
+        return
     except Exception as e:
         logger.error(e)
         retry_delay = retry_logic(e, self.request.retries + 1)
@@ -573,13 +601,22 @@ def get_today_rent(self, partner_pk):
 def fleets_cash_trips(self, partner_pk, pk, enable):
     try:
         driver = Driver.objects.get(pk=pk)
+        if not redis_instance().exists(f"{driver.id}_cash_enable"):
+            redis_instance().set(f"{driver.id}_cash_enable", enable)
         fleets = Fleet.objects.filter(partner=partner_pk).exclude(name='Gps')
         for fleet in fleets:
             driver_id = driver.get_driver_external_id(fleet.name)
             if driver_id:
                 fleet.disable_cash(driver_id, enable)
-        message = f"Cash enabled for {driver}" if enable == 'true' else f"Cash disabled for {driver}"
-        logger.info(message)
+        if int(redis_instance().get(f"{driver.id}_cash_enable")) != enable:
+            if enable:
+                text = f"Готівка {driver} \U0001F7E2"
+            else:
+                text = f"Готівка {driver} \U0001F534"
+            bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"),
+                             text=text)
+        redis_instance().set(f"{driver.id}_cash_enable", enable)
+
     except Exception as e:
         logger.error(e)
         retry_delay = retry_logic(e, self.request.retries + 1)
@@ -591,6 +628,8 @@ def withdraw_uklon(self, partner_pk):
     try:
         fleet = UklonRequest.objects.get(partner=partner_pk)
         fleet.withdraw_money()
+    except ObjectDoesNotExist:
+        return
     except Exception as exc:
         logger.error(exc)
         retry_delay = retry_logic(exc, self.request.retries + 1)
@@ -607,7 +646,7 @@ def manager_paid_weekly(self, partner_pk):
 def send_driver_report(self, partner_pk, schema):
     result = []
     managers = list(Manager.objects.filter(
-        partner=partner_pk, chat_id__isnull=False).exclude(chat_id='').values_list('chat_id', flat=True))
+        managers_partner=partner_pk, chat_id__isnull=False).exclude(chat_id='').values_list('chat_id', flat=True))
     managers.extend(list(Partner.objects.filter(
         pk=partner_pk, chat_id__isnull=False).exclude(chat_id='').values_list('chat_id', flat=True)))
     for manager in managers:
@@ -622,8 +661,10 @@ def send_daily_statistic(self, partner_pk, schema):
     dict_msg = {}
     driver_schema = Schema.objects.get(pk=schema)
     managers = list(Manager.objects.filter(
-        partner=partner_pk, chat_id__isnull=False).exclude(chat_id='').values('chat_id') or Partner.objects.filter(
-        pk=partner_pk, chat_id__isnull=False).exclude(chat_id='').values('chat_id'))
+        managers_partner=partner_pk, chat_id__isnull=False).exclude(chat_id='').values('chat_id'))
+    if not managers:
+        managers = list(Partner.objects.filter(
+            pk=partner_pk, chat_id__isnull=False).exclude(chat_id='').values('chat_id'))
     for manager in managers:
         result = get_daily_report(manager['chat_id'], driver_schema)
         if result:
@@ -644,7 +685,7 @@ def send_daily_statistic(self, partner_pk, schema):
 def send_efficiency_report(self, partner_pk):
     message = ''
     dict_msg = {}
-    managers = list(Manager.objects.filter(partner=partner_pk).values('chat_id'))
+    managers = list(Manager.objects.filter(managers_partner=partner_pk).values('chat_id'))
     if not managers:
         managers = [Partner.objects.filter(pk=partner_pk).values('chat_id').first()]
     for manager in managers:
@@ -665,7 +706,7 @@ def send_driver_efficiency(self, partner_pk, schema):
     driver_dict_msg = {}
     dict_msg = {}
     driver_schema = Schema.objects.get(pk=schema)
-    managers = list(Manager.objects.filter(partner=partner_pk).values_list('chat_id', flat=True))
+    managers = list(Manager.objects.filter(managers_partner=partner_pk).values_list('chat_id', flat=True))
     if not managers:
         managers = [Partner.objects.filter(pk=partner_pk).values_list('chat_id', flat=True).first()]
     for manager in managers:
@@ -991,48 +1032,45 @@ def get_driver_reshuffles(self, partner, delta=0):
     day = timezone.localtime().date() - timedelta(days=delta)
     start = timezone.make_aware(datetime.combine(day, time.min))
     end = timezone.make_aware(datetime.combine(day, time.max))
-    obj_partner = list(Partner.objects.filter(pk=partner))
-    managers = list(Manager.objects.filter(partner=partner))
-    users = obj_partner + managers
-    for user in users:
-        try:
-            events = GoogleCalendar().get_list_events(user.calendar, start, end)
-            list_events = []
-            for event in events['items']:
-                calendar_event_id = event['id']
-                list_events.append(calendar_event_id)
-                event_summary = event['summary'].split(',')
-                licence_plate, driver = event_summary
-                name, second_name = driver.split()
-                driver_start = Driver.objects.filter(Q(name=name, second_name=second_name) |
-                                                     Q(name=second_name, second_name=name)).first()
-                vehicle = Vehicle.objects.filter(licence_plate=licence_plate.split()[0]).first()
-                try:
-                    swap_time = timezone.make_aware(datetime.strptime(event['start']['date'], "%Y-%m-%d"))
-                    end_time = timezone.make_aware(datetime.combine(swap_time, time.max))
-                except KeyError:
-                    swap_time = datetime.strptime(event['start']['dateTime'], "%Y-%m-%dT%H:%M:%S%z")
-                    end_time = datetime.strptime(event['end']['dateTime'], "%Y-%m-%dT%H:%M:%S%z")
-                if timezone.localtime(end_time).time() == time.min:
-                    end_time = timezone.make_aware(datetime.combine(swap_time, time.max))
-                obj_data = {
-                    "calendar_event_id": calendar_event_id,
-                    "swap_vehicle": vehicle,
-                    "driver_start": driver_start,
-                    "swap_time": swap_time,
-                    "end_time": end_time,
-                    "partner_id": partner
-                }
-                reshuffle = DriverReshuffle.objects.filter(calendar_event_id=calendar_event_id)
-                reshuffle.update(**obj_data) if reshuffle else DriverReshuffle.objects.create(**obj_data)
-            if delta:
-                deleted_reshuffles = DriverReshuffle.objects.filter(
-                    partner=partner,
-                    swap_time__date=day).exclude(calendar_event_id__in=list_events)
-                for reshuffle in deleted_reshuffles:
-                    reshuffle.delete()
-        except socket.timeout:
-            self.retry(args=[partner, delta], countdown=600)
+    user = Partner.objects.get(pk=partner)
+    try:
+        events = GoogleCalendar().get_list_events(user.calendar, start, end)
+        list_events = []
+        for event in events['items']:
+            calendar_event_id = event['id']
+            list_events.append(calendar_event_id)
+            event_summary = event['summary'].split(',')
+            licence_plate, driver = event_summary
+            name, second_name = driver.split()
+            driver_start = Driver.objects.filter(Q(name=name, second_name=second_name) |
+                                                 Q(name=second_name, second_name=name)).first()
+            vehicle = Vehicle.objects.filter(licence_plate=licence_plate.split()[0]).first()
+            try:
+                swap_time = timezone.make_aware(datetime.strptime(event['start']['date'], "%Y-%m-%d"))
+                end_time = timezone.make_aware(datetime.combine(swap_time, time.max))
+            except KeyError:
+                swap_time = datetime.strptime(event['start']['dateTime'], "%Y-%m-%dT%H:%M:%S%z")
+                end_time = datetime.strptime(event['end']['dateTime'], "%Y-%m-%dT%H:%M:%S%z")
+            if timezone.localtime(end_time).time() == time.min:
+                end_time = timezone.make_aware(datetime.combine(swap_time, time.max))
+            obj_data = {
+                "calendar_event_id": calendar_event_id,
+                "swap_vehicle": vehicle,
+                "driver_start": driver_start,
+                "swap_time": swap_time,
+                "end_time": end_time,
+                "partner_id": partner
+            }
+            reshuffle = DriverReshuffle.objects.filter(calendar_event_id=calendar_event_id)
+            reshuffle.update(**obj_data) if reshuffle else DriverReshuffle.objects.create(**obj_data)
+        if delta:
+            deleted_reshuffles = DriverReshuffle.objects.filter(
+                partner=partner,
+                swap_time__date=day).exclude(calendar_event_id__in=list_events)
+            for reshuffle in deleted_reshuffles:
+                reshuffle.delete()
+    except socket.timeout:
+        self.retry(args=[partner, delta], countdown=600)
 
 
 def save_report_to_ninja_payment(start, end, partner_pk, schema, fleet_name='Ninja'):
@@ -1176,8 +1214,14 @@ def update_schedule(self):
                 )
         else:
             day = '1' if db_task.weekly else '*'
-            hours = f"*/{db_task.task_time.strftime('%H')}" if db_task.periodic else db_task.task_time.strftime('%H')
+            hours = db_task.task_time.strftime('%H')
             minutes = db_task.task_time.strftime('%M')
+            if db_task.periodic:
+                if hours == "00":
+                    minutes = f"*/{minutes}"
+                    hours = "*"
+                else:
+                    hours = f"*/{hours}"
             schedule = get_schedule(hours, minutes, day)
 
             for partner in partners:
