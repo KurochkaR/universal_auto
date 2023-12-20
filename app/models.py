@@ -76,7 +76,6 @@ class PaymentTypes(models.TextChoices):
 
     @classmethod
     def map_payments(cls, payment):
-
         payment_type_mapping = {
             'app_payment': cls.CARD,
             'apple': cls.CARD,
@@ -219,7 +218,8 @@ class User(models.Model):
 
 class Manager(CustomUser):
     phone_number = models.CharField(max_length=13, blank=True, null=True, verbose_name='Номер телефона')
-    managers_partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
+    managers_partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True,
+                                         verbose_name='Партнер')
 
     class Meta:
         verbose_name = 'Менеджера'
@@ -228,7 +228,8 @@ class Manager(CustomUser):
 
 class Investor(CustomUser):
     phone_number = models.CharField(max_length=13, blank=True, null=True, verbose_name='Номер телефона')
-    investors_partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
+    investors_partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True,
+                                          verbose_name='Партнер')
 
     class Meta:
         verbose_name = 'Інвестора'
@@ -297,6 +298,7 @@ class VehicleSpending(models.Model):
         REPAIR = 'REPAIR', 'Ремонт'
         WASHING = 'WASHING', 'Мийка'
         OTHER = 'OTHER', 'Інше'
+
     vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE, null=True, verbose_name='Автомобіль')
     amount = models.DecimalField(decimal_places=2, max_digits=10, verbose_name='Сума')
     category = models.CharField(max_length=255, choices=Category.choices, verbose_name='Категорія витрат')
@@ -376,6 +378,8 @@ class DriverPayments(Earnings):
     rent_distance = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Орендована дистанція')
     rent_price = models.IntegerField(default=6, verbose_name='Ціна оренди')
     rent = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Оренда авто')
+    bonuses = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Бонуси')
+    fines = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Штрафи')
 
     class Meta:
         verbose_name = 'Виплати водію'
@@ -474,7 +478,6 @@ class NinjaFleet(Fleet):
 
 
 class Client(User):
-
     class Meta:
         verbose_name = 'Клієнта'
         verbose_name_plural = 'Клієнти'
@@ -892,7 +895,7 @@ class JobApplication(models.Model):
                                             verbose_name='Тильна сторона посвідчення')
     photo = models.ImageField(blank=True, upload_to='job/photo', verbose_name='Фото водія')
     car_documents = models.ImageField(blank=True, upload_to='job/car', default="docs/default_car.jpg",
-                                      verbose_name='Фото техпаспорту',)
+                                      verbose_name='Фото техпаспорту', )
     insurance = models.ImageField(blank=True, upload_to='job/insurance', default="docs/default_insurance.png",
                                   verbose_name='Автоцивілка')
     insurance_expired = models.DateField(default=date(2023, 12, 15), verbose_name='Термін дії автоцивілки')
@@ -997,9 +1000,6 @@ class DriverEfficiency(models.Model):
 
     def __str__(self):
         return f"{self.driver}"
-
-
-
 
 
 class UseOfCars(models.Model):

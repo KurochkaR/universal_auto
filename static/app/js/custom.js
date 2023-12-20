@@ -482,4 +482,15 @@ $(document).ready(function () {
 	closeFormAccessButton.on("click", function () {
 		investModal.hide();
 	});
+
+	var passwordInput = $('#password');
+	var showPasswordCheckbox = $('#showPassword');
+
+	showPasswordCheckbox.change(function () {
+		if (showPasswordCheckbox.is(':checked')) {
+			passwordInput.attr('type', 'text');
+		} else {
+			passwordInput.attr('type', 'password');
+		}
+	});
 });

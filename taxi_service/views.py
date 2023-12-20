@@ -2,6 +2,7 @@ import os
 
 import jwt
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db.models import Q
 
 from django.urls import reverse
 from django.shortcuts import render, redirect
@@ -136,12 +137,14 @@ class DashboardView(BaseDashboardView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["get_all_vehicle"] = Vehicle.objects.filter(
-            Q(manager=self.request.user) | Q(partner=self.request.user)
-        )
-        context["get_all_driver"] = Driver.objects.get_active(
-            Q(manager=self.request.user) | Q(partner=self.request.user)
-        )
+        user = self.request.user
+        if user.is_manager():
+            context["get_all_vehicle"] = Vehicle.objects.filter(manager=user)
+            context["get_all_driver"] = Driver.objects.get_active(manager=user)
+
+        elif user.is_partner():
+            context["get_all_vehicle"] = Vehicle.objects.filter(partner=user)
+            context["get_all_driver"] = Driver.objects.get_active(partner=user)
         return context
 
 
@@ -167,12 +170,14 @@ class DashboardCalendarView(BaseDashboardView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["get_all_vehicle"] = Vehicle.objects.filter(
-            Q(manager=self.request.user) | Q(partner=self.request.user)
-        )
-        context["get_all_driver"] = Driver.objects.get_active(
-            Q(manager=self.request.user) | Q(partner=self.request.user)
-        )
+        user = self.request.user
+        if user.is_manager():
+            context["get_all_vehicle"] = Vehicle.objects.filter(manager=user)
+            context["get_all_driver"] = Driver.objects.get_active(manager=user)
+
+        elif user.is_partner():
+            context["get_all_vehicle"] = Vehicle.objects.filter(partner=user)
+            context["get_all_driver"] = Driver.objects.get_active(partner=user)
         return context
 
 
