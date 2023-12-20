@@ -27,6 +27,7 @@
     </div>
   </div>
   {% endfor %}
+  {% include 'dashboard/_confirmation-update-database.html' %}
 </main>
 
 <!-- End Content -->
@@ -41,5 +42,6 @@
 
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.3/dist/jquery.min.js" defer></script>
 <script src="{% static 'dashboard/js/header-sidebar.js' %}" defer></script>
+<script src="{% static 'dashboard/js/scripts.js' %}" defer></script>
 </body>
 </html>

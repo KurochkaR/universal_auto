@@ -4,11 +4,87 @@
 {% include 'dashboard/dashboard-header-sidebar.html' %}
 
 <!-- Content -->
-
-
+<main class="main-container">
+  <div class="main-title">
+    <h2>{% trans 'Водії' %}</h2>
+  </div>
+  <div class="info-driver">
+    <div class="title-driver">
+      <h2>{% trans 'Виплати водіям' %}</h2>
+      <h2 class="income-drivers-date"></h2>
+    </div>
+<!--    <div class="filter">-->
+<!--      <label for="period">{% trans 'Виберіть період:' %}</label>-->
+<!--      <div class="custom-select-drivers" id="period">-->
+<!--        <span class="selected-option-drivers">{% trans 'Вчора' %}</span>-->
+<!--        <i class="fas fa-angle-down"></i>-->
+<!--        <ul class="options-drivers">-->
+<!--          <li data-value="yesterday">{% trans 'Вчора' %}</li>-->
+<!--          <li data-value="current_week">{% trans 'Поточний тиждень' %}</li>-->
+<!--          <li data-value="last_week">{% trans 'Минулий тиждень' %}</li>-->
+<!--          <li data-value="current_month">{% trans 'Поточний місяць' %}</li>-->
+<!--          <li data-value="last_month">{% trans 'Минулий місяць' %}</li>-->
+<!--          <li data-value="current_quarter">{% trans 'Поточний квартал' %}</li>-->
+<!--          <li data-value="last_quarter">{% trans 'Минулий квартал' %}</li>-->
+<!--          <li data-value="custom">{% trans 'Вибрати період >' %}</li>-->
+<!--        </ul>-->
+<!--      </div>-->
+<!--    </div>-->
+<!--    <div id="datePickerDriver" style="display: none;">-->
+<!--      <label for="start_report_driver">{% trans 'Початкова дата:' %}</label>-->
+<!--      <input type="date" id="start_report_driver" name="start_date">-->
+<!--      <label for="end_report_driver">{% trans 'Кінцева дата:' %}</label>-->
+<!--      <input type="date" id="end_report_driver" name="end_date">-->
+<!--      <input class="apply-filter-button_driver" type="button" onclick="applyCustomDateRangeVehicle()"-->
+<!--             value="{% trans 'Фільтрувати'%}">-->
+<!--    </div>-->
+    <table class="driver-table">
+      <thead>
+      <tr>
+        <th class="sortable" data-sort="driver">{% trans 'Водій' %}</th>
+        <th class="sortable" data-sort="kasa">{% trans 'Каса' %}</th>
+        <th class="sortable" data-sort="cash">{% trans 'Готівка' %}</th>
+        <th class="sortable" data-sort="rent">{% trans 'Оренда' %}</th>
+        <th class="sortable" data-sort="mileage">{% trans 'Бонуси' %}</th>
+        <th class="sortable" data-sort="efficiency">{% trans 'Штрафи' %}</th>
+        <th class="sortable" data-sort="salary">{% trans 'Зарплата' %}</th>
+        <th class="sortable" data-cort="success">{% trans 'Стан виплати' %}</th>
+      </tr>
+      </thead>
+      <tr>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+      </tr>
+    </table>
+  </div>
+<!--  <div class="driver-container">-->
+<!--    <div class="driver-block">-->
+<!--      <div class="driver-name">-->
+<!--        <h3>Ім'я водія</h3>-->
+<!--        <div class="arrow">▼</div>-->
+<!--      </div>-->
+<!--      <div class="driver-info">-->
+<!--        <p>Каса: $XXXX</p>-->
+<!--        <p>Кількість замовлень: XX</p>-->
+<!--        <p>Відсоток прийнятих замовлень: XX%</p>-->
+<!--        <p>Середній чек, грн: XXX</p>-->
+<!--        <p>Пробіг, км: XXXX</p>-->
+<!--        <p>Ефективність, грн/км: X.XX</p>-->
+<!--        <p>Час в дорозі: XX год.</p>-->
+<!--      </div>-->
+<!--    </div>-->
+<!--  </div>-->
+  {% include 'dashboard/_confirmation-update-database.html' %}
+</main>
 
 <!-- End Content -->
-
+</div>
 <!-- Scripts -->
 <script>
   const VehicleImg = "{% static 'app/images/index-one-block-2.webp' %}";
@@ -19,5 +95,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.3/dist/jquery.min.js" defer></script>
 <script src="{% static 'dashboard/js/header-sidebar.js' %}" defer></script>
+<script src="{% static 'dashboard/js/scripts-drivers.js' %}" defer></script>
+<script src="{% static 'dashboard/js/scripts.js' %}" defer></script>
 </body>
 </html>

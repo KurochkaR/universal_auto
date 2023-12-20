@@ -12,6 +12,16 @@ $(document).ready(function () {
 		return formattedDate;
 	}
 
+	function formatDateString(inputDateString) {
+    var parts = inputDateString.split('-');
+    if (parts.length === 3) {
+        var formattedDate = parts[2] + '.' + parts[1] + '.' + parts[0];
+        return formattedDate;
+    }
+    return inputDateString;
+	}
+
+
 	const formatTime = (date) => {
 		const hours = date.getHours().toString().padStart(2, '0');
 		const minutes = date.getMinutes().toString().padStart(2, '0');
@@ -327,7 +337,7 @@ $(document).ready(function () {
 			};
 
 			modalShiftTitle.text("Редагування зміни");
-			modalShiftDate.text(clickedDayId);
+			modalShiftDate.text(formatDateString(clickedDayId));
 			shiftDriver.val(driverId);
 			startTimeInput.val(startTime);
 			endTimeInput.val(endTime);
@@ -425,7 +435,7 @@ $(document).ready(function () {
 			const csrfTokenInput = $('input[name="csrfmiddlewaretoken"]');
 
 			modalShiftTitle.text("Створення зміни");
-			modalShiftDate.text(clickedDayId);
+			modalShiftDate.text(formatDateString(clickedDayId));
 			shiftForm.show();
 
 			shiftBtn.off('click').on('click', function (e) {
@@ -578,17 +588,21 @@ $(document).ready(function () {
 		});
 	}
 
-	function handleSearchChange($element, filterProperty, reshuffleProperty) {
-		$element.change(function () {
+	function handleSearchChange($element, filterProperty, reshuffleProperty, $otherElement) {
+    $element.change(function () {
 			fetchDataAndHandle.call(this, filterProperty, reshuffleProperty)
-			.then(function (filteredData) {
-				reshuffleHandler(filteredData);
-			})
-		});
+				.then(function (filteredData) {
+					reshuffleHandler(filteredData);
+				});
+			if ($otherElement) {
+				$otherElement.val("all");
+			}
+    });
 	}
 
-	handleSearchChange($("#search-vehicle-calendar"), "swap_licence", null);
-	handleSearchChange($("#search-shift-driver"), null, "reshuffles");
+
+	handleSearchChange($("#search-vehicle-calendar"), "swap_licence", null, $("#search-shift-driver"));
+	handleSearchChange($("#search-shift-driver"), null, "reshuffles", $("#search-vehicle-calendar"));
 
 	$(".refresh-search").click(function () {
 		$("#search-vehicle-calendar, #search-shift-driver").val("all").change();
