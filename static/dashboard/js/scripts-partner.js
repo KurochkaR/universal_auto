@@ -311,7 +311,6 @@ function fetchSummaryReportData(period, start, end) {
 							formattedNamesList.push(name);
 					}
 			});
-				console.log(formattedNamesList);
 				const total_card = driversData.map(driver => driver.total_card);
 				const total_cash = driversData.map(driver => driver.total_cash);
 				barChartOptions.series[1].data = total_card;

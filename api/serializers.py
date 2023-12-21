@@ -1,5 +1,7 @@
 from rest_framework import serializers
 
+from app.models import DriverPayments
+
 
 class AggregateReportSerializer(serializers.Serializer):
     full_name = serializers.CharField()
@@ -108,3 +110,15 @@ class DriverChangesSerializer(serializers.Serializer):
 class ReshuffleSerializer(serializers.Serializer):
     swap_licence = serializers.CharField()
     reshuffles = DriverChangesSerializer(many=True)
+
+
+class DriverPaymentsSerializer(serializers.ModelSerializer):
+    full_name = serializers.SerializerMethodField()
+
+    def get_full_name(self, obj):
+        return f"{obj.driver.user_ptr.name} {obj.driver.user_ptr.second_name}"
+
+    class Meta:
+        model = DriverPayments
+        fields = ('full_name', 'kasa', 'cash', 'rent', 'bonuses', 'fines', 'earning', 'status', 'report_from',
+                  'report_to', 'id')

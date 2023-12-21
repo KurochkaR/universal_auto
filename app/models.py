@@ -322,7 +322,8 @@ class Driver(User):
     OFFLINE = 'Не працюю'
     RENT = 'Орендую авто'
 
-    photo = models.ImageField(blank=True, null=True, upload_to='drivers', verbose_name='Фото водія')
+    photo = models.ImageField(blank=True, null=True, upload_to='drivers', verbose_name='Фото водія',
+                              default='drivers/default-driver.png')
     partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
     manager = models.ForeignKey(Manager, on_delete=models.SET_NULL, null=True, blank=True,
                                 verbose_name='Менеджер водіїв')
@@ -353,22 +354,22 @@ class FiredDriver(Driver):
         proxy = True
 
 
-class Earnings(PolymorphicModel):
-    PAYMENT_STATUS_CHOICES = [
-        ('checking', 'Перевіряється'),
-        ('pending', 'Очікується'),
-        ('completed', 'Виплачений'),
-        ('failed', 'Не сплачений'),
-    ]
+class PaymentsStatus(models.TextChoices):
+    CHECKING = 'checking', 'Перевіряється'
+    PENDING = 'pending', 'Очікується'
+    COMPLETED = 'completed', 'Виплачений'
+    FAILED = 'failed', 'Не сплачений'
 
+
+class Earnings(PolymorphicModel):
     report_from = models.DateField(verbose_name="Дохід з")
     report_to = models.DateField(verbose_name="Дохід по")
     earning = models.DecimalField(decimal_places=2, max_digits=10, verbose_name='Сума доходу')
-    status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='checking')
+    status = models.CharField(max_length=20, choices=PaymentsStatus.choices, default=PaymentsStatus.CHECKING)
     partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
 
     def is_completed(self):
-        return True if self.status == "completed" else False
+        return True if self.status == PaymentsStatus.COMPLETED else False
 
 
 class DriverPayments(Earnings):

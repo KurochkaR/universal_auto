@@ -447,7 +447,6 @@ $(document).ready(function() {
 				csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
 			},
 			success: function (response) {
-			console.log(response.success);
 				if (response.success === true) {
 					$("#thank-you-message").show();
 					$("#InvestModal").hide();
