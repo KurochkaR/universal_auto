@@ -4,6 +4,7 @@ import time
 from urllib import parse
 import requests
 from _decimal import Decimal
+from django.db.models import Sum
 from django.utils import timezone
 
 from django.db import models
@@ -166,7 +167,7 @@ class BoltRequest(Fleet, Synchronizer):
 
     def save_weekly_report(self, start, end, driver):
         time.sleep(0.5)
-        week_number = start.strftime('%G-W%V')
+        week_number = start.strftime('%GW%V')
         param = self.param()
         param.update({"week": week_number,
                       "search": str(driver),

@@ -20,7 +20,7 @@ from app.models import RawGPS, Vehicle, Order, Driver, JobApplication, ParkSetti
     Payments, SummaryReport, Manager, Partner, DriverEfficiency, FleetOrder, ReportTelegramPayments, \
     InvestorPayments, VehicleSpending, DriverReshuffle, DriverPayments, SalaryCalculation, \
     PaymentTypes, TaskScheduler, DriverEffVehicleKasa, Schema, CustomReport, FleetsDriversVehiclesRate, Fleet, \
-    VehicleGPS, PartnerEarnings, Investor
+    VehicleGPS, PartnerEarnings, Investor, WeeklyReport
 from django.db.models import Sum, IntegerField, FloatField, Q, Value, DecimalField
 from django.db.models.functions import Cast, Coalesce
 from app.utils import get_schedule, create_task
@@ -267,14 +267,30 @@ def download_daily_report(self, partner_pk, schema, day=None):
 def download_weekly_report(self, partner_pk):
     try:
         today = datetime.combine(timezone.localtime(), time.max)
-        end = today - timedelta(days=today.weekday() + 1)
-        start = end.date() - timedelta(days=6)
+        end = timezone.make_aware(today - timedelta(days=today.weekday() + 1))
+        start = timezone.make_aware(datetime.combine(end - timedelta(days=6), time.min))
         fleets = Fleet.objects.filter(partner=partner_pk).exclude(name='Gps')
         for fleet in fleets:
             for driver in Driver.objects.get_active(partner=partner_pk):
                 driver_id = driver.get_driver_external_id(fleet.name)
                 if driver_id:
                     fleet.save_weekly_report(start, end, driver)
+                    fields = ['total_amount_without_fee', 'total_amount_cash', 'total_amount_on_card']
+                    weekly = WeeklyReport.objects.filter(vendor=fleet, report_from=start, report_to=end,
+                                                         driver=driver).first()
+                    daily = CustomReport.objects.fitler(vendor=fleet, report_from=start, report_to=end, driver=driver)
+                    sum_daily = daily.aggregate(sum_total_amount_without_fee=Sum("total_amount_without_fee"),
+                                                sum_total_amount_cash=Sum("total_amount_cash"),
+                                                sum_total_amount_on_card=Sum("total_amount_on_card"), )
+                    for field in fields:
+                        weekly_value = getattr(weekly, field)
+                        sum_daily_value = sum_daily.get(f'sum_{field}', 0)
+                        if weekly_value > sum_daily_value:
+                            bot.send_message(chat_id=ParkSettings.get_value('DEVELOPER_CHAT_ID'),
+                                             text=f"{fleet.name} тиждень = {weekly_value},"
+                                                  f"по днях = {sum_daily_value} {driver}")
+                        else:
+                            continue
     except Exception as e:
         logger.error(e)
         retry_delay = retry_logic(e, self.request.retries + 1)

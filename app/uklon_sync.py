@@ -149,7 +149,7 @@ class UklonRequest(Fleet, Synchronizer):
         report = {
             "report_from": start,
             "report_to": end,
-            "vendor_name": self,
+            "vendor": self,
             "driver": driver,
             "total_rides": driver_report.get('total_orders_count', 0),
             "total_distance": self.to_float(distance, div=1000),
