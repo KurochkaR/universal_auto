@@ -131,10 +131,10 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
         if user.is_manager():
             context["get_all_vehicle"] = Vehicle.objects.filter(manager=user)
-            context["get_all_driver"] = Driver.objects.filter(manager=user, worked=True)
+            context["get_all_driver"] = Driver.objects.get_active(manager=user)
         elif user.is_partner():
             context["get_all_vehicle"] = Vehicle.objects.filter(partner=user)
-            context["get_all_driver"] = Driver.objects.filter(partner=user, worked=True)
+            context["get_all_driver"] = Driver.objects.get_active(partner=user)
 
         context["car_piggy_bank"] = CarsInformationListView.get_queryset(self)
 
