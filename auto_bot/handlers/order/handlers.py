@@ -535,7 +535,7 @@ def handle_callback_order(update, context):
     query = update.callback_query
     data = query.data.split(' ')
     driver = Driver.get_by_chat_id(chat_id=query.from_user.id)
-    vehicle = check_vehicle(driver)[0]
+    vehicle = check_vehicle(driver)
     order = Order.objects.filter(pk=int(data[1])).first()
     if order.status_order in (Order.COMPLETED, Order.IN_PROGRESS):
         query.edit_message_text(text=already_accepted)
@@ -652,7 +652,7 @@ def handle_order(update, context):
             query.edit_message_text(text=calc_price_text)
             start_route = redis_instance().hget(chat_id, 'start_route')
             s, e = int(start_route), int(timezone.localtime().timestamp())
-            vehicle = check_vehicle(driver)[0]
+            vehicle = check_vehicle(driver)
             get_distance_trip.delay(data[1], query.message.message_id, s, e, vehicle.gps_id)
         else:
             if redis_instance().hexists(chat_id, 'delivary_price_duty'):

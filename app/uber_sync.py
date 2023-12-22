@@ -1,8 +1,8 @@
 from datetime import datetime
 import requests
 from django.db import models
-from app.models import UberService, UberSession, FleetsDriversVehiclesRate, FleetOrder, Driver, \
-    CustomReport, Fleet, CredentialPartner
+from app.models import UberService, UberSession, FleetsDriversVehiclesRate, FleetOrder, \
+    CustomReport, Fleet, CredentialPartner, WeeklyReport
 from auto_bot.handlers.order.utils import check_vehicle
 from scripts.redis_conn import get_logger
 from selenium_ninja.driver import SeleniumTools
@@ -135,7 +135,7 @@ class UberRequest(Fleet, Synchronizer):
                             })
         return drivers
 
-    def save_report(self, start, end, driver):
+    def generate_report(self, start, end, driver):
         format_start = self.report_interval(start) * 1000
         format_end = self.report_interval(end) * 1000
         driver_id = driver.get_driver_external_id(self.name)
@@ -183,90 +183,48 @@ class UberRequest(Fleet, Synchronizer):
         data = self.get_payload(query, variables)
         response = requests.post(str(self.base_url), headers=self.get_header(), json=data)
         if response.status_code == 200 and response.json()['data']:
-            for report in response.json()['data']['getPerformanceReport']:
-                if report['totalEarnings']:
-                    vehicle = check_vehicle(driver, end, max_time=True)[0]
-                    payment = {
-                        "report_from": start,
-                        "report_to": end,
-                        "vendor_name": self.name,
-                        "driver_id": report['uuid'],
-                        "full_name": str(driver),
-                        "total_amount": round(report['totalEarnings'], 2),
-                        "total_amount_without_fee": round(report['totalEarnings'], 2),
-                        "total_amount_cash": round(report['cashEarnings'], 2),
-                        "total_rides": report['totalTrips'],
-                        "partner": self.partner,
-                        "vehicle": vehicle
-                    }
-                    db_report = CustomReport.objects.filter(report_from=start,
-                                                            driver_id=report['uuid'],
-                                                            vendor_name=self.name,
-                                                            partner=self.partner)
-                    db_report.update(**payment) if db_report else CustomReport.objects.create(**payment)
+            result = response.json()['data']['getPerformanceReport']
         else:
             get_logger().error(f"Failed save uber report {self.partner} {response.json()}")
+            result = []
+        return result
+
+    def parse_json_report(self, start, end, driver, report):
+        vehicle = check_vehicle(driver, end, max_time=True)
+        payment = {
+            "report_from": start,
+            "report_to": end,
+            "vendor": self,
+            "driver": driver,
+            "total_amount": round(report['totalEarnings'], 2),
+            "total_amount_without_fee": round(report['totalEarnings'], 2),
+            "total_amount_cash": round(report['cashEarnings'], 2),
+            "total_rides": report['totalTrips'],
+            "partner": self.partner,
+            "vehicle": vehicle
+        }
+        return payment
+
+    def custom_saving_report(self, start, end, driver, model):
+        reports = self.generate_report(start, end, driver)
+        for report in reports:
+            if report['totalEarnings']:
+                payment = self.parse_json_report(start, end, driver, report)
+                db_report = model.objects.filter(report_from=start,
+                                                 driver=driver,
+                                                 vendor=self,
+                                                 partner=self.partner)
+                db_report.update(**payment) if db_report else model.objects.create(**payment)
+
+    def save_report(self, start, end, driver):
+        self.custom_saving_report(start, end, driver, CustomReport)
+
+    def save_weekly_report(self, start, end, driver):
+        self.custom_saving_report(start, end, driver, WeeklyReport)
 
     def get_earnings_per_driver(self, driver, start_time, end_time):
-        driver_id = driver.get_driver_external_id(vendor=self.name)
-        start = int(start_time.timestamp()) * 1000
-        end = int(end_time.timestamp()) * 1000
-        query = '''query GetPerformanceReport($performanceReportRequest: PerformanceReportRequest__Input!) {
-                          getPerformanceReport(performanceReportRequest: $performanceReportRequest) {
-                            uuid
-                            totalEarnings
-                            hoursOnline
-                            totalTrips
-                            ... on DriverPerformanceDetail {
-                              cashEarnings
-                              driverAcceptanceRate
-                              driverCancellationRate
-                            }
-                            ... on VehiclePerformanceDetail {
-                              utilization
-                              vehicleIncentiveTarget
-                              vehicleIncentiveCompleted
-                              vehicleIncentiveEnrollmentStatus
-                              vehicleIncentiveUnit
-                            }
-                          }
-                        }'''
-        variables = {
-            "performanceReportRequest": {
-                "orgUUID": self.get_uuid(),
-                "dimensions": [
-                    "vs:driver"
-                ],
-                "dimensionFilterClause": [
-                    {
-                        "dimensionName": "vs:driver",
-                        "operator": "OPERATOR_IN",
-                        "expressions": driver_id
-                    }
-                ],
-                "metrics": [
-                    "vs:TotalEarnings",
-                    "vs:HoursOnline",
-                    "vs:TotalTrips",
-                    "vs:CashEarnings",
-                    "vs:DriverAcceptanceRate",
-                    "vs:DriverCancellationRate"
-                ],
-                "timeRange": {
-                    "startsAt": {
-                        "value": start
-                    },
-                    "endsAt": {
-                        "value": end
-                    }
-                }
-            }
-        }
-        data = self.get_payload(query, variables)
-        response = requests.post(str(self.base_url), headers=self.get_header(), json=data)
-        if response.status_code == 200 and response.json()['data']:
-            return response.json()['data']['getPerformanceReport'][0]['totalEarnings']
-        return 0
+        report = self.generate_report(start_time, end_time, driver)
+        return report[0]['totalEarnings'] if report else 0
 
     def get_drivers_status(self):
         query = '''query GetDriverEvents($orgUUID: String!) {

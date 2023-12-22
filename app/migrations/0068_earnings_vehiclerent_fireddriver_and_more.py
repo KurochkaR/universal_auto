@@ -8,11 +8,13 @@ import django.db.models.deletion
 def replace_driver_payments(apps, schema_editor):
     Payments = apps.get_model('app', 'DriverPayments')
     Earnings = apps.get_model('app', 'Earnings')
+    ContentType = apps.get_model('contenttypes', 'ContentType')
     for payment in Payments.objects.all():
         earning = Earnings.objects.create(report_from=payment.report_from,
                                           report_to=payment.report_to,
                                           earning=payment.salary,
                                           partner=payment.partner)
+        content_type = ContentType.objects.get_for_model(payment)
         payment.earnings_ptr = earning
         payment.save()
 

@@ -172,21 +172,6 @@ def get_orders_from_fleets(self, partner_pk, schema=None, day=None):
         raise self.retry(exc=e, countdown=retry_delay)
 
 
-@app.task(bind=True, queue='beat_tasks')
-def check_orders_for_vehicle(self, partner_pk, schema):
-    end, start = get_time_for_task(schema)[1:3]
-    orders = FleetOrder.objects.filter(accepted_time__range=(start, end), partner=partner_pk)
-    for driver in Driver.objects.get_active(partner=partner_pk).filter(schema=schema):
-        driver_orders = orders.filter(driver=driver)
-        vehicles = check_reshuffle(driver, start, end)
-        for vehicle, reshuffle in vehicles.items():
-            if not reshuffle:
-                vehicle_orders = orders.filter(vehicle=vehicle)
-                if not driver_orders and vehicle_orders:
-                    driver.vehicle = None
-                    driver.save()
-
-
 @app.task(bind=True, queue='beat_tasks', retry_backoff=30, max_retries=4)
 def get_today_orders(self, partner_pk):
     try:
@@ -249,7 +234,7 @@ def send_notify_to_check_car(self, partner_pk):
         wrong_cars = redis_instance().hgetall(f"wrong_vehicle_{partner_pk}")
         for driver, car in wrong_cars.items():
             driver_obj = Driver.objects.get(pk=int(driver))
-            vehicle = check_vehicle(driver_obj)[0]
+            vehicle = check_vehicle(driver_obj)
             if not vehicle or vehicle.licence_plate != car:
                 chat_id = driver_obj.manager.chat_id if driver_obj.manager else driver_obj.partner.chat_id
                 try:
@@ -272,6 +257,24 @@ def download_daily_report(self, partner_pk, schema, day=None):
                 driver_id = driver.get_driver_external_id(fleet.name)
                 if driver_id:
                     fleet.save_report(start, end, driver)
+    except Exception as e:
+        logger.error(e)
+        retry_delay = retry_logic(e, self.request.retries + 1)
+        raise self.retry(exc=e, countdown=retry_delay)
+
+
+@app.task(bind=True, queue='beat_tasks', retry_backoff=30, max_retries=4)
+def download_weekly_report(self, partner_pk):
+    try:
+        today = datetime.combine(timezone.localtime(), time.max)
+        end = today - timedelta(days=today.weekday() + 1)
+        start = end.date() - timedelta(days=6)
+        fleets = Fleet.objects.filter(partner=partner_pk).exclude(name='Gps')
+        for fleet in fleets:
+            for driver in Driver.objects.get_active(partner=partner_pk):
+                driver_id = driver.get_driver_external_id(fleet.name)
+                if driver_id:
+                    fleet.save_weekly_report(start, end, driver)
     except Exception as e:
         logger.error(e)
         retry_delay = retry_logic(e, self.request.retries + 1)
@@ -304,10 +307,10 @@ def generate_payments(self, partner_pk, schema, day=None):
     for fleet in fleets:
         for driver in Driver.objects.get_active(schema=schema):
             end, start = get_time_for_task(schema, day)[1:3]
-            driver_id = driver.get_driver_external_id(fleet.name)
             reports = CustomReport.objects.filter(
                 report_from__range=(start, end),
-                driver_id=driver_id).values('full_name', 'vehicle').annotate(
+                vendor=fleet,
+                driver=driver).values('vehicle').annotate(
                 without_fee=Sum('total_amount_without_fee'),
                 cash=Sum('total_amount_cash'),
                 amount=Sum('total_amount'),
@@ -339,9 +342,8 @@ def generate_payments(self, partner_pk, schema, day=None):
                 }
                 Payments.objects.get_or_create(report_from=start,
                                                report_to=end,
-                                               vendor_name=fleet.name,
-                                               driver_id=driver_id,
-                                               full_name=report["full_name"],
+                                               vendor=fleet,
+                                               driver=driver,
                                                partner=partner_pk,
                                                defaults={**data})
 
@@ -500,7 +502,7 @@ def update_driver_status(self, partner_pk):
                 driver.driver_status = current_status
                 driver.save()
                 if current_status != Driver.OFFLINE:
-                    vehicle = check_vehicle(driver)[0]
+                    vehicle = check_vehicle(driver)
                     if not work_ninja and vehicle and driver.chat_id:
                         UseOfCars.objects.create(user_vehicle=driver,
                                                  partner_id=partner_pk,
@@ -747,7 +749,7 @@ def check_personal_orders(self):
         distance = int(order.payment_hours) * int(ParkSettings.get_value('AVERAGE_DISTANCE_PER_HOUR'))
         notify_min = int(ParkSettings.get_value('PERSONAL_CLIENT_NOTIFY_MIN'))
         notify_km = int(ParkSettings.get_value('PERSONAL_CLIENT_NOTIFY_KM'))
-        vehicle = check_vehicle(order.driver)[0]
+        vehicle = check_vehicle(order.driver)
         gps = UaGpsSynchronizer.objects.get(partner=order.driver.partner)
         route = gps.generate_report(gps.get_timestamp(order.order_time),
                                     gps.get_timestamp(finish_time), vehicle.gps.gps_id)[0]
@@ -787,7 +789,7 @@ def add_money_to_vehicle(self, partner_pk):
     kasa = SummaryReport.objects.filter(report_from=day.date(), vehicle__in=investor_vehicles).aggregate(
         kasa=Coalesce(Sum('total_amount_without_fee'), 0, output_field=DecimalField())
     )['kasa']
-    for investor in Investor.objects.filter(partner=partner_pk):
+    for investor in Investor.objects.filter(investors_partner=partner_pk):
         vehicles = Vehicle.objects.filter(investor_car=investor)
         if vehicles:
             vehicle_kasa = kasa / vehicles.count()
@@ -860,7 +862,7 @@ def send_time_order(self):
             order.status_order, order.accepted_time = Order.IN_PROGRESS, timezone.localtime()
             order.save()
             if order.chat_id_client:
-                vehicle = check_vehicle(driver)[0]
+                vehicle = check_vehicle(driver)
                 lat, long = get_location_from_db(vehicle.licence_plate)
                 message = bot.sendLocation(order.chat_id_client, latitude=lat, longitude=long, live_period=1800)
                 send_map_to_client.delay(order.id, vehicle.licence_plate, message.message_id, message.chat_id)
@@ -916,7 +918,7 @@ def search_driver_for_order(self, order_pk):
                            button=inline_reject_order(order.pk))
         drivers = Driver.objects.get_active(chat_id__isnull=False)
         for driver in drivers:
-            vehicle = check_vehicle(driver)[0]
+            vehicle = check_vehicle(driver)
             if driver.driver_status == Driver.ACTIVE and vehicle:
                 driver_lat, driver_long = get_location_from_db(vehicle.licence_plate)
                 distance = haversine(float(driver_lat), float(driver_long),
@@ -1027,50 +1029,50 @@ def get_distance_trip(self, order, start_trip_with_client, end, gps_id):
         logger.info(e)
 
 
-@app.task(bind=True, max_retries=10, queue='beat_tasks')
-def get_driver_reshuffles(self, partner, delta=0):
-    day = timezone.localtime().date() - timedelta(days=delta)
-    start = timezone.make_aware(datetime.combine(day, time.min))
-    end = timezone.make_aware(datetime.combine(day, time.max))
-    user = Partner.objects.get(pk=partner)
-    try:
-        events = GoogleCalendar().get_list_events(user.calendar, start, end)
-        list_events = []
-        for event in events['items']:
-            calendar_event_id = event['id']
-            list_events.append(calendar_event_id)
-            event_summary = event['summary'].split(',')
-            licence_plate, driver = event_summary
-            name, second_name = driver.split()
-            driver_start = Driver.objects.filter(Q(name=name, second_name=second_name) |
-                                                 Q(name=second_name, second_name=name)).first()
-            vehicle = Vehicle.objects.filter(licence_plate=licence_plate.split()[0]).first()
-            try:
-                swap_time = timezone.make_aware(datetime.strptime(event['start']['date'], "%Y-%m-%d"))
-                end_time = timezone.make_aware(datetime.combine(swap_time, time.max))
-            except KeyError:
-                swap_time = datetime.strptime(event['start']['dateTime'], "%Y-%m-%dT%H:%M:%S%z")
-                end_time = datetime.strptime(event['end']['dateTime'], "%Y-%m-%dT%H:%M:%S%z")
-            if timezone.localtime(end_time).time() == time.min:
-                end_time = timezone.make_aware(datetime.combine(swap_time, time.max))
-            obj_data = {
-                "calendar_event_id": calendar_event_id,
-                "swap_vehicle": vehicle,
-                "driver_start": driver_start,
-                "swap_time": swap_time,
-                "end_time": end_time,
-                "partner_id": partner
-            }
-            reshuffle = DriverReshuffle.objects.filter(calendar_event_id=calendar_event_id)
-            reshuffle.update(**obj_data) if reshuffle else DriverReshuffle.objects.create(**obj_data)
-        if delta:
-            deleted_reshuffles = DriverReshuffle.objects.filter(
-                partner=partner,
-                swap_time__date=day).exclude(calendar_event_id__in=list_events)
-            for reshuffle in deleted_reshuffles:
-                reshuffle.delete()
-    except socket.timeout:
-        self.retry(args=[partner, delta], countdown=600)
+# @app.task(bind=True, max_retries=10, queue='beat_tasks')
+# def get_driver_reshuffles(self, partner, delta=0):
+#     day = timezone.localtime().date() - timedelta(days=delta)
+#     start = timezone.make_aware(datetime.combine(day, time.min))
+#     end = timezone.make_aware(datetime.combine(day, time.max))
+#     user = Partner.objects.get(pk=partner)
+#     try:
+#         events = GoogleCalendar().get_list_events(user.calendar, start, end)
+#         list_events = []
+#         for event in events['items']:
+#             calendar_event_id = event['id']
+#             list_events.append(calendar_event_id)
+#             event_summary = event['summary'].split(',')
+#             licence_plate, driver = event_summary
+#             name, second_name = driver.split()
+#             driver_start = Driver.objects.filter(Q(name=name, second_name=second_name) |
+#                                                  Q(name=second_name, second_name=name)).first()
+#             vehicle = Vehicle.objects.filter(licence_plate=licence_plate.split()[0]).first()
+#             try:
+#                 swap_time = timezone.make_aware(datetime.strptime(event['start']['date'], "%Y-%m-%d"))
+#                 end_time = timezone.make_aware(datetime.combine(swap_time, time.max))
+#             except KeyError:
+#                 swap_time = datetime.strptime(event['start']['dateTime'], "%Y-%m-%dT%H:%M:%S%z")
+#                 end_time = datetime.strptime(event['end']['dateTime'], "%Y-%m-%dT%H:%M:%S%z")
+#             if timezone.localtime(end_time).time() == time.min:
+#                 end_time = timezone.make_aware(datetime.combine(swap_time, time.max))
+#             obj_data = {
+#                 "calendar_event_id": calendar_event_id,
+#                 "swap_vehicle": vehicle,
+#                 "driver_start": driver_start,
+#                 "swap_time": swap_time,
+#                 "end_time": end_time,
+#                 "partner_id": partner
+#             }
+#             reshuffle = DriverReshuffle.objects.filter(calendar_event_id=calendar_event_id)
+#             reshuffle.update(**obj_data) if reshuffle else DriverReshuffle.objects.create(**obj_data)
+#         if delta:
+#             deleted_reshuffles = DriverReshuffle.objects.filter(
+#                 partner=partner,
+#                 swap_time__date=day).exclude(calendar_event_id__in=list_events)
+#             for reshuffle in deleted_reshuffles:
+#                 reshuffle.delete()
+#     except socket.timeout:
+#         self.retry(args=[partner, delta], countdown=600)
 
 
 def save_report_to_ninja_payment(start, end, partner_pk, schema, fleet_name='Ninja'):
@@ -1177,7 +1179,6 @@ def get_information_from_fleets(self, partner_pk, schema, day=None):
     task_chain = chain(
         download_daily_report.si(partner_pk, schema, day),
         get_orders_from_fleets.si(partner_pk, schema, day),
-        check_orders_for_vehicle.si(partner_pk, schema),
         generate_payments.si(partner_pk, schema, day),
         generate_summary_report.si(partner_pk, schema, day),
         calculate_driver_reports.si(partner_pk, schema, day),
@@ -1204,12 +1205,12 @@ def update_schedule(self):
             )
             for partner in partners:
                 PeriodicTask.objects.get_or_create(
-                    name=f'auto.tasks.{db_task.name}({partner.pk})',
+                    name=f'auto.tasks.{db_task.name}([{partner.pk}])',
                     task=f'auto.tasks.{db_task.name}',
                     defaults={
                         'interval': interval_schedule,
                         'start_time': next_execution_datetime,
-                        'args': partner.pk
+                        'args': [partner.pk]
                     }
                 )
         else:

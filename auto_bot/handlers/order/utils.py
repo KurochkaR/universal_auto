@@ -18,21 +18,11 @@ def validate_text(text):
 
 
 def check_reshuffle(driver, start, end):
-    vehicles = {}
     reshuffles = DriverReshuffle.objects.filter(
         Q(swap_time__range=(start, end)) |
         Q(end_time__range=(start, end)),
         driver_start=driver).distinct()
-    if reshuffles:
-        for reshuffle in reshuffles:
-            vehicle = reshuffle.swap_vehicle
-            if not vehicles.get(vehicle):
-                vehicles[vehicle] = [reshuffle]
-            else:
-                vehicles[vehicle].append(reshuffle)
-    else:
-        vehicles[driver.vehicle] = None
-    return vehicles
+    return reshuffles
 
 
 def check_vehicle(driver, date_time=timezone.localtime(), max_time=False):
@@ -41,8 +31,8 @@ def check_vehicle(driver, date_time=timezone.localtime(), max_time=False):
     reshuffle = DriverReshuffle.objects.filter(swap_time__lte=date_time,
                                                swap_time__date=date_time.date(),
                                                driver_start=driver).order_by("-swap_time").first()
-    vehicle = reshuffle.swap_vehicle if reshuffle else driver.vehicle
-    return vehicle, reshuffle
+    vehicle = reshuffle.swap_vehicle
+    return vehicle
 
 
 def buttons_addresses(address):

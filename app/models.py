@@ -37,6 +37,7 @@ class Role(models.TextChoices):
 
 class CustomUser(AbstractUser):
     chat_id = models.CharField(blank=True, max_length=10, verbose_name='Ідентифікатор чата')
+    # phone_number = models.CharField(max_length=13, blank=True, null=True, verbose_name='Номер телефона')
     role = models.CharField(max_length=25, default=Role.CLIENT, choices=Role.choices)
 
     def is_partner(self):
@@ -218,8 +219,7 @@ class User(models.Model):
 
 
 class Manager(CustomUser):
-    phone_number = models.CharField(max_length=13, blank=True, null=True, verbose_name='Номер телефона')
-    managers_partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
+    managers_partner = models.ForeignKey(Partner, on_delete=models.CASCADE, verbose_name='Партнер')
 
     class Meta:
         verbose_name = 'Менеджера'
@@ -227,8 +227,7 @@ class Manager(CustomUser):
 
 
 class Investor(CustomUser):
-    phone_number = models.CharField(max_length=13, blank=True, null=True, verbose_name='Номер телефона')
-    investors_partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
+    investors_partner = models.ForeignKey(Partner, on_delete=models.CASCADE, verbose_name='Партнер')
 
     class Meta:
         verbose_name = 'Інвестора'
@@ -313,19 +312,17 @@ class VehicleSpending(models.Model):
 
 
 class Driver(User):
-    ACTIVE = 'Готовий прийняти заказ'
+    ACTIVE = 'Онлайн'
     WITH_CLIENT = 'В дорозі'
     GET_ORDER = 'Приймаю замовлення'
     WAIT_FOR_CLIENT = 'Очікую клієнта'
     OFFLINE = 'Не працюю'
-    RENT = 'Орендую авто'
 
     photo = models.ImageField(blank=True, null=True, upload_to='drivers', verbose_name='Фото водія')
-    partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
+    partner = models.ForeignKey(Partner, on_delete=models.CASCADE, verbose_name='Партнер')
     manager = models.ForeignKey(Manager, on_delete=models.SET_NULL, null=True, blank=True,
                                 verbose_name='Менеджер водіїв')
-    vehicle = models.ForeignKey(Vehicle, on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Автомобіль')
-    driver_status = models.CharField(max_length=35, null=False, default=OFFLINE, verbose_name='Статус водія')
+    driver_status = models.CharField(max_length=35, default=OFFLINE, verbose_name='Статус водія')
     schema = models.ForeignKey(Schema, null=True, on_delete=models.SET_NULL, verbose_name='Схема роботи')
 
     class Meta:
@@ -363,7 +360,7 @@ class Earnings(PolymorphicModel):
     report_to = models.DateField(verbose_name="Дохід по")
     earning = models.DecimalField(decimal_places=2, max_digits=10, verbose_name='Сума доходу')
     status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='checking')
-    partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
+    partner = models.ForeignKey(Partner, on_delete=models.CASCADE, verbose_name='Партнер')
 
     def is_completed(self):
         return True if self.status == "completed" else False
@@ -412,7 +409,7 @@ class DriverReshuffle(models.Model):
     driver_start = models.ForeignKey(Driver, on_delete=models.SET_NULL, null=True, verbose_name="Водій")
     swap_time = models.DateTimeField(verbose_name="Час початку зміни")
     end_time = models.DateTimeField(verbose_name="Час завершення зміни")
-    partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
+    partner = models.ForeignKey(Partner, null=True, on_delete=models.CASCADE, verbose_name='Партнер')
 
 
 class RentInformation(models.Model):
@@ -421,7 +418,7 @@ class RentInformation(models.Model):
     driver = models.ForeignKey(Driver, on_delete=models.SET_NULL, null=True, verbose_name='Водій')
     rent_distance = models.DecimalField(null=True, blank=True, max_digits=6,
                                         decimal_places=2, verbose_name='Орендована дистанція')
-    partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
+    partner = models.ForeignKey(Partner, on_delete=models.CASCADE, verbose_name='Партнер')
     created_at = models.DateTimeField(editable=False, auto_now_add=True, verbose_name='Створено')
 
     class Meta:
@@ -436,7 +433,7 @@ class VehicleRent(models.Model):
                                         decimal_places=2, verbose_name='Орендована дистанція')
     driver = models.ForeignKey(Driver, on_delete=models.SET_NULL, null=True, verbose_name='Водій')
     vehicle = models.ForeignKey(Vehicle, on_delete=models.SET_NULL, null=True, verbose_name="Автомобіль")
-    partner = models.ForeignKey(Partner, null=True, on_delete=models.CASCADE, verbose_name='Партнери')
+    partner = models.ForeignKey(Partner, on_delete=models.CASCADE, verbose_name='Партнер')
 
 
 class Fleet(PolymorphicModel):
@@ -453,7 +450,7 @@ class Fleet(PolymorphicModel):
         verbose_name_plural = 'Автопарки'
 
     def __str__(self) -> str:
-        return f'{self.name}'
+        return f'{self.name} {self.partner}' if self.partner else f'{self.name}'
 
 
 class NinjaFleet(Fleet):
@@ -502,47 +499,7 @@ class SupportManager(User):
         verbose_name_plural = 'Менеджери служби підтримки'
 
 
-class Payments(models.Model):
-    report_from = models.DateTimeField(verbose_name='Звіт з')
-    report_to = models.DateTimeField(null=True, verbose_name='Звіт по')
-    vendor_name = models.CharField(max_length=30, default='Ninja', verbose_name='Агрегатор')
-    full_name = models.CharField(null=True, max_length=255, verbose_name='ПІ водія')
-    driver_id = models.CharField(null=True, max_length=50, verbose_name='Унікальний індифікатор водія')
-    total_amount_without_fee = models.DecimalField(decimal_places=2, max_digits=10, verbose_name='Чистий дохід')
-    total_amount_cash = models.DecimalField(decimal_places=2, max_digits=10, verbose_name='Готівкою')
-    total_amount_on_card = models.DecimalField(null=True, default=0, decimal_places=2, max_digits=10,
-                                               verbose_name='На картку')
-    total_amount = models.DecimalField(null=True, default=0, decimal_places=2, max_digits=10,
-                                       verbose_name='Загальна сума')
-    tips = models.DecimalField(null=True, default=0, decimal_places=2, max_digits=10, verbose_name='Чайові')
-    total_rides = models.PositiveIntegerField(null=True, default=0, verbose_name='Кількість поїздок')
-    total_distance = models.DecimalField(null=True, default=0, decimal_places=2,
-                                         max_digits=10, verbose_name='Пробіг під замовленням')
-    bonuses = models.DecimalField(null=True, default=0, decimal_places=2, max_digits=10, verbose_name='Бонуси')
-    fee = models.DecimalField(null=True, default=0, decimal_places=2, max_digits=10, verbose_name='Комісія')
-    fares = models.DecimalField(null=True, default=0, decimal_places=2, max_digits=10, verbose_name='Штрафи')
-    cancels = models.DecimalField(null=True, default=0, decimal_places=2, max_digits=10,
-                                  verbose_name='Плата за скасування')
-    compensations = models.DecimalField(null=True, default=0, decimal_places=2, max_digits=10,
-                                        verbose_name='Компенсації')
-    refunds = models.DecimalField(null=True, default=0, decimal_places=2, max_digits=10,
-                                  verbose_name='Повернення коштів')
-    vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Автомобіль')
-    partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Створено')
-    updated_at = models.DateTimeField(auto_now=True, verbose_name='Оновлено')
-
-    class Meta:
-        verbose_name = 'Звіт'
-        verbose_name_plural = 'Звіти'
-        unique_together = ('report_from', 'driver_id')
-
-    class Scopes:
-        def filter_by_driver_external_id(self, driver_external_id):
-            return self.filter(driver_id=driver_external_id)
-
-
-class SummaryReport(models.Model):
+class DriverReport(PolymorphicModel):
     report_from = models.DateTimeField(verbose_name='Звіт з')
     report_to = models.DateTimeField(null=True, verbose_name='Звіт по')
     driver = models.ForeignKey(Driver, on_delete=models.CASCADE, null=True, verbose_name='Водій')
@@ -567,37 +524,31 @@ class SummaryReport(models.Model):
     updated_at = models.DateTimeField(auto_now=True, verbose_name='Оновлено')
 
     class Meta:
+        verbose_name = 'Звіт водія'
+        verbose_name_plural = 'Зведені звіти'
+
+
+class Payments(DriverReport):
+    vendor = models.ForeignKey(Fleet, on_delete=models.CASCADE, verbose_name='Агрегатор')
+
+    class Meta:
+        verbose_name = 'Звіт'
+        verbose_name_plural = 'Звіти'
+
+
+class SummaryReport(DriverReport):
+
+    class Meta:
         verbose_name = 'Зведений звіт'
         verbose_name_plural = 'Зведені звіти'
 
 
-class CustomReport(models.Model):
-    report_from = models.DateTimeField(verbose_name='Звіт з')
-    report_to = models.DateTimeField(null=True, verbose_name='Звіт по')
-    vendor_name = models.CharField(max_length=30, default='Ninja', verbose_name='Агрегатор')
-    full_name = models.CharField(null=True, max_length=255, verbose_name='ПІ водія')
-    driver_id = models.CharField(null=True, max_length=50, verbose_name='Унікальний індифікатор водія')
-    total_amount_without_fee = models.DecimalField(decimal_places=2, max_digits=10, verbose_name='Чистий дохід')
-    total_amount_cash = models.DecimalField(decimal_places=2, max_digits=10, verbose_name='Готівкою')
-    total_amount_on_card = models.DecimalField(null=True, default=0, decimal_places=2, max_digits=10,
-                                               verbose_name='На картку')
-    total_amount = models.DecimalField(null=True, default=0, decimal_places=2, max_digits=10,
-                                       verbose_name='Загальна сума')
-    tips = models.DecimalField(null=True, default=0, decimal_places=2, max_digits=10, verbose_name='Чайові')
-    total_rides = models.PositiveIntegerField(null=True, default=0, verbose_name='Кількість поїздок')
-    total_distance = models.DecimalField(null=True, default=0, decimal_places=2,
-                                         max_digits=10, verbose_name='Пробіг під замовленням')
-    bonuses = models.DecimalField(null=True, default=0, decimal_places=2, max_digits=10, verbose_name='Бонуси')
-    fee = models.DecimalField(null=True, default=0, decimal_places=2, max_digits=10, verbose_name='Комісія')
-    fares = models.DecimalField(null=True, default=0, decimal_places=2, max_digits=10, verbose_name='Штрафи')
-    cancels = models.DecimalField(null=True, default=0, decimal_places=2, max_digits=10,
-                                  verbose_name='Плата за скасування')
-    compensations = models.DecimalField(null=True, default=0, decimal_places=2, max_digits=10,
-                                        verbose_name='Компенсації')
-    refunds = models.DecimalField(null=True, default=0, decimal_places=2, max_digits=10,
-                                  verbose_name='Повернення коштів')
-    vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Автомобіль')
-    partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
+class CustomReport(DriverReport):
+    vendor = models.ForeignKey(Fleet, on_delete=models.CASCADE, verbose_name='Агрегатор')
+
+
+class WeeklyReport(DriverReport):
+    vendor = models.ForeignKey(Fleet, on_delete=models.CASCADE, verbose_name='Агрегатор')
 
 
 class StatusChange(models.Model):
@@ -612,8 +563,8 @@ class StatusChange(models.Model):
 class FleetsDriversVehiclesRate(models.Model):
     fleet = models.ForeignKey(Fleet, on_delete=models.CASCADE, verbose_name='Агрегатор')
     driver = models.ForeignKey(Driver, null=True, on_delete=models.CASCADE, verbose_name='Водій')
-    driver_external_id = models.CharField(max_length=255, verbose_name='Унікальний індифікатор по автопарку')
-    partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
+    driver_external_id = models.CharField(max_length=255, verbose_name='Унікальний ідентифікатор по автопарку')
+    partner = models.ForeignKey(Partner, on_delete=models.CASCADE, verbose_name='Партнер')
     created_at = models.DateTimeField(editable=False, auto_now_add=True, verbose_name='Створено')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='Оновлено')
     deleted_at = models.DateTimeField(null=True, blank=True, verbose_name='Видалено')
@@ -631,7 +582,7 @@ class DriverSchemaRate(models.Model):
     period = models.CharField(max_length=25, choices=SalaryCalculation.choices, verbose_name='Період розрахунку')
     threshold = models.DecimalField(decimal_places=2, max_digits=15, default=0, verbose_name="Поріг доходу")
     rate = models.DecimalField(decimal_places=2, max_digits=3, default=0, verbose_name="Відсоток")
-    partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
+    partner = models.ForeignKey(Partner, on_delete=models.CASCADE, verbose_name='Партнер')
 
     class Meta:
         verbose_name = 'Тариф водія'
@@ -764,7 +715,7 @@ class Order(models.Model):
     distance_gps = models.CharField(max_length=10, blank=True, null=True, verbose_name='Дистанція по GPS')
     distance_google = models.CharField(max_length=10, verbose_name='Дистанція Google')
     driver = models.ForeignKey(Driver, null=True, on_delete=models.RESTRICT, verbose_name='Виконувач')
-    accepted_time = models.DateTimeField(blank=True, null=True, verbose_name='Час прийняття замовленя')
+    accepted_time = models.DateTimeField(blank=True, null=True, verbose_name='Час прийняття замовлення')
     finish_time = models.DateTimeField(blank=True, null=True, verbose_name='Час завершення замовлення')
     created_at = models.DateTimeField(editable=False, auto_now_add=True, verbose_name='Cтворено')
     comment = models.OneToOneField(Comment, null=True, on_delete=models.SET_NULL, verbose_name='Відгук')
@@ -783,9 +734,9 @@ class ReportTelegramPayments(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Замовлення')
 
     provider_payment_charge_id = models.CharField(max_length=50,
-                                                  verbose_name='Унікальний індитифікатор оплати в провайдері')
+                                                  verbose_name='Ідентифікатор оплати в провайдері')
     telegram_payment_charge_id = models.CharField(max_length=50,
-                                                  verbose_name='Унікальний індитифікатор оплати в телеграмі')
+                                                  verbose_name='Ідентифікатор оплати в телеграмі')
     currency = models.CharField(max_length=24, verbose_name='Валюта')
     total_amount = models.PositiveIntegerField(verbose_name='Сума оплати')
 
@@ -808,7 +759,7 @@ class FleetOrder(models.Model):
     driver = models.ForeignKey(Driver, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Водій')
     from_address = models.CharField(max_length=255, null=True, verbose_name='Місце посадки')
     destination = models.CharField(max_length=255, blank=True, null=True, verbose_name='Місце висадки')
-    accepted_time = models.DateTimeField(blank=True, null=True, verbose_name='Час прийняття замовленя')
+    accepted_time = models.DateTimeField(blank=True, null=True, verbose_name='Час прийняття замовлення')
     finish_time = models.DateTimeField(blank=True, null=True, verbose_name='Час завершення замовлення')
     distance = models.DecimalField(null=True, decimal_places=2, max_digits=6, verbose_name="Відстань за маршрутом")
     road_time = models.DurationField(null=True, blank=True, verbose_name='Час в дорозі')
@@ -999,12 +950,9 @@ class DriverEfficiency(models.Model):
         return f"{self.driver}"
 
 
-
-
-
 class UseOfCars(models.Model):
     user_vehicle = models.CharField(max_length=255, verbose_name='Користувач автомобіля')
-    chat_id = models.CharField(blank=True, max_length=10, verbose_name='Індетифікатор чата')
+    chat_id = models.CharField(blank=True, max_length=10, verbose_name='Ідентифікатор чата')
     licence_plate = models.CharField(max_length=24, verbose_name='Номерний знак')
     partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='Дата використання авто')
@@ -1106,7 +1054,7 @@ class UberSession(models.Model):
 
 
 class UserBank(models.Model):
-    chat_id = models.CharField(blank=True, max_length=10, verbose_name='Індетифікатор чата')
+    chat_id = models.CharField(blank=True, max_length=10, verbose_name='Ідентифікатор чата')
     duty = models.IntegerField(default=0, verbose_name='Борг')
 
     class Meta:

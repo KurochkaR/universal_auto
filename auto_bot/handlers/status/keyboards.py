@@ -5,8 +5,7 @@ from auto_bot.handlers.status.static_text import CORRECT_AUTO, NOT_CORRECT_AUTO,
 
 status_buttons = [
     [KeyboardButton(Driver.ACTIVE)],
-    [KeyboardButton(Driver.OFFLINE)],
-    [KeyboardButton(Driver.RENT)]
+    [KeyboardButton(Driver.OFFLINE)]
 ]
 
 
