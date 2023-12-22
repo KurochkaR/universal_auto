@@ -954,7 +954,7 @@ class CarEfficiency(models.Model):
     report_from = models.DateTimeField(verbose_name='Звіт з')
     report_to = models.DateTimeField(null=True, verbose_name='Звіт по')
     drivers = models.ManyToManyField(Driver, through="DriverEffVehicleKasa", verbose_name='Водії', db_index=True)
-    # vehicle = models.ForeignKey(Vehicle, null=True, on_delete=models.CASCADE, verbose_name='Автомобіль', db_index=True)
+    vehicle = models.ForeignKey(Vehicle, null=True, on_delete=models.CASCADE, verbose_name='Автомобіль', db_index=True)
     total_kasa = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Каса')
     clean_kasa = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Чистий дохід')
     total_spending = models.DecimalField(null=True, decimal_places=2, max_digits=10, default=0, verbose_name='Витрати')
