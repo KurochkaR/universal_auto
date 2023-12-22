@@ -332,7 +332,10 @@ def send_into_group(sender=None, **kwargs):
             vehicle = check_vehicle(driver, yesterday, max_time=True)
             if vehicle:
                 if vehicle.chat_id and message:
-                    bot.send_message(chat_id=vehicle.chat_id, text=message)
+                    try:
+                        bot.send_message(chat_id=vehicle.chat_id, text=message)
+                    except BadRequest:
+                        pass
 
 
 @task_postrun.connect

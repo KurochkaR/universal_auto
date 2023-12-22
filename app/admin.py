@@ -39,36 +39,8 @@ class SoftDeleteAdmin(admin.ModelAdmin):
             self.delete_selected, 'delete_selected', _(f"Видалити обрані {self.model._meta.verbose_name_plural}"))
         return actions
 
-    # Override get_queryset to exclude soft-deleted instances by default
     def get_queryset(self, request):
         return super().get_queryset(request).exclude(deleted_at__isnull=False)
-
-
-def filter_queryset_by_group(*groups):
-    def decorator(model_admin_class):
-        class FilteredModelAdmin(model_admin_class):
-            def get_queryset(self, request):
-                queryset = super().get_queryset(request)
-                if request.user.groups.filter(name='Investor').exists():
-
-                    try:
-                        queryset = queryset.filter(vehicle__investor_car__user=request.user)
-                    except FieldError:
-                        queryset = queryset.filter(investor_car__user=request.user)
-                if request.user.groups.filter(name='Manager').exists():
-                    try:
-                        queryset = queryset.filter(manager__user=request.user)
-                    except FieldError:
-                        pass
-
-                if request.user.groups.filter(name='Partner').exists():
-                    queryset = queryset.filter(partner__user=request.user)
-
-                return queryset
-
-        return FilteredModelAdmin
-
-    return decorator
 
 
 # class FleetChildAdmin(PolymorphicChildModelAdmin):
@@ -217,7 +189,8 @@ class SchemaAdmin(admin.ModelAdmin):
     def get_fieldsets(self, request, obj=None):
         if request.user.is_partner():
             fieldsets = [
-                ('Деталі', {'fields': ['title', 'schema', 'rate', 'plan', 'rental', 'rent_price', 'limit_distance', 'shift_time', 'salary_calculation']}),
+                ('Деталі', {'fields': ['title', 'schema', 'rate', 'plan', 'rental', 'rent_price', 'limit_distance',
+                                       'shift_time', 'salary_calculation']}),
             ]
             return fieldsets
         return super().get_fieldsets(request)
@@ -237,10 +210,6 @@ class DriverRateLevelsAdmin(admin.ModelAdmin):
     list_display = ['period', 'threshold', 'rate']
     list_per_page = 25
     list_filter = ("period",)
-    readonly_fields = ('period',)
-
-    def get_readonly_fields(self, request, obj=None):
-        return self.readonly_fields if not request.user.is_superuser else tuple()
 
     def get_fieldsets(self, request, obj=None):
         fieldsets = [

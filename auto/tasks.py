@@ -425,55 +425,56 @@ def get_car_efficiency(self, partner_pk):
 
 @app.task(bind=True, queue='beat_tasks')
 def get_driver_efficiency(self, partner_pk, schema, day=None):
-    end, start = get_time_for_task(schema, day)[1:3]
-    for driver in Driver.objects.get_active(partner=partner_pk, schema=schema):
-        efficiency = DriverEfficiency.objects.filter(report_from=start,
-                                                     partner=partner_pk,
-                                                     driver=driver)
-        if not efficiency:
-            accept = 0
-            avg_price = 0
-            total_km, driver_vehicles = UaGpsSynchronizer.objects.get(
-                                partner=partner_pk).calc_total_km(driver, start, end)
-            if driver_vehicles:
-                report = SummaryReport.objects.filter(report_from=start, driver=driver).first()
-                total_kasa = report.total_amount_without_fee if report else 0
-                result = Decimal(total_kasa) / Decimal(total_km) if total_km else 0
-                orders = FleetOrder.objects.filter(driver=driver, accepted_time__range=(start, end))
-                total_orders = orders.count()
-                if total_orders:
-                    canceled = orders.filter(state=FleetOrder.DRIVER_CANCEL).count()
-                    completed = orders.filter(state=FleetOrder.COMPLETED).count()
-                    accept = int((total_orders - canceled) / total_orders * 100) if canceled else 100
-                    avg_price = Decimal(total_kasa) / Decimal(completed) if completed else 0
-                hours_online = timedelta()
-                using_info = UseOfCars.objects.filter(created_at__range=(start, end), user_vehicle=driver)
-                for report in using_info:
-                    if report.end_at:
-                        if report.end_at < end:
-                            hours_online += report.end_at - report.created_at
-                    else:
-                        hours_online += end - report.created_at
-                if start.time() == time.min:
-                    yesterday = start - timedelta(days=1)
-                    last_using = UseOfCars.objects.filter(created_at__date=yesterday,
-                                                          user_vehicle=driver,
-                                                          end_at__date=start).first()
-                    if last_using:
-                        hours_online += last_using.end_at - start
+    if Fleet.objects.filter(partner=partner_pk, name="Gps").exists():
+        end, start = get_time_for_task(schema, day)[1:3]
+        for driver in Driver.objects.get_active(partner=partner_pk, schema=schema):
+            efficiency = DriverEfficiency.objects.filter(report_from=start,
+                                                         partner=partner_pk,
+                                                         driver=driver)
+            if not efficiency:
+                accept = 0
+                avg_price = 0
+                total_km, driver_vehicles = UaGpsSynchronizer.objects.get(
+                                    partner=partner_pk).calc_total_km(driver, start, end)
+                if driver_vehicles:
+                    report = SummaryReport.objects.filter(report_from=start, driver=driver).first()
+                    total_kasa = report.total_amount_without_fee if report else 0
+                    result = Decimal(total_kasa) / Decimal(total_km) if total_km else 0
+                    orders = FleetOrder.objects.filter(driver=driver, accepted_time__range=(start, end))
+                    total_orders = orders.count()
+                    if total_orders:
+                        canceled = orders.filter(state=FleetOrder.DRIVER_CANCEL).count()
+                        completed = orders.filter(state=FleetOrder.COMPLETED).count()
+                        accept = int((total_orders - canceled) / total_orders * 100) if canceled else 100
+                        avg_price = Decimal(total_kasa) / Decimal(completed) if completed else 0
+                    hours_online = timedelta()
+                    using_info = UseOfCars.objects.filter(created_at__range=(start, end), user_vehicle=driver)
+                    for report in using_info:
+                        if report.end_at:
+                            if report.end_at < end:
+                                hours_online += report.end_at - report.created_at
+                        else:
+                            hours_online += end - report.created_at
+                    if start.time() == time.min:
+                        yesterday = start - timedelta(days=1)
+                        last_using = UseOfCars.objects.filter(created_at__date=yesterday,
+                                                              user_vehicle=driver,
+                                                              end_at__date=start).first()
+                        if last_using:
+                            hours_online += last_using.end_at - start
 
-                driver_efficiency = DriverEfficiency.objects.create(report_from=start,
-                                                                    report_to=end,
-                                                                    driver=driver,
-                                                                    total_kasa=total_kasa,
-                                                                    total_orders=total_orders,
-                                                                    accept_percent=accept,
-                                                                    average_price=avg_price,
-                                                                    mileage=total_km or 0,
-                                                                    online_time=hours_online,
-                                                                    efficiency=result,
-                                                                    partner_id=partner_pk)
-                driver_efficiency.vehicles.add(*driver_vehicles)
+                    driver_efficiency = DriverEfficiency.objects.create(report_from=start,
+                                                                        report_to=end,
+                                                                        driver=driver,
+                                                                        total_kasa=total_kasa,
+                                                                        total_orders=total_orders,
+                                                                        accept_percent=accept,
+                                                                        average_price=avg_price,
+                                                                        mileage=total_km or 0,
+                                                                        online_time=hours_online,
+                                                                        efficiency=result,
+                                                                        partner_id=partner_pk)
+                    driver_efficiency.vehicles.add(*driver_vehicles)
 
 
 @app.task(bind=True, queue='beat_tasks')
@@ -546,11 +547,12 @@ def send_on_job_application_on_driver(self, job_id):
 @app.task(bind=True, queue='bot_tasks')
 def schedule_for_detaching_uklon(self, partner_pk):
     today = timezone.localtime().date()
+    desired_time = time(23, 59, 0)
     for vehicle in Vehicle.objects.filter(partner=partner_pk):
         reshuffles = DriverReshuffle.objects.filter(
                         swap_time__date=today,
                         swap_vehicle=vehicle,
-                        end_time__lt=timezone.make_aware(datetime.combine(today, time.max)),
+                        end_time__lt=timezone.make_aware(datetime.combine(today, desired_time)),
                         partner=partner_pk
                         )
         for reshuffle in reshuffles:
@@ -559,7 +561,7 @@ def schedule_for_detaching_uklon(self, partner_pk):
                                                           eta=eta)
 
 
-@app.task(bind=True, queue='bot_tasks', retry_backoff=30, max_retries=4)
+@app.task(bind=True, queue='bot_tasks', retry_backoff=30, max_retries=1)
 def detaching_the_driver_from_the_car(self, partner_pk, licence_plate, eta):
     try:
         bot.send_message(chat_id=ParkSettings.get_value('DEVELOPER_CHAT_ID'),
