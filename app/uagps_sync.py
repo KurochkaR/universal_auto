@@ -101,7 +101,8 @@ class UaGpsSynchronizer(Fleet):
     def get_road_distance(self, start, end, schema=None):
         road_dict = {}
         drivers = Driver.objects.get_active(
-            partner=self.partner, schema=schema) if schema else Driver.objects.get_active(partner=self.partner)
+            partner=self.partner, schema=schema) if schema else Driver.objects.get_active(partner=self.partner,
+                                                                                          schema__isnull=False)
         for driver in drivers:
             if RentInformation.objects.filter(report_to=end, driver=driver):
                 continue
@@ -317,6 +318,7 @@ class UaGpsSynchronizer(Fleet):
                     get_logger().error(e)
                     continue
             rent_distance = total_km - distance
-            time_now = timezone.localtime(end_time).strftime("%H:%M")
-            bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"),
-                             text=f"Орендовано на {time_now} {driver} - {rent_distance}")
+            if rent_distance > driver.schema.limit_distance:
+                time_now = timezone.localtime(end_time).strftime("%H:%M")
+                bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"),
+                                 text=f"Орендовано на {time_now} {driver} - {rent_distance}")
