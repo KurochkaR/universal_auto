@@ -88,7 +88,14 @@ TEMPLATES = [
 WSGI_APPLICATION = 'auto.wsgi.application'
 
 DATABASES = {
-    'default': dj_database_url.parse(os.environ.get('DATABASE_URL'), conn_max_age=240),
+    'default': dj_database_url.parse(os.environ.get("DATABASE_URL"), conn_max_age=240),
+}
+
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": os.environ.get("REDIS_URL"),
+    }
 }
 
 # Password validation
