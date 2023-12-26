@@ -553,16 +553,17 @@ def send_on_job_application_on_driver(self, job_id):
 
 @app.task(bind=True, queue='bot_tasks')
 def schedule_for_detaching_uklon(self, partner_pk):
-    today = timezone.localtime().date()
-    desired_time = time(23, 59, 0)
+    today = timezone.localtime()
+    desired_time = today + timedelta(hours=1)
     for vehicle in Vehicle.objects.filter(partner=partner_pk):
-        reshuffles = DriverReshuffle.objects.filter(
-                        swap_time__date=today,
+        reshuffle = DriverReshuffle.objects.filter(
+                        swap_time__date=today.date(),
                         swap_vehicle=vehicle,
-                        end_time__lt=timezone.make_aware(datetime.combine(today, desired_time)),
+                        end_time__lt=desired_time,
+                        end_time__gte=today,
                         partner=partner_pk
-                        )
-        for reshuffle in reshuffles:
+                        ).first()
+        if reshuffle:
             eta = timezone.localtime(reshuffle.end_time)
             detaching_the_driver_from_the_car.apply_async((partner_pk, reshuffle.swap_vehicle.licence_plate, eta),
                                                           eta=eta)
@@ -570,18 +571,16 @@ def schedule_for_detaching_uklon(self, partner_pk):
 
 @app.task(bind=True, queue='bot_tasks', retry_backoff=30, max_retries=1)
 def detaching_the_driver_from_the_car(self, partner_pk, licence_plate, eta):
-    with memcache_lock(self.name, self.app.oid, 270) as acquired:
-        if acquired:
-            try:
-                bot.send_message(chat_id=ParkSettings.get_value('DEVELOPER_CHAT_ID'),
-                                 text=f"Авто {licence_plate} відключено {eta}")
-                # fleet = UklonRequest.objects.get(partner=partner_pk)
-                # fleet.detaching_the_driver_from_the_car(licence_plate)
-                # logger.info(f'Car {licence_plate} was detached')
-            except Exception as e:
-                logger.error(e)
-                retry_delay = retry_logic(e, self.request.retries + 1)
-                raise self.retry(exc=e, countdown=retry_delay)
+        try:
+            bot.send_message(chat_id=ParkSettings.get_value('DEVELOPER_CHAT_ID'),
+                             text=f"Авто {licence_plate} відключено {eta}")
+            # fleet = UklonRequest.objects.get(partner=partner_pk)
+            # fleet.detaching_the_driver_from_the_car(licence_plate)
+            # logger.info(f'Car {licence_plate} was detached')
+        except Exception as e:
+            logger.error(e)
+            retry_delay = retry_logic(e, self.request.retries + 1)
+            raise self.retry(exc=e, countdown=retry_delay)
 
 
 @app.task(bind=True, queue='beat_tasks', retry_backoff=30, max_retries=4)
@@ -1197,13 +1196,6 @@ def get_information_from_fleets(self, partner_pk, schema, day=None):
         calculate_driver_reports.si(partner_pk, schema, day),
         get_driver_efficiency.si(partner_pk, schema, day),
         get_rent_information.si(partner_pk, schema, day),
-    )
-    task_chain()
-
-
-@app.task(bind=True, queue='beat_tasks')
-def send_information(self, partner_pk, schema):
-    task_chain = chain(
         send_daily_statistic.si(partner_pk, schema),
         send_driver_efficiency.si(partner_pk, schema),
         send_driver_report.si(partner_pk, schema)
