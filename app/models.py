@@ -48,10 +48,10 @@ class CustomUser(AbstractUser):
     def is_investor(self):
         return self.role == Role.INVESTOR
 
-    @staticmethod
-    def get_by_chat_id(chat_id):
+    @classmethod
+    def get_by_chat_id(cls, chat_id):
         try:
-            return CustomUser.objects.get(chat_id=chat_id)
+            return cls.objects.get(chat_id=chat_id)
         except ObjectDoesNotExist:
             return None
 
