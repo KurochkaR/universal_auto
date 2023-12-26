@@ -58,6 +58,7 @@ class PostRequestView(View):
             "delete_all_shift": handler.handler_delete_shift,
             "update_shift": handler.handler_update_shift,
             "update_all_shift": handler.handler_update_shift,
+            "upd-payments": handler.handler_update_payments,
         }
 
         if action in method:

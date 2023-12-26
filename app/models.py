@@ -379,8 +379,6 @@ class DriverPayments(Earnings):
     rent_distance = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Орендована дистанція')
     rent_price = models.IntegerField(default=6, verbose_name='Ціна оренди')
     rent = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Оренда авто')
-    bonuses = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Бонуси')
-    fines = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Штрафи')
 
     class Meta:
         verbose_name = 'Виплати водію'
@@ -388,6 +386,33 @@ class DriverPayments(Earnings):
 
     def __str__(self):
         return f"{self.driver}"
+
+
+class PenaltyBonus(PolymorphicModel):
+    amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Сума')
+    description = models.CharField(max_length=255, null=True, verbose_name='Опис')
+
+    class Meta:
+        verbose_name = 'Штраф/Бонус'
+        verbose_name_plural = 'Штрафи та Бонуси'
+
+    @classmethod
+    def get_amount(cls, default=None):
+        try:
+            penalty_bonus = cls.objects.first()
+        except (ProgrammingError, ObjectDoesNotExist):
+            return default
+        return penalty_bonus.amount
+
+
+class Penalty(PenaltyBonus):
+    driver_payments = models.ForeignKey(DriverPayments, null=True, blank=True, verbose_name='Виплата водію',
+                                        on_delete=models.CASCADE)
+
+
+class Bonus(PenaltyBonus):
+    driver_payments = models.ForeignKey(DriverPayments, null=True, blank=True, verbose_name='Виплата водію',
+                                        on_delete=models.CASCADE)
 
 
 class InvestorPayments(Earnings):

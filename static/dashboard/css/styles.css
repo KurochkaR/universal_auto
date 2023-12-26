@@ -1444,7 +1444,8 @@ select:focus {
 
 /* modal-shift */
 
-#modal-shift {
+#modal-shift,
+#modal-upd-payments {
 	z-index: 10;
 	display: none;
 	position: fixed;
@@ -1459,7 +1460,8 @@ select:focus {
 	box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
 }
 
-.modal-shift-title {
+.modal-shift-title,
+.modal-upd-payments {
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
@@ -1471,7 +1473,8 @@ select:focus {
 	margin-top: 0px;
 }
 
-.modal-shift-title h2 {
+.modal-shift-title h2,
+.modal-upd-payments h2{
 	margin-left: 15px;
 	color: #FFF;
 	font-size: 25px;
@@ -1704,4 +1707,95 @@ select:focus {
 	font-weight: 700;
 	line-height: normal;
 	cursor: pointer;
+}
+
+.driver-table tbody tr td button{
+	background: none;
+	border: none;
+	padding: 5px;
+	margin-left: 15px;
+	cursor: pointer;
+}
+
+/* Загальні стилі для контейнера радіокнопок */
+.radio-btn-box {
+  display: flex;
+  margin: 20px 0;
+  gap: 20px;
+}
+
+.radio-btn-box label {
+  cursor: pointer;
+}
+
+.radio-btn-box input[type="radio"] {
+  display: none;
+}
+
+.radio-btn-box .custom-label {
+  position: relative;
+}
+
+.radio-btn-box input[type="radio"]:checked + .custom-label::before {
+  content: "";
+  display: block;
+  width: 100%;
+  height: 2px;
+  background-color: black;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+}
+
+.payments-content {
+	display: flex;
+	justify-content: space-between;
+}
+
+.bonus-field,
+.bonus-description-field,
+.penalty-field,
+.penalty-description-field {
+    margin-bottom: 15px;
+}
+
+
+.bonus-field label,
+.bonus-description-field label,
+.penalty-field label,
+.penalty-description-field label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+
+.bonus-field input,
+.bonus-description-field textarea,
+.penalty-field input,
+.penalty-description-field textarea {
+    width: 100%;
+    padding: 8px;
+    box-sizing: border-box;
+    margin: 10px;
+}
+
+
+.payments-content {
+    display: flex;
+    max-width: 400px;
+    margin: 0 auto;
+    gap: 20px;
+}
+
+.upd-payments-btn {
+		display: block;
+		margin: 0 auto;
+		padding: 8px 16px;
+		font-size: 16px;
+		background-color: #EC6323;
+		color: white;
+		border: none;
+		border-radius: 10px;
+		cursor: pointer;
 }

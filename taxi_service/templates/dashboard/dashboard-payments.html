@@ -14,10 +14,10 @@
       <h2 class="income-drivers-date"></h2>
     </div>
     <div class="radio-btn-box">
-      <label>
-        <input type="radio" name="payment-status" value="not_closed" checked>{% trans 'Не закриті' %}
+      <label class="custom-label">
+        <input type="radio" name="payment-status" value="not_closed">{% trans 'Не закриті' %}
       </label>
-      <label>
+      <label class="custom-label">
         <input type="radio" name="payment-status" value="closed">{% trans 'Закриті' %}
       </label>
     </div>
@@ -53,6 +53,7 @@
         <th class="sortable" data-sort="fines">{% trans 'Штрафи' %}</th>
         <th class="sortable" data-sort="salary">{% trans 'Зарплата' %}</th>
         <th class="sortable" data-cort="status">{% trans 'Статус виплати' %}</th>
+        <th class="sortable" data-cort="status">{% trans ' ' %}</th>
       </tr>
       </thead>
       <tr>
@@ -66,6 +67,44 @@
         <td></td>
       </tr>
     </table>
+  </div>
+
+  <div id="modal-upd-payments">
+    <div class="modal-upd-payments">
+      <h2>{% trans "Редагування виплати" %}</h2>
+      <span class="modal-payments-date"></span>
+      <span class="shift-close-btn">
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28" fill="none">
+            <path d="M26.5 2L14.25 14.25M2 26.5L14.25 14.25M14.25 14.25L2 2L26.5 26.5" stroke="white" stroke-width="3"
+                  stroke-linejoin="round"/>
+          </svg>
+        </span>
+    </div>
+    <div class="payments-content">
+      <div class="bonus-payments">
+        <div class="bonus-field">
+          <label for="bonus-amount">{% trans "Бонус" %}</label>
+          <input type="text" id="bonus-amount" name="bonus-amount">
+        </div>
+        <div class="bonus-description-field">
+          <label for="bonus-description">{% trans "Опис бонусу" %}</label>
+          <textarea id="bonus-description" name="bonus-description"></textarea>
+        </div>
+      </div>
+      <div class="penalty-payments">
+        <div class="penalty-field">
+          <label for="penalty-amount">{% trans "Штраф" %}</label>
+          <input type="text" id="penalty-amount" name="penalty-amount">
+        </div>
+        <div class="penalty-description-field">
+          <label for="penalty-description">{% trans "Опис штрафу" %}</label>
+          <textarea id="penalty-description" name="penalty-description"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="payments-btn-box">
+        <button class="upd-payments-btn">{% trans "Додати" %}</button>
+    </div>
   </div>
   {% include 'dashboard/_confirmation-update-database.html' %}
 </main>

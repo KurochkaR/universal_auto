@@ -1,6 +1,7 @@
+from django.db.models import Sum
 from rest_framework import serializers
 
-from app.models import DriverPayments
+from app.models import DriverPayments, Bonus, Penalty
 
 
 class AggregateReportSerializer(serializers.Serializer):
@@ -114,11 +115,25 @@ class ReshuffleSerializer(serializers.Serializer):
 
 class DriverPaymentsSerializer(serializers.ModelSerializer):
     full_name = serializers.SerializerMethodField()
+    status = serializers.SerializerMethodField()
+    report_from = serializers.DateField(format='%d.%m.%Y')
+    report_to = serializers.DateField(format='%d.%m.%Y')
+    bonuses = serializers.SerializerMethodField()
+    penalties = serializers.SerializerMethodField()
 
     def get_full_name(self, obj):
         return f"{obj.driver.user_ptr.name} {obj.driver.user_ptr.second_name}"
 
+    def get_status(self, obj):
+        return obj.get_status_display()
+
+    def get_bonuses(self, obj):
+        return obj.bonus_set.all().aggregate(Sum('amount'))['amount__sum'] or 0
+
+    def get_penalties(self, obj):
+        return obj.penalty_set.all().aggregate(Sum('amount'))['amount__sum'] or 0
+
     class Meta:
         model = DriverPayments
-        fields = ('full_name', 'kasa', 'cash', 'rent', 'bonuses', 'fines', 'earning', 'status', 'report_from',
-                  'report_to', 'id')
+        fields = ('full_name', 'kasa', 'cash', 'rent', 'earning', 'status', 'report_from',
+                  'report_to', 'id', 'bonuses', 'penalties')

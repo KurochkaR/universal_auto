@@ -198,7 +198,7 @@ class CarsInformationListView(CombinedPermissionsMixin,
                 )
             )
         else:
-            queryset = ManagerFilterMixin.get_queryset(self, Vehicle)
+            queryset = ManagerFilterMixin.get_queryset(Vehicle, self.request.user)
             earning_subquery = PartnerEarnings.objects.filter(
                 vehicle__licence_plate=OuterRef('licence_plate')
             ).values('vehicle__licence_plate').annotate(

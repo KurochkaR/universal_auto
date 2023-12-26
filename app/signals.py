@@ -30,8 +30,8 @@ def calculate_fired_driver(sender, instance, **kwargs):
 
 @receiver(post_save, sender=DriverPayments)
 @receiver(post_save, sender=InvestorPayments)
-def create_park_settings(sender, instance, created, **kwargs):
-    if instance.status.is_completed():
+def create_payments(sender, instance, created, **kwargs):
+    if instance.is_completed():
         if isinstance(instance, DriverPayments):
             calculate_vehicle_earnings.delay(instance.pk)
         else:
