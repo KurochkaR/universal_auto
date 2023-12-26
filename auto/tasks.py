@@ -238,6 +238,7 @@ def check_card_cash_value(self, partner_pk):
 def send_notify_to_check_car(self, partner_pk):
     if redis_instance().exists(f"wrong_vehicle_{partner_pk}"):
         wrong_cars = redis_instance().hgetall(f"wrong_vehicle_{partner_pk}")
+        print(wrong_cars)
         for driver, car in wrong_cars.items():
             driver_obj = Driver.objects.get(pk=int(driver))
             vehicle = check_vehicle(driver_obj)
@@ -1148,12 +1149,9 @@ def save_report_to_ninja_payment(start, end, partner_pk, schema, fleet_name='Nin
 @app.task(bind=True, queue='beat_tasks')
 def calculate_driver_reports(self, partner_pk, schema, day=None):
     schema_obj = Schema.objects.get(pk=schema)
-    if schema_obj.salary_calculation == SalaryCalculation.WEEK:
-        if not timezone.localtime().weekday():
-            start = timezone.localtime().date() - timedelta(weeks=1)
-            end = timezone.localtime().date() - timedelta(days=1)
-        else:
-            return
+    if schema_obj.is_weekly():
+        start = timezone.localtime().date() - timedelta(days=timezone.localtime().weekday() + 7)
+        end = timezone.localtime().date() - timedelta(days=timezone.localtime().weekday() + 1)
     else:
         end, start = get_time_for_task(schema, day)[1:3]
     for driver in Driver.objects.get_active(partner=partner_pk, schema=schema):
@@ -1216,9 +1214,9 @@ def get_information_from_fleets(self, partner_pk, schema, day=None):
         get_orders_from_fleets.si(partner_pk, schema, day),
         generate_payments.si(partner_pk, schema, day),
         generate_summary_report.si(partner_pk, schema, day),
-        calculate_driver_reports.si(partner_pk, schema, day),
         get_driver_efficiency.si(partner_pk, schema, day),
         get_rent_information.si(partner_pk, schema, day),
+        calculate_driver_reports.si(partner_pk, schema, day),
     )
     task_chain()
 

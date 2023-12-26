@@ -37,7 +37,6 @@ def create_driver_payments(start, end, driver, schema, delete=None):
                                                  driver=driver).aggregate(
         cash=Coalesce(Sum('total_amount_cash'), 0, output_field=DecimalField()),
         kasa=Coalesce(Sum('total_amount_without_fee'), 0, output_field=DecimalField()))
-
     rent = calculate_rent(start, end, driver)
     rent_value = rent * schema.rent_price
     if driver_report['kasa']:
