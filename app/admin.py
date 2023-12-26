@@ -1,8 +1,5 @@
 from django.contrib import admin
-from django.contrib.auth.models import User as AuthUser
-from django.contrib.auth.models import Group, Permission
-from django.contrib.contenttypes.models import ContentType
-from django.core.exceptions import FieldError
+from django.contrib.auth.models import Group
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
@@ -555,86 +552,29 @@ class RentInformationAdmin(admin.ModelAdmin):
         return qs
 
 
-# @admin.register(Payments)
-# class PaymentsOrderAdmin(admin.ModelAdmin):
-#     search_fields = ('vendor', )
-#     list_filter = ('vendor', ReportUserFilter)
-#     ordering = ('-report_from',)
-#     list_per_page = 25
-#     raw_id_fields = ['vehicle', 'partner']
-#     list_select_related = ['vehicle', 'partner']
-#
-#     def get_list_display(self, request):
-#         if request.user.is_superuser:
-#             return [f.name for f in self.model._meta.fields]
-#         else:
-#             return ['report_from', 'report_to', 'vendor', 'driver',
-#                     'total_amount_without_fee', 'total_amount_cash', 'total_amount_on_card',
-#                     'total_distance', 'total_rides',
-#                     ]
-#
-#     def get_fieldsets(self, request, obj=None):
-#         fieldsets = [
-#             ('Інформація про звіт', {'fields': ['report_from', 'report_to', 'vendor'
-#                                                 ]}),
-#             ('Інформація про водія', {'fields': ['driver',
-#                                                  ]}),
-#             ('Інформація про кошти', {'fields': ['total_amount_cash',
-#                                                  'total_amount_on_card', 'total_amount',
-#                                                  'tips', 'bonuses', 'fares', 'fee',
-#                                                  'total_amount_without_fee',
-#                                                  ]}),
-#             ('Інформація про поїздки', {'fields': ['total_rides', 'total_distance',
-#                                                    ]})]
-#         if request.user.is_superuser:
-#             fieldsets.append(('Додатково',                   {'fields': ['partner']}))
-#
-#         return fieldsets
-#
-#     def get_queryset(self, request):
-#         qs = super().get_queryset(request)
-#         if request.user.is_partner():
-#             qs = qs.filter(partner=request.user)
-#         if request.user.is_manager():
-#             manager_drivers = Driver.objects.filter(manager=request.user)
-#             full_names = [f"{driver.name} {driver.second_name}" for driver in manager_drivers]
-#             return qs.filter(full_name__in=full_names)
-#         return qs
-
-
-@admin.register(SummaryReport)
-class SummaryReportAdmin(admin.ModelAdmin):
-    list_filter = (SummaryReportUserFilter,)
-    ordering = ('-report_from', 'driver')
+class BaseReportAdmin(admin.ModelAdmin):
     list_per_page = 25
-    raw_id_fields = ['driver', 'partner', 'vehicle']
-    list_select_related = ['vehicle', 'driver', 'partner']
+    raw_id_fields = ['vehicle', 'partner']
+    list_select_related = ['vehicle', 'partner']
 
     def get_list_display(self, request):
+        display = ['report_from', 'report_to', 'driver',
+                   'total_amount_without_fee', 'total_amount_cash', 'total_amount_on_card',
+                   'total_distance', 'total_rides']
         if request.user.is_superuser:
-            return [f.name for f in self.model._meta.fields]
-        else:
-            return ['report_from', 'report_to',
-                    'driver', 'total_amount_without_fee', 'total_amount_cash',
-                    'total_amount_on_card', 'total_distance', 'total_rides',
-                    ]
+            display.append('partner')
+        return display
 
     def get_fieldsets(self, request, obj=None):
         fieldsets = [
-            ('Інформація про звіт', {'fields': ['report_from', 'report_to',
-                                                ]}),
-            ('Інформація про водія', {'fields': ['driver',
-                                                 ]}),
-            ('Інформація про кошти', {'fields': ['total_amount_cash',
-                                                 'total_amount_on_card', 'total_amount',
-                                                 'tips', 'bonuses', 'fares', 'fee',
-                                                 'total_amount_without_fee',
-                                                 ]}),
-            ('Інформація про поїздки', {'fields': ['total_rides', 'total_distance',
-                                                   ]})]
+            ('Інформація про звіт', {'fields': ['report_from', 'report_to']}),
+            ('Інформація про водія', {'fields': ['driver']}),
+            ('Інформація про кошти', {'fields': ['total_amount_cash', 'total_amount_on_card', 'total_amount',
+                                                 'tips', 'bonuses', 'fares', 'fee', 'total_amount_without_fee']}),
+            ('Інформація про поїздки', {'fields': ['total_rides', 'total_distance']})
+        ]
         if request.user.is_superuser:
             fieldsets.append(('Додатково', {'fields': ['partner']}))
-
         return fieldsets
 
     def get_queryset(self, request):
@@ -645,6 +585,25 @@ class SummaryReportAdmin(admin.ModelAdmin):
             manager_drivers = Driver.objects.filter(manager=request.user)
             return qs.filter(driver__in=manager_drivers)
         return qs
+
+
+@admin.register(Payments)
+@admin.register(WeeklyReport)
+@admin.register(CustomReport)
+class PaymentsOrderAdmin(BaseReportAdmin):
+    search_fields = ('vendor',)
+    list_filter = ('vendor', ReportUserFilter)
+    ordering = ('-report_from',)
+
+    def get_list_display(self, request):
+        base_list_display = super().get_list_display(request)
+        return base_list_display + ['vendor']
+
+
+@admin.register(SummaryReport)
+class SummaryReportAdmin(BaseReportAdmin):
+    list_filter = (SummaryReportUserFilter,)
+    ordering = ('-report_from', 'driver')
 
 
 @admin.register(Partner)

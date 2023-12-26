@@ -287,19 +287,22 @@ def download_weekly_report(self, partner_pk):
                     fields = ['total_amount_without_fee', 'total_amount_cash', 'total_amount_on_card']
                     weekly = WeeklyReport.objects.filter(vendor=fleet, report_from=start, report_to=end,
                                                          driver=driver).first()
-                    daily = CustomReport.objects.fitler(vendor=fleet, report_from=start, report_to=end, driver=driver)
-                    sum_daily = daily.aggregate(sum_total_amount_without_fee=Sum("total_amount_without_fee"),
-                                                sum_total_amount_cash=Sum("total_amount_cash"),
-                                                sum_total_amount_on_card=Sum("total_amount_on_card"), )
-                    for field in fields:
-                        weekly_value = getattr(weekly, field)
-                        sum_daily_value = sum_daily.get(f'sum_{field}', 0)
-                        if weekly_value > sum_daily_value:
-                            bot.send_message(chat_id=ParkSettings.get_value('DEVELOPER_CHAT_ID'),
-                                             text=f"{fleet.name} тиждень = {weekly_value},"
-                                                  f"по днях = {sum_daily_value} {driver}")
-                        else:
-                            continue
+                    if weekly:
+                        daily = CustomReport.objects.filter(vendor=fleet,
+                                                            report_from__range=(start, end),
+                                                            driver=driver)
+                        sum_daily = daily.aggregate(sum_total_amount_without_fee=Sum("total_amount_without_fee"),
+                                                    sum_total_amount_cash=Sum("total_amount_cash"),
+                                                    sum_total_amount_on_card=Sum("total_amount_on_card"), )
+                        for field in fields:
+                            weekly_value = getattr(weekly, field)
+                            sum_daily_value = sum_daily.get(f'sum_{field}', 0)
+                            if sum_daily_value and weekly_value > sum_daily_value:
+                                bot.send_message(chat_id=ParkSettings.get_value('DEVELOPER_CHAT_ID'),
+                                                 text=f"{fleet.name} тиждень = {weekly_value},"
+                                                      f"по днях = {sum_daily_value} {driver} {field}")
+                            else:
+                                continue
     except Exception as e:
         logger.error(e)
         retry_delay = retry_logic(e, self.request.retries + 1)
@@ -376,9 +379,11 @@ def generate_payments(self, partner_pk, schema, day=None):
 @app.task(bind=True, queue='beat_tasks')
 def generate_summary_report(self, partner_pk, schema, day=None):
     end, start = get_time_for_task(schema, day)[1:3]
-    fleet_reports = Payments.objects.filter(report_from=start, report_to=end, partner=partner_pk)
     for driver in Driver.objects.get_active(partner=partner_pk):
-        payments = [r for r in fleet_reports if r.driver_id == driver.get_driver_external_id(r.vendor_name)]
+        payments = Payments.objects.filter(report_from=start,
+                                           report_to=end,
+                                           driver=driver,
+                                           partner=partner_pk)
         if payments:
             if not SummaryReport.objects.filter(report_from=start, driver=driver, partner=partner_pk):
                 report = SummaryReport(report_from=start,
