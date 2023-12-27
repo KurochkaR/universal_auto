@@ -49,10 +49,10 @@ class CustomUser(AbstractUser):
     def is_investor(self):
         return self.role == Role.INVESTOR
 
-    @staticmethod
-    def get_by_chat_id(chat_id):
+    @classmethod
+    def get_by_chat_id(cls, chat_id):
         try:
-            return CustomUser.objects.get(chat_id=chat_id)
+            return cls.objects.get(chat_id=chat_id)
         except ObjectDoesNotExist:
             return None
 
@@ -589,8 +589,9 @@ class DriverSchemaRate(models.Model):
         verbose_name_plural = 'Тарифи водія'
 
     @staticmethod
-    def get_rate_tier(period):
-        data = DriverSchemaRate.objects.filter(period=period).order_by('threshold').values('threshold', 'rate')
+    def get_rate_tier(period, partner):
+        data = DriverSchemaRate.objects.filter(period=period,
+                                               partner=partner).order_by('threshold').values('threshold', 'rate')
         result = [(decimal['threshold'], decimal['rate']) for decimal in data]
         return result
 
