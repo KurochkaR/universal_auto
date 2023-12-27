@@ -638,8 +638,9 @@ class DriverSchemaRate(models.Model):
         verbose_name_plural = 'Тарифи водія'
 
     @staticmethod
-    def get_rate_tier(period):
-        data = DriverSchemaRate.objects.filter(period=period).order_by('threshold').values('threshold', 'rate')
+    def get_rate_tier(period, partner):
+        data = DriverSchemaRate.objects.filter(period=period,
+                                               partner=partner).order_by('threshold').values('threshold', 'rate')
         result = [(decimal['threshold'], decimal['rate']) for decimal in data]
         return result
 

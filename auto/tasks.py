@@ -272,7 +272,7 @@ def send_notify_to_check_car(self, partner_pk):
 def download_daily_report(self, partner_pk, schema, day=None):
     try:
         schema_obj = Schema.objects.get(pk=schema)
-        if schema_obj.is_weekly() or schema.shift_time == time.min:
+        if schema_obj.is_weekly() or schema_obj.shift_time == time.min:
             return
         start, end = get_time_for_task(schema, day)[:2]
         fleets = Fleet.objects.filter(partner=partner_pk).exclude(name='Gps')
