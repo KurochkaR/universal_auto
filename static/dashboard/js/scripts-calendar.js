@@ -351,6 +351,8 @@ $(document).ready(function () {
 			const updAllBtn = $('.upd-all-btn').show();
 			const shiftVehicle = $('.shift-vehicle').show();
 			shiftForm.show();
+			validateInputTime(startTimeInput[0], 'startTime');
+			validateInputTime(endTimeInput[0], 'endTime');
 
 			function handleDelete(action) {
 				$.ajax({
@@ -437,7 +439,8 @@ $(document).ready(function () {
 			modalShiftTitle.text("Створення зміни");
 			modalShiftDate.text(formatDateString(clickedDayId));
 			shiftForm.show();
-
+			validateInputTime(startTimeInput[0], 'startTime');
+			validateInputTime(endTimeInput[0], 'endTime');
 			shiftBtn.off('click').on('click', function (e) {
 				e.preventDefault();
 				const startTime = startTimeInput.val();

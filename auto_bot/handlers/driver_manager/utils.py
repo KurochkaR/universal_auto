@@ -9,7 +9,7 @@ from django.utils import timezone
 from app.bolt_sync import BoltRequest
 from app.models import CarEfficiency, Driver, SummaryReport, Manager, \
     Vehicle, RentInformation, DriverEfficiency, Partner, Role, DriverSchemaRate, SalaryCalculation, \
-    DriverPayments, FleetOrder, InvestorPayments, VehicleRent,  Schema, Fleet, CustomUser
+    DriverPayments, FleetOrder, InvestorPayments, VehicleRent, Schema, Fleet, CustomUser
 from auto_bot.handlers.order.utils import check_reshuffle
 
 
@@ -32,7 +32,6 @@ def get_time_for_task(schema, day=None):
 
 
 def create_driver_payments(start, end, driver, schema, delete=None):
-
     driver_report = SummaryReport.objects.filter(report_from__range=(start, end),
                                                  driver=driver).aggregate(
         cash=Coalesce(Sum('total_amount_cash'), 0, output_field=DecimalField()),
@@ -59,7 +58,7 @@ def create_driver_payments(start, end, driver, schema, delete=None):
             salary = '%.2f' % (driver_report['kasa'] * schema.rate - driver_report['cash'] - (
                 (schema.plan - driver_report['kasa']) * Decimal(1 - schema.rate)
                 if driver_report['kasa'] < schema.plan else 0) - rent_value
-            )
+                               )
         DriverPayments.objects.create(report_from=start,
                                       report_to=end,
                                       driver=driver,
@@ -160,7 +159,7 @@ def get_daily_report(manager_id, schema_obj=None):
     total_rent = {}
     for driver in drivers:
         daily_report = calculate_daily_reports(end, end, driver)
-        day_values[driver],  rent_daily[driver] = daily_report
+        day_values[driver], rent_daily[driver] = daily_report
         total_report = calculate_daily_reports(start, end, driver)
         total_values[driver], total_rent[driver] = total_report
     sort_report = dict(sorted(total_values.items(), key=lambda item: item[1], reverse=True))
@@ -190,46 +189,56 @@ def generate_message_report(chat_id, schema_id=None, daily=None):
     drivers_dict = {}
     balance = 0
     for driver in drivers:
-        driver_message = ''
-        if driver.deleted_at in (start, end):
-            payment = DriverPayments.objects.filter(driver=driver).last()
-            driver_message = f"{driver} каса: {payment.kasa}\n" \
-                             f"Зарплата {payment.kasa} - Готівка {payment.cash}" \
-                             f" - Оренда {payment.rent} = {payment.earning}\n"
-        else:
-            payment = DriverPayments.objects.filter(report_from=start, report_to=end, driver=driver).first()
-            if payment:
-                driver_message += f"{driver} каса: {payment.kasa}\n"
-                if payment.rent:
-                    driver_message += "Оренда авто: {0} * {1} = {2}\n".format(
-                        payment.rent_distance, payment.rent_price, payment.rent)
-                if driver.schema.is_rent():
-                    driver_message += 'Зарплата {0} * {1} - Готівка {2} - Абонплата {3}'.format(
-                        payment.kasa, driver.schema.rate, payment.cash, driver.schema.rental)
-                elif driver.schema.is_dynamic():
-                    driver_message += 'Зарплата {0} - Готівка {1}'.format(
-                        payment.earning + payment.cash + payment.rent,  payment.cash)
-                else:
-                    driver_message += 'Зарплата {0} * {1} - Готівка {2}'.format(
-                        payment.kasa, driver.schema.rate, payment.cash)
-                    if payment.kasa < driver.schema.plan:
-                        incomplete = (driver.schema.plan - payment.kasa) * Decimal(1 - driver.schema.rate)
-                        driver_message += " - План {:.2f}".format(incomplete)
-                if payment.rent:
-                    driver_message += f" - Оренда {payment.rent}"
-                driver_message += f" = {payment.earning}\n"
+        driver_payments_query = DriverPayments.objects.filter(report_from=start, report_to=end, driver=driver)
+        if driver_payments_query.exists():
+            payment = driver_payments_query.last()
+
+            if driver.deleted_at in (start, end):
+                driver_message = f"{driver} каса: {payment.kasa}\n" \
+                                 f"Зарплата {payment.kasa} - Готівка {payment.cash}" \
+                                 f" - Оренда {payment.rent} = {payment.earning}\n"
+            else:
+                driver_message = message_driver_report(driver, payment)
                 balance += payment.kasa - payment.earning - payment.cash
+
                 if driver.chat_id:
                     drivers_dict[driver.chat_id] = driver_message
                 message += driver_message
-        if driver_message:
-            message += "*" * 39 + '\n'
+
+            if driver_message:
+                message += "*" * 39 + '\n'
     if message and user:
         manager_message = "Звіт з {0} по {1}\n".format(start.date(), end.date())
         manager_message += f'Ваш баланс:%.2f\n' % balance
         manager_message += message
         drivers_dict[user.chat_id] = manager_message
     return drivers_dict
+
+
+def message_driver_report(driver, payment):
+    driver_message = ''
+    driver_message += f"{driver} каса: {payment.kasa}\n"
+    if payment.rent:
+        driver_message += "Оренда авто: {0} * {1} = {2}\n".format(
+            payment.rent_distance, payment.rent_price, payment.rent)
+    if driver.schema.is_rent():
+        driver_message += 'Зарплата {0} * {1} - Готівка {2} - Абонплата {3}'.format(
+            payment.kasa, driver.schema.rate, payment.cash, driver.schema.rental)
+    elif driver.schema.is_dynamic():
+        driver_message += 'Зарплата {0} - Готівка {1}'.format(
+            payment.earning + payment.cash + payment.rent, payment.cash)
+    else:
+        driver_message += 'Зарплата {0} * {1} - Готівка {2}'.format(
+            payment.kasa, driver.schema.rate, payment.cash)
+        if payment.kasa < driver.schema.plan:
+            incomplete = (driver.schema.plan - payment.kasa) * Decimal(1 - driver.schema.rate)
+            driver_message += " - План {:.2f}".format(incomplete)
+    bonuses = driver.get_bonuses(payment.report_from, payment.report_to)
+    if payment.rent:
+        driver_message += f" - Оренда {payment.rent}"
+    driver_message += f" = {payment.earning}\n"
+
+    return driver_message
 
 
 def generate_report_period(chat_id, start, end):
@@ -278,7 +287,7 @@ def calculate_efficiency(vehicle, start, end):
     vehicle_drivers.extend(driver_info)
     total_kasa = efficiency_objects.aggregate(kasa=Sum('total_kasa'), default=0)['kasa']
     total_distance = efficiency_objects.aggregate(total_distance=Sum('mileage'), default=0)['total_distance']
-    efficiency = float('{:.2f}'.format(total_kasa/total_distance)) if total_distance else 0
+    efficiency = float('{:.2f}'.format(total_kasa / total_distance)) if total_distance else 0
     formatted_distance = float('{:.2f}'.format(total_distance)) if total_distance is not None else 0.00
     return efficiency, formatted_distance, total_kasa, vehicle_drivers
 
@@ -307,7 +316,7 @@ def get_efficiency(manager_id=None, start=None, end=None):
                 'КМ учора': yesterday_effect[1],
                 'Загальна каса': effect[2],
                 'Каса вчора': yesterday_effect[2]
-                                                        }
+            }
         else:
             effective_vehicle[vehicle.licence_plate] = {
                 'Водії': drivers,
@@ -315,8 +324,8 @@ def get_efficiency(manager_id=None, start=None, end=None):
                 'КМ всього': effect[1],
                 'Загальна каса': effect[2]}
     sorted_effective_driver = dict(sorted(effective_vehicle.items(),
-                                   key=lambda x: x[1]['Середня ефективність(грн/км)'],
-                                   reverse=True))
+                                          key=lambda x: x[1]['Середня ефективність(грн/км)'],
+                                          reverse=True))
     for k, v in sorted_effective_driver.items():
         report[k] = [f"{vk}: {vv}\n" for vk, vv in v.items()]
     return report
@@ -400,7 +409,7 @@ def get_driver_efficiency_report(manager_id, schema=None, start=None, end=None):
                 'Cередній чек': f"{effect[3]} ({average_price}) грн",
                 'Пробіг': f"{effect[4]} (+{distance}) км",
                 'Час в дорозі': f"{effect[5]}(+{road_time})"
-                                        }
+            }
         else:
             effective_driver[driver] = {
                 'Автомобілі': f"{licence_plates}",
@@ -412,10 +421,10 @@ def get_driver_efficiency_report(manager_id, schema=None, start=None, end=None):
                 'Cередній чек': f"{effect[3]} грн",
                 'Пробіг': f"{effect[4]} км",
                 'Час в дорозі': f"{effect[5]}"
-                                        }
+            }
     sorted_effective_driver = dict(sorted(effective_driver.items(),
-                                   key=lambda x: float(x[1]['Каса'].split()[0]),
-                                   reverse=True))
+                                          key=lambda x: float(x[1]['Каса'].split()[0]),
+                                          reverse=True))
     for k, v in sorted_effective_driver.items():
         report[k] = [f"{vk}: {vv}\n" for vk, vv in v.items()]
     return report

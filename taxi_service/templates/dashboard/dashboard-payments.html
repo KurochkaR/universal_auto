@@ -15,13 +15,16 @@
     </div>
     <div class="radio-btn-box">
       <label class="custom-label">
+        <input type="radio" name="payment-status" value="on_inspection">{% trans 'На перевірці' %}
+      </label>
+      <label class="custom-label">
         <input type="radio" name="payment-status" value="not_closed">{% trans 'Не закриті' %}
       </label>
       <label class="custom-label">
         <input type="radio" name="payment-status" value="closed">{% trans 'Закриті' %}
       </label>
     </div>
-    <div class="filter">
+    <div class="filter-driver-payments">
       <label for="period">{% trans 'Виберіть період:' %}</label>
       <div class="custom-select-drivers" id="period">
         <span class="selected-option-drivers">{% trans 'Поточний квартал' %}</span>
@@ -113,7 +116,7 @@
 </div>
 <!-- Scripts -->
 <script>
-  const VehicleImg = "{% static 'app/images/index-one-block-2.webp' %}";
+  const smsImg = "{% static 'app/images/sms-for-driver.svg' %}";
   const logoImageUrl = "{% static 'app/images/logo-2.svg' %}";
   let ajaxPostUrl = "{% url 'post_request' %}";
   let ajaxGetUrl = "{% url 'get_request' %}";

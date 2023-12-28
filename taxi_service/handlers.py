@@ -7,7 +7,7 @@ from django.http import JsonResponse, HttpResponse
 from django.forms.models import model_to_dict
 from django.contrib.auth import logout
 
-from app.models import SubscribeUsers, Manager, CustomUser, DriverPayments, Bonus, Penalty
+from app.models import SubscribeUsers, Manager, CustomUser, DriverPayments, Bonus, Penalty, Earnings, PaymentsStatus
 from taxi_service.forms import MainOrderForm, CommentForm
 from taxi_service.utils import (update_order_sum_or_status, restart_order,
                                 partner_logout, login_in_investor,
@@ -222,14 +222,32 @@ class PostRequestHandler:
                 amount=bonus_amount, description=bonus_description, driver_payments=driver_payments
             )
             driver_payments.earning += Decimal(bonus.amount)
-            driver_payments.save()
 
         if penalty_amount:
             penalty = Penalty.objects.create(
                 amount=penalty_amount, description=penalty_description, driver_payments=driver_payments
             )
             driver_payments.earning -= Decimal(penalty.amount)
-            driver_payments.save()
+
+        driver_payments.save()
+
+        json_data = JsonResponse({'data': 'success'}, safe=False)
+        response = HttpResponse(json_data, content_type='application/json')
+        return response
+
+    def handler_confirm_payments(self, request):
+        driver_payments_id = request.POST.get('id')
+        driver_payments = DriverPayments.objects.get(id=driver_payments_id)
+        driver_payments.change_status(PaymentsStatus.PENDING)
+
+        json_data = JsonResponse({'data': 'success'}, safe=False)
+        response = HttpResponse(json_data, content_type='application/json')
+        return response
+
+    def handler_cancel_payments(self, request):
+        driver_payments_id = request.POST.get('id')
+        driver_payments = DriverPayments.objects.get(id=driver_payments_id)
+        driver_payments.change_status(PaymentsStatus.CHECKING)
 
         json_data = JsonResponse({'data': 'success'}, safe=False)
         response = HttpResponse(json_data, content_type='application/json')

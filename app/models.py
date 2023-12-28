@@ -369,7 +369,10 @@ class Earnings(PolymorphicModel):
     partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
 
     def is_completed(self):
-        return True if self.status == PaymentsStatus.COMPLETED else False
+        return True if self.status in [PaymentsStatus.COMPLETED, PaymentsStatus.FAILED] else False
+
+    def is_pending(self):
+        return True if self.status == PaymentsStatus.PENDING else False
 
 
 class DriverPayments(Earnings):
@@ -383,6 +386,10 @@ class DriverPayments(Earnings):
     class Meta:
         verbose_name = 'Виплати водію'
         verbose_name_plural = 'Виплати водіям'
+
+    def change_status(self, new_status):
+        self.status = new_status
+        self.save(update_fields=['status'])
 
     def __str__(self):
         return f"{self.driver}"
