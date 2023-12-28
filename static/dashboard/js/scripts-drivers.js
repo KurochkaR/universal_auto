@@ -1,14 +1,3 @@
-function applyCustomDateRangeVehicle() {
-	$(".apply-filter-button_driver").prop("disabled", true);
-
-	let startDate = $("#start_report_driver").val();
-	let endDate = $("#end_report_driver").val();
-
-	const selectedPeriod = 'custom'
-
-	fetchDriverEfficiencyData(selectedPeriod, startDate, endDate);
-}
-
 function formatTime(time) {
 	let parts = time.match(/(\d+) days?, (\d+):(\d+):(\d+)/);
 

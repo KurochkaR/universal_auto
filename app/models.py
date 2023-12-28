@@ -4,6 +4,7 @@ import random
 from datetime import datetime, date, time
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.validators import MaxLengthValidator, EmailValidator, RegexValidator
+from django.db.models import Sum
 from django.db.models.signals import post_delete
 from django.utils import timezone
 from django.db import models, ProgrammingError
@@ -391,6 +392,12 @@ class DriverPayments(Earnings):
         self.status = new_status
         self.save(update_fields=['status'])
 
+    def get_bonuses(self):
+        return self.bonus_set.all().aggregate(Sum('amount'))['amount__sum'] or 0
+
+    def get_penalties(self):
+        return self.penalty_set.all().aggregate(Sum('amount'))['amount__sum'] or 0
+
     def __str__(self):
         return f"{self.driver}"
 
@@ -398,6 +405,7 @@ class DriverPayments(Earnings):
 class PenaltyBonus(PolymorphicModel):
     amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Сума')
     description = models.CharField(max_length=255, null=True, verbose_name='Опис')
+    driver = models.ForeignKey(Driver, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Водій')
 
     class Meta:
         verbose_name = 'Штраф/Бонус'

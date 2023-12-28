@@ -1737,19 +1737,24 @@ select:focus {
   display: none;
 }
 
-.radio-btn-box .custom-label {
-  position: relative;
+.radio-btn-box label {
+  display: inline-block;
+	margin-right: 10px;
+	position: relative;
+	cursor: pointer;
+	color: #38423B;
 }
 
-.radio-btn-box input[type="radio"]:checked + .custom-label::before {
-  content: "";
-  display: block;
-  width: 100%;
-  height: 2px;
-  background-color: black;
-  position: absolute;
-  bottom: 0;
-  left: 0;
+.radio-btn-box input[type="radio"]#on_inspection:checked + label::before,
+.radio-btn-box input[type="radio"]#not_closed:checked + label::before,
+.radio-btn-box input[type="radio"]#closed:checked + label::before {
+	content: "";
+	position: absolute;
+	bottom: 0;
+	left: 0;
+	width: 100%;
+	height: 4px;
+	background-color: #A1E8B9;
 }
 
 .payments-content {
@@ -1833,4 +1838,16 @@ select:focus {
 .btnPay .pay-btn {
 	background: #A1E8B9;
 	border: 3px solid #A1E8B9;
+}
+
+.send-all-button {
+	display: block;
+	margin: 0 auto;
+	padding: 8px 16px;
+	font-size: 16px;
+	background-color: #EC6323;
+	color: white;
+	border: none;
+	border-radius: 10px;
+	cursor: pointer;
 }

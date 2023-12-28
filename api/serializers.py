@@ -128,10 +128,10 @@ class DriverPaymentsSerializer(serializers.ModelSerializer):
         return obj.get_status_display()
 
     def get_bonuses(self, obj):
-        return obj.bonus_set.all().aggregate(Sum('amount'))['amount__sum'] or 0
+        return obj.get_bonuses()
 
     def get_penalties(self, obj):
-        return obj.penalty_set.all().aggregate(Sum('amount'))['amount__sum'] or 0
+        return obj.get_penalties()
 
     class Meta:
         model = DriverPayments

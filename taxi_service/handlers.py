@@ -219,13 +219,15 @@ class PostRequestHandler:
 
         if bonus_amount:
             bonus = Bonus.objects.create(
-                amount=bonus_amount, description=bonus_description, driver_payments=driver_payments
+                amount=bonus_amount, description=bonus_description,
+                driver_payments=driver_payments, driver=driver_payments.driver
             )
             driver_payments.earning += Decimal(bonus.amount)
 
         if penalty_amount:
             penalty = Penalty.objects.create(
-                amount=penalty_amount, description=penalty_description, driver_payments=driver_payments
+                amount=penalty_amount, description=penalty_description,
+                driver_payments=driver_payments, driver=driver_payments.driver
             )
             driver_payments.earning -= Decimal(penalty.amount)
 
@@ -235,19 +237,12 @@ class PostRequestHandler:
         response = HttpResponse(json_data, content_type='application/json')
         return response
 
-    def handler_confirm_payments(self, request):
+    def handler_upd_payment_status(self, request):
         driver_payments_id = request.POST.get('id')
-        driver_payments = DriverPayments.objects.get(id=driver_payments_id)
-        driver_payments.change_status(PaymentsStatus.PENDING)
+        status = request.POST.get('status')
 
-        json_data = JsonResponse({'data': 'success'}, safe=False)
-        response = HttpResponse(json_data, content_type='application/json')
-        return response
-
-    def handler_cancel_payments(self, request):
-        driver_payments_id = request.POST.get('id')
         driver_payments = DriverPayments.objects.get(id=driver_payments_id)
-        driver_payments.change_status(PaymentsStatus.CHECKING)
+        driver_payments.change_status(status)
 
         json_data = JsonResponse({'data': 'success'}, safe=False)
         response = HttpResponse(json_data, content_type='application/json')

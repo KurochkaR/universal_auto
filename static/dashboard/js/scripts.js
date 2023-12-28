@@ -255,3 +255,22 @@ $(document).ready(function() {
 		});
 	}
 });
+
+function applyCustomDateRange(item) {
+	console.log(item)
+	$(".apply-filter-button_driver").prop("disabled", true);
+
+	let startDate = $("#start_report_driver").val();
+	let endDate = $("#end_report_driver").val();
+
+	const selectedPeriod = 'custom'
+
+	if (item === 'driver') {
+		fetchDriverEfficiencyData(selectedPeriod, startDate, endDate);
+	}
+
+	if (item === 'payments') {
+		driverPayment(selectedPeriod, startDate, endDate, paymentStatus="closed");
+	}
+
+}

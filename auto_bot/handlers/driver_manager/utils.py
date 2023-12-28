@@ -233,7 +233,7 @@ def message_driver_report(driver, payment):
         if payment.kasa < driver.schema.plan:
             incomplete = (driver.schema.plan - payment.kasa) * Decimal(1 - driver.schema.rate)
             driver_message += " - План {:.2f}".format(incomplete)
-    bonuses = driver.get_bonuses(payment.report_from, payment.report_to)
+    bonuses = payment.get_bonuses()
     if payment.rent:
         driver_message += f" - Оренда {payment.rent}"
     driver_message += f" = {payment.earning}\n"
