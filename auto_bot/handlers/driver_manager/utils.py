@@ -237,10 +237,8 @@ def message_driver_report(driver, payment):
 
     bonuses = payment.get_bonuses()
     penalties = payment.get_penalties()
-    if bonuses:
-        driver_message += " + Бонуси: {:.2f}".format(bonuses)
-    if penalties:
-        driver_message += " - Штрафи: {:.2f}".format(penalties)
+    driver_message += " + Бонуси: {0} - Штрафи: {1}".format(bonuses, penalties)
+
     if payment.rent:
         driver_message += f" - Оренда {payment.rent}"
     driver_message += f" = {payment.earning}\n"
@@ -294,7 +292,7 @@ def calculate_efficiency(vehicle, start, end):
     vehicle_drivers.extend(driver_info)
     total_kasa = efficiency_objects.aggregate(kasa=Coalesce(Sum('total_kasa'), Decimal(0)))['kasa']
     total_distance = efficiency_objects.aggregate(total_distance=Coalesce(Sum('mileage'), Decimal(0)))['total_distance']
-    efficiency = float('{:.2f}'.format(total_kasa/total_distance)) if total_distance else 0
+    efficiency = float('{:.2f}'.format(total_kasa / total_distance)) if total_distance else 0
     formatted_distance = float('{:.2f}'.format(total_distance)) if total_distance is not None else 0.00
     return efficiency, formatted_distance, total_kasa, vehicle_drivers
 
