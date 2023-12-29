@@ -5,6 +5,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import F
 from django.utils import timezone
 from django_celery_beat.models import PeriodicTask
+from telegram.error import BadRequest
 
 from auto.tasks import send_on_job_application_on_driver, check_time_order, search_driver_for_order, \
     calculate_vehicle_earnings, calculate_vehicle_spending
@@ -12,7 +13,7 @@ from django.db.models.signals import pre_save, post_save, post_delete, pre_delet
 from django.dispatch import receiver
 from app.models import Driver, StatusChange, JobApplication, ParkSettings, Partner, Order, DriverSchemaRate, \
     Schema, DriverPayments, InvestorPayments
-from auto_bot.handlers.driver_manager.utils import get_time_for_task, create_driver_payments
+from auto_bot.handlers.driver_manager.utils import get_time_for_task, create_driver_payments, message_driver_report
 from auto_bot.handlers.order.keyboards import inline_reject_order
 from auto_bot.handlers.order.static_text import client_order_info
 from auto_bot.main import bot
@@ -36,6 +37,20 @@ def create_payments(sender, instance, created, **kwargs):
             calculate_vehicle_earnings.delay(instance.pk)
         else:
             calculate_vehicle_spending.delay(instance.pk)
+    elif instance.is_pending():
+        if isinstance(instance, DriverPayments):
+            message = message_driver_report(instance.driver, instance)
+            try:
+                bot.send_message(chat_id=instance.driver.chat_id, text=message)
+            except BadRequest as e:
+                if e.message == 'Chat not found':
+                    bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"),
+                                     text=f"Driver {instance.driver} Не вірний чат айді")
+                else:
+                    bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"),
+                                     text=f"У {instance.driver} відсутній чат айді")
+        else:
+            pass  # InvestorMassage
 
 
 @receiver(post_save, sender=Partner)
