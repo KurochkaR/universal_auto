@@ -4,6 +4,7 @@ import random
 from datetime import datetime, date, time
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.validators import MaxLengthValidator, EmailValidator, RegexValidator
+from django.db.models import Sum
 from django.db.models.signals import post_delete
 from django.utils import timezone
 from django.db import models, ProgrammingError
@@ -76,7 +77,6 @@ class PaymentTypes(models.TextChoices):
 
     @classmethod
     def map_payments(cls, payment):
-
         payment_type_mapping = {
             'app_payment': cls.CARD,
             'apple': cls.CARD,
@@ -219,7 +219,8 @@ class User(models.Model):
 
 class Manager(CustomUser):
     phone_number = models.CharField(max_length=13, blank=True, null=True, verbose_name='Номер телефона')
-    managers_partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
+    managers_partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True,
+                                         verbose_name='Партнер')
 
     class Meta:
         verbose_name = 'Менеджера'
@@ -228,7 +229,8 @@ class Manager(CustomUser):
 
 class Investor(CustomUser):
     phone_number = models.CharField(max_length=13, blank=True, null=True, verbose_name='Номер телефона')
-    investors_partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
+    investors_partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True,
+                                          verbose_name='Партнер')
 
     class Meta:
         verbose_name = 'Інвестора'
@@ -297,6 +299,7 @@ class VehicleSpending(models.Model):
         REPAIR = 'REPAIR', 'Ремонт'
         WASHING = 'WASHING', 'Мийка'
         OTHER = 'OTHER', 'Інше'
+
     vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE, null=True, verbose_name='Автомобіль')
     amount = models.DecimalField(decimal_places=2, max_digits=10, verbose_name='Сума')
     category = models.CharField(max_length=255, choices=Category.choices, verbose_name='Категорія витрат')
@@ -320,7 +323,8 @@ class Driver(User):
     OFFLINE = 'Не працюю'
     RENT = 'Орендую авто'
 
-    photo = models.ImageField(blank=True, null=True, upload_to='drivers', verbose_name='Фото водія')
+    photo = models.ImageField(blank=True, null=True, upload_to='drivers', verbose_name='Фото водія',
+                              default='drivers/default-driver.png')
     partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
     manager = models.ForeignKey(Manager, on_delete=models.SET_NULL, null=True, blank=True,
                                 verbose_name='Менеджер водіїв')
@@ -351,22 +355,25 @@ class FiredDriver(Driver):
         proxy = True
 
 
-class Earnings(PolymorphicModel):
-    PAYMENT_STATUS_CHOICES = [
-        ('checking', 'Перевіряється'),
-        ('pending', 'Очікується'),
-        ('completed', 'Виплачений'),
-        ('failed', 'Не сплачений'),
-    ]
+class PaymentsStatus(models.TextChoices):
+    CHECKING = 'checking', 'Перевіряється'
+    PENDING = 'pending', 'Очікується'
+    COMPLETED = 'completed', 'Виплачений'
+    FAILED = 'failed', 'Не сплачений'
 
+
+class Earnings(PolymorphicModel):
     report_from = models.DateField(verbose_name="Дохід з")
     report_to = models.DateField(verbose_name="Дохід по")
     earning = models.DecimalField(decimal_places=2, max_digits=10, verbose_name='Сума доходу')
-    status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='checking')
+    status = models.CharField(max_length=20, choices=PaymentsStatus.choices, default=PaymentsStatus.CHECKING)
     partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
 
     def is_completed(self):
-        return True if self.status == "completed" else False
+        return True if self.status in [PaymentsStatus.COMPLETED, PaymentsStatus.FAILED] else False
+
+    def is_pending(self):
+        return True if self.status == PaymentsStatus.PENDING else False
 
 
 class DriverPayments(Earnings):
@@ -381,8 +388,46 @@ class DriverPayments(Earnings):
         verbose_name = 'Виплати водію'
         verbose_name_plural = 'Виплати водіям'
 
+    def change_status(self, new_status):
+        self.status = new_status
+        self.save(update_fields=['status'])
+
+    def get_bonuses(self):
+        return self.bonus_set.all().aggregate(Sum('amount'))['amount__sum'] or 0
+
+    def get_penalties(self):
+        return self.penalty_set.all().aggregate(Sum('amount'))['amount__sum'] or 0
+
     def __str__(self):
         return f"{self.driver}"
+
+
+class PenaltyBonus(PolymorphicModel):
+    amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Сума')
+    description = models.CharField(max_length=255, null=True, verbose_name='Опис')
+    driver = models.ForeignKey(Driver, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Водій')
+
+    class Meta:
+        verbose_name = 'Штраф/Бонус'
+        verbose_name_plural = 'Штрафи та Бонуси'
+
+    @classmethod
+    def get_amount(cls, default=None):
+        try:
+            penalty_bonus = cls.objects.first()
+        except (ProgrammingError, ObjectDoesNotExist):
+            return default
+        return penalty_bonus.amount
+
+
+class Penalty(PenaltyBonus):
+    driver_payments = models.ForeignKey(DriverPayments, null=True, blank=True, verbose_name='Виплата водію',
+                                        on_delete=models.CASCADE)
+
+
+class Bonus(PenaltyBonus):
+    driver_payments = models.ForeignKey(DriverPayments, null=True, blank=True, verbose_name='Виплата водію',
+                                        on_delete=models.CASCADE)
 
 
 class InvestorPayments(Earnings):
@@ -474,7 +519,6 @@ class NinjaFleet(Fleet):
 
 
 class Client(User):
-
     class Meta:
         verbose_name = 'Клієнта'
         verbose_name_plural = 'Клієнти'
@@ -893,7 +937,7 @@ class JobApplication(models.Model):
                                             verbose_name='Тильна сторона посвідчення')
     photo = models.ImageField(blank=True, upload_to='job/photo', verbose_name='Фото водія')
     car_documents = models.ImageField(blank=True, upload_to='job/car', default="docs/default_car.jpg",
-                                      verbose_name='Фото техпаспорту',)
+                                      verbose_name='Фото техпаспорту', )
     insurance = models.ImageField(blank=True, upload_to='job/insurance', default="docs/default_insurance.png",
                                   verbose_name='Автоцивілка')
     insurance_expired = models.DateField(default=date(2023, 12, 15), verbose_name='Термін дії автоцивілки')
@@ -998,9 +1042,6 @@ class DriverEfficiency(models.Model):
 
     def __str__(self):
         return f"{self.driver}"
-
-
-
 
 
 class UseOfCars(models.Model):

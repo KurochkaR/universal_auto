@@ -95,10 +95,10 @@ class Synchronizer:
         if licence_plate:
             vehicle, created = Vehicle.objects.get_or_create(licence_plate=licence_plate,
                                                              defaults={
-                                                                  "name": v_name.upper(),
-                                                                  "licence_plate": licence_plate,
-                                                                  "vin_code": vin,
-                                                                  "partner": self.partner
+                                                                 "name": v_name.upper(),
+                                                                 "licence_plate": licence_plate,
+                                                                 "vin_code": vin,
+                                                                 "partner": self.partner
                                                              })
             if not created:
                 self.update_vehicle_fields(vehicle, **kwargs)
@@ -124,7 +124,7 @@ class Synchronizer:
         swap_vehicle = Vehicle.objects.filter(licence_plate=kwargs['licence_plate']).first()
         reshuffle = DriverReshuffle.objects.filter(swap_vehicle=swap_vehicle,
                                                    swap_time__date=yesterday.date())
-        if photo and not driver.photo and "default.jpeg" not in photo:
+        if photo and "default.jpeg" not in photo and 'drivers/default-driver.png' == driver.photo:
             response = requests.get(photo)
             if response.status_code == 200:
                 image_data = response.content
@@ -143,4 +143,3 @@ class Synchronizer:
     @staticmethod
     def report_interval(date_time):
         return int(date_time.timestamp())
-

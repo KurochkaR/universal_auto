@@ -2,6 +2,7 @@ import os
 
 import jwt
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db.models import Q
 
 from django.urls import reverse
 from django.shortcuts import render, redirect
@@ -57,6 +58,8 @@ class PostRequestView(View):
             "delete_all_shift": handler.handler_delete_shift,
             "update_shift": handler.handler_update_shift,
             "update_all_shift": handler.handler_update_shift,
+            "upd-payments": handler.handler_update_payments,
+            "upd-status-payment": handler.handler_upd_payment_status,
         }
 
         if action in method:
@@ -113,8 +116,7 @@ class DriversView(TemplateView):
         return context
 
 
-class DashboardView(LoginRequiredMixin, TemplateView):
-    template_name = "dashboard.html"
+class BaseDashboardView(LoginRequiredMixin, TemplateView):
     login_url = "index"
 
     def dispatch(self, request, *args, **kwargs):
@@ -129,15 +131,55 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         context["partner_group"] = user.is_partner()
         context["manager_group"] = user.is_manager()
 
+        return context
+
+
+class DashboardView(BaseDashboardView):
+    template_name = "dashboard/dashboard.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
         if user.is_manager():
             context["get_all_vehicle"] = Vehicle.objects.filter(manager=user)
             context["get_all_driver"] = Driver.objects.get_active(manager=user)
+
         elif user.is_partner():
             context["get_all_vehicle"] = Vehicle.objects.filter(partner=user)
             context["get_all_driver"] = Driver.objects.get_active(partner=user)
+        return context
 
+
+class DashboardPaymentView(BaseDashboardView):
+    template_name = "dashboard/dashboard-payments.html"
+
+
+class DashboardVehicleView(BaseDashboardView):
+    template_name = "dashboard/dashboard-vehicle.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
         context["car_piggy_bank"] = CarsInformationListView.get_queryset(self)
+        return context
 
+
+class DashboardDriversView(BaseDashboardView):
+    template_name = "dashboard/dashboard-drivers.html"
+
+
+class DashboardCalendarView(BaseDashboardView):
+    template_name = "dashboard/dashboard-calendar.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+        if user.is_manager():
+            context["get_all_vehicle"] = Vehicle.objects.filter(manager=user)
+            context["get_all_driver"] = Driver.objects.get_active(manager=user)
+
+        elif user.is_partner():
+            context["get_all_vehicle"] = Vehicle.objects.filter(partner=user)
+            context["get_all_driver"] = Driver.objects.get_active(partner=user)
         return context
 
 

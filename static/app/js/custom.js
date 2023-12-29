@@ -447,7 +447,6 @@ $(document).ready(function() {
 				csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
 			},
 			success: function (response) {
-			console.log(response.success);
 				if (response.success === true) {
 					$("#thank-you-message").show();
 					$("#InvestModal").hide();
@@ -481,5 +480,16 @@ $(document).ready(function () {
 	var closeFormAccessButton = $("#close-form-access");
 	closeFormAccessButton.on("click", function () {
 		investModal.hide();
+	});
+
+	var passwordInput = $('#password');
+	var showPasswordCheckbox = $('#showPassword');
+
+	showPasswordCheckbox.change(function () {
+		if (showPasswordCheckbox.is(':checked')) {
+			passwordInput.attr('type', 'text');
+		} else {
+			passwordInput.attr('type', 'password');
+		}
 	});
 });

@@ -13,9 +13,9 @@ from rest_framework.response import Response
 
 from api.mixins import CombinedPermissionsMixin, ManagerFilterMixin, InvestorFilterMixin
 from api.serializers import SummaryReportSerializer, CarEfficiencySerializer, CarDetailSerializer, \
-    DriverEfficiencyRentSerializer, InvestorCarsSerializer, ReshuffleSerializer
+    DriverEfficiencyRentSerializer, InvestorCarsSerializer, ReshuffleSerializer, DriverPaymentsSerializer
 from app.models import SummaryReport, CarEfficiency, Vehicle, DriverEfficiency, RentInformation, DriverReshuffle, \
-    PartnerEarnings, InvestorPayments
+    PartnerEarnings, InvestorPayments, DriverPayments, PaymentsStatus
 from taxi_service.utils import get_start_end
 
 
@@ -183,7 +183,7 @@ class CarsInformationListView(CombinedPermissionsMixin,
             queryset = queryset.values('licence_plate').annotate(
                 price=F('purchase_price'),
                 kasa=Subquery(earning_subquery.filter(
-                              vehicle__licence_plate=OuterRef('licence_plate')).values('vehicle_earning'),
+                    vehicle__licence_plate=OuterRef('licence_plate')).values('vehicle_earning'),
                               output_field=DecimalField()
                               ),
                 spending=Coalesce(Sum('vehiclespending__amount'), Decimal(0))
@@ -270,3 +270,25 @@ class DriverReshuffleListView(CombinedPermissionsMixin, generics.ListAPIView):
         queryset = self.get_queryset()
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
+
+
+class DriverPaymentsListView(CombinedPermissionsMixin, generics.ListAPIView):
+    serializer_class = DriverPaymentsSerializer
+
+    def get_queryset(self):
+        qs = ManagerFilterMixin.get_queryset(DriverPayments, self.request.user)
+
+        period = self.kwargs.get('period')
+
+        if not period:
+            queryset = (qs.filter(
+                status__in=[PaymentsStatus.CHECKING, PaymentsStatus.PENDING],
+            )).order_by('report_to')
+        else:
+            start, end, format_start, format_end = get_start_end(period)
+            queryset = (qs.filter(
+                report_to__range=(start, end),
+                status__in=[PaymentsStatus.COMPLETED, PaymentsStatus.FAILED],
+            )).order_by('report_to')
+
+        return queryset
