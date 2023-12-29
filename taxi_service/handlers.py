@@ -238,19 +238,27 @@ class PostRequestHandler:
         return response
 
     def handler_upd_payment_status(self, request):
+        all_payments = request.POST.get('allId')
         driver_payments_id = request.POST.get('id')
         status = request.POST.get('status')
 
-        driver_payments = DriverPayments.objects.get(id=driver_payments_id)
-        driver_payments.change_status(status)
+        if all_payments:
+            for payment_id in all_payments.split(','):
+                try:
+                    driver_payments = DriverPayments.objects.get(id=payment_id)
+                    driver_payments.change_status(status)
+                except DriverPayments.DoesNotExist:
+                    continue
+        else:
+            try:
+                driver_payments = DriverPayments.objects.get(id=driver_payments_id)
+                driver_payments.change_status(status)
+            except DriverPayments.DoesNotExist:
+                return JsonResponse({'data': 'error', 'message': 'Payment not found'}, status=404)
 
-        json_data = JsonResponse({'data': 'success'}, safe=False)
+        json_data = JsonResponse({'data': 'success'})
         response = HttpResponse(json_data, content_type='application/json')
         return response
-
-    @staticmethod
-    def handler_unknown_action():
-        return JsonResponse({}, status=400)
 
 
 class GetRequestHandler:

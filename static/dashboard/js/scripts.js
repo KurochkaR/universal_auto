@@ -7,56 +7,60 @@ $(document).ready(function() {
 
 	//	підтвердження оновлення бази даних
 	$("#updateDatabaseContainer").click(function () {
+		$(".confirmation-box h2").text("Бажаєте оновити базу даних?");
 		$(".confirmation-update-database").show();
+		$("#confirmation-btn-on").data('confirmUpd', true);
 	});
 
 	$("#confirmation-btn-on").click(function () {
-		$(".confirmation-update-database").hide();
-		$("#loadingModal").css("display", "block")
-		$(".loading-content").css("display", "block");
+		if ($(this).data('confirmUpd')) {
+			$(".confirmation-update-database").hide();
+			$("#loadingModal").css("display", "block")
+			$(".loading-content").css("display", "block");
 
-		$.ajax({
-			type: "POST",
-			url: ajaxPostUrl,
-			data: {
-				csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val(),
-				action: "upd_database",
-			},
-			success: function (response) {
-				let task_id = response.task_id
-				let interval = setInterval(function () {
-					$.ajax({
-						type: "GET",
-						url: ajaxGetUrl,
-						data: {
-							action: "check_task",
-							task_id: task_id,
-						},
-						success: function (response) {
-							if (response.data === true) {
-								$(".loading-content").css("display", "flex");
-								$("#loadingMessage").text(gettext("Базу даних оновлено"));
-								$("#loader").css("display", "none");
-								$("#checkmark").css("display", "block");
-								setTimeout(function () {
-									$("#loadingModal").css("display", "none");
-									window.location.reload();
-								}, 3000);
-								clearInterval(interval);
-							} if (response.data === false) {
-								$("#loadingMessage").text(gettext("Помилка оновлення бази даних. Спробуйте пізніше"));
-								$("#loader").css("display", "none");
-								$("#checkmark").css("display", "none");
-								setTimeout(function () {
-									$("#loadingModal").css("display", "none");
-								}, 3000);
-								clearInterval(interval);
-							};
-						}
-					});
-				}, 5000);
-			}
-		});
+			$.ajax({
+				type: "POST",
+				url: ajaxPostUrl,
+				data: {
+					csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val(),
+					action: "upd_database",
+				},
+				success: function (response) {
+					let task_id = response.task_id
+					let interval = setInterval(function () {
+						$.ajax({
+							type: "GET",
+							url: ajaxGetUrl,
+							data: {
+								action: "check_task",
+								task_id: task_id,
+							},
+							success: function (response) {
+								if (response.data === true) {
+									$(".loading-content").css("display", "flex");
+									$("#loadingMessage").text(gettext("Базу даних оновлено"));
+									$("#loader").css("display", "none");
+									$("#checkmark").css("display", "block");
+									setTimeout(function () {
+										$("#loadingModal").css("display", "none");
+										window.location.reload();
+									}, 3000);
+									clearInterval(interval);
+								} if (response.data === false) {
+									$("#loadingMessage").text(gettext("Помилка оновлення бази даних. Спробуйте пізніше"));
+									$("#loader").css("display", "none");
+									$("#checkmark").css("display", "none");
+									setTimeout(function () {
+										$("#loadingModal").css("display", "none");
+									}, 3000);
+									clearInterval(interval);
+								};
+							}
+						});
+					}, 5000);
+				}
+			});
+		}
 	});
 
 	$("#confirmation-btn-off").click(function () {

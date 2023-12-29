@@ -176,15 +176,27 @@ $(document).ready(function () {
 	});
 
 	$('.driver-table tbody').on('click', '.pay-btn', function () {
-		var id = $(this).closest('tr').data('id');
-
-		updStatusDriverPayments(id, status='completed', paymentStatus="not_closed");
+    var id = $(this).closest('tr').data('id');
+    var status = 'completed';
+    $(".confirmation-box h2").text("Ви впевнені, що хочете закрити платіж ?");
+    $(".confirmation-update-database").show();
+    $("#confirmation-btn-on").data('id', id).data('status', status);
 	});
+
 
 	$('.driver-table tbody').on('click', '.not-pay-btn', function () {
 		var id = $(this).closest('tr').data('id');
+		var status = 'failed';
+		$(".confirmation-box h2").text("Ви впевнені, що хочете закрити платіж ?");
+		$(".confirmation-update-database").show();
+		$("#confirmation-btn-on").data('id', id).data('status', status);
+	});
 
-		updStatusDriverPayments(id, status='failed', paymentStatus="not_closed");
+	$("#confirmation-btn-on").click(function () {
+    var id = $(this).data('id');
+    var status = $(this).data('status');
+    updStatusDriverPayments(id, status, paymentStatus="not_closed");
+    $(".confirmation-update-database").hide();
 	});
 
 	$('.send-all-button').on('click', function () {
@@ -193,25 +205,14 @@ $(document).ready(function () {
       var dataId = $(this).attr('data-id');
       allDataIds.push(dataId);
     });
-
-		$.ajax({
-			url: ajaxPostUrl,
-			type: 'POST',
-			data: {
-				ids: allDataIds,
-				action: 'confirm-all-payments',
-				csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
-			},
-			dataType: 'json',
-			success: function (response) {
-				driverPayment(null, null, null, paymentStatus="on_inspection");
-			}
-		});
+		updStatusDriverPayments(null, status='pending', paymentStatus="on_inspection", all=allDataIds);
   });
 });
 
 function updStatusDriverPayments(id, status, paymentStatus, all=null) {
-
+	if (all !== null) {
+		var allId = all.join(',');
+	}
 	$.ajax({
 		url: ajaxPostUrl,
 		type: 'POST',
@@ -219,7 +220,7 @@ function updStatusDriverPayments(id, status, paymentStatus, all=null) {
 			id: id,
 			action: 'upd-status-payment',
 			status: status,
-			all: all,
+			allId: allId,
 			csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
 		},
 		dataType: 'json',
