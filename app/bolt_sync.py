@@ -9,7 +9,7 @@ from django.utils import timezone
 
 from django.db import models
 from app.models import BoltService, Driver, FleetsDriversVehiclesRate, FleetOrder, \
-    CredentialPartner, Vehicle, PaymentTypes, Fleet, CustomReport, WeeklyReport
+    CredentialPartner, Vehicle, PaymentTypes, Fleet, CustomReport, WeeklyReport, DailyReport
 from auto import settings
 from auto_bot.handlers.order.utils import check_vehicle
 from scripts.redis_conn import redis_instance
@@ -121,10 +121,8 @@ class BoltRequest(Fleet, Synchronizer):
         }
         return report
 
-    def save_report(self, start, end, driver, custom=None):
+    def save_custom_report(self, start, end, driver, custom=None):
         time.sleep(0.5)
-        format_start = start.strftime("%Y-%m-%d")
-        format_end = end.strftime("%Y-%m-%d")
         param = self.param()
         if not custom:
             param.update({"period": "ongoing_day",
@@ -133,6 +131,8 @@ class BoltRequest(Fleet, Synchronizer):
                           "limit": 50})
             reports = self.get_target_url(f'{self.base_url}getDriverEarnings/recent', param)
         else:
+            format_start = start.strftime("%Y-%m-%d")
+            format_end = end.strftime("%Y-%m-%d")
             param.update({"start_date": format_start,
                           "end_date": format_end,
                           "search": str(driver),
@@ -181,6 +181,26 @@ class BoltRequest(Fleet, Synchronizer):
                                                     vendor=self,
                                                     partner=self.partner)
             db_report.update(**report) if db_report else WeeklyReport.objects.create(**report)
+
+    def save_daily_report(self, start, end, driver):
+        time.sleep(0.5)
+        format_start = start.strftime("%Y-%m-%d")
+        format_end = end.strftime("%Y-%m-%d")
+        param = self.param()
+        param.update({"start_date": format_start,
+                      "end_date": format_end,
+                      "search": str(driver),
+                      "offset": 0,
+                      "limit": 50})
+        reports = self.get_target_url(f'{self.base_url}getDriverEarnings/dateRange', param)
+        for driver_report in reports['data']['drivers']:
+            report = self.parse_json_report(start, end, driver, driver_report)
+            db_report = DailyReport.objects.filter(report_from=start,
+                                                   driver=driver,
+                                                   vendor=self,
+                                                   partner=self.partner)
+            db_report.update(**report) if db_report else DailyReport.objects.create(**report)
+            return db_report
 
     def get_bonuses_info(self, driver, start, end):
         bonuses = 0

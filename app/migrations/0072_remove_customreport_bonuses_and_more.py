@@ -313,4 +313,19 @@ class Migration(migrations.Migration):
             name='driverreport_ptr',
             field=models.OneToOneField(auto_created=True, on_delete=django.db.models.deletion.CASCADE, parent_link=True, primary_key=True, serialize=False, to='app.driverreport'),
         ),
+        migrations.CreateModel(
+            name='DailyReport',
+            fields=[
+                ('driverreport_ptr',
+                 models.OneToOneField(auto_created=True, on_delete=django.db.models.deletion.CASCADE, parent_link=True,
+                                      primary_key=True, serialize=False, to='app.driverreport')),
+                ('vendor', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='app.fleet',
+                                             verbose_name='Агрегатор')),
+            ],
+            options={
+                'abstract': False,
+                'base_manager_name': 'objects',
+            },
+            bases=('app.driverreport',),
+        ),
     ]

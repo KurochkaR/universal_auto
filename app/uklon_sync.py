@@ -7,7 +7,7 @@ from django.utils import timezone
 from django.db import models
 from requests import JSONDecodeError
 from app.models import ParkSettings, FleetsDriversVehiclesRate, Driver, Service, FleetOrder, \
-    CredentialPartner, Vehicle, PaymentTypes, CustomReport, Fleet, WeeklyReport
+    CredentialPartner, Vehicle, PaymentTypes, CustomReport, Fleet, WeeklyReport, DailyReport
 from auto_bot.handlers.order.utils import check_vehicle
 from auto_bot.main import bot
 from scripts.redis_conn import redis_instance
@@ -179,7 +179,7 @@ class UklonRequest(Fleet, Synchronizer):
         data = resp.get('items')
         return data
 
-    def save_report(self, start, end, driver, custom=None):
+    def save_custom_report(self, start, end, driver, custom=None):
         if custom:
             start_time = datetime.combine(start, time.min)
         else:
@@ -214,16 +214,23 @@ class UklonRequest(Fleet, Synchronizer):
                                                         partner=self.partner)
                 db_report.update(**report) if db_report else CustomReport.objects.create(**report)
 
-    def save_weekly_report(self, start, end, driver):
+    def save_report(self, start, end, driver, model):
         data = self.generate_report(driver, start, end)
         if data:
             for driver_report in data:
                 report = self.parse_json_report(start, end, driver, driver_report)[0]
-                db_report = WeeklyReport.objects.filter(report_from=start,
-                                                        driver=driver,
-                                                        vendor=self,
-                                                        partner=self.partner)
-                db_report.update(**report) if db_report else WeeklyReport.objects.create(**report)
+                db_report = model.objects.filter(report_from=start,
+                                                 driver=driver,
+                                                 vendor=self,
+                                                 partner=self.partner)
+                db_report.update(**report) if db_report else model.objects.create(**report)
+                return db_report
+
+    def save_weekly_report(self, start, end, driver):
+        self.save_report(start, end, driver, WeeklyReport)
+
+    def save_daily_report(self, start, end, driver):
+        self.save_report(start, end, driver, DailyReport)
 
     def get_earnings_per_driver(self, driver, start, end):
         driver_id = driver.get_driver_external_id(vendor=self.name)

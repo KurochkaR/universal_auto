@@ -22,11 +22,12 @@ def get_time_for_task(schema, day=None):
     :return: start, end, previous_start, previous_end
     """
     schema_obj = Schema.objects.get(pk=schema)
+    shift_time = schema_obj.shift_time if schema_obj.shift_time != time.min else time.max
     date = datetime.strptime(day, "%Y-%m-%d") if day else timezone.localtime()
     start = timezone.make_aware(datetime.combine(date, time.min))
     yesterday = date - timedelta(days=1)
     previous_end = timezone.make_aware(datetime.combine(yesterday, time.max))
-    end = timezone.make_aware(datetime.combine(date, schema_obj.shift_time))
+    end = timezone.make_aware(datetime.combine(date, shift_time))
     previous_start = timezone.make_aware(datetime.combine(yesterday, schema_obj.shift_time))
     return start, end, previous_start, previous_end
 
@@ -39,36 +40,33 @@ def create_driver_payments(start, end, driver, schema, delete=None):
         kasa=Coalesce(Sum('total_amount_without_fee'), 0, output_field=DecimalField()))
     rent = calculate_rent(start, end, driver)
     rent_value = rent * schema.rent_price
-    if driver_report['kasa']:
-        if delete:
-            salary = '%.2f' % (driver_report['kasa'] * schema.rate - driver_report['cash'] - rent_value)
-        elif schema.is_dynamic():
-            driver_spending = calculate_by_rate(driver, driver_report['kasa'], driver.partner_id)
-            salary = '%.2f' % (driver_spending - driver_report['cash'] - rent_value)
-        elif schema.is_rent():
-            overall_distance = DriverEfficiency.objects.filter(
-                report_from__range=(start, end),
-                driver=driver).aggregate(
-                distance=Coalesce(Sum('mileage'), 0, output_field=DecimalField()))['distance']
-            rent = max((overall_distance - schema.limit_distance), 0)
-            rent_value = rent * schema.rent_price
-            salary = '%.2f' % (driver_report['kasa'] * schema.rate -
-                               driver_report['cash'] - schema.rental - rent_value)
-        else:
-            salary = '%.2f' % (driver_report['kasa'] * schema.rate - driver_report['cash'] - (
-                (schema.plan - driver_report['kasa']) * Decimal(1 - schema.rate)
-                if driver_report['kasa'] < schema.plan else 0) - rent_value
-            )
-        DriverPayments.objects.create(report_from=start,
-                                      report_to=end,
-                                      driver=driver,
-                                      rent_distance=rent,
-                                      rent_price=schema.rent_price,
-                                      kasa=driver_report['kasa'],
-                                      cash=driver_report['cash'],
-                                      earning=salary,
-                                      rent=rent_value,
-                                      partner=schema.partner)
+    if delete:
+        salary = '%.2f' % (driver_report['kasa'] * schema.rate - driver_report['cash'] - rent_value)
+    elif schema.is_dynamic():
+        driver_spending = calculate_by_rate(driver, driver_report['kasa'], driver.partner_id)
+        salary = '%.2f' % (driver_spending - driver_report['cash'] - rent_value)
+    elif schema.is_rent():
+        overall_distance = DriverEfficiency.objects.filter(
+            report_from__range=(start, end),
+            driver=driver).aggregate(
+            distance=Coalesce(Sum('mileage'), 0, output_field=DecimalField()))['distance']
+        rent = max((overall_distance - schema.limit_distance), 0)
+        rent_value = rent * schema.rent_price
+        salary = '%.2f' % (driver_report['kasa'] * schema.rate -
+                           driver_report['cash'] - schema.rental - rent_value)
+    else:
+        salary = '%.2f' % (driver_report['kasa'] * schema.rate - driver_report['cash'] - (
+            (schema.plan - driver_report['kasa']) * Decimal(1 - schema.rate)
+            if driver_report['kasa'] < schema.plan else 0) - rent_value
+        )
+    data = {"rent_distance": rent,
+            "rent_price": schema.rent_price,
+            "kasa": driver_report['kasa'],
+            "cash": driver_report['cash'],
+            "earning": salary,
+            "rent": rent_value,
+            "partner": schema.partner}
+    return data
 
 
 def validate_date(date_str):

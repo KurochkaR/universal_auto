@@ -2,7 +2,7 @@ from datetime import datetime
 import requests
 from django.db import models
 from app.models import UberService, UberSession, FleetsDriversVehiclesRate, FleetOrder, \
-    CustomReport, Fleet, CredentialPartner, WeeklyReport
+    CustomReport, Fleet, CredentialPartner, WeeklyReport, DailyReport
 from auto_bot.handlers.order.utils import check_vehicle
 from scripts.redis_conn import get_logger
 from selenium_ninja.driver import SeleniumTools
@@ -215,12 +215,16 @@ class UberRequest(Fleet, Synchronizer):
                                                  vendor=self,
                                                  partner=self.partner)
                 db_report.update(**payment) if db_report else model.objects.create(**payment)
+                return db_report
 
-    def save_report(self, start, end, driver):
+    def save_custom_report(self, start, end, driver):
         self.custom_saving_report(start, end, driver, CustomReport)
 
     def save_weekly_report(self, start, end, driver):
         self.custom_saving_report(start, end, driver, WeeklyReport)
+
+    def save_daily_report(self, start, end, driver):
+        self.custom_saving_report(start, end, driver, DailyReport)
 
     def get_earnings_per_driver(self, driver, start_time, end_time):
         report = self.generate_report(start_time, end_time, driver)

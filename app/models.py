@@ -551,6 +551,10 @@ class WeeklyReport(DriverReport):
     vendor = models.ForeignKey(Fleet, on_delete=models.CASCADE, verbose_name='Агрегатор')
 
 
+class DailyReport(DriverReport):
+    vendor = models.ForeignKey(Fleet, on_delete=models.CASCADE, verbose_name='Агрегатор')
+
+
 class StatusChange(models.Model):
     driver = models.ForeignKey(Driver, null=True, on_delete=models.CASCADE)
     vehicle = models.ForeignKey(Vehicle, null=True, on_delete=models.CASCADE)
