@@ -138,17 +138,3 @@ def take_order_from_client(sender, instance, **kwargs):
         #         datetime_with_timezone(instance.order_time),
         #         ParkSettings.get_value("GOOGLE_ID_ORDER_CALENDAR")
         #     )
-
-
-@receiver(post_save, sender=DriverPayments)
-def driver_payments_status_changed(sender, instance, **kwargs):
-    if 'status' in kwargs['update_fields'] or not kwargs.get('update_fields'):
-        chat_id = instance.driver.chat_id
-        print("%" * 100)
-        print(chat_id)
-        print(instance.driver)
-        print(instance.earning)
-        print(instance.report_to)
-        print(instance.rent)
-        print(instance.kasa)
-        print("%" * 100)
