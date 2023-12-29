@@ -186,7 +186,7 @@ class CarsInformationListView(CombinedPermissionsMixin,
                     vehicle__licence_plate=OuterRef('licence_plate')).values('vehicle_earning'),
                               output_field=DecimalField()
                               ),
-                spending=Coalesce(Sum('carefficiency__total_spending'), Decimal(0))
+                spending=Coalesce(Sum('vehiclespending__amount'), Decimal(0))
             ).annotate(
                 progress_percentage=ExpressionWrapper(
                     Case(
@@ -211,7 +211,7 @@ class CarsInformationListView(CombinedPermissionsMixin,
                           default=Value(0),
                           output_field=DecimalField()
                           ),
-                spending=Coalesce(Sum('carefficiency__total_spending'), Decimal(0))
+                spending=Coalesce(Sum('vehiclespending__amount'), Decimal(0))
             ).annotate(
                 progress_percentage=ExpressionWrapper(
                     Case(

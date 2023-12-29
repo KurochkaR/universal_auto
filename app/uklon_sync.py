@@ -231,16 +231,17 @@ class UklonRequest(Fleet, Synchronizer):
         url = f"{Service.get_value('UKLON_5')}{self.uklon_id()}"
         url += Service.get_value('UKLON_6')
         data = self.response_data(url, params={'limit': '50', 'offset': '0'})
-        for driver in data.get('data', []):
-            name, second_name = driver['first_name'].split()[0], driver['last_name'].split()[0]
-            first_data = (second_name, name)
-            second_data = (name, second_name)
-            if driver['status'] == 'Active':
-                drivers['wait'].append(first_data)
-                drivers['wait'].append(second_data)
-            elif driver['status'] == 'OrderExecution':
-                drivers['with_client'].append(first_data)
-                drivers['with_client'].append(second_data)
+        if data:
+            for driver in data.get('data', []):
+                name, second_name = driver['first_name'].split()[0], driver['last_name'].split()[0]
+                first_data = (second_name, name)
+                second_data = (name, second_name)
+                if driver['status'] == 'Active':
+                    drivers['wait'].append(first_data)
+                    drivers['wait'].append(second_data)
+                elif driver['status'] == 'OrderExecution':
+                    drivers['with_client'].append(first_data)
+                    drivers['with_client'].append(second_data)
         return drivers
 
     def get_drivers_table(self):

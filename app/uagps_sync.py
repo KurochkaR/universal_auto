@@ -12,8 +12,8 @@ from selenium_ninja.driver import SeleniumTools
 
 
 class UaGpsSynchronizer(Fleet):
-
-    def create_session(self, partner, login, password):
+    @staticmethod
+    def create_session(partner, login, password):
         partner_obj = Partner.objects.get(pk=partner)
         token = SeleniumTools(partner).create_gps_session(login, password, partner_obj.gps_url)
         return token
@@ -101,7 +101,8 @@ class UaGpsSynchronizer(Fleet):
     def get_road_distance(self, start, end, schema=None):
         road_dict = {}
         drivers = Driver.objects.get_active(
-            partner=self.partner, schema=schema) if schema else Driver.objects.get_active(partner=self.partner)
+            partner=self.partner, schema=schema) if schema else Driver.objects.get_active(partner=self.partner,
+                                                                                          schema__isnull=False)
         for driver in drivers:
             if RentInformation.objects.filter(report_to=end, driver=driver):
                 continue
@@ -190,19 +191,21 @@ class UaGpsSynchronizer(Fleet):
         return road_distance, road_time, previous_finish_time
 
     def get_vehicle_rent(self, start, end, schema=None):
-        for driver in Driver.objects.filter(partner=self.partner, schema=schema):
+        for driver in Driver.objects.get_active(partner=self.partner, schema=schema):
             vehicles = check_reshuffle(driver, start, end)
             for vehicle, reshuffles in vehicles.items():
                 if reshuffles:
                     for reshuffle in reshuffles:
+                        start_report = timezone.localtime(reshuffle.swap_time)
+                        end_report = timezone.localtime(reshuffle.end_time)
                         orders = FleetOrder.objects.filter(
                             driver=driver,
                             state=FleetOrder.COMPLETED,
-                            accepted_time__gte=reshuffle.swap_time,
-                            accepted_time__lt=reshuffle.end_time).order_by('accepted_time')
+                            accepted_time__gte=start_report,
+                            accepted_time__lt=end_report).order_by('accepted_time')
                         road_distance = self.calculate_order_distance(orders, end)[0]
-                        total_km = self.generate_report(self.get_timestamp(start),
-                                                        self.get_timestamp(end),
+                        total_km = self.generate_report(self.get_timestamp(start_report),
+                                                        self.get_timestamp(end_report),
                                                         reshuffle.swap_vehicle.gps.gps_id)[0]
                         rent_distance = total_km - road_distance
                         data = {"report_from": start,
@@ -317,6 +320,7 @@ class UaGpsSynchronizer(Fleet):
                     get_logger().error(e)
                     continue
             rent_distance = total_km - distance
-            time_now = timezone.localtime(end_time).strftime("%H:%M")
-            bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"),
-                             text=f"Орендовано на {time_now} {driver} - {rent_distance}")
+            if rent_distance > driver.schema.limit_distance:
+                time_now = timezone.localtime(end_time).strftime("%H:%M")
+                bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"),
+                                 text=f"Орендовано на {time_now} {driver} - {rent_distance}")

@@ -2,7 +2,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta, time
 
 from _decimal import Decimal
-from django.db.models import Sum, Avg, DecimalField, ExpressionWrapper, F
+from django.db.models import Sum, Avg, DecimalField, ExpressionWrapper, F, Value
 from django.db.models.functions import Coalesce
 from django.utils import timezone
 
@@ -43,7 +43,7 @@ def create_driver_payments(start, end, driver, schema, delete=None):
         if delete:
             salary = '%.2f' % (driver_report['kasa'] * schema.rate - driver_report['cash'] - rent_value)
         elif schema.is_dynamic():
-            driver_spending = calculate_by_rate(driver, driver_report['kasa'])
+            driver_spending = calculate_by_rate(driver, driver_report['kasa'], driver.partner_id)
             salary = '%.2f' % (driver_spending - driver_report['cash'] - rent_value)
         elif schema.is_rent():
             overall_distance = DriverEfficiency.objects.filter(
@@ -124,8 +124,9 @@ def calculate_daily_reports(start, end, driver):
     return kasa, rent
 
 
-def calculate_by_rate(driver, kasa):
-    rate_tiers = DriverSchemaRate.get_rate_tier(period=driver.schema.salary_calculation)
+def calculate_by_rate(driver, kasa, partner):
+    rate_tiers = DriverSchemaRate.get_rate_tier(period=driver.schema.salary_calculation,
+                                                partner=partner)
     driver_spending = 0
     tier = 0
     rates = rate_tiers[2:] if kasa >= driver.schema.plan else rate_tiers
@@ -291,9 +292,9 @@ def calculate_efficiency(vehicle, start, end):
     driver_info = [f"{first_name} {second_name} ({total_kasa:.2f})" for
                    (first_name, second_name), total_kasa in driver_kasa_totals.items()]
     vehicle_drivers.extend(driver_info)
-    total_kasa = efficiency_objects.aggregate(kasa=Sum('total_kasa'), default=0)['kasa']
-    total_distance = efficiency_objects.aggregate(total_distance=Sum('mileage'), default=0)['total_distance']
-    efficiency = float('{:.2f}'.format(total_kasa / total_distance)) if total_distance else 0
+    total_kasa = efficiency_objects.aggregate(kasa=Coalesce(Sum('total_kasa'), Decimal(0)))['kasa']
+    total_distance = efficiency_objects.aggregate(total_distance=Coalesce(Sum('mileage'), Decimal(0)))['total_distance']
+    efficiency = float('{:.2f}'.format(total_kasa/total_distance)) if total_distance else 0
     formatted_distance = float('{:.2f}'.format(total_distance)) if total_distance is not None else 0.00
     return efficiency, formatted_distance, total_kasa, vehicle_drivers
 

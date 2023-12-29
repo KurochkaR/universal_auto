@@ -58,15 +58,21 @@ def retry_logic(exc, retries):
 
 
 @contextmanager
-def memcache_lock(lock_id, oid):
-    lock = 600
-    timeout_at = tm.monotonic() + lock - 3
-    status = cache.add(lock_id, oid, lock)
+def memcache_lock(lock_id, oid, lock_time):
+    timeout_at = tm.monotonic() + lock_time - 3
+    # cache.add fails if the key already exists
+    status = cache.add(lock_id, oid, lock_time)
     try:
         yield status
     finally:
+        # memcache delete is very slow, but we have to use it to take
+        # advantage of using add() for atomic locking
         if tm.monotonic() < timeout_at and status:
-            cache.set(lock_id, oid, 10)
+            # don't release the lock if we exceeded the timeout
+            # to lessen the chance of releasing an expired lock
+            # owned by someone else
+            # also don't release the lock if we didn't acquire it
+            cache.delete(lock_id)
 
 
 @app.task(queue='bot_tasks')
@@ -265,6 +271,9 @@ def send_notify_to_check_car(self, partner_pk):
 @app.task(bind=True, queue='beat_tasks', retry_backoff=30, max_retries=4)
 def download_daily_report(self, partner_pk, schema, day=None):
     try:
+        schema_obj = Schema.objects.get(pk=schema)
+        if schema_obj.is_weekly() or schema_obj.shift_time == time.min:
+            return
         start, end = get_time_for_task(schema, day)[:2]
         fleets = Fleet.objects.filter(partner=partner_pk).exclude(name='Gps')
         for fleet in fleets:
@@ -423,60 +432,61 @@ def get_car_efficiency(self, partner_pk):
 
 @app.task(bind=True, queue='beat_tasks')
 def get_driver_efficiency(self, partner_pk, schema, day=None):
-    end, start = get_time_for_task(schema, day)[1:3]
-    for driver in Driver.objects.get_active(partner=partner_pk, schema=schema):
-        efficiency = DriverEfficiency.objects.filter(report_from=start,
-                                                     partner=partner_pk,
-                                                     driver=driver)
-        if not efficiency:
-            accept = 0
-            avg_price = 0
-            total_km, driver_vehicles = UaGpsSynchronizer.objects.get(
-                                partner=partner_pk).calc_total_km(driver, start, end)
-            if driver_vehicles:
-                report = SummaryReport.objects.filter(report_from=start, driver=driver).first()
-                total_kasa = report.total_amount_without_fee if report else 0
-                result = Decimal(total_kasa) / Decimal(total_km) if total_km else 0
-                orders = FleetOrder.objects.filter(driver=driver, accepted_time__range=(start, end))
-                total_orders = orders.count()
-                if total_orders:
-                    canceled = orders.filter(state=FleetOrder.DRIVER_CANCEL).count()
-                    completed = orders.filter(state=FleetOrder.COMPLETED).count()
-                    accept = int((total_orders - canceled) / total_orders * 100) if canceled else 100
-                    avg_price = Decimal(total_kasa) / Decimal(completed) if completed else 0
-                hours_online = timedelta()
-                using_info = UseOfCars.objects.filter(created_at__range=(start, end), user_vehicle=driver)
-                for report in using_info:
-                    if report.end_at:
-                        if report.end_at < end:
-                            hours_online += report.end_at - report.created_at
-                    else:
-                        hours_online += end - report.created_at
-                if start.time() == time.min:
-                    yesterday = start - timedelta(days=1)
-                    last_using = UseOfCars.objects.filter(created_at__date=yesterday,
-                                                          user_vehicle=driver,
-                                                          end_at__date=start).first()
-                    if last_using:
-                        hours_online += last_using.end_at - start
+    if Fleet.objects.filter(partner=partner_pk, name="Gps").exists():
+        end, start = get_time_for_task(schema, day)[1:3]
+        for driver in Driver.objects.get_active(partner=partner_pk, schema=schema):
+            efficiency = DriverEfficiency.objects.filter(report_from=start,
+                                                         partner=partner_pk,
+                                                         driver=driver)
+            if not efficiency:
+                accept = 0
+                avg_price = 0
+                total_km, driver_vehicles = UaGpsSynchronizer.objects.get(
+                                    partner=partner_pk).calc_total_km(driver, start, end)
+                if driver_vehicles:
+                    report = SummaryReport.objects.filter(report_from=start, driver=driver).first()
+                    total_kasa = report.total_amount_without_fee if report else 0
+                    result = Decimal(total_kasa) / Decimal(total_km) if total_km else 0
+                    orders = FleetOrder.objects.filter(driver=driver, accepted_time__range=(start, end))
+                    total_orders = orders.count()
+                    if total_orders:
+                        canceled = orders.filter(state=FleetOrder.DRIVER_CANCEL).count()
+                        completed = orders.filter(state=FleetOrder.COMPLETED).count()
+                        accept = int((total_orders - canceled) / total_orders * 100) if canceled else 100
+                        avg_price = Decimal(total_kasa) / Decimal(completed) if completed else 0
+                    hours_online = timedelta()
+                    using_info = UseOfCars.objects.filter(created_at__range=(start, end), user_vehicle=driver)
+                    for report in using_info:
+                        if report.end_at:
+                            if report.end_at < end:
+                                hours_online += report.end_at - report.created_at
+                        else:
+                            hours_online += end - report.created_at
+                    if start.time() == time.min:
+                        yesterday = start - timedelta(days=1)
+                        last_using = UseOfCars.objects.filter(created_at__date=yesterday,
+                                                              user_vehicle=driver,
+                                                              end_at__date=start).first()
+                        if last_using:
+                            hours_online += last_using.end_at - start
 
-                driver_efficiency = DriverEfficiency.objects.create(report_from=start,
-                                                                    report_to=end,
-                                                                    driver=driver,
-                                                                    total_kasa=total_kasa,
-                                                                    total_orders=total_orders,
-                                                                    accept_percent=accept,
-                                                                    average_price=avg_price,
-                                                                    mileage=total_km or 0,
-                                                                    online_time=hours_online,
-                                                                    efficiency=result,
-                                                                    partner_id=partner_pk)
-                driver_efficiency.vehicles.add(*driver_vehicles)
+                    driver_efficiency = DriverEfficiency.objects.create(report_from=start,
+                                                                        report_to=end,
+                                                                        driver=driver,
+                                                                        total_kasa=total_kasa,
+                                                                        total_orders=total_orders,
+                                                                        accept_percent=accept,
+                                                                        average_price=avg_price,
+                                                                        mileage=total_km or 0,
+                                                                        online_time=hours_online,
+                                                                        efficiency=result,
+                                                                        partner_id=partner_pk)
+                    driver_efficiency.vehicles.add(*driver_vehicles)
 
 
 @app.task(bind=True, queue='beat_tasks')
 def update_driver_status(self, partner_pk):
-    with memcache_lock(self.name, self.app.oid) as acquired:
+    with memcache_lock(self.name, self.app.oid, 600) as acquired:
         if acquired:
             status_online = set()
             status_with_client = set()
@@ -543,32 +553,34 @@ def send_on_job_application_on_driver(self, job_id):
 
 @app.task(bind=True, queue='bot_tasks')
 def schedule_for_detaching_uklon(self, partner_pk):
-    today = timezone.localtime().date()
+    today = timezone.localtime()
+    desired_time = today + timedelta(hours=1)
     for vehicle in Vehicle.objects.filter(partner=partner_pk):
-        reshuffles = DriverReshuffle.objects.filter(
-                        swap_time__date=today,
+        reshuffle = DriverReshuffle.objects.filter(
+                        swap_time__date=today.date(),
                         swap_vehicle=vehicle,
-                        end_time__lt=timezone.make_aware(datetime.combine(today, time.max)),
+                        end_time__lt=desired_time,
+                        end_time__gte=today,
                         partner=partner_pk
-                        )
-        for reshuffle in reshuffles:
+                        ).first()
+        if reshuffle:
             eta = timezone.localtime(reshuffle.end_time)
             detaching_the_driver_from_the_car.apply_async((partner_pk, reshuffle.swap_vehicle.licence_plate, eta),
                                                           eta=eta)
 
 
-@app.task(bind=True, queue='bot_tasks', retry_backoff=30, max_retries=4)
+@app.task(bind=True, queue='bot_tasks', retry_backoff=30, max_retries=1)
 def detaching_the_driver_from_the_car(self, partner_pk, licence_plate, eta):
-    try:
-        bot.send_message(chat_id=ParkSettings.get_value('DEVELOPER_CHAT_ID'),
-                         text=f"Авто {licence_plate} відключено {eta}")
-        # fleet = UklonRequest.objects.get(partner=partner_pk)
-        # fleet.detaching_the_driver_from_the_car(licence_plate)
-        # logger.info(f'Car {licence_plate} was detached')
-    except Exception as e:
-        logger.error(e)
-        retry_delay = retry_logic(e, self.request.retries + 1)
-        raise self.retry(exc=e, countdown=retry_delay)
+        try:
+            bot.send_message(chat_id=ParkSettings.get_value('DEVELOPER_CHAT_ID'),
+                             text=f"Авто {licence_plate} відключено {eta}")
+            # fleet = UklonRequest.objects.get(partner=partner_pk)
+            # fleet.detaching_the_driver_from_the_car(licence_plate)
+            # logger.info(f'Car {licence_plate} was detached')
+        except Exception as e:
+            logger.error(e)
+            retry_delay = retry_logic(e, self.request.retries + 1)
+            raise self.retry(exc=e, countdown=retry_delay)
 
 
 @app.task(bind=True, queue='beat_tasks', retry_backoff=30, max_retries=4)
@@ -787,7 +799,7 @@ def add_money_to_vehicle(self, partner_pk):
     kasa = SummaryReport.objects.filter(report_from=day.date(), vehicle__in=investor_vehicles).aggregate(
         kasa=Coalesce(Sum('total_amount_without_fee'), 0, output_field=DecimalField())
     )['kasa']
-    for investor in Investor.objects.filter(partner=partner_pk):
+    for investor in Investor.objects.filter(investors_partner=partner_pk):
         vehicles = Vehicle.objects.filter(investor_car=investor)
         if vehicles:
             vehicle_kasa = kasa / vehicles.count()
@@ -1175,17 +1187,18 @@ def check_cash_and_vehicle(self, partner_pk):
 @app.task(bind=True, queue='beat_tasks')
 def get_information_from_fleets(self, partner_pk, schema, day=None):
     task_chain = chain(
+        download_nightly_report.si(partner_pk, schema, day),
         download_daily_report.si(partner_pk, schema, day),
         get_orders_from_fleets.si(partner_pk, schema, day),
         check_orders_for_vehicle.si(partner_pk, schema),
         generate_payments.si(partner_pk, schema, day),
         generate_summary_report.si(partner_pk, schema, day),
-        calculate_driver_reports.si(partner_pk, schema, day),
         get_driver_efficiency.si(partner_pk, schema, day),
         get_rent_information.si(partner_pk, schema, day),
+        calculate_driver_reports.si(partner_pk, schema, day),
         send_daily_statistic.si(partner_pk, schema),
         send_driver_efficiency.si(partner_pk, schema),
-        send_driver_report.si(partner_pk, schema),
+        send_driver_report.si(partner_pk, schema)
     )
     task_chain()
 
@@ -1204,12 +1217,12 @@ def update_schedule(self):
             )
             for partner in partners:
                 PeriodicTask.objects.get_or_create(
-                    name=f'auto.tasks.{db_task.name}({partner.pk})',
+                    name=f'auto.tasks.{db_task.name}([{partner.pk}])',
                     task=f'auto.tasks.{db_task.name}',
                     defaults={
                         'interval': interval_schedule,
                         'start_time': next_execution_datetime,
-                        'args': partner.pk
+                        'args': [partner.pk]
                     }
                 )
         else:
@@ -1223,17 +1236,14 @@ def update_schedule(self):
                 else:
                     hours = f"*/{hours}"
             schedule = get_schedule(hours, minutes, day)
-
             for partner in partners:
                 create_task(db_task.name, partner.pk, schedule, db_task.arguments)
     for schema in work_schemas:
         if schema.shift_time != time.min:
             schedule = get_schedule(schema.shift_time.hour, schema.shift_time.minute)
         else:
-            schedule = get_schedule("08", "00")
+            schedule = get_schedule("09", "00")
         create_task('get_information_from_fleets', schema.partner.pk, schedule, schema.pk)
-        night_schedule = get_schedule("05", "59")
-        create_task("download_nightly_report", schema.partner.pk, night_schedule, schema.pk)
 
 
 @app.on_after_finalize.connect
