@@ -88,7 +88,14 @@ TEMPLATES = [
 WSGI_APPLICATION = 'auto.wsgi.application'
 
 DATABASES = {
-    'default': dj_database_url.parse(os.environ.get('DATABASE_URL'), conn_max_age=240),
+    'default': dj_database_url.parse(os.environ.get("DATABASE_URL"), conn_max_age=240),
+}
+
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": os.environ.get("REDIS_URL"),
+    }
 }
 
 # Password validation
@@ -175,6 +182,8 @@ EMAIL_USE_TLS = True
 EMAIL_PORT = 587
 EMAIL_HOST_USER = os.getenv('EMAIL_USER')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_PASSWORD')
+
+AUTH_USER_MODEL = "app.CustomUser"
 #
 # LOGGING = {
 #     'version': 1,

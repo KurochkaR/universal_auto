@@ -261,13 +261,13 @@
              value="{% trans 'Фільтрувати' %}">
     </div>
     <div class="main-cards">
+      {% if investor_group %}
       <div class="card">
         <h2>{% trans 'Загальний дохід' %}</h2>
         <span class="weekly-income-amount"></span>
         <h2>{% trans 'Період' %}</h2>
         <span class="weekly-income-dates"></span>
       </div>
-      {% if investor_group %}
       <div class="card">
         <h2>{% trans 'Загальний пробіг' %}</h2>
         <span class="income-km"></span>
@@ -281,6 +281,14 @@
         <span class="weekly-income-dates"></span>
       </div>
       {% else %}
+      <div class="card">
+        <h2>{% trans 'Загальний дохід' %}</h2>
+        <span class="weekly-income-amount"></span>
+        <h2>{% trans 'Чистий дохід' %}</h2>
+        <span class="weekly-clean-amount"></span>
+        <h2>{% trans 'Період' %}</h2>
+        <span class="weekly-income-dates"></span>
+      </div>
       <div class="card">
         <h2>{% trans 'Холостий пробіг' %}</h2>
         <span class="weekly-income-rent"></span>

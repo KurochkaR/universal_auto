@@ -216,7 +216,7 @@ class SeleniumTools:
                 UberSession.objects.create(session=sid,
                                            cook_session=csid,
                                            uber_uuid=uuid,
-                                           partner=Partner.get_partner(self.partner)
+                                           partner_id=self.partner
                                            )
                 return True
             else:
@@ -369,7 +369,7 @@ class SeleniumTools:
                                  "finish_time": finish,
                                  "state": states.get(row[12]),
                                  "vehicle": vehicle,
-                                 "partner": Partner.get_partner(self.partner)}
+                                 "partner_id": self.partner}
                         FleetOrder.objects.create(**order)
                 os.remove(file_path)
 

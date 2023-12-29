@@ -103,10 +103,6 @@ $(document).ready(function () {
 					window.location.href = "/dashboard/";
 					$("#loginForm").fadeOut();
 
-					if (response.data['role'] === 'Partner') {
-						localStorage.setItem('role', 'partner');
-					}
-
 				} else {
 					$("#loginErrorMessage").show();
 					$("#login").val("")

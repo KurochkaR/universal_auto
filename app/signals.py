@@ -1,45 +1,51 @@
+from datetime import datetime, time, timedelta
+
 from celery.result import AsyncResult
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import F
 from django.utils import timezone
 from django_celery_beat.models import PeriodicTask
 
-from auto.tasks import send_on_job_application_on_driver, check_time_order, setup_periodic_tasks, \
-    remove_periodic_tasks, search_driver_for_order, detaching_the_driver_from_the_car
+from auto.tasks import send_on_job_application_on_driver, check_time_order, search_driver_for_order, \
+    calculate_vehicle_earnings, calculate_vehicle_spending
 from django.db.models.signals import pre_save, post_save, post_delete, pre_delete
 from django.dispatch import receiver
-from app.models import Driver, StatusChange, JobApplication, ParkSettings, Partner, Order, UseOfCars, DriverSchemaRate, \
-    Schema
+from app.models import Driver, StatusChange, JobApplication, ParkSettings, Partner, Order, DriverSchemaRate, \
+    Schema, DriverPayments, InvestorPayments
+from auto_bot.handlers.driver_manager.utils import get_time_for_task, create_driver_payments
 from auto_bot.handlers.order.keyboards import inline_reject_order
-from auto_bot.handlers.order.static_text import client_order_info, client_personal_info
+from auto_bot.handlers.order.static_text import client_order_info
 from auto_bot.main import bot
 from scripts.redis_conn import redis_instance
-from django.contrib.auth.models import User as AuUser
-from scripts.google_calendar import datetime_with_timezone, GoogleCalendar
 from scripts.settings_for_park import standard_rates, settings_for_partner
 
 
-# @receiver(post_save, sender=AuUser)
-# def create_partner(sender, instance, created, **kwargs):
-#     if created:
-#         Partner.objects.create(user=instance)
+@receiver(post_delete, sender=Driver)
+def calculate_fired_driver(sender, instance, **kwargs):
+    if instance.schema and instance.schema.is_weekly():
+        end = timezone.localtime().date()
+        start = end - timedelta(days=end.weekday())
+        create_driver_payments(start, end, instance, instance.schema, delete=True)
+
+
+@receiver(post_save, sender=DriverPayments)
+@receiver(post_save, sender=InvestorPayments)
+def create_park_settings(sender, instance, created, **kwargs):
+    if instance.status.is_completed():
+        if isinstance(instance, DriverPayments):
+            calculate_vehicle_earnings.delay(instance.pk)
+        else:
+            calculate_vehicle_spending.delay(instance.pk)
 
 
 @receiver(post_save, sender=Partner)
 def create_park_settings(sender, instance, created, **kwargs):
     if created:
-        setup_periodic_tasks(instance)
         for key, value in settings_for_partner.items():
             ParkSettings.objects.create(key=key, value=value[0], description=value[1], partner=instance)
         for key, values in standard_rates.items():
             for value in values:
                 DriverSchemaRate.objects.create(period=key, threshold=value[0], rate=value[1], partner=instance)
-
-# @receiver(post_delete, sender=AuUser)
-# def delete_park_settings(sender, instance, **kwargs):
-#     partner = Partner.objects.filter(user=instance)
-#     if partner:
-#         remove_periodic_tasks(partner.first())
 
 
 @receiver(pre_save, sender=Driver)
@@ -66,15 +72,14 @@ def create_status_change(sender, instance, **kwargs):
         status_change.save()
 
 
+@receiver(pre_delete, sender=Partner)
 @receiver(pre_delete, sender=Schema)
 def remove_tasks_for_deleted_schema(sender, instance, **kwargs):
-    # Get the associated partner
-    partner = instance.partner
-
-    # Get and delete associated tasks for the deleted schema
-    tasks = PeriodicTask.objects.filter(args__contains=[partner, instance.pk])
+    partner_id = instance.pk if isinstance(instance, Partner) else instance.partner
+    tasks = PeriodicTask.objects.filter(args__contains=[partner_id, instance.pk])
     for task in tasks:
-        AsyncResult(task.celery_task_id).revoke(terminate=True)  # Revoke and terminate the task
+        result = AsyncResult(task.celery_task_id)
+        result.revoke(terminate=True)
         task.delete()
 
 
@@ -82,13 +87,6 @@ def remove_tasks_for_deleted_schema(sender, instance, **kwargs):
 def run_add_drivers_task(sender, instance, created, **kwargs):
     if created:
         send_on_job_application_on_driver.delay(instance.id)
-
-
-# @receiver(post_save, sender=UseOfCars)
-# def run_add_drivers_task(sender, instance, created, **kwargs):
-    # if instance.end_at:
-        # bot.send_message(chat_id=515224934, text=f"{instance.user_vehicle} finished job")
-        # detaching_the_driver_from_the_car.delay(instance.partner.pk, instance.licence_plate)
 
 
 @receiver(post_save, sender=Order)

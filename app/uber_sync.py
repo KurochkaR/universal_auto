@@ -2,7 +2,7 @@ from datetime import datetime
 import requests
 from django.db import models
 from app.models import UberService, UberSession, FleetsDriversVehiclesRate, FleetOrder, Driver, \
-    CustomReport, Fleet
+    CustomReport, Fleet, CredentialPartner
 from auto_bot.handlers.order.utils import check_vehicle
 from scripts.redis_conn import get_logger
 from selenium_ninja.driver import SeleniumTools
@@ -27,7 +27,11 @@ class UberRequest(Fleet, Synchronizer):
 
     @staticmethod
     def create_session(partner, login, password):
-        SeleniumTools(partner).create_uber_session(login, password)
+        if not login:
+            login = CredentialPartner.get_value(key='UBER_NAME', partner=partner)
+            password = CredentialPartner.get_value(key='UBER_PASSWORD', partner=partner)
+        if login and password:
+            SeleniumTools(partner).create_uber_session(login, password)
 
     @staticmethod
     def remove_dup(text):
@@ -128,7 +132,7 @@ class UberRequest(Fleet, Synchronizer):
                             'photo': driver['member']['user']['pictureUrl'],
                             'vehicle_name': vehicle_name,
                             'vin_code': vin_code,
-                            'worked': True})
+                            })
         return drivers
 
     def save_report(self, start, end, driver):
@@ -202,6 +206,67 @@ class UberRequest(Fleet, Synchronizer):
                     db_report.update(**payment) if db_report else CustomReport.objects.create(**payment)
         else:
             get_logger().error(f"Failed save uber report {self.partner} {response.json()}")
+
+    def get_earnings_per_driver(self, driver, start_time, end_time):
+        driver_id = driver.get_driver_external_id(vendor=self.name)
+        start = int(start_time.timestamp()) * 1000
+        end = int(end_time.timestamp()) * 1000
+        query = '''query GetPerformanceReport($performanceReportRequest: PerformanceReportRequest__Input!) {
+                          getPerformanceReport(performanceReportRequest: $performanceReportRequest) {
+                            uuid
+                            totalEarnings
+                            hoursOnline
+                            totalTrips
+                            ... on DriverPerformanceDetail {
+                              cashEarnings
+                              driverAcceptanceRate
+                              driverCancellationRate
+                            }
+                            ... on VehiclePerformanceDetail {
+                              utilization
+                              vehicleIncentiveTarget
+                              vehicleIncentiveCompleted
+                              vehicleIncentiveEnrollmentStatus
+                              vehicleIncentiveUnit
+                            }
+                          }
+                        }'''
+        variables = {
+            "performanceReportRequest": {
+                "orgUUID": self.get_uuid(),
+                "dimensions": [
+                    "vs:driver"
+                ],
+                "dimensionFilterClause": [
+                    {
+                        "dimensionName": "vs:driver",
+                        "operator": "OPERATOR_IN",
+                        "expressions": driver_id
+                    }
+                ],
+                "metrics": [
+                    "vs:TotalEarnings",
+                    "vs:HoursOnline",
+                    "vs:TotalTrips",
+                    "vs:CashEarnings",
+                    "vs:DriverAcceptanceRate",
+                    "vs:DriverCancellationRate"
+                ],
+                "timeRange": {
+                    "startsAt": {
+                        "value": start
+                    },
+                    "endsAt": {
+                        "value": end
+                    }
+                }
+            }
+        }
+        data = self.get_payload(query, variables)
+        response = requests.post(str(self.base_url), headers=self.get_header(), json=data)
+        if response.status_code == 200 and response.json()['data']:
+            return response.json()['data']['getPerformanceReport'][0]['totalEarnings']
+        return 0
 
     def get_drivers_status(self):
         query = '''query GetDriverEvents($orgUUID: String!) {
@@ -316,6 +381,6 @@ class UberRequest(Fleet, Synchronizer):
                     "earnerUuid": {"value": driver_id},
                     "effectiveAt": {"value": period}
         }
-        query = unblock_query if enable == 'true' else block_query
+        query = unblock_query if enable else block_query
         data = self.get_payload(query, variables)
         requests.post(str(self.base_url), headers=self.get_header(), json=data)

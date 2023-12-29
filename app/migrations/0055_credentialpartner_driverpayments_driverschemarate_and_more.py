@@ -5,13 +5,11 @@ from django.db import migrations, models
 import django.db.models.deletion
 
 def update_schema_references(apps, schema_editor):
-    Driver = apps.get_model('app', 'Driver')
     Schema = apps.get_model('app', 'Schema')
     schema_list = [('HALF', 'Схема 50/50'), ('CUSTOM', 'Індивідуальний відсоток'),
                    ('DYNAMIC', 'Динамічна схема'), ('RENT', 'Схема оренди')]
     for schema, title in schema_list:
         fk_schema, _ = Schema.objects.get_or_create(title=title, schema=schema)
-        Driver.objects.filter(schema=schema).update(schema=str(fk_schema.id))
 
 
 class Migration(migrations.Migration):
@@ -145,9 +143,4 @@ class Migration(migrations.Migration):
             field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='app.partner', verbose_name='Партнер'),
         ),
         migrations.RunPython(update_schema_references),
-        migrations.AlterField(
-            model_name='driver',
-            name='schema',
-            field=models.ForeignKey(default=app.models.Schema.get_half_schema_id, on_delete=django.db.models.deletion.CASCADE, to='app.schema', verbose_name='Схема роботи'),
-        ),
     ]
