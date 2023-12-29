@@ -7,8 +7,7 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('contenttypes', '0002_remove_content_type_name'),
-        ('app', '0069_remove_driverpayments_id_and_more'),
+        ('app', '0070_alter_driver_photo_penaltybonus_penalty_bonus'),
     ]
 
     operations = [

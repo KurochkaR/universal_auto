@@ -1,7 +1,7 @@
 from django.db.models import Sum
 
 from app.models import CustomReport, ParkSettings, Vehicle, Partner, Payments, SummaryReport, DriverPayments, \
-    DailyReport, WeeklyReport
+    DailyReport, WeeklyReport, Penalty, Bonus
 from auto_bot.handlers.driver_manager.utils import create_driver_payments
 from auto_bot.main import bot
 
@@ -46,10 +46,10 @@ def compare_reports(fleet, start, end, driver, correction_report, compare_model,
                            "driver": driver,
                            "description": description
                            }
-        # if correction > 0:
-        #     Bonuses.objects.create(**correction_data)
-        # if correction < 0:
-        #     Penalties.objects.create(**correction_data)
+        if correction > 0:
+            Bonus.objects.create(**correction_data)
+        if correction < 0:
+            Penalty.objects.create(**correction_data)
 
 
 def payment_24hours_create(start, end, fleet, driver, partner_pk):

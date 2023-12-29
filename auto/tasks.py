@@ -19,7 +19,7 @@ from app.models import RawGPS, Vehicle, Order, Driver, JobApplication, ParkSetti
     Payments, SummaryReport, Manager, Partner, DriverEfficiency, FleetOrder, ReportTelegramPayments, \
     InvestorPayments, VehicleSpending, DriverReshuffle, DriverPayments, \
     PaymentTypes, TaskScheduler, DriverEffVehicleKasa, Schema, CustomReport, FleetsDriversVehiclesRate, Fleet, \
-    VehicleGPS, PartnerEarnings, Investor, WeeklyReport, DailyReport
+    VehicleGPS, PartnerEarnings, Investor, WeeklyReport, DailyReport, Bonus, Penalty
 from django.db.models import Sum, IntegerField, FloatField, Value, DecimalField
 from django.db.models.functions import Cast, Coalesce
 from app.utils import get_schedule, create_task
@@ -1116,8 +1116,8 @@ def calculate_driver_reports(self, partner_pk, schema, day=None):
                                                                 driver=driver,
                                                                 defaults=data)
         if created:
-            # Bonuses.objects.filter(driver=driver, driver_payments__isnull=True).update(driver_payment=payment)
-            # Penalties.objects.filter(driver=driver, driver_payments__isnull=True).update(driver_payment=payment)
+            Bonus.objects.filter(driver=driver, driver_payments__isnull=True).update(driver_payment=payment)
+            Penalty.objects.filter(driver=driver, driver_payments__isnull=True).update(driver_payment=payment)
             payment.earning = payment.earning + payment.get_bonuses() - payment.get_penalties()
             payment.save(update_fields=['earning'])
 
