@@ -67,9 +67,9 @@ class SalaryCalculation(models.TextChoices):
 
 
 class ShiftTypes(models.TextChoices):
-    ONE = 'ONE', 'Один день'
-    TWO = 'TWO', 'Два дні'
-    THREE = 'THREE', 'Три дні'
+    ONE = 'one', 'Один день'
+    TWO = 'two', 'Два дні'
+    THREE = 'three', 'Три дні'
 
 
 class PaymentTypes(models.TextChoices):
@@ -135,7 +135,7 @@ class Schema(models.Model):
     salary_calculation = models.CharField(max_length=25, choices=SalaryCalculation.choices,
                                           default=SalaryCalculation.WEEK, verbose_name='Період розрахунку зарплати')
     shift_time = models.TimeField(default=time.min, verbose_name="Час проведення розрахунку")
-    shift_period = models.IntegerField(null=True, choices=ShiftTypes.choices)
+    shift_period = models.CharField(max_length=25, null=True, choices=ShiftTypes.choices)
     partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
 
     def __str__(self):

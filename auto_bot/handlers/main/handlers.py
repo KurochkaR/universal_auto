@@ -114,7 +114,7 @@ def celery_test(update, context):
     try:
         health_check.delay()
     except Exception as e:
-        context.bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"), message=e)
+        context.bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"), text=e)
 
 
 def helptext(update, context):

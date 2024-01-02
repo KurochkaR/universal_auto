@@ -207,28 +207,33 @@ class UberRequest(Fleet, Synchronizer):
 
     def custom_saving_report(self, start, end, driver, model):
         reports = self.generate_report(start, end, driver)
-        for report in reports:
-            if report['totalEarnings']:
-                payment = self.parse_json_report(start, end, driver, report)
-                db_report = model.objects.filter(report_from=start,
-                                                 driver=driver,
-                                                 vendor=self,
-                                                 partner=self.partner)
-                db_report.update(**payment) if db_report else model.objects.create(**payment)
-                return db_report
+        if reports:
+            for report in reports:
+                if report['totalEarnings']:
+                    payment = self.parse_json_report(start, end, driver, report)
+                    db_report, created = model.objects.get_or_create(report_from=start,
+                                                                     driver=driver,
+                                                                     vendor=self,
+                                                                     partner=self.partner,
+                                                                     defaults=payment)
+                    if not created:
+                        for key, value in payment.items():
+                            setattr(db_report, key, value)
+                        db_report.save()
+                    return db_report
 
     def save_custom_report(self, start, end, driver):
-        self.custom_saving_report(start, end, driver, CustomReport)
+        return self.custom_saving_report(start, end, driver, CustomReport)
 
     def save_weekly_report(self, start, end, driver):
-        self.custom_saving_report(start, end, driver, WeeklyReport)
+        return self.custom_saving_report(start, end, driver, WeeklyReport)
 
     def save_daily_report(self, start, end, driver):
-        self.custom_saving_report(start, end, driver, DailyReport)
+        return self.custom_saving_report(start, end, driver, DailyReport)
 
     def get_earnings_per_driver(self, driver, start_time, end_time):
         report = self.generate_report(start_time, end_time, driver)
-        return report[0]['totalEarnings'] if report else 0
+        return report[0]['totalEarnings'], report[0]['cashEarnings'] if report else 0
 
     def get_drivers_status(self):
         query = '''query GetDriverEvents($orgUUID: String!) {

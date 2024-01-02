@@ -219,22 +219,26 @@ class UklonRequest(Fleet, Synchronizer):
         if data:
             for driver_report in data:
                 report = self.parse_json_report(start, end, driver, driver_report)[0]
-                db_report = model.objects.filter(report_from=start,
-                                                 driver=driver,
-                                                 vendor=self,
-                                                 partner=self.partner)
-                db_report.update(**report) if db_report else model.objects.create(**report)
+                db_report, created = model.objects.get_or_create(report_from=start,
+                                                                 driver=driver,
+                                                                 vendor=self,
+                                                                 partner=self.partner,
+                                                                 defaults=report)
+                if not created:
+                    for key, value in report.items():
+                        setattr(db_report, key, value)
+                    db_report.save()
                 return db_report
 
     def save_weekly_report(self, start, end, driver):
-        self.save_report(start, end, driver, WeeklyReport)
+        return self.save_report(start, end, driver, WeeklyReport)
 
     def save_daily_report(self, start, end, driver):
-        self.save_report(start, end, driver, DailyReport)
+        return self.save_report(start, end, driver, DailyReport)
 
     def get_earnings_per_driver(self, driver, start, end):
         driver_id = driver.get_driver_external_id(vendor=self.name)
-        total_amount_without_fee = 0
+        total_amount_without_fee = total_amount_cash = 0
         param = {'dateFrom': int(start.timestamp()),
                  'dateTo': int(end.timestamp()),
                  'limit': '50', 'offset': '0',
@@ -244,8 +248,9 @@ class UklonRequest(Fleet, Synchronizer):
         url += Service.get_value('UKLON_4')
         data = self.response_data(url=url, params=param)
         if data.get("items"):
+            total_amount_cash = self.find_value(data["items"][0], *('profit', 'order', 'cash', 'amount'))
             total_amount_without_fee = self.find_value(data["items"][0], *('profit', 'total', 'amount'))
-        return total_amount_without_fee
+        return total_amount_without_fee, total_amount_cash
 
     def get_drivers_status(self):
         drivers = {

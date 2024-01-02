@@ -1,8 +1,10 @@
-from django.db.models import Sum
+from _decimal import Decimal
+from django.db.models import Sum, DecimalField
 
 from app.models import CustomReport, ParkSettings, Vehicle, Partner, Payments, SummaryReport, DriverPayments, \
     DailyReport, WeeklyReport, Penalty, Bonus
 from auto_bot.handlers.driver_manager.utils import create_driver_payments
+from auto_bot.handlers.order.utils import check_vehicle
 from auto_bot.main import bot
 
 
@@ -13,35 +15,36 @@ def compare_reports(fleet, start, end, driver, correction_report, compare_model,
               "cancels", "compensations", "refunds"
               )
     custom_reports = compare_model.objects.filter(vendor=fleet, report_from__range=(start, end), driver=driver)
-    last_report = custom_reports.last()
-    for field in fields:
-        sum_custom_amount = custom_reports.aggregate(Sum(field))[f'{field}__sum']
-        daily_value = getattr(correction_report, field)
-        if int(daily_value) != int(sum_custom_amount):
-            update_amount = last_report.field + daily_value - sum_custom_amount
-            setattr(last_report, field, update_amount)
-            bot.send_message(chat_id=ParkSettings.get_value('DEVELOPER_CHAT_ID'),
-                             text=f"{fleet.name} перевірочний = {daily_value},"
-                                  f"денний = {sum_custom_amount} {driver} {field}")
-        else:
-            continue
-    last_report.save()
-    last_payment = Payments.objects.filter(vendor=fleet, report_from=last_report.report_from, driver=driver).last()
-    payment_24hours_create(last_payment.report_from, last_payment.report_to, fleet, driver, partner_pk)
-    summary_report_create(last_payment.report_from, last_payment.report_to, driver, partner_pk)
-    if isinstance(correction_report, DailyReport) and not driver.schema.is_weekly():
-        start, end = last_payment.report_from, last_payment.report_to
-    elif isinstance(correction_report, WeeklyReport) and driver.schema.is_weekly():
-        pass
-    else:
-        return
+    if custom_reports:
+        last_report = custom_reports.last()
+        for field in fields:
+            sum_custom_amount = custom_reports.aggregate(Sum(field, output_field=DecimalField()))[f'{field}__sum'] or 0
+            daily_value = getattr(correction_report, field) or 0
+            if int(daily_value) != int(sum_custom_amount):
+                report_value = getattr(last_report, field) or 0
+                update_amount = report_value + Decimal(daily_value) - sum_custom_amount
+                setattr(last_report, field, update_amount)
+                bot.send_message(chat_id=ParkSettings.get_value('DEVELOPER_CHAT_ID'),
+                                 text=f"{fleet.name} перевірочний = {daily_value},"
+                                      f"денний = {sum_custom_amount} {driver} {field}")
+            else:
+                continue
+        last_report.save()
+        payment_report = Payments.objects.filter(vendor=fleet, report_from=last_report.report_from, driver=driver)
+        if payment_report.exists():
+            last_payment = payment_report.last()
+            payment_24hours_create(last_payment.report_from, last_payment.report_to, fleet, driver, partner_pk)
+            summary_report_create(last_payment.report_from, last_payment.report_to, driver, partner_pk)
+
+
+def get_corrections(start, end, driver):
     payment = DriverPayments.objects.filter(report_from=start,
                                             report_to=end,
                                             driver=driver)
     if payment.exists():
         data = create_driver_payments(start, end, driver, driver.schema)
         description = f"Корекція з {start} по {end}"
-        correction = data['salary'] - payment.salary
+        correction = Decimal(data['earning']) - payment.first().earning
         correction_data = {"amount": abs(correction),
                            "driver": driver,
                            "description": description
@@ -100,6 +103,7 @@ def payment_24hours_create(start, end, fleet, driver, partner_pk):
 
 def summary_report_create(start, end, driver, partner_pk):
     payments = Payments.objects.filter(report_from=start, report_to=end, driver=driver, partner=partner_pk)
+    vehicle = check_vehicle(driver, date_time=end)
     if payments.exists():
         fields = ("total_rides", "total_distance", "total_amount_cash",
                   "total_amount_on_card", "total_amount", "tips",
@@ -112,7 +116,7 @@ def summary_report_create(start, end, driver, partner_pk):
         report, created = SummaryReport.objects.get_or_create(report_from=start,
                                                               report_to=end,
                                                               driver=driver,
-                                                              vehicle=driver.vehicle,
+                                                              vehicle=vehicle,
                                                               partner_id=partner_pk,
                                                               defaults=default_values)
         if not created:

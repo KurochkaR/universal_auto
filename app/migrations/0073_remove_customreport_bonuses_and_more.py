@@ -328,4 +328,10 @@ class Migration(migrations.Migration):
             },
             bases=('app.driverreport',),
         ),
+        migrations.AlterField(
+            model_name='schema',
+            name='shift_period',
+            field=models.CharField(choices=[('one', 'Один день'), ('two', 'Два дні'), ('three', 'Три дні')],
+                                   max_length=25, null=True),
+        ),
     ]

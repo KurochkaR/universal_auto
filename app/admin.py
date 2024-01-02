@@ -589,6 +589,7 @@ class BaseReportAdmin(admin.ModelAdmin):
 
 @admin.register(Payments)
 @admin.register(WeeklyReport)
+@admin.register(DailyReport)
 @admin.register(CustomReport)
 class PaymentsOrderAdmin(BaseReportAdmin):
     search_fields = ('vendor',)

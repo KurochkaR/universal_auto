@@ -4,7 +4,6 @@ import time
 from urllib import parse
 import requests
 from _decimal import Decimal
-from django.db.models import Sum
 from django.utils import timezone
 
 from django.db import models
@@ -98,6 +97,7 @@ class BoltRequest(Fleet, Synchronizer):
     def parse_json_report(self, start, end, driver, driver_report):
         rides = FleetOrder.objects.filter(fleet=self.name,
                                           accepted_time__gte=start,
+                                          accepted_time__lt=end,
                                           state=FleetOrder.COMPLETED,
                                           driver=driver).count()
         vehicle = check_vehicle(driver, end, max_time=True)
@@ -153,7 +153,8 @@ class BoltRequest(Fleet, Synchronizer):
                          "tips": driver_report['tips'] - bolt_custom.tips,
                          "bonuses": driver_report['bonuses'] - bolt_custom.bonuses,
                          "cancels": driver_report['cancellation_fees'] - bolt_custom.cancels,
-                         "fee": Decimal(-(driver_report['gross_revenue'] - driver_report['net_earnings'])) + bolt_custom.fee,
+                         "fee": Decimal(
+                             -(driver_report['gross_revenue'] - driver_report['net_earnings'])) + bolt_custom.fee,
                          "total_amount_without_fee": Decimal(
                              driver_report['net_earnings']) - bolt_custom.total_amount_without_fee,
                          "compensations": Decimal(driver_report['compensations']) - bolt_custom.compensations,
@@ -176,11 +177,16 @@ class BoltRequest(Fleet, Synchronizer):
         reports = self.get_target_url(f'{self.base_url}getDriverEarnings/week', param)
         for driver_report in reports['data']['drivers']:
             report = self.parse_json_report(start, end, driver, driver_report)
-            db_report = WeeklyReport.objects.filter(report_from=start,
-                                                    driver=driver,
-                                                    vendor=self,
-                                                    partner=self.partner)
-            db_report.update(**report) if db_report else WeeklyReport.objects.create(**report)
+            db_report, created = WeeklyReport.objects.get_or_create(report_from=start,
+                                                                    driver=driver,
+                                                                    vendor=self,
+                                                                    partner=self.partner,
+                                                                    defaults=report)
+            if not created:
+                for key, value in report.items():
+                    setattr(db_report, key, value)
+                db_report.save()
+            return db_report
 
     def save_daily_report(self, start, end, driver):
         time.sleep(0.5)
@@ -195,11 +201,15 @@ class BoltRequest(Fleet, Synchronizer):
         reports = self.get_target_url(f'{self.base_url}getDriverEarnings/dateRange', param)
         for driver_report in reports['data']['drivers']:
             report = self.parse_json_report(start, end, driver, driver_report)
-            db_report = DailyReport.objects.filter(report_from=start,
-                                                   driver=driver,
-                                                   vendor=self,
-                                                   partner=self.partner)
-            db_report.update(**report) if db_report else DailyReport.objects.create(**report)
+            db_report, created = DailyReport.objects.get_or_create(report_from=start,
+                                                                   driver=driver,
+                                                                   vendor=self,
+                                                                   partner=self.partner,
+                                                                   defaults=report)
+            if not created:
+                for key, value in report.items():
+                    setattr(db_report, key, value)
+                db_report.save()
             return db_report
 
     def get_bonuses_info(self, driver, start, end):
@@ -261,19 +271,19 @@ class BoltRequest(Fleet, Synchronizer):
         format_start = start.strftime("%Y-%m-%d")
         format_end = end.strftime("%Y-%m-%d")
         payload = {
-                  "offset": 0,
-                  "limit": 50,
-                  "from_date": format_start,
-                  "to_date": format_end,
-                  "driver_id": driver_id,
-                  "orders_state_statuses": [
-                                            "client_did_not_show",
-                                            "finished",
-                                            "client_cancelled",
-                                            "driver_cancelled_after_accept",
-                                            "driver_rejected"
-                                            ]
-                }
+            "offset": 0,
+            "limit": 50,
+            "from_date": format_start,
+            "to_date": format_end,
+            "driver_id": driver_id,
+            "orders_state_statuses": [
+                "client_did_not_show",
+                "finished",
+                "client_cancelled",
+                "driver_cancelled_after_accept",
+                "driver_rejected"
+            ]
+        }
         report = self.get_target_url(f'{self.base_url}getOrdersHistory', self.param(), payload, method="POST")
         if report.get('data'):
             for order in report['data']['rows']:
@@ -341,10 +351,10 @@ class BoltRequest(Fleet, Synchronizer):
             'Content-Type': 'application/x-www-form-urlencoded'
         }
         payload = {
-                        "email": f"{job_application.email}",
-                        "phone": f"{job_application.phone_number}",
-                        "referral_code": ""
-                }
+            "email": f"{job_application.email}",
+            "phone": f"{job_application.phone_number}",
+            "referral_code": ""
+        }
         response = self.get_target_url(f'{self.base_url}addDriverRegistration', self.param(), payload, method="POST")
         payload_form = {
             'hash': response['data']['hash'],

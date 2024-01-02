@@ -22,10 +22,15 @@ def get_time_for_task(schema, day=None):
     :return: start, end, previous_start, previous_end
     """
     schema_obj = Schema.objects.get(pk=schema)
-    shift_time = schema_obj.shift_time if schema_obj.shift_time != time.min else time.max
-    date = datetime.strptime(day, "%Y-%m-%d") if day else timezone.localtime()
+    if schema_obj.shift_time != time.min:
+        shift_time = schema_obj.shift_time
+        date = datetime.strptime(day, "%Y-%m-%d") if day else timezone.localtime()
+        yesterday = date - timedelta(days=1)
+    else:
+        shift_time = time.max
+        date = datetime.strptime(day, "%Y-%m-%d") - timedelta(days=1) if day else timezone.localtime() - timedelta(days=1)
+        yesterday = date
     start = timezone.make_aware(datetime.combine(date, time.min))
-    yesterday = date - timedelta(days=1)
     previous_end = timezone.make_aware(datetime.combine(yesterday, time.max))
     end = timezone.make_aware(datetime.combine(date, shift_time))
     previous_start = timezone.make_aware(datetime.combine(yesterday, schema_obj.shift_time))
@@ -468,7 +473,7 @@ def get_vehicle_income(driver, start, end, spending_rate, rent):
             else:
                 start_period, end_period = reshuffle.swap_time, end_time
             for fleet in fleets:
-                uber_uklon_income += fleet.get_earnings_per_driver(driver, start_period, end_period)
+                uber_uklon_income += fleet.get_earnings_per_driver(driver, start_period, end_period)[0]
             total_bolt_income = Decimal(bolt_income['total_price'] * 0.75004 +
                                         bolt_income['total_tips'] + compensations + bonuses)
             total_income = (Decimal((total_bolt_income + uber_uklon_income)) * spending_rate

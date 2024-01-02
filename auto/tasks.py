@@ -19,11 +19,11 @@ from app.models import RawGPS, Vehicle, Order, Driver, JobApplication, ParkSetti
     Payments, SummaryReport, Manager, Partner, DriverEfficiency, FleetOrder, ReportTelegramPayments, \
     InvestorPayments, VehicleSpending, DriverReshuffle, DriverPayments, \
     PaymentTypes, TaskScheduler, DriverEffVehicleKasa, Schema, CustomReport, FleetsDriversVehiclesRate, Fleet, \
-    VehicleGPS, PartnerEarnings, Investor, WeeklyReport, DailyReport, Bonus, Penalty
+    VehicleGPS, PartnerEarnings, Investor, Bonus, Penalty
 from django.db.models import Sum, IntegerField, FloatField, Value, DecimalField
 from django.db.models.functions import Cast, Coalesce
 from app.utils import get_schedule, create_task
-from auto.utils import payment_24hours_create, summary_report_create, compare_reports
+from auto.utils import payment_24hours_create, summary_report_create, compare_reports, get_corrections
 from auto_bot.handlers.driver_manager.utils import get_daily_report, get_efficiency, generate_message_report, \
     get_driver_efficiency_report, calculate_rent, get_vehicle_income, get_time_for_task, \
     create_driver_payments
@@ -279,20 +279,22 @@ def download_weekly_report(self, partner_pk):
         end = timezone.make_aware(today - timedelta(days=today.weekday() + 1))
         start = timezone.make_aware(datetime.combine(end - timedelta(days=6), time.min))
         fleets = Fleet.objects.filter(partner=partner_pk).exclude(name='Gps')
-        check_daily_report(partner_pk, start, end)
-        for fleet in fleets:
-            for driver in Driver.objects.get_active(partner=partner_pk):
+        for driver in Driver.objects.get_active(partner=partner_pk):
+            for fleet in fleets:
+
                 driver_id = driver.get_driver_external_id(fleet.name)
                 if driver_id:
                     report = fleet.save_weekly_report(start, end, driver)
                     if report:
                         compare_reports(fleet, start, end, driver, report, CustomReport, partner_pk)
+            get_corrections(start, end, driver)
     except Exception as e:
         logger.error(e)
         retry_delay = retry_logic(e, self.request.retries + 1)
         raise self.retry(exc=e, countdown=retry_delay)
 
-@app.task(bind=True, queue='beat_tasks', retry_backoff=30, max_retries=4)
+
+@app.task(bind=True, queue='beat_tasks', retry_backoff=30, max_retries=1)
 def check_daily_report(self, partner_pk, start=None, end=None):
     try:
         if not start and not end:
@@ -302,18 +304,21 @@ def check_daily_report(self, partner_pk, start=None, end=None):
         while start <= end:
             if redis_instance().exists(f"check_daily_report_error_{partner_pk}"):
                 start_str = redis_instance().get(f"check_daily_report_error_{partner_pk}")
-                start = datetime.strptime(start_str, '%Y-%m-%d %H:%M:%S')
+                redis_instance().delete(f"check_daily_report_error_{partner_pk}")
+                start = timezone.make_aware(datetime.strptime(start_str, '%Y-%m-%d %H:%M:%S'))
             fleets = Fleet.objects.filter(partner=partner_pk).exclude(name='Gps')
-            for fleet in fleets:
-                for driver in Driver.objects.get_active(partner=partner_pk):
+            for driver in Driver.objects.get_active(partner=partner_pk):
+                for fleet in fleets:
                     driver_id = driver.get_driver_external_id(fleet.name)
                     if driver_id:
                         report = fleet.save_daily_report(start, end, driver)
                         if report:
                             compare_reports(fleet, start, end, driver, report, CustomReport, partner_pk)
+                get_corrections(start, end, driver)
             start += timedelta(days=1)
     except Exception as e:
-        redis_instance().set(f"check_daily_report_error_{partner_pk}", start, ex=1200)
+        str_start = start.strftime('%Y-%m-%d %H:%M:%S')
+        redis_instance().set(f"check_daily_report_error_{partner_pk}", str_start, ex=1200)
         logger.error(e)
         retry_delay = retry_logic(e, self.request.retries + 1)
         raise self.retry(exc=e, countdown=retry_delay)
@@ -1116,8 +1121,8 @@ def calculate_driver_reports(self, partner_pk, schema, day=None):
                                                                 driver=driver,
                                                                 defaults=data)
         if created:
-            Bonus.objects.filter(driver=driver, driver_payments__isnull=True).update(driver_payment=payment)
-            Penalty.objects.filter(driver=driver, driver_payments__isnull=True).update(driver_payment=payment)
+            Bonus.objects.filter(driver=driver, driver_payments__isnull=True).update(driver_payments=payment)
+            Penalty.objects.filter(driver=driver, driver_payments__isnull=True).update(driver_payments=payment)
             payment.earning = payment.earning + payment.get_bonuses() - payment.get_penalties()
             payment.save(update_fields=['earning'])
 
