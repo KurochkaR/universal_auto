@@ -61,7 +61,7 @@ class InvestorCarsEarningsView(CombinedPermissionsMixin,
 
     def get_queryset(self):
         start, end, format_start, format_end = get_start_end(self.kwargs['period'])
-        queryset = InvestorFilterMixin.get_queryset(self, InvestorPayments)
+        queryset = InvestorFilterMixin.get_queryset(InvestorPayments, self.request.user)
         filtered_qs = queryset.filter(report_from__range=(start, end))
         mileage_subquery = CarEfficiency.objects.filter(
             report_from__range=(start, end)

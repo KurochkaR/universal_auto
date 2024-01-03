@@ -4,15 +4,14 @@ import time
 from urllib import parse
 import requests
 from _decimal import Decimal
-from django.core.exceptions import ObjectDoesNotExist
 from django.utils import timezone
 
 from django.db import models
 from app.models import BoltService, Driver, FleetsDriversVehiclesRate, FleetOrder, \
-    CredentialPartner, Vehicle, PaymentTypes, Fleet, CustomReport
+    CredentialPartner, Vehicle, PaymentTypes, Fleet, CustomReport, WeeklyReport, DailyReport
 from auto import settings
 from auto_bot.handlers.order.utils import check_vehicle
-from scripts.redis_conn import redis_instance, get_logger
+from scripts.redis_conn import redis_instance
 from selenium_ninja.synchronizer import Synchronizer, AuthenticationError
 
 
@@ -95,10 +94,35 @@ class BoltRequest(Fleet, Synchronizer):
             return self.get_target_url(url, params, json=json, method=method)
         return response.json()
 
-    def save_report(self, start, end, driver, custom=None):
+    def parse_json_report(self, start, end, driver, driver_report):
+        rides = FleetOrder.objects.filter(fleet=self.name,
+                                          accepted_time__gte=start,
+                                          accepted_time__lt=end,
+                                          state=FleetOrder.COMPLETED,
+                                          driver=driver).count()
+        vehicle = check_vehicle(driver, end, max_time=True)
+        report = {
+            "report_from": start,
+            "report_to": end,
+            "vendor": self,
+            "driver": driver,
+            "total_amount_cash": driver_report['cash_in_hand'],
+            "total_amount": driver_report['gross_revenue'],
+            "tips": driver_report['tips'],
+            "partner": self.partner,
+            "bonuses": driver_report['bonuses'],
+            "cancels": driver_report['cancellation_fees'],
+            "fee": -(driver_report['gross_revenue'] - driver_report['net_earnings']),
+            "total_amount_without_fee": driver_report['net_earnings'],
+            "compensations": driver_report['compensations'],
+            "refunds": driver_report['expense_refunds'],
+            "total_rides": rides,
+            "vehicle": vehicle
+        }
+        return report
+
+    def save_custom_report(self, start, end, driver, custom=None):
         time.sleep(0.5)
-        format_start = start.strftime("%Y-%m-%d")
-        format_end = end.strftime("%Y-%m-%d")
         param = self.param()
         if not custom:
             param.update({"period": "ongoing_day",
@@ -107,6 +131,8 @@ class BoltRequest(Fleet, Synchronizer):
                           "limit": 50})
             reports = self.get_target_url(f'{self.base_url}getDriverEarnings/recent', param)
         else:
+            format_start = start.strftime("%Y-%m-%d")
+            format_end = end.strftime("%Y-%m-%d")
             param.update({"start_date": format_start,
                           "end_date": format_end,
                           "search": str(driver),
@@ -114,34 +140,11 @@ class BoltRequest(Fleet, Synchronizer):
                           "limit": 50})
             reports = self.get_target_url(f'{self.base_url}getDriverEarnings/dateRange', param)
         for driver_report in reports['data']['drivers']:
-            rides = FleetOrder.objects.filter(fleet=self.name,
-                                              accepted_time__gte=start,
-                                              state=FleetOrder.COMPLETED,
-                                              driver=driver).count()
-            vehicle = check_vehicle(driver, end, max_time=True)[0]
-            report = {
-                "report_from": start,
-                "report_to": end,
-                "vendor_name": self.name,
-                "full_name": driver_report['name'],
-                "driver_id": driver_report['id'],
-                "total_amount_cash": driver_report['cash_in_hand'],
-                "total_amount": driver_report['gross_revenue'],
-                "tips": driver_report['tips'],
-                "partner": self.partner,
-                "bonuses": driver_report['bonuses'],
-                "cancels": driver_report['cancellation_fees'],
-                "fee": -(driver_report['gross_revenue'] - driver_report['net_earnings']),
-                "total_amount_without_fee": driver_report['net_earnings'],
-                "compensations": driver_report['compensations'],
-                "refunds": driver_report['expense_refunds'],
-                "total_rides": rides,
-                "vehicle": vehicle
-            }
+            report = self.parse_json_report(start, end, driver, driver_report)
             if custom:
                 bolt_custom = CustomReport.objects.filter(report_from__date=start,
-                                                          driver_id=driver_report['id'],
-                                                          vendor_name=self.name,
+                                                          driver=driver,
+                                                          vendor=self,
                                                           partner=self.partner).last()
                 if bolt_custom:
                     report.update(
@@ -150,17 +153,64 @@ class BoltRequest(Fleet, Synchronizer):
                          "tips": driver_report['tips'] - bolt_custom.tips,
                          "bonuses": driver_report['bonuses'] - bolt_custom.bonuses,
                          "cancels": driver_report['cancellation_fees'] - bolt_custom.cancels,
-                         "fee": Decimal(-(driver_report['gross_revenue'] - driver_report['net_earnings'])) + bolt_custom.fee,
+                         "fee": Decimal(
+                             -(driver_report['gross_revenue'] - driver_report['net_earnings'])) + bolt_custom.fee,
                          "total_amount_without_fee": Decimal(
                              driver_report['net_earnings']) - bolt_custom.total_amount_without_fee,
                          "compensations": Decimal(driver_report['compensations']) - bolt_custom.compensations,
                          "refunds": Decimal(driver_report['expense_refunds']) - bolt_custom.refunds,
                          })
             db_report = CustomReport.objects.filter(report_from=start,
-                                                    driver_id=driver_report['id'],
-                                                    vendor_name=self.name,
+                                                    driver=driver,
+                                                    vendor=self,
                                                     partner=self.partner)
             db_report.update(**report) if db_report else CustomReport.objects.create(**report)
+
+    def save_weekly_report(self, start, end, driver):
+        time.sleep(0.5)
+        week_number = start.strftime('%GW%V')
+        param = self.param()
+        param.update({"week": week_number,
+                      "search": str(driver),
+                      "offset": 0,
+                      "limit": 50})
+        reports = self.get_target_url(f'{self.base_url}getDriverEarnings/week', param)
+        for driver_report in reports['data']['drivers']:
+            report = self.parse_json_report(start, end, driver, driver_report)
+            db_report, created = WeeklyReport.objects.get_or_create(report_from=start,
+                                                                    driver=driver,
+                                                                    vendor=self,
+                                                                    partner=self.partner,
+                                                                    defaults=report)
+            if not created:
+                for key, value in report.items():
+                    setattr(db_report, key, value)
+                db_report.save()
+            return db_report
+
+    def save_daily_report(self, start, end, driver):
+        time.sleep(0.5)
+        format_start = start.strftime("%Y-%m-%d")
+        format_end = end.strftime("%Y-%m-%d")
+        param = self.param()
+        param.update({"start_date": format_start,
+                      "end_date": format_end,
+                      "search": str(driver),
+                      "offset": 0,
+                      "limit": 50})
+        reports = self.get_target_url(f'{self.base_url}getDriverEarnings/dateRange', param)
+        for driver_report in reports['data']['drivers']:
+            report = self.parse_json_report(start, end, driver, driver_report)
+            db_report, created = DailyReport.objects.get_or_create(report_from=start,
+                                                                   driver=driver,
+                                                                   vendor=self,
+                                                                   partner=self.partner,
+                                                                   defaults=report)
+            if not created:
+                for key, value in report.items():
+                    setattr(db_report, key, value)
+                db_report.save()
+            return db_report
 
     def get_bonuses_info(self, driver, start, end):
         bonuses = 0
@@ -221,19 +271,19 @@ class BoltRequest(Fleet, Synchronizer):
         format_start = start.strftime("%Y-%m-%d")
         format_end = end.strftime("%Y-%m-%d")
         payload = {
-                  "offset": 0,
-                  "limit": 50,
-                  "from_date": format_start,
-                  "to_date": format_end,
-                  "driver_id": driver_id,
-                  "orders_state_statuses": [
-                                            "client_did_not_show",
-                                            "finished",
-                                            "client_cancelled",
-                                            "driver_cancelled_after_accept",
-                                            "driver_rejected"
-                                            ]
-                }
+            "offset": 0,
+            "limit": 50,
+            "from_date": format_start,
+            "to_date": format_end,
+            "driver_id": driver_id,
+            "orders_state_statuses": [
+                "client_did_not_show",
+                "finished",
+                "client_cancelled",
+                "driver_cancelled_after_accept",
+                "driver_rejected"
+            ]
+        }
         report = self.get_target_url(f'{self.base_url}getOrdersHistory', self.param(), payload, method="POST")
         if report.get('data'):
             for order in report['data']['rows']:
@@ -263,8 +313,8 @@ class BoltRequest(Fleet, Synchronizer):
                         "tips": tip,
                         "partner": self.partner
                         }
-                if check_vehicle(driver)[0] != vehicle:
-                    redis_instance().hset(f"wrong_vehicle_{self.partner}", pk, order['car_reg_number'])
+                if check_vehicle(driver) != vehicle:
+                    redis_instance().hset(f"wrong_vehicle_{self.partner.id}", pk, order['car_reg_number'])
                 obj, created = FleetOrder.objects.get_or_create(order_id=order['order_id'], defaults=data)
                 if not created:
                     for key, value in data.items():
@@ -301,10 +351,10 @@ class BoltRequest(Fleet, Synchronizer):
             'Content-Type': 'application/x-www-form-urlencoded'
         }
         payload = {
-                        "email": f"{job_application.email}",
-                        "phone": f"{job_application.phone_number}",
-                        "referral_code": ""
-                }
+            "email": f"{job_application.email}",
+            "phone": f"{job_application.phone_number}",
+            "referral_code": ""
+        }
         response = self.get_target_url(f'{self.base_url}addDriverRegistration', self.param(), payload, method="POST")
         payload_form = {
             'hash': response['data']['hash'],

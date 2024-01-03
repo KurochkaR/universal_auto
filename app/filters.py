@@ -135,31 +135,7 @@ class FleetOrderFilter(DriverRelatedFilter):
     model_class = FleetOrder
 
 
-class PaymentsRelatedFilter(admin.SimpleListFilter):
-    parameter_name = None
-    model_class = None
-    title = 'водієм'
-
-    def lookups(self, request, model_admin):
-        user = request.user
-        queryset = self.model_class.objects.all()
-        if user.is_manager():
-            drivers = Driver.objects.filter(manager=user)
-            full_names = [f"{driver.name} {driver.second_name}" for driver in drivers]
-            queryset = queryset.filter(full_name__in=full_names)
-        if user.is_partner():
-            queryset = queryset.filter(partner=user)
-
-        driver_labels = set([driver.full_name for driver in queryset])
-        return [(full_name, full_name) for full_name in driver_labels]
-
-    def queryset(self, request, queryset):
-        value = self.value()
-        if value:
-            return queryset.filter(full_name=value)
-
-
-class ReportUserFilter(PaymentsRelatedFilter):
+class ReportUserFilter(DriverRelatedFilter):
     parameter_name = 'payment_report_user'
     model_class = Payments
 

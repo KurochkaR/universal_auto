@@ -12,7 +12,7 @@ from django.core.exceptions import ObjectDoesNotExist
 
 from app.bolt_sync import BoltRequest
 from app.models import Driver, UseOfCars, VehicleGPS, Order, ParkSettings, CredentialPartner, Fleet, \
-    Vehicle, DriverReshuffle, CustomUser, Partner
+    Vehicle, DriverReshuffle, CustomUser
 from app.uagps_sync import UaGpsSynchronizer
 from app.uber_sync import UberRequest
 from app.uklon_sync import UklonRequest
@@ -209,7 +209,7 @@ def login_in(aggregator=None, partner_id=None, login_name=None, password=None, t
 
 def partner_logout(aggregator, partner_pk):
     settings = ParkSettings.objects.filter(partner=partner_pk)
-    Fleet.objects.filter(name=aggregator, partner=partner_pk).delete()
+    Fleet.objects.filter(name=aggregator, partner=partner_pk).update(deleted_at=timezone.localtime())
     credentials = CredentialPartner.objects.filter(partner=partner_pk)
     if aggregator == 'Uklon':
         settings.filter(key='WITHDRAW_UKLON').delete()
@@ -279,7 +279,7 @@ def send_reset_code(email, user_login):
 
 
 def check_aggregators(user_pk):
-    aggregators = Fleet.objects.filter(partner=user_pk).values_list('name', flat=True)
+    aggregators = Fleet.objects.filter(partner=user_pk, deleted_at=None).values_list('name', flat=True)
     fleets = Fleet.objects.all().values_list('name', flat=True).distinct()
     return list(aggregators), list(fleets)
 

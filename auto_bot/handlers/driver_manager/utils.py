@@ -2,14 +2,14 @@ from collections import defaultdict
 from datetime import datetime, timedelta, time
 
 from _decimal import Decimal
-from django.db.models import Sum, Avg, DecimalField, ExpressionWrapper, F, Value
+from django.db.models import Sum, Avg, DecimalField, ExpressionWrapper, F
 from django.db.models.functions import Coalesce
 from django.utils import timezone
 
 from app.bolt_sync import BoltRequest
-from app.models import CarEfficiency, Driver, SummaryReport, Manager, \
-    Vehicle, RentInformation, DriverEfficiency, Partner, Role, DriverSchemaRate, SalaryCalculation, \
-    DriverPayments, FleetOrder, InvestorPayments, VehicleRent, Schema, Fleet, CustomUser
+from app.models import CarEfficiency, Driver, SummaryReport, \
+    Vehicle, RentInformation, DriverEfficiency, DriverSchemaRate, SalaryCalculation, \
+    DriverPayments, FleetOrder, VehicleRent, Schema, Fleet, CustomUser
 from auto_bot.handlers.order.utils import check_reshuffle
 
 
@@ -22,11 +22,17 @@ def get_time_for_task(schema, day=None):
     :return: start, end, previous_start, previous_end
     """
     schema_obj = Schema.objects.get(pk=schema)
-    date = datetime.strptime(day, "%Y-%m-%d") if day else timezone.localtime()
+    if schema_obj.shift_time != time.min:
+        shift_time = schema_obj.shift_time
+        date = datetime.strptime(day, "%Y-%m-%d") if day else timezone.localtime()
+        yesterday = date - timedelta(days=1)
+    else:
+        shift_time = time.max
+        date = datetime.strptime(day, "%Y-%m-%d") - timedelta(days=1) if day else timezone.localtime() - timedelta(days=1)
+        yesterday = date
     start = timezone.make_aware(datetime.combine(date, time.min))
-    yesterday = date - timedelta(days=1)
     previous_end = timezone.make_aware(datetime.combine(yesterday, time.max))
-    end = timezone.make_aware(datetime.combine(date, schema_obj.shift_time))
+    end = timezone.make_aware(datetime.combine(date, shift_time))
     previous_start = timezone.make_aware(datetime.combine(yesterday, schema_obj.shift_time))
     return start, end, previous_start, previous_end
 
@@ -36,39 +42,35 @@ def create_driver_payments(start, end, driver, schema, delete=None):
                                                  driver=driver).aggregate(
         cash=Coalesce(Sum('total_amount_cash'), 0, output_field=DecimalField()),
         kasa=Coalesce(Sum('total_amount_without_fee'), 0, output_field=DecimalField()))
-
     rent = calculate_rent(start, end, driver)
     rent_value = rent * schema.rent_price
-    if driver_report['kasa']:
-        if delete:
-            salary = '%.2f' % (driver_report['kasa'] * schema.rate - driver_report['cash'] - rent_value)
-        elif schema.is_dynamic():
-            driver_spending = calculate_by_rate(driver, driver_report['kasa'], driver.partner_id)
-            salary = '%.2f' % (driver_spending - driver_report['cash'] - rent_value)
-        elif schema.is_rent():
-            overall_distance = DriverEfficiency.objects.filter(
-                report_from__range=(start, end),
-                driver=driver).aggregate(
-                distance=Coalesce(Sum('mileage'), 0, output_field=DecimalField()))['distance']
-            rent = max((overall_distance - schema.limit_distance), 0)
-            rent_value = rent * schema.rent_price
-            salary = '%.2f' % (driver_report['kasa'] * schema.rate -
-                               driver_report['cash'] - schema.rental - rent_value)
-        else:
-            salary = '%.2f' % (driver_report['kasa'] * schema.rate - driver_report['cash'] - (
-                (schema.plan - driver_report['kasa']) * Decimal(1 - schema.rate)
-                if driver_report['kasa'] < schema.plan else 0) - rent_value
-                               )
-        DriverPayments.objects.create(report_from=start,
-                                      report_to=end,
-                                      driver=driver,
-                                      rent_distance=rent,
-                                      rent_price=schema.rent_price,
-                                      kasa=driver_report['kasa'],
-                                      cash=driver_report['cash'],
-                                      earning=salary,
-                                      rent=rent_value,
-                                      partner=schema.partner)
+    if delete:
+        salary = '%.2f' % (driver_report['kasa'] * schema.rate - driver_report['cash'] - rent_value)
+    elif schema.is_dynamic():
+        driver_spending = calculate_by_rate(driver, driver_report['kasa'], driver.partner_id)
+        salary = '%.2f' % (driver_spending - driver_report['cash'] - rent_value)
+    elif schema.is_rent():
+        overall_distance = DriverEfficiency.objects.filter(
+            report_from__range=(start, end),
+            driver=driver).aggregate(
+            distance=Coalesce(Sum('mileage'), 0, output_field=DecimalField()))['distance']
+        rent = max((overall_distance - schema.limit_distance), 0)
+        rent_value = rent * schema.rent_price
+        salary = '%.2f' % (driver_report['kasa'] * schema.rate -
+                           driver_report['cash'] - schema.rental - rent_value)
+    else:
+        salary = '%.2f' % (driver_report['kasa'] * schema.rate - driver_report['cash'] - (
+            (schema.plan - driver_report['kasa']) * Decimal(1 - schema.rate)
+            if driver_report['kasa'] < schema.plan else 0) - rent_value
+        )
+    data = {"rent_distance": rent,
+            "rent_price": schema.rent_price,
+            "kasa": driver_report['kasa'],
+            "cash": driver_report['cash'],
+            "earning": salary,
+            "rent": rent_value,
+            "partner": schema.partner}
+    return data
 
 
 def validate_date(date_str):
@@ -442,73 +444,45 @@ def get_vehicle_income(driver, start, end, spending_rate, rent):
     while start <= end:
         start_time = timezone.make_aware(datetime.combine(start, time.min))
         end_time = timezone.make_aware(datetime.combine(start, time.max))
-        vehicles = check_reshuffle(driver, start_time, end_time)
+        reshuffles = check_reshuffle(driver, start_time, end_time)
         driver_rent = RentInformation.objects.filter(
             driver=driver, report_to=start).aggregate(
             distance=Coalesce(Sum('rent_distance'), Decimal(0)))['distance']
         uber_uklon_income = 0
-        for vehicle, reshuffles in vehicles.items():
-            if reshuffles:
-                for reshuffle in reshuffles:
-                    vehicle = reshuffle.swap_vehicle
-                    bolt_income = FleetOrder.objects.filter(
-                        fleet="Bolt",
-                        accepted_time__date=start,
-                        driver=reshuffle.driver_start,
-                        vehicle=vehicle).aggregate(total_price=Coalesce(Sum('price'), 0),
-                                                   total_tips=Coalesce(Sum('tips'), 0))
-                    bonuses, compensations = BoltRequest.objects.get(
-                        partner=driver.partner).get_bonuses_info(driver, start, start)
-                    rent_vehicle = VehicleRent.objects.filter(
-                        vehicle=vehicle, driver=driver, report_to__date=start).aggregate(
-                        vehicle_distance=Coalesce(Sum('rent_distance'), Decimal(0)))['vehicle_distance']
-                    if driver_rent and rent_vehicle:
-                        total_rent = driver_rent / rent_vehicle * rent
-                    else:
-                        total_rent = 0
-                    if start_time > reshuffle.swap_time:
-                        start_period, end_period = start_time, reshuffle.end_time
-                    elif reshuffle.end_time <= end_time:
-                        start_period, end_period = reshuffle.swap_time, reshuffle.end_time
-                    else:
-                        start_period, end_period = reshuffle.swap_time, end_time
-                    for fleet in fleets:
-                        uber_uklon_income += fleet.get_earnings_per_driver(driver, start_period, end_period)
-                        print(uber_uklon_income)
-                    total_bolt_income = Decimal(bolt_income['total_price'] * 0.75004 +
-                                                bolt_income['total_tips'] + compensations + bonuses)
-                    print(total_bolt_income)
-                    total_income = (Decimal((total_bolt_income + uber_uklon_income)) * spending_rate
-                                    + total_rent)
-                    print(f"total_income={total_income} {start}")
-                    if not vehicle_income.get(vehicle):
-                        driver_bolt_income[vehicle] = total_bolt_income
-                        vehicle_income[vehicle] = total_income
-
-                    else:
-                        driver_bolt_income[vehicle] += total_bolt_income
-                        vehicle_income[vehicle] += total_income
-            elif vehicle:
-                bolt_income = FleetOrder.objects.filter(
-                    fleet="Bolt",
-                    accepted_time__date=start,
-                    vehicle=vehicle).aggregate(total_price=Coalesce(Sum('price'), 0),
-                                               total_tips=Coalesce(Sum('tips'), 0))
-                bonuses, compensations = BoltRequest.objects.get(
-                    partner=driver.partner).get_bonuses_info(driver, start, start)
-                print(f"bolt={bolt_income} {start}")
-                for fleet in fleets:
-                    uber_uklon_income += fleet.get_earnings_per_driver(driver, start_time, end_time)
-                total_bolt_income = Decimal(bolt_income['total_price'] * 0.75004 +
-                                            bolt_income['total_tips'] + compensations + bonuses)
-                total_income = (Decimal((total_bolt_income + uber_uklon_income)) * spending_rate
-                                + rent)
-                print(f"total {total_income}")
-                if not vehicle_income.get(vehicle):
-                    vehicle_income[vehicle] = total_income
-                else:
-                    vehicle_income[vehicle] += total_income
+        for reshuffle in reshuffles:
+            vehicle = reshuffle.swap_vehicle
+            bolt_income = FleetOrder.objects.filter(
+                fleet="Bolt",
+                accepted_time__date=start,
+                driver=reshuffle.driver_start,
+                vehicle=vehicle).aggregate(total_price=Coalesce(Sum('price'), 0),
+                                           total_tips=Coalesce(Sum('tips'), 0))
+            bonuses, compensations = BoltRequest.objects.get(
+                partner=driver.partner).get_bonuses_info(driver, start, start)
+            rent_vehicle = VehicleRent.objects.filter(
+                vehicle=vehicle, driver=driver, report_to__date=start).aggregate(
+                vehicle_distance=Coalesce(Sum('rent_distance'), Decimal(0)))['vehicle_distance']
+            if driver_rent and rent_vehicle:
+                total_rent = driver_rent / rent_vehicle * rent
             else:
-                continue
+                total_rent = 0
+            if start_time > reshuffle.swap_time:
+                start_period, end_period = start_time, reshuffle.end_time
+            elif reshuffle.end_time <= end_time:
+                start_period, end_period = reshuffle.swap_time, reshuffle.end_time
+            else:
+                start_period, end_period = reshuffle.swap_time, end_time
+            for fleet in fleets:
+                uber_uklon_income += Decimal(fleet.get_earnings_per_driver(driver, start_period, end_period)[0])
+            total_bolt_income = Decimal(bolt_income['total_price'] * 0.75004 +
+                                        bolt_income['total_tips'] + compensations + bonuses)
+            total_income = (Decimal((total_bolt_income + uber_uklon_income)) * spending_rate
+                            + total_rent)
+            if not vehicle_income.get(vehicle):
+                driver_bolt_income[vehicle] = total_bolt_income
+                vehicle_income[vehicle] = total_income
+            else:
+                driver_bolt_income[vehicle] += total_bolt_income
+                vehicle_income[vehicle] += total_income
         start += timedelta(days=1)
     return vehicle_income
