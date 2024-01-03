@@ -281,12 +281,12 @@ class DriverPaymentsListView(CombinedPermissionsMixin, generics.ListAPIView):
         period = self.kwargs.get('period')
 
         if not period:
-            queryset = (qs.filter(
+            queryset = (qs.select_related('driver__user_ptr').filter(
                 status__in=[PaymentsStatus.CHECKING, PaymentsStatus.PENDING],
             )).order_by('report_to')
         else:
             start, end, format_start, format_end = get_start_end(period)
-            queryset = (qs.filter(
+            queryset = (qs.select_related('driver__user_ptr').filter(
                 report_to__range=(start, end),
                 status__in=[PaymentsStatus.COMPLETED, PaymentsStatus.FAILED],
             )).order_by('report_to')
