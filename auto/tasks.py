@@ -281,7 +281,6 @@ def download_weekly_report(self, partner_pk):
         fleets = Fleet.objects.filter(partner=partner_pk).exclude(name='Gps')
         for driver in Driver.objects.get_active(partner=partner_pk):
             for fleet in fleets:
-
                 driver_id = driver.get_driver_external_id(fleet.name)
                 if driver_id:
                     report = fleet.save_weekly_report(start, end, driver)
@@ -777,9 +776,11 @@ def check_personal_orders(self):
 
 @app.task(bind=True, queue='beat_tasks')
 def add_money_to_vehicle(self, partner_pk):
-    day = timezone.localtime() - timedelta(days=1)
+    today = datetime.combine(timezone.localtime(), time.max)
+    end = timezone.make_aware(today - timedelta(days=today.weekday() + 1))
+    start = timezone.make_aware(datetime.combine(end - timedelta(days=6), time.min))
     investor_vehicles = Vehicle.objects.filter(investor_car__isnull=False, partner=partner_pk)
-    kasa = SummaryReport.objects.filter(report_from=day.date(), vehicle__in=investor_vehicles).aggregate(
+    kasa = CustomReport.objects.filter(report_from__range=(start, end), vehicle__in=investor_vehicles).aggregate(
         kasa=Coalesce(Sum('total_amount_without_fee'), 0, output_field=DecimalField())
     )['kasa']
     for investor in Investor.objects.filter(investors_partner=partner_pk):
@@ -795,8 +796,8 @@ def add_money_to_vehicle(self, partner_pk):
                     car_earnings = earning
                     rate = 0.00
                 InvestorPayments.objects.get_or_create(
-                    report_from=day.date(),
-                    report_to=day.date(),
+                    report_from=start,
+                    report_to=end,
                     vehicle=vehicle,
                     investor=vehicle.investor_car,
                     partner_id=partner_pk,
@@ -1107,9 +1108,13 @@ def save_report_to_ninja_payment(start, end, partner_pk, schema, fleet_name='Nin
 @app.task(bind=True, queue='beat_tasks')
 def calculate_driver_reports(self, partner_pk, schema, day=None):
     schema_obj = Schema.objects.get(pk=schema)
+    today = datetime.combine(timezone.localtime(), time.max)
     if schema_obj.is_weekly():
-        start = timezone.localtime().date() - timedelta(days=timezone.localtime().weekday() + 7)
-        end = timezone.localtime().date() - timedelta(days=timezone.localtime().weekday() + 1)
+        if today.weekday():
+            end = timezone.make_aware(today - timedelta(days=today.weekday() + 1))
+            start = timezone.make_aware(datetime.combine(end - timedelta(days=6), time.min))
+        else:
+            return
     else:
         end, start = get_time_for_task(schema, day)[1:3]
     for driver in Driver.objects.get_active(partner=partner_pk, schema=schema):

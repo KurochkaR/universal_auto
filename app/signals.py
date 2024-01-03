@@ -63,28 +63,28 @@ def create_park_settings(sender, instance, created, **kwargs):
                 DriverSchemaRate.objects.create(period=key, threshold=value[0], rate=value[1], partner=instance)
 
 
-@receiver(pre_save, sender=Driver)
-def create_status_change(sender, instance, **kwargs):
-    try:
-        old_instance = Driver.objects.get(pk=instance.pk)
-    except ObjectDoesNotExist:
-        # new instance, ignore
-        return
-    if old_instance.driver_status != instance.driver_status:
-        # update the end time of the previous status change
-        prev_status_changes = StatusChange.objects.filter(driver=instance, end_time=None)
-        prev_status_changes.update(end_time=timezone.now(), duration=F('end_time') - F('start_time'))
-        if prev_status_changes.count() > 1:
-            bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"),
-                             text=f'Multiple status for driver {instance.id} deleted')
-        # driver_status has changed, create new status change
-        status_change = StatusChange(
-            driver=instance,
-            name=instance.driver_status,
-            vehicle=instance.vehicle,
-            start_time=timezone.now(),
-        )
-        status_change.save()
+# @receiver(pre_save, sender=Driver)
+# def create_status_change(sender, instance, **kwargs):
+#     try:
+#         old_instance = Driver.objects.get(pk=instance.pk)
+#     except ObjectDoesNotExist:
+#         # new instance, ignore
+#         return
+#     if old_instance.driver_status != instance.driver_status:
+#         # update the end time of the previous status change
+#         prev_status_changes = StatusChange.objects.filter(driver=instance, end_time=None)
+#         prev_status_changes.update(end_time=timezone.now(), duration=F('end_time') - F('start_time'))
+#         if prev_status_changes.count() > 1:
+#             bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"),
+#                              text=f'Multiple status for driver {instance.id} deleted')
+#         # driver_status has changed, create new status change
+#         status_change = StatusChange(
+#             driver=instance,
+#             name=instance.driver_status,
+#             vehicle=instance.vehicle,
+#             start_time=timezone.now(),
+#         )
+#         status_change.save()
 
 
 @receiver(pre_delete, sender=Partner)

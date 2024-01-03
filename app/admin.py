@@ -426,10 +426,11 @@ class TransactionsConversationAdmin(admin.ModelAdmin):
     list_filter = (TransactionInvestorUserFilter, )
 
     def get_list_display(self, request):
+        display = ['report_from', 'report_to', 'vehicle', 'earning',
+                   'investor', 'status', 'currency', 'currency_rate', 'sum_after_transaction']
         if request.user.is_superuser:
-            return [f.name for f in self.model._meta.fields]
-        else:
-            return ['vehicle', 'sum_before_transaction', 'currency', 'currency_rate', 'sum_after_transaction']
+            display.append('partner')
+        return display
 
 
 @admin.register(CarEfficiency)
@@ -680,18 +681,18 @@ class InvestorAdmin(admin.ModelAdmin):
                 ('Інформація про інвестора',
                  {'fields': ['email', 'password',
                              'last_name', 'first_name',
-                             'phone_number', 'investors_partner']}),
+                             'investors_partner']}),
             ]
             return fieldsets
         if obj:
             fieldsets = [
                 ('Інформація про інвестора',
-                 {'fields': ['email', 'last_name', 'first_name', 'phone_number']}),
+                 {'fields': ['email', 'last_name', 'first_name']}),
             ]
         else:
             fieldsets = [
                 ('Інформація про інвестора',
-                 {'fields': ['email', 'password', 'last_name', 'first_name', 'phone_number']}),
+                 {'fields': ['email', 'password', 'last_name', 'first_name']}),
             ]
 
         return fieldsets
@@ -734,27 +735,27 @@ class ManagerAdmin(admin.ModelAdmin):
         if request.user.is_superuser:
             return [f.name for f in self.model._meta.fields]
         else:
-            return ['first_name', 'last_name', 'email', 'phone_number', 'chat_id']
+            return ['first_name', 'last_name', 'email', 'chat_id']
 
     def get_fieldsets(self, request, obj=None):
         if request.user.is_superuser:
             fieldsets = [
                 ('Інформація про менеджера',
                  {'fields': ['email', 'last_name', 'first_name',
-                             'chat_id', 'phone_number', 'managers_partner',
+                             'chat_id', 'managers_partner',
                              ]}),
             ]
             return fieldsets
         if obj:
             fieldsets = [
                 ('Інформація про менеджера',
-                 {'fields': ['email', 'last_name', 'first_name', 'chat_id', 'phone_number']}),
+                 {'fields': ['email', 'last_name', 'first_name', 'chat_id']}),
             ]
 
         else:
             fieldsets = [
                 ('Інформація про менеджера',
-                 {'fields': ['email', 'password', 'last_name', 'first_name', 'chat_id', 'phone_number']}),
+                 {'fields': ['email', 'password', 'last_name', 'first_name', 'chat_id']}),
             ]
 
         return fieldsets
@@ -812,7 +813,7 @@ class DriverAdmin(SoftDeleteAdmin):
                     ]
         else:
             return ['name', 'second_name',
-                    'vehicle', 'chat_id', 'schema',
+                    'chat_id', 'schema',
                     'driver_status'
                     ]
 
@@ -852,13 +853,11 @@ class DriverAdmin(SoftDeleteAdmin):
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if request.user.is_partner():
-            if db_field.name in ('vehicle', 'schema'):
+            if db_field.name == 'schema':
                 kwargs['queryset'] = db_field.related_model.objects.filter(partner=request.user)
             if db_field.name == 'manager':
                 kwargs['queryset'] = db_field.related_model.objects.filter(managers_partner=request.user)
         if request.user.is_manager():
-            if db_field.name == 'vehicle':
-                kwargs['queryset'] = db_field.related_model.objects.filter(manager=request.user)
             if db_field.name == 'schema':
                 manager = Manager.objects.get(pk=request.user.pk)
                 kwargs['queryset'] = db_field.related_model.objects.filter(
