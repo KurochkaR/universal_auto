@@ -579,7 +579,6 @@ class Payments(DriverReport):
 
 
 class SummaryReport(DriverReport):
-
     class Meta:
         verbose_name = 'Зведений звіт'
         verbose_name_plural = 'Зведені звіти'
@@ -890,7 +889,7 @@ class JobApplication(models.Model):
                                             verbose_name='Тильна сторона посвідчення')
     photo = models.ImageField(blank=True, upload_to='job/photo', verbose_name='Фото водія')
     car_documents = models.ImageField(blank=True, upload_to='job/car', default="docs/default_car.jpg",
-                                      verbose_name='Фото техпаспорту',)
+                                      verbose_name='Фото техпаспорту', )
     insurance = models.ImageField(blank=True, upload_to='job/insurance', default="docs/default_insurance.png",
                                   verbose_name='Автоцивілка')
     insurance_expired = models.DateField(default=date(2023, 12, 15), verbose_name='Термін дії автоцивілки')
@@ -974,7 +973,7 @@ class DriverEffVehicleKasa(models.Model):
     kasa = models.DecimalField(max_digits=10, decimal_places=2)
 
 
-class DriverEfficiency(models.Model):
+class DriverEfficiencyPolymorphic(PolymorphicModel):
     report_from = models.DateTimeField(verbose_name='Звіт з')
     report_to = models.DateTimeField(null=True, verbose_name='Звіт по')
     driver = models.ForeignKey(Driver, null=True, on_delete=models.SET_NULL, verbose_name='Водій', db_index=True)
@@ -989,12 +988,32 @@ class DriverEfficiency(models.Model):
     online_time = models.DurationField(null=True, blank=True, verbose_name='Час онлайн')
     partner = models.ForeignKey(Partner, null=True, on_delete=models.CASCADE, verbose_name='Партнер')
 
-    class Meta:
-        verbose_name = 'Ефективність водія'
-        verbose_name_plural = 'Ефективність водіїв'
-
     def __str__(self):
         return f"{self.driver}"
+
+
+class DriverEfficiency(DriverEfficiencyPolymorphic):
+    class Meta:
+        verbose_name = 'Ефективність водія в агрегаторах'
+        verbose_name_plural = 'Ефективність водіїв в агрегаторах'
+
+
+class DriverEfficiencyBolt(DriverEfficiencyPolymorphic):
+    class Meta:
+        verbose_name = 'Ефективність водія в Bolt'
+        verbose_name_plural = 'Ефективність водіїв в Bolt'
+
+
+class DriverEfficiencyUklon(DriverEfficiencyPolymorphic):
+    class Meta:
+        verbose_name = 'Ефективність водія в Uklon'
+        verbose_name_plural = 'Ефективність водіїв в Uklon'
+
+
+class DriverEfficiencyUber(DriverEfficiencyPolymorphic):
+    class Meta:
+        verbose_name = 'Ефективність водія в Uber'
+        verbose_name_plural = 'Ефективність водіїв в Uber'
 
 
 class UseOfCars(models.Model):
