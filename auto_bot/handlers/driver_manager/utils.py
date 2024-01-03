@@ -473,7 +473,7 @@ def get_vehicle_income(driver, start, end, spending_rate, rent):
             else:
                 start_period, end_period = reshuffle.swap_time, end_time
             for fleet in fleets:
-                uber_uklon_income += fleet.get_earnings_per_driver(driver, start_period, end_period)[0]
+                uber_uklon_income += Decimal(fleet.get_earnings_per_driver(driver, start_period, end_period)[0])
             total_bolt_income = Decimal(bolt_income['total_price'] * 0.75004 +
                                         bolt_income['total_tips'] + compensations + bonuses)
             total_income = (Decimal((total_bolt_income + uber_uklon_income)) * spending_rate

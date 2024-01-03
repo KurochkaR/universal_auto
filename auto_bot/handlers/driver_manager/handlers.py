@@ -348,8 +348,13 @@ def send_vehicle_efficiency(sender=None, **kwargs):
                     bot.send_message(chat_id=ParkSettings.get_value('DRIVERS_CHAT',
                                                                     default=Partner.objects.get(pk=partner).chat_id,
                                                                     partner=partner), text=message)
-                except BadRequest:
-                    pass
+                except BadRequest as e:
+                    if e.message == 'Message is too long':
+                        send_long_message(chat_id=ParkSettings.get_value('DRIVERS_CHAT',
+                                          default=Partner.objects.get(pk=partner).chat_id,
+                                          partner=partner), text=message)
+                    else:
+                        pass
 
 
 @task_postrun.connect

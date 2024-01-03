@@ -198,7 +198,7 @@ def get_today_orders(self, partner_pk):
         raise self.retry(exc=e, countdown=retry_delay)
 
 
-@app.task(bind=True, queue='beat_tasks', retry_backoff=30, max_retries=4)
+@app.task(bind=True, queue='beat_tasks', ignore_result=True, retry_backoff=30, max_retries=4)
 def check_card_cash_value(self, partner_pk):
     try:
         today = timezone.localtime()
@@ -571,6 +571,8 @@ def get_rent_information(self, partner_pk, schema, day=None):
         gps = UaGpsSynchronizer.objects.get(partner=partner_pk)
         gps.save_daily_rent(start, end, schema)
         logger.info('write rent report')
+    except ObjectDoesNotExist:
+        return
     except Exception as e:
         logger.error(e)
         retry_delay = retry_logic(e, self.request.retries + 1)
@@ -590,7 +592,7 @@ def get_today_rent(self, partner_pk):
         raise self.retry(exc=e, countdown=retry_delay)
 
 
-@app.task(bind=True, queue='bot_tasks', retry_backoff=30, max_retries=4)
+@app.task(bind=True, queue='bot_tasks', ignore_result=True, retry_backoff=30, max_retries=4)
 def fleets_cash_trips(self, partner_pk, pk, enable):
     try:
         driver = Driver.objects.get(pk=pk)
@@ -1123,7 +1125,7 @@ def calculate_driver_reports(self, partner_pk, schema, day=None):
         if created:
             Bonus.objects.filter(driver=driver, driver_payments__isnull=True).update(driver_payments=payment)
             Penalty.objects.filter(driver=driver, driver_payments__isnull=True).update(driver_payments=payment)
-            payment.earning = payment.earning + payment.get_bonuses() - payment.get_penalties()
+            payment.earning = Decimal(payment.earning) + payment.get_bonuses() - payment.get_penalties()
             payment.save(update_fields=['earning'])
 
 

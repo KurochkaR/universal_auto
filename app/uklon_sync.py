@@ -18,9 +18,9 @@ class UklonRequest(Fleet, Synchronizer):
     base_url = models.URLField(default=Service.get_value('UKLON_SESSION'))
 
     def get_header(self) -> dict:
+        if not redis_instance().exists(f"{self.partner.id}_{self.name}_token"):
+            self.get_access_token()
         token = redis_instance().get(f"{self.partner.id}_{self.name}_token")
-        if not token:
-            token = self.create_session(self.partner.id)
         headers = {
             'Authorization': f'Bearer {token}'
         }
@@ -59,7 +59,6 @@ class UklonRequest(Fleet, Synchronizer):
             redis_instance().set(f"{partner}_{self.name}_refresh", refresh_token)
             return token
         elif response.status_code == 429:
-            bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"), text=f"{payload}\n{response.json()}")
             raise AuthenticationError(f"{self.name} service unavailable.")
         else:
             raise AuthenticationError(f"{self.name} login or password incorrect.")
@@ -72,10 +71,12 @@ class UklonRequest(Fleet, Synchronizer):
             'refresh_token': refresh,
             'client_id': client_id,
         }
-        response = requests.post("https://fleets.uklon.com.ua/api/auth", data=data)
+        response = requests.post(f"{self.base_url}auth", data=data)
         if response.status_code == 200:
             token = response.json()['access_token']
         else:
+            bot.send_message(chat_id=515224934,
+                             text=f"generate access uklon {response.status_code}")
             token = self.create_session(self.partner.id)
         redis_instance().set(f"{self.partner}_{self.name}_token", token)
 
@@ -100,8 +101,6 @@ class UklonRequest(Fleet, Synchronizer):
                       headers: dict = None,
                       method: str = None) -> dict or None:
 
-        if not redis_instance().exists(f"{self.partner.id}_{self.name}_token"):
-            self.get_access_token()
         response = self.request_method(url=url,
                                        params=params,
                                        headers=self.get_header() if headers is None else headers,
