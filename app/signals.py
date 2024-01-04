@@ -81,7 +81,6 @@ def create_status_change(sender, instance, **kwargs):
         status_change = StatusChange(
             driver=instance,
             name=instance.driver_status,
-            vehicle=instance.vehicle,
             start_time=timezone.now(),
         )
         status_change.save()

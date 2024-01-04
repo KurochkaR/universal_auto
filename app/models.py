@@ -994,26 +994,16 @@ class DriverEfficiencyPolymorphic(PolymorphicModel):
 
 class DriverEfficiency(DriverEfficiencyPolymorphic):
     class Meta:
+        verbose_name = 'Ефективність водія'
+        verbose_name_plural = 'Ефективність водіїв'
+
+
+class DriverEfficiencyFleet(DriverEfficiencyPolymorphic):
+    fleet = models.ForeignKey(Fleet, null=True, on_delete=models.CASCADE, verbose_name='Агрегатор')
+
+    class Meta:
         verbose_name = 'Ефективність водія в агрегаторах'
         verbose_name_plural = 'Ефективність водіїв в агрегаторах'
-
-
-class DriverEfficiencyBolt(DriverEfficiencyPolymorphic):
-    class Meta:
-        verbose_name = 'Ефективність водія в Bolt'
-        verbose_name_plural = 'Ефективність водіїв в Bolt'
-
-
-class DriverEfficiencyUklon(DriverEfficiencyPolymorphic):
-    class Meta:
-        verbose_name = 'Ефективність водія в Uklon'
-        verbose_name_plural = 'Ефективність водіїв в Uklon'
-
-
-class DriverEfficiencyUber(DriverEfficiencyPolymorphic):
-    class Meta:
-        verbose_name = 'Ефективність водія в Uber'
-        verbose_name_plural = 'Ефективність водіїв в Uber'
 
 
 class UseOfCars(models.Model):

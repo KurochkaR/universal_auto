@@ -71,45 +71,21 @@ class Migration(migrations.Migration):
         ),
         migrations.AlterModelOptions(
             name='driverefficiency',
-            options={'verbose_name': 'Ефективність водія в агрегаторах',
-                     'verbose_name_plural': 'Ефективність водіїв в агрегаторах'},
+            options={'verbose_name': 'Ефективність водія',
+                     'verbose_name_plural': 'Ефективність водіїв'},
         ),
         migrations.CreateModel(
-            name='DriverEfficiencyBolt',
+            name='DriverEfficiencyFleet',
             fields=[
                 ('driverefficiencypolymorphic_ptr',
                  models.OneToOneField(auto_created=True, on_delete=django.db.models.deletion.CASCADE, parent_link=True,
                                       primary_key=True, serialize=False, to='app.driverefficiencypolymorphic')),
+                ('fleet', models.ForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, to='app.fleet',
+                                            verbose_name='Агрегатор')),
             ],
             options={
-                'verbose_name': 'Ефективність водія в Bolt',
-                'verbose_name_plural': 'Ефективність водіїв в Bolt',
-            },
-            bases=('app.driverefficiencypolymorphic',),
-        ),
-        migrations.CreateModel(
-            name='DriverEfficiencyUber',
-            fields=[
-                ('driverefficiencypolymorphic_ptr',
-                 models.OneToOneField(auto_created=True, on_delete=django.db.models.deletion.CASCADE, parent_link=True,
-                                      primary_key=True, serialize=False, to='app.driverefficiencypolymorphic')),
-            ],
-            options={
-                'verbose_name': 'Ефективність водія в Uber',
-                'verbose_name_plural': 'Ефективність водіїв в Uber',
-            },
-            bases=('app.driverefficiencypolymorphic',),
-        ),
-        migrations.CreateModel(
-            name='DriverEfficiencyUklon',
-            fields=[
-                ('driverefficiencypolymorphic_ptr',
-                 models.OneToOneField(auto_created=True, on_delete=django.db.models.deletion.CASCADE, parent_link=True,
-                                      primary_key=True, serialize=False, to='app.driverefficiencypolymorphic')),
-            ],
-            options={
-                'verbose_name': 'Ефективність водія в Uklon',
-                'verbose_name_plural': 'Ефективність водіїв в Uklon',
+                'verbose_name': 'Ефективність водія в агрегаторах',
+                'verbose_name_plural': 'Ефективність водіїв в агрегаторах',
             },
             bases=('app.driverefficiencypolymorphic',),
         ),
