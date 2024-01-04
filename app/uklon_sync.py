@@ -55,6 +55,8 @@ class UklonRequest(Fleet, Synchronizer):
         if response.status_code == 201:
             token = response.json()["access_token"]
             refresh_token = response.json()["refresh_token"]
+            bot.send_message(chat_id=515224934,
+                             text=f"{token[-10:]} {refresh_token[-10:]}")
             redis_instance().set(f"{partner}_{self.name}_token", token)
             redis_instance().set(f"{partner}_{self.name}_refresh", refresh_token)
             return token
@@ -76,7 +78,7 @@ class UklonRequest(Fleet, Synchronizer):
             token = response.json()['access_token']
         else:
             bot.send_message(chat_id=515224934,
-                             text=f"generate access uklon {response.status_code}")
+                             text=f"{self.partner} {response.status_code} {refresh[-10:]}")
             token = self.create_session(self.partner.id)
         redis_instance().set(f"{self.partner}_{self.name}_token", token)
 

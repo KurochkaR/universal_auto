@@ -372,18 +372,12 @@ def get_car_efficiency(self, partner_pk):
         vehicle_drivers = {}
         total_spending = VehicleSpending.objects.filter(
             vehicle=vehicle, created_at__range=(start, end)).aggregate(Sum('amount'))['amount__sum'] or 0
-        reshuffles = DriverReshuffle.objects.filter(end_time__lte=end,
-                                                    swap_time__gte=start,
-                                                    swap_vehicle=vehicle,
-                                                    partner=partner_pk)
-        drivers = [reshuffle.driver_start for reshuffle in reshuffles] if reshuffles \
-            else Driver.objects.filter(vehicle=vehicle)
+        drivers = DriverReshuffle.objects.filter(end_time__lte=end,
+                                                 swap_time__gte=start,
+                                                 swap_vehicle=vehicle,
+                                                 partner=partner_pk).values_list('driver_start', flat=True)
         total_kasa = 0
-        try:
-            total_km = UaGpsSynchronizer.objects.get(partner=partner_pk).total_per_day(vehicle.gps.gps_id, start, end)
-        except AttributeError as e:
-            logger.error(e)
-            continue
+        total_km = UaGpsSynchronizer.objects.get(partner=partner_pk).total_per_day(vehicle.gps.gps_id, start, end)
         if total_km:
             for driver in drivers:
                 driver_ids = FleetsDriversVehiclesRate.objects.filter(
@@ -539,8 +533,7 @@ def schedule_for_detaching_uklon(self, partner_pk):
         reshuffle = DriverReshuffle.objects.filter(
             swap_time__date=today.date(),
             swap_vehicle=vehicle,
-            end_time__lt=desired_time,
-            end_time__gte=today,
+            end_time__range=(today, desired_time),
             partner=partner_pk
         ).first()
         if reshuffle:

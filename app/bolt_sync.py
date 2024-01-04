@@ -285,6 +285,7 @@ class BoltRequest(Fleet, Synchronizer):
             ]
         }
         report = self.get_target_url(f'{self.base_url}getOrdersHistory', self.param(), payload, method="POST")
+        time.sleep(0.5)
         if report.get('data'):
             for order in report['data']['rows']:
                 try:
