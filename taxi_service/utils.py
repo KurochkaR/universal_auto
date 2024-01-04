@@ -121,20 +121,19 @@ def get_dates(period=None):
 
     elif period == 'last_quarter':
         current_month = current_date.month
-        current_quarter = (current_month - 4) // 3 + 1
-
+        current_quarter = (current_month - 1) // 3 + 1
         if current_quarter == 1:
+            start_date = date(current_date.year - 1, 10, 1)
+            end_date = date(current_date.year - 1, 12, 31)
+        elif current_quarter == 2:
             start_date = date(current_date.year, 1, 1)
             end_date = date(current_date.year, 3, 31)
-        elif current_quarter == 2:
+        elif current_quarter == 3:
             start_date = date(current_date.year, 4, 1)
             end_date = date(current_date.year, 6, 30)
-        elif current_quarter == 3:
+        else:
             start_date = date(current_date.year, 7, 1)
             end_date = date(current_date.year, 9, 30)
-        else:
-            start_date = date(current_date.year, 10, 1)
-            end_date = date(current_date.year, 12, 31)
 
     else:
         weekday = current_date.weekday()
