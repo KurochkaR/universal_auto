@@ -19,7 +19,7 @@ from app.models import RawGPS, Vehicle, Order, Driver, JobApplication, ParkSetti
     Payments, SummaryReport, Manager, Partner, DriverEfficiency, FleetOrder, ReportTelegramPayments, \
     InvestorPayments, VehicleSpending, DriverReshuffle, DriverPayments, \
     PaymentTypes, TaskScheduler, DriverEffVehicleKasa, Schema, CustomReport, FleetsDriversVehiclesRate, Fleet, \
-    VehicleGPS, PartnerEarnings, Investor, Bonus, Penalty
+    VehicleGPS, PartnerEarnings, Investor, Bonus, Penalty, DriverEfficiencyFleet
 from django.db.models import Sum, IntegerField, FloatField, Value, DecimalField
 from django.db.models.functions import Cast, Coalesce
 from app.utils import get_schedule, create_task
@@ -462,6 +462,57 @@ def get_driver_efficiency(self, partner_pk, schema, day=None):
                                                                         efficiency=result,
                                                                         partner_id=partner_pk)
                     driver_efficiency.vehicles.add(*driver_vehicles)
+
+
+@app.task(bind=True, queue='beat_tasks')
+def get_driver_efficiency_fleet(self, partner_pk, schema, day=None):
+    if Fleet.objects.filter(partner=partner_pk, name="Gps").exists():
+        end, start = get_time_for_task(schema)[1:3]
+
+        for driver in Driver.objects.get_active(partner=partner_pk, schema=schema):
+
+            aggregators = Fleet.objects.filter(partner=partner_pk).exclude(name="Gps")
+
+            for aggregator in aggregators:
+                fleet_orders = FleetOrder.objects.filter(
+                    fleet=aggregator.name,
+                    accepted_time__range=(start, end),
+                    partner=partner_pk,
+                    driver=driver
+                )
+                payments = Payments.objects.filter(
+                    vendor=aggregator,
+                    report_from=start,
+                    partner=partner_pk,
+                    driver=driver
+                )
+                vehicles = fleet_orders.values_list('vehicle', flat=True).distinct()
+                total_kasa = payments.aggregate(
+                    kasa=Coalesce(Sum('total_amount_without_fee'), Decimal(0)))['kasa']
+                total_orders = fleet_orders.count()
+                mileage = fleet_orders.aggregate(km=Coalesce(Sum('distance'), Decimal(0)))['km']
+                canceled_orders = fleet_orders.filter(state=FleetOrder.DRIVER_CANCEL).count()
+                completed_orders = fleet_orders.filter(state=FleetOrder.COMPLETED).count()
+
+                result, created = DriverEfficiencyFleet.objects.get_or_create(
+                    fleet=aggregator,
+                    report_from=start,
+                    report_to=end,
+                    driver=driver,
+                    defaults={
+                        'total_kasa': total_kasa,
+                        'total_orders': total_orders,
+                        'accept_percent': (total_orders - canceled_orders) / total_orders * 100,
+                        'average_price': total_kasa / completed_orders if completed_orders else 0,
+                        'mileage': mileage,
+                        'road_time': fleet_orders.aggregate(
+                            road_time=Coalesce(Sum('road_time'), timedelta()))['road_time'],
+                        'efficiency': total_kasa / mileage if mileage else 0,
+                        'partner_id': partner_pk
+                    }
+                )
+                if created:
+                    result.add(*vehicles)
 
 
 @app.task(bind=True, queue='beat_tasks')
