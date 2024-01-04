@@ -389,7 +389,7 @@ $(document).ready(function () {
 					data: {
 						action,
 						vehicle_licence: vehicleId,
-						date,
+						date: clickedDayId,
 						start_time: startTimeInput.val(),
 						end_time: endTimeInput.val(),
 						driver_id: selectedDriverId,
