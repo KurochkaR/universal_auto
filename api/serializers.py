@@ -128,7 +128,6 @@ class DriverPaymentsSerializer(serializers.ModelSerializer):
         return obj.get_status_display()
 
     def get_bonuses(self, obj):
-        print(obj.get_bonuses())
         return obj.get_bonuses()
 
     def get_penalties(self, obj):
