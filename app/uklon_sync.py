@@ -1,5 +1,6 @@
 import json
 import secrets
+import uuid
 from datetime import datetime, time
 import requests
 from _decimal import Decimal
@@ -27,17 +28,14 @@ class UklonRequest(Fleet, Synchronizer):
         return headers
 
     def park_payload(self, login, password) -> dict:
-        if self.partner:
+        if self.partner and not self.deleted_at:
             login = CredentialPartner.get_value(key='UKLON_NAME', partner=self.partner)
             password = CredentialPartner.get_value(key='UKLON_PASSWORD', partner=self.partner)
-            client_id = CredentialPartner.get_value(key='CLIENT_ID', partner=self.partner)
-        else:
-            hex_length = 16
-            client_id = secrets.token_hex(hex_length)
         payload = {
-            'client_id': client_id,
+            'client_id': ParkSettings.get_value('CLIENT_ID_UKLON'),
+            'client_secret': ParkSettings.get_value('CLIENT_SECRET_UKLON'),
             'contact': login,
-            'device_id': "38c13dc5-2ef3-4637-99f5-8de26b2e8216",
+            'device_id': "021fb6e4-50b7-47fe-81cc-400c97c7e676",
             'grant_type': "password_mfa",
             'password': password,
         }
@@ -55,8 +53,6 @@ class UklonRequest(Fleet, Synchronizer):
         if response.status_code == 201:
             token = response.json()["access_token"]
             refresh_token = response.json()["refresh_token"]
-            bot.send_message(chat_id=515224934,
-                             text=f"{token[-10:]} {refresh_token[-10:]}")
             redis_instance().set(f"{partner}_{self.name}_token", token)
             redis_instance().set(f"{partner}_{self.name}_refresh", refresh_token)
             return token
@@ -66,19 +62,20 @@ class UklonRequest(Fleet, Synchronizer):
             raise AuthenticationError(f"{self.name} login or password incorrect.")
 
     def get_access_token(self):
-        client_id = CredentialPartner.get_value(key='CLIENT_ID', partner=self.partner)
         refresh = redis_instance().get(f"{self.partner.id}_{self.name}_refresh")
         data = {
             'grant_type': 'refresh_token',
             'refresh_token': refresh,
-            'client_id': client_id,
+            'client_id': ParkSettings.get_value('CLIENT_ID_UKLON'),
+            'device_id': "544cd9a5-95db-414a-a67b-b143c35509c8",
+            "client_secret": ParkSettings.get_value('CLIENT_SECRET_UKLON')
         }
         response = requests.post(f"{self.base_url}auth", data=data)
-        if response.status_code == 200:
+        if response.status_code == 201:
             token = response.json()['access_token']
         else:
             bot.send_message(chat_id=515224934,
-                             text=f"{self.partner} {response.status_code} {refresh[-10:]}")
+                             text=f"{self.partner} {response.status_code} create_session")
             token = self.create_session(self.partner.id)
         redis_instance().set(f"{self.partner}_{self.name}_token", token)
 

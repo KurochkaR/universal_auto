@@ -130,7 +130,10 @@ def auto_send_task_bot(self):
 
 @app.task(bind=True, queue='bot_tasks', retry_backoff=30, max_retries=3)
 def get_session(self, partner_pk, aggregator='Uber', login=None, password=None):
-    fleet = Fleet.objects.get(name=aggregator, partner=None)
+    try:
+        fleet = Fleet.objects.get(name=aggregator, partner=partner_pk, deleted_at__isnull=False)
+    except ObjectDoesNotExist:
+        fleet = Fleet.objects.get(name=aggregator, partner=None)
     try:
         token = fleet.create_session(partner_pk, login=login, password=password)
         if login and password:
@@ -380,12 +383,9 @@ def get_car_efficiency(self, partner_pk):
         total_km = UaGpsSynchronizer.objects.get(partner=partner_pk).total_per_day(vehicle.gps.gps_id, start, end)
         if total_km:
             for driver in drivers:
-                driver_ids = FleetsDriversVehiclesRate.objects.filter(
-                    driver=driver,
-                    partner=partner_pk).values_list('driver_external_id', flat=True)
                 reports = CustomReport.objects.filter(
                     report_from__date=start,
-                    driver_id__in=driver_ids)
+                    driver=driver)
                 driver_kasa = reports.aggregate(
                     kasa=Coalesce(Sum("total_amount_without_fee"), Decimal(0)))['kasa']
                 vehicle_drivers[driver] = driver_kasa
@@ -401,7 +401,7 @@ def get_car_efficiency(self, partner_pk):
                                            efficiency=result,
                                            partner_id=partner_pk)
         for driver, kasa in vehicle_drivers.items():
-            DriverEffVehicleKasa.objects.create(driver=driver, efficiency_car=car, kasa=kasa)
+            DriverEffVehicleKasa.objects.create(driver_id=driver, efficiency_car=car, kasa=kasa)
 
 
 @app.task(bind=True, queue='beat_tasks')
@@ -1131,7 +1131,7 @@ def calculate_driver_reports(self, partner_pk, schema, day=None):
 def calculate_vehicle_earnings(self, payment_pk):
     payment = DriverPayments.objects.get(pk=payment_pk)
     driver = payment.driver
-    spending_rate = 1 - round((payment.earning + payment.cash + payment.rent) / payment.kasa, 6)
+    spending_rate = 1 - round((payment.earning + payment.cash + payment.rent) / payment.kasa, 6) if payment.kasa else 0
     vehicles_income = get_vehicle_income(driver, payment.report_from, payment.report_to,
                                          spending_rate, payment.rent)
     for vehicle, income in vehicles_income.items():

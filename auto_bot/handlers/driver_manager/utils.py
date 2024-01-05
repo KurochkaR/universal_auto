@@ -183,8 +183,7 @@ def generate_message_report(chat_id, schema_id=None, daily=None):
             end, start = get_time_for_task(schema_id)[1:3]
         drivers = drivers.filter(schema=schema)
     elif daily:
-        start = timezone.localtime()
-        end = start - timedelta(days=1)
+        start = end = timezone.localtime() - timedelta(days=1)
     else:
         end = timezone.localtime() - timedelta(days=timezone.localtime().weekday() + 1)
         start = end - timedelta(days=6)
