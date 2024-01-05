@@ -388,24 +388,25 @@ $(document).ready(function() {
   intlTelInit('#phone');
 
 //  js investment page
+	if ($(".investment-slider").length) {
+		var investmentSlider = new Splide( '.investment-slider', {
+			type    : 'loop',
+			perPage : 1,
+			autoplay: true,
+		});
 
-	var investmentSlider = new Splide( '.investment-slider', {
-		type    : 'loop',
-		perPage : 1,
-		autoplay: true,
-	} );
+		investmentSlider.mount();
 
-	investmentSlider.mount();
+		var investmentParkSlider = new Splide( '.investment-park-slider', {
+			type    : 'loop',
+			perPage : 1,
+			autoplay: true,
+			arrows   : false,
+			pagination: false
+		});
 
-	var investmentParkSlider = new Splide( '.investment-park-slider', {
-		type    : 'loop',
-		perPage : 1,
-		autoplay: true,
-		arrows   : false,
-  	pagination: false
-	} );
-
-	investmentParkSlider.mount();
+		investmentParkSlider.mount();
+	}
 
 
 	$(".learn-more-button").click(function (e) {
