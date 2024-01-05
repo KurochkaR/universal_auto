@@ -219,7 +219,7 @@ class SeleniumTools:
                                            uber_uuid=uuid,
                                            partner_id=self.partner
                                            )
-                return True
+                return sid
             else:
                 raise AuthenticationError(f"Uber cookie error {sid}, {csid}")
         else:

@@ -1,8 +1,10 @@
+import time
+
 from _decimal import Decimal
 from django.db.models import Sum, DecimalField
 
-from app.models import CustomReport, ParkSettings, Vehicle, Partner, Payments, SummaryReport, DriverPayments, \
-    DailyReport, WeeklyReport, Penalty, Bonus
+from app.models import CustomReport, ParkSettings, Vehicle, Partner, Payments, SummaryReport, DriverPayments, Penalty,\
+    Bonus
 from auto_bot.handlers.driver_manager.utils import create_driver_payments
 from auto_bot.handlers.order.utils import check_vehicle
 from auto_bot.main import bot
@@ -14,6 +16,7 @@ def compare_reports(fleet, start, end, driver, correction_report, compare_model,
               "bonuses", "fee", "total_amount_without_fee", "fares",
               "cancels", "compensations", "refunds"
               )
+    message_fields = ("total_amount_cash", "total_amount_without_fee")
     custom_reports = compare_model.objects.filter(vendor=fleet, report_from__range=(start, end), driver=driver)
     if custom_reports:
         last_report = custom_reports.last()
@@ -24,9 +27,10 @@ def compare_reports(fleet, start, end, driver, correction_report, compare_model,
                 report_value = getattr(last_report, field) or 0
                 update_amount = report_value + Decimal(daily_value) - sum_custom_amount
                 setattr(last_report, field, update_amount)
-                bot.send_message(chat_id=ParkSettings.get_value('DEVELOPER_CHAT_ID'),
-                                 text=f"{fleet.name} перевірочний = {daily_value},"
-                                      f"денний = {sum_custom_amount} {driver} {field}")
+                if field in message_fields:
+                    bot.send_message(chat_id=ParkSettings.get_value('DEVELOPER_CHAT_ID'),
+                                     text=f"{fleet.name} перевірочний = {daily_value},"
+                                          f"денний = {sum_custom_amount} {driver} {field}")
             else:
                 continue
         last_report.save()

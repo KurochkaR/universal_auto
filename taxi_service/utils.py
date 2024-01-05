@@ -1,6 +1,7 @@
 import json
 import random
 import secrets
+import uuid
 from datetime import timedelta, date, datetime, time
 
 from django.db.models import Q
@@ -186,24 +187,22 @@ def login_in(aggregator=None, partner_id=None, login_name=None, password=None, t
     if aggregator == 'Bolt':
         update_park_set(partner_id, 'BOLT_PASSWORD', password, description='Пароль користувача Bolt', park=False)
         update_park_set(partner_id, 'BOLT_NAME', login_name, description='Ім\'я користувача Bolt', park=False)
-        BoltRequest.objects.create(name=aggregator, partner_id=partner_id)
+        obj, created = BoltRequest.objects.get_or_create(name=aggregator, partner_id=partner_id)
     elif aggregator == 'Uklon':
         update_park_set(partner_id, 'UKLON_PASSWORD', password, description='Пароль користувача Uklon', park=False)
         update_park_set(partner_id, 'UKLON_NAME', login_name, description='Ім\'я користувача Uklon', park=False)
         update_park_set(partner_id, 'WITHDRAW_UKLON', '150000', description='Залишок грн на карті водія Uklon')
-        hex_length = 16
-        random_hex = secrets.token_hex(hex_length)
-        update_park_set(
-            partner_id, 'CLIENT_ID', random_hex,
-            description='Ідентифікатор клієнта Uklon', check_value=False, park=False)
-        UklonRequest.objects.create(name=aggregator, partner_id=partner_id)
+        obj, created = UklonRequest.objects.get_or_create(name=aggregator, partner_id=partner_id)
     elif aggregator == 'Uber':
         update_park_set(partner_id, 'UBER_PASSWORD', password, description='Пароль користувача Uber', park=False)
         update_park_set(partner_id, 'UBER_NAME', login_name, description='Ім\'я користувача Uber', park=False)
-        UberRequest.objects.create(name=aggregator, partner_id=partner_id)
-    elif aggregator == 'Gps':
+        obj, created = UberRequest.objects.get_or_create(name=aggregator, partner_id=partner_id)
+    else:
         update_park_set(partner_id, 'UAGPS_TOKEN', token, description='Токен для GPS сервісу', park=False)
-        UaGpsSynchronizer.objects.create(name=aggregator, partner_id=partner_id)
+        obj, created = UaGpsSynchronizer.objects.get_or_create(name=aggregator, partner_id=partner_id)
+    if not created:
+        obj.deleted_at = None
+        obj.save(update_fields=['deleted_at'])
     return True
 
 
@@ -217,7 +216,7 @@ def partner_logout(aggregator, partner_pk):
     credential_dict = {
         'Uber': ('UBER_NAME', 'UBER_PASSWORD'),
         'Bolt': ('BOLT_NAME', 'BOLT_PASSWORD'),
-        'Uklon': ('UKLON_NAME', 'UKLON_PASSWORD', 'CLIENT_ID'),
+        'Uklon': ('UKLON_NAME', 'UKLON_PASSWORD'),
         'Gps': ('UAGPS_TOKEN',)
     }
 

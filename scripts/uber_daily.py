@@ -1,12 +1,14 @@
+import uuid
 from datetime import datetime, timedelta, time
 
 from django.utils import timezone
 
+from app.uklon_sync import UklonRequest
 from auto.tasks import check_daily_report
+from scripts.redis_conn import redis_instance
 
 
 def run(*args):
-    today = timezone.localtime()
-    start = timezone.make_aware(datetime.combine(today - timedelta(days=5), time.min))
-    end = timezone.make_aware(datetime.combine(start, time.max))
-    check_daily_report(1, start, end)
+
+    uklon = UklonRequest.objects.get(partner=1)
+    uklon.get_access_token()
