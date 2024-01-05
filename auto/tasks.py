@@ -515,6 +515,107 @@ def get_driver_efficiency_fleet(self, partner_pk, schema, day=None):
                     result.add(*vehicles)
 
 
+# @app.task(bind=True, queue='beat_tasks')
+# def get_efficiency(self, partner_pk, schema, day=None):
+#     if Fleet.objects.filter(partner=partner_pk, name="Gps").exists():
+#         end, start = get_time_for_task(schema, day)[1:3]
+#
+#         for driver in Driver.objects.get_active(partner=partner_pk, schema=schema):
+#             # Get common data for both tasks
+#             total_km, driver_vehicles = UaGpsSynchronizer.objects.get(
+#                 partner=partner_pk).calc_total_km(driver, start, end)
+#             orders = FleetOrder.objects.filter(driver=driver, accepted_time__range=(start, end))
+#             total_orders = orders.count()
+#             canceled = orders.filter(state=FleetOrder.DRIVER_CANCEL).count()
+#             completed = orders.filter(state=FleetOrder.COMPLETED).count()
+#             total_kasa = SummaryReport.objects.filter(
+#                 report_from=start, driver=driver).values('total_amount_without_fee').first()
+#
+#             # Driver Efficiency
+#             efficiency, created = DriverEfficiency.objects.get_or_create(
+#                 report_from=start,
+#                 report_to=end,
+#                 driver=driver,
+#                 defaults={
+#                     'total_kasa': total_kasa['total_amount_without_fee'] if total_kasa else 0,
+#                     'total_orders': total_orders,
+#                     'accept_percent': int((total_orders - canceled) / total_orders * 100) if canceled else 100,
+#                     'average_price': total_kasa['total_amount_without_fee'] / Decimal(completed) if completed else 0,
+#                     'mileage': total_km or 0,
+#                     'online_time': calculate_online_time(driver, start, end),
+#                     'efficiency': Decimal(total_kasa['total_amount_without_fee']) / Decimal(
+#                         total_km) if total_km else 0,
+#                     'partner_id': partner_pk
+#                 }
+#             )
+#             efficiency.vehicles.add(*driver_vehicles)
+#
+#             # Driver Efficiency Fleet
+#             aggregators = Fleet.objects.filter(partner=partner_pk).exclude(name="Gps")
+#             for aggregator in aggregators:
+#                 fleet_orders = FleetOrder.objects.filter(
+#                     fleet=aggregator.name,
+#                     accepted_time__range=(start, end),
+#                     partner=partner_pk,
+#                     driver=driver
+#                 )
+#                 payments = Payments.objects.filter(
+#                     vendor=aggregator,
+#                     report_from=start,
+#                     partner=partner_pk,
+#                     driver=driver
+#                 )
+#                 vehicles = fleet_orders.values_list('vehicle', flat=True).distinct()
+#
+#                 result, created = DriverEfficiencyFleet.objects.get_or_create(
+#                     fleet=aggregator,
+#                     report_from=start,
+#                     report_to=end,
+#                     driver=driver,
+#                     defaults={
+#                         'total_kasa': payments.aggregate(
+#                             kasa=Coalesce(Sum('total_amount_without_fee'), Decimal(0)))['kasa'],
+#                         'total_orders': fleet_orders.count(),
+#                         'accept_percent': (fleet_orders.count() - fleet_orders.filter(
+#                             state=FleetOrder.DRIVER_CANCEL).count()) / fleet_orders.count() * 100,
+#                         'average_price': payments.aggregate(
+#                             price=Coalesce(Sum('total_amount_without_fee'), Decimal(0)))['price'] / completed
+#                         if completed else 0,
+#                         'mileage': fleet_orders.aggregate(
+#                             km=Coalesce(Sum('distance'), Decimal(0)))['km'],
+#                         'road_time': fleet_orders.aggregate(
+#                             road_time=Coalesce(Sum('road_time'), timedelta()))['road_time'],
+#                         'efficiency': payments.aggregate(
+#                             kasa=Coalesce(Sum('total_amount_without_fee'), Decimal(0)))['kasa'] /
+#                                       fleet_orders.aggregate(
+#                                           km=Coalesce(Sum('distance'), Decimal(0)))['km'] if fleet_orders.aggregate(
+#                             km=Coalesce(Sum('distance'), Decimal(0)))['km'] else 0,
+#                         'partner_id': partner_pk
+#                     }
+#                 )
+#                 if created:
+#                     result.add(*vehicles)
+#
+#
+# def calculate_online_time(driver, start, end):
+#     hours_online = timedelta()
+#     using_info = UseOfCars.objects.filter(created_at__range=(start, end), user_vehicle=driver)
+#     for report in using_info:
+#         if report.end_at:
+#             if report.end_at < end:
+#                 hours_online += report.end_at - report.created_at
+#         else:
+#             hours_online += end - report.created_at
+#     if start.time() == time.min:
+#         yesterday = start - timedelta(days=1)
+#         last_using = UseOfCars.objects.filter(created_at__date=yesterday,
+#                                               user_vehicle=driver,
+#                                               end_at__date=start).first()
+#         if last_using:
+#             hours_online += last_using.end_at - start
+#     return hours_online
+
+
 @app.task(bind=True, queue='beat_tasks')
 def update_driver_status(self, partner_pk):
     with memcache_lock(self.name, self.app.oid, 600) as acquired:
