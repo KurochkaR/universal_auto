@@ -1,6 +1,4 @@
 import json
-import secrets
-import uuid
 from datetime import datetime, time
 import requests
 from _decimal import Decimal
@@ -35,7 +33,7 @@ class UklonRequest(Fleet, Synchronizer):
             'client_id': ParkSettings.get_value('CLIENT_ID_UKLON'),
             'client_secret': ParkSettings.get_value('CLIENT_SECRET_UKLON'),
             'contact': login,
-            'device_id': "021fb6e4-50b7-47fe-81cc-400c97c7e676",
+            'device_id': "6648039b-0839-4588-9ead-57bdf63a6209",
             'grant_type': "password_mfa",
             'password': password,
         }
@@ -67,7 +65,7 @@ class UklonRequest(Fleet, Synchronizer):
             'grant_type': 'refresh_token',
             'refresh_token': refresh,
             'client_id': ParkSettings.get_value('CLIENT_ID_UKLON'),
-            'device_id': "544cd9a5-95db-414a-a67b-b143c35509c8",
+            'device_id': "6648039b-0839-4588-9ead-57bdf63a6209",
             "client_secret": ParkSettings.get_value('CLIENT_SECRET_UKLON')
         }
         response = requests.post(f"{self.base_url}auth", data=data)
@@ -77,7 +75,7 @@ class UklonRequest(Fleet, Synchronizer):
             bot.send_message(chat_id=515224934,
                              text=f"{self.partner} {response.status_code} create_session")
             token = self.create_session(self.partner.id)
-        redis_instance().set(f"{self.partner}_{self.name}_token", token)
+        redis_instance().set(f"{self.partner.id}_{self.name}_token", token)
 
     @staticmethod
     def request_method(url: str = None,
