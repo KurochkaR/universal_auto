@@ -76,35 +76,37 @@ class GetRequestView(View):
             return handler.handle_unknown_action(request)
 
 
-class IndexView(TemplateView):
+class BaseContextView(TemplateView):
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["subscribe_form"] = SubscriberForm()
+        context["sentry_cdn"] = os.environ.get("SENTRY_CDN_FRONTEND")
+        return context
+
+
+class IndexView(BaseContextView, TemplateView):
     template_name = "index.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["seo_keywords"] = seo_index
-        context["subscribe_form"] = SubscriberForm()
-        context["sentry_cdn"] = os.environ.get("SENTRY_CDN_FRONTEND")
         return context
 
 
-class AutoParkView(TemplateView):
+class AutoParkView(BaseContextView, TemplateView):
     template_name = "auto-park.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["seo_keywords"] = seo_park_page
-        context["subscribe_form"] = SubscriberForm()
-        context["sentry_cdn"] = os.environ.get("SENTRY_CDN_FRONTEND")
         return context
 
 
-class InvestmentView(TemplateView):
+class InvestmentView(BaseContextView, TemplateView):
     template_name = "investment.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["subscribe_form"] = SubscriberForm()
-        context["sentry_cdn"] = os.environ.get("SENTRY_CDN_FRONTEND")
         return context
 
 
