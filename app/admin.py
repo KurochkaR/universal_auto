@@ -665,7 +665,6 @@ class InvestorAdmin(admin.ModelAdmin):
                 is_superuser=False,
                 first_name=obj.first_name,
                 last_name=obj.last_name,
-                phone_number=obj.phone_number,
                 email=obj.email
             )
             user.groups.add(Group.objects.get(name='Investor'))
@@ -720,7 +719,6 @@ class ManagerAdmin(admin.ModelAdmin):
                 is_superuser=False,
                 first_name=obj.first_name,
                 last_name=obj.last_name,
-                phone_number=obj.phone_number,
                 chat_id=obj.chat_id,
                 email=obj.email
             )
@@ -788,7 +786,6 @@ class DriverAdmin(SoftDeleteAdmin):
         if request.user.is_manager():
             return qs.filter(manager=request.user).select_related('schema')
         return qs
-
     def get_list_editable(self, request):
         if request.user.is_partner():
             return ['schema', 'manager']
@@ -861,7 +858,7 @@ class DriverAdmin(SoftDeleteAdmin):
             if db_field.name == 'schema':
                 manager = Manager.objects.get(pk=request.user.pk)
                 kwargs['queryset'] = db_field.related_model.objects.filter(
-                    partner=manager.managers_partner.pk).select_related('partner')
+                    partner=manager.managers_partner_pk).select_related('partner')
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
     def save_model(self, request, obj, form, change):
@@ -1103,7 +1100,6 @@ class FleetOrderAdmin(admin.ModelAdmin):
 @admin.register(FleetsDriversVehiclesRate)
 class FleetsDriversVehiclesRateAdmin(admin.ModelAdmin):
     list_filter = (FleetRelatedFilter,)
-    # readonly_fields = ('fleet', 'driver_external_id')
     list_per_page = 25
     list_select_related = ['driver', 'partner']
 

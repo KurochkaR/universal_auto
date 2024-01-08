@@ -20,7 +20,7 @@ class BoltRequest(Fleet, Synchronizer):
 
     def create_session(self, partner=None, login=None, password=None):
         partner_id = partner if partner else self.partner.id
-        if self.partner:
+        if self.partner and not self.deleted_at:
             login = CredentialPartner.get_value("BOLT_NAME", partner=partner_id)
             password = CredentialPartner.get_value("BOLT_PASSWORD", partner=partner_id)
         payload = {
@@ -285,6 +285,7 @@ class BoltRequest(Fleet, Synchronizer):
             ]
         }
         report = self.get_target_url(f'{self.base_url}getOrdersHistory', self.param(), payload, method="POST")
+        time.sleep(0.5)
         if report.get('data'):
             for order in report['data']['rows']:
                 try:
