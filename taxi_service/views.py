@@ -21,16 +21,6 @@ from app.models import Driver, Vehicle, CustomUser
 from auto_bot.main import bot
 
 
-class IndexView(TemplateView):
-    template_name = "index.html"
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["seo_keywords"] = seo_index
-        context["subscribe_form"] = SubscriberForm()
-        return context
-
-
 class PostRequestView(View):
     def post(self, request):
         handler = PostRequestHandler()
@@ -86,19 +76,38 @@ class GetRequestView(View):
             return handler.handle_unknown_action(request)
 
 
-class AutoParkView(TemplateView):
+class BaseContextView(TemplateView):
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["subscribe_form"] = SubscriberForm()
+        context["sentry_cdn"] = os.environ.get("SENTRY_CDN_FRONTEND")
+        return context
+
+
+class IndexView(BaseContextView, TemplateView):
+    template_name = "index.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["seo_keywords"] = seo_index
+        return context
+
+
+class AutoParkView(BaseContextView, TemplateView):
     template_name = "auto-park.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["seo_keywords"] = seo_park_page
-        context["subscribe_form"] = SubscriberForm()
         return context
 
 
-class InvestmentView(View):
-    def get(self, request):
-        return render(request, "investment.html", {"subscribe_form": SubscriberForm()})
+class InvestmentView(BaseContextView, TemplateView):
+    template_name = "investment.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        return context
 
 
 class DriversView(TemplateView):
@@ -130,7 +139,7 @@ class BaseDashboardView(LoginRequiredMixin, TemplateView):
         context["investor_group"] = user.is_investor()
         context["partner_group"] = user.is_partner()
         context["manager_group"] = user.is_manager()
-
+        context["sentry_cdn"] = os.environ.get("SENTRY_CDN_FRONTEND")
         return context
 
 
