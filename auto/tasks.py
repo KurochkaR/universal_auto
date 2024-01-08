@@ -201,7 +201,7 @@ def get_today_orders(self, partner_pk):
         raise self.retry(exc=e, countdown=retry_delay)
 
 
-@app.task(bind=True, queue='beat_tasks', ignore_result=True, retry_backoff=30, max_retries=4)
+@app.task(bind=True, queue='beat_tasks', retry_backoff=30, max_retries=4)
 def check_card_cash_value(self, partner_pk):
     try:
         today = timezone.localtime()
@@ -586,7 +586,7 @@ def get_today_rent(self, partner_pk):
         raise self.retry(exc=e, countdown=retry_delay)
 
 
-@app.task(bind=True, queue='bot_tasks', ignore_result=True, retry_backoff=30, max_retries=4)
+@app.task(bind=True, queue='bot_tasks', retry_backoff=30, max_retries=4)
 def fleets_cash_trips(self, partner_pk, pk, enable):
     try:
         driver = Driver.objects.get(pk=pk)
