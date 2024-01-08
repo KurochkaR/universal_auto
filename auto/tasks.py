@@ -3,7 +3,7 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta, time
 import time as tm
 import requests
-from _decimal import Decimal
+from _decimal import Decimal, ROUND_HALF_UP
 from celery import chain
 from celery.exceptions import MaxRetriesExceededError
 from celery.utils.log import get_task_logger
@@ -19,11 +19,12 @@ from app.models import RawGPS, Vehicle, Order, Driver, JobApplication, ParkSetti
     Payments, SummaryReport, Manager, Partner, DriverEfficiency, FleetOrder, ReportTelegramPayments, \
     InvestorPayments, VehicleSpending, DriverReshuffle, DriverPayments, \
     PaymentTypes, TaskScheduler, DriverEffVehicleKasa, Schema, CustomReport, Fleet, \
-    VehicleGPS, PartnerEarnings, Investor, Bonus, Penalty
+    VehicleGPS, PartnerEarnings, Investor, Bonus, Penalty, PaymentsStatus
 from django.db.models import Sum, IntegerField, FloatField, Value, DecimalField
 from django.db.models.functions import Cast, Coalesce
 from app.utils import get_schedule, create_task
-from auto.utils import payment_24hours_create, summary_report_create, compare_reports, get_corrections
+from auto.utils import payment_24hours_create, summary_report_create, compare_reports, get_corrections, \
+    get_currency_rate
 from auto_bot.handlers.driver_manager.utils import get_daily_report, get_efficiency, generate_message_report, \
     get_driver_efficiency_report, calculate_rent, get_vehicle_income, get_time_for_task, \
     create_driver_payments
@@ -45,7 +46,6 @@ from selenium_ninja.synchronizer import AuthenticationError
 from app.uagps_sync import UaGpsSynchronizer
 from app.uber_sync import UberRequest
 from app.uklon_sync import UklonRequest
-from scripts.nbu_conversion import convert_to_currency
 from taxi_service.utils import login_in
 
 logger = get_task_logger(__name__)
@@ -780,13 +780,15 @@ def add_money_to_vehicle(self, partner_pk):
     )['kasa']
     for investor in Investor.objects.filter(investors_partner=partner_pk):
         vehicles = Vehicle.objects.filter(investor_car=investor)
-        if vehicles:
+        if vehicles.exists():
             vehicle_kasa = kasa / vehicles.count()
             for vehicle in vehicles:
                 currency = vehicle.currency_back
                 earning = vehicle_kasa * vehicle.investor_percentage
                 if currency != Vehicle.Currency.UAH:
-                    car_earnings, rate = convert_to_currency(float(earning), currency)
+                    rate = get_currency_rate(currency)
+                    amount_usd = float(earning) / rate
+                    car_earnings = Decimal(str(amount_usd)).quantize(Decimal('0.00'), rounding=ROUND_HALF_UP)
                 else:
                     car_earnings = earning
                     rate = 0.00
@@ -1144,6 +1146,7 @@ def calculate_vehicle_earnings(self, payment_pk):
             driver=driver,
             partner=driver.partner,
             defaults={
+                "status": PaymentsStatus.COMPLETED,
                 "earning": income,
             }
         )
