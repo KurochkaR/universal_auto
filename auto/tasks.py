@@ -18,7 +18,7 @@ from telegram.error import BadRequest
 from app.models import RawGPS, Vehicle, Order, Driver, JobApplication, ParkSettings, UseOfCars, CarEfficiency, \
     Payments, SummaryReport, Manager, Partner, DriverEfficiency, FleetOrder, ReportTelegramPayments, \
     InvestorPayments, VehicleSpending, DriverReshuffle, DriverPayments, \
-    PaymentTypes, TaskScheduler, DriverEffVehicleKasa, Schema, CustomReport, FleetsDriversVehiclesRate, Fleet, \
+    PaymentTypes, TaskScheduler, DriverEffVehicleKasa, Schema, CustomReport, Fleet, \
     VehicleGPS, PartnerEarnings, Investor, Bonus, Penalty
 from django.db.models import Sum, IntegerField, FloatField, Value, DecimalField
 from django.db.models.functions import Cast, Coalesce
@@ -58,21 +58,21 @@ def retry_logic(exc, retries):
 
 
 @contextmanager
-def memcache_lock(lock_id, oid, lock_time):
+def memcache_lock(lock_id, task_args, oid, lock_time, finish_lock_time=10):
     timeout_at = tm.monotonic() + lock_time - 3
-    # cache.add fails if the key already exists
-    status = cache.add(lock_id, oid, lock_time)
+    lock_key = f'task_lock:{lock_id}:{hash(tuple(task_args))}'
+    status = cache.add(lock_key, oid, lock_time)
     try:
         yield status
     finally:
         # memcache delete is very slow, but we have to use it to take
         # advantage of using add() for atomic locking
         if tm.monotonic() < timeout_at and status:
+            cache.set(lock_key, oid, finish_lock_time)
             # don't release the lock if we exceeded the timeout
             # to lessen the chance of releasing an expired lock
             # owned by someone else
             # also don't release the lock if we didn't acquire it
-            cache.delete(lock_id)
 
 
 @app.task(queue='bot_tasks')
@@ -460,7 +460,7 @@ def get_driver_efficiency(self, partner_pk, schema, day=None):
 
 @app.task(bind=True, queue='beat_tasks')
 def update_driver_status(self, partner_pk):
-    with memcache_lock(self.name, self.app.oid, 600) as acquired:
+    with memcache_lock(self.name, self.request.args, self.app.oid, 600) as acquired:
         if acquired:
             status_online = set()
             status_with_client = set()
@@ -545,11 +545,13 @@ def schedule_for_detaching_uklon(self, partner_pk):
 @app.task(bind=True, queue='bot_tasks', retry_backoff=30, max_retries=1)
 def detaching_the_driver_from_the_car(self, partner_pk, licence_plate, eta):
     try:
-        bot.send_message(chat_id=ParkSettings.get_value('DEVELOPER_CHAT_ID'),
-                         text=f"Авто {licence_plate} відключено {eta}")
-        # fleet = UklonRequest.objects.get(partner=partner_pk)
-        # fleet.detaching_the_driver_from_the_car(licence_plate)
-        # logger.info(f'Car {licence_plate} was detached')
+        with memcache_lock(self.name, self.request.args, self.app.oid, 600, 60) as acquired:
+            if acquired:
+                bot.send_message(chat_id=ParkSettings.get_value('DEVELOPER_CHAT_ID'),
+                                 text=f"Авто {licence_plate} відключено {eta}")
+                # fleet = UklonRequest.objects.get(partner=partner_pk)
+                # fleet.detaching_the_driver_from_the_car(licence_plate)
+                # logger.info(f'Car {licence_plate} was detached')
     except Exception as e:
         logger.error(e)
         retry_delay = retry_logic(e, self.request.retries + 1)
@@ -1183,9 +1185,11 @@ def get_information_from_fleets(self, partner_pk, schema, day=None):
         get_rent_information.si(partner_pk, schema, day),
         calculate_driver_reports.si(partner_pk, schema, day),
         send_daily_statistic.si(partner_pk, schema),
-        send_driver_efficiency.si(partner_pk, schema),
         send_driver_report.si(partner_pk, schema)
     )
+    schema = Schema.objects.get(pk=schema)
+    if schema.shift_time != time.min:
+        task_chain = task_chain + [send_driver_efficiency.si(partner_pk, schema)]
     task_chain()
 
 
@@ -1229,6 +1233,8 @@ def update_schedule(self):
             schedule = get_schedule(schema.shift_time.hour, schema.shift_time.minute)
         else:
             schedule = get_schedule("09", "00")
+            efficiency_schedule = get_schedule("09", "59")
+            create_task('send_driver_efficiency', schema.partner.pk, efficiency_schedule, schema.pk)
         create_task('get_information_from_fleets', schema.partner.pk, schedule, schema.pk)
 
 

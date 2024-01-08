@@ -301,7 +301,7 @@ class UberRequest(Fleet, Synchronizer):
             return vehicles_list
 
     def get_fleet_orders(self, start, end):
-        if not FleetOrder.objects.filter(fleet="Uber", accepted_time__range=(start, end)):
+        if not FleetOrder.objects.filter(fleet="Uber", accepted_time__range=(start, end)).exists():
             uber_driver = SeleniumTools(self.partner.id)
             uber_driver.download_payments_order(start, end)
             uber_driver.save_trips_report(start, end)
