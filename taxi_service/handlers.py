@@ -260,6 +260,46 @@ class PostRequestHandler:
         response = HttpResponse(json_data, content_type='application/json')
         return response
 
+    def handler_upd_delete_bonus_penalty(self, request):
+        action_type = request.POST.get('action_type')
+        id_bonus_penalty = request.POST.get('id')
+        type_bonus_penalty = request.POST.get('type')
+        amount = request.POST.get('amount')
+        description = request.POST.get('description')
+
+        if action_type == 'delete':
+            if type_bonus_penalty == 'bonus':
+                bonus = Bonus.objects.get(id=id_bonus_penalty)
+                bonus.driver_payments.earning -= Decimal(bonus.amount)
+                bonus.driver_payments.save()
+                bonus.delete()
+            else:
+                penalty = Penalty.objects.get(id=id_bonus_penalty)
+                penalty.driver_payments.earning += Decimal(penalty.amount)
+                penalty.driver_payments.save()
+                penalty.delete()
+        else:
+            if type_bonus_penalty == 'bonus':
+                bonus = Bonus.objects.get(id=id_bonus_penalty)
+                bonus.driver_payments.earning -= Decimal(bonus.amount)
+                bonus.driver_payments.save()
+                bonus.amount = amount
+                bonus.description = description
+                bonus.save()
+                bonus.driver_payments.earning += Decimal(bonus.amount)
+                bonus.driver_payments.save()
+            else:
+                penalty = Penalty.objects.get(id=id_bonus_penalty)
+                penalty.driver_payments.earning += Decimal(penalty.amount)
+                penalty.driver_payments.save()
+                penalty.amount = amount
+                penalty.description = description
+                penalty.save()
+                penalty.driver_payments.earning -= Decimal(penalty.amount)
+                penalty.driver_payments.save()
+
+        return JsonResponse({'data': 'success'})
+
 
 class GetRequestHandler:
     @staticmethod

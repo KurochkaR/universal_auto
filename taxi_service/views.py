@@ -60,6 +60,7 @@ class PostRequestView(View):
             "update_all_shift": handler.handler_update_shift,
             "upd-payments": handler.handler_update_payments,
             "upd-status-payment": handler.handler_upd_payment_status,
+            "upd_delete_bonus_penalty": handler.handler_upd_delete_bonus_penalty,
         }
 
         if action in method:
