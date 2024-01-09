@@ -233,7 +233,10 @@ class UberRequest(Fleet, Synchronizer):
 
     def get_earnings_per_driver(self, driver, start_time, end_time):
         report = self.generate_report(start_time, end_time, driver)
-        return report[0]['totalEarnings'], report[0]['cashEarnings'] if report else 0, 0
+        if report:
+            return report[0]['totalEarnings'], report[0]['cashEarnings']
+        else:
+            return 0, 0
 
     def get_drivers_status(self):
         query = '''query GetDriverEvents($orgUUID: String!) {

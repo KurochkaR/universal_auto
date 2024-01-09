@@ -16,7 +16,7 @@ function formatTime(time) {
 	}
 }
 
-function applyCustomDateRange() {
+function applyDateRange() {
 	$(".apply-filter-button").prop("disabled", true);
 
 	let startDate = $("#start_report").val();

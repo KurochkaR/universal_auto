@@ -213,6 +213,7 @@ class BoltRequest(Fleet, Synchronizer):
             return db_report
 
     def get_bonuses_info(self, driver, start, end):
+        time.sleep(0.5)
         bonuses = 0
         compensations = 0
         format_start = start.strftime("%Y-%m-%d")
