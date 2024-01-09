@@ -1718,7 +1718,6 @@ select:focus {
 	background: none;
 	border: none;
 	padding: 5px;
-	margin-left: 15px;
 	cursor: pointer;
 }
 
@@ -1850,4 +1849,8 @@ select:focus {
 	border: none;
 	border-radius: 10px;
 	cursor: pointer;
+}
+
+.bonus-table {
+	display: none;
 }

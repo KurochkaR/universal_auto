@@ -74,11 +74,11 @@
       <h2>{% trans "Редагування виплати" %}</h2>
       <span class="modal-payments-date"></span>
       <span class="shift-close-btn">
-          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28" fill="none">
-            <path d="M26.5 2L14.25 14.25M2 26.5L14.25 14.25M14.25 14.25L2 2L26.5 26.5" stroke="white" stroke-width="3"
-                  stroke-linejoin="round"/>
-          </svg>
-        </span>
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28" fill="none">
+          <path d="M26.5 2L14.25 14.25M2 26.5L14.25 14.25M14.25 14.25L2 2L26.5 26.5" stroke="white" stroke-width="3"
+                stroke-linejoin="round"/>
+        </svg>
+      </span>
     </div>
     <div class="payments-content">
       <div class="bonus-payments">
@@ -104,6 +104,28 @@
     </div>
     <div class="payments-btn-box">
         <button class="upd-payments-btn">{% trans "Додати" %}</button>
+    </div>
+  </div>
+
+  <!-- Модальне вікно для редагування бонуса або штрафа -->
+  <div id="modal-upd-bonus" class="modal">
+    <div class="modal-content">
+       <span class="shift-close-btn">
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28" fill="none">
+          <path d="M26.5 2L14.25 14.25M2 26.5L14.25 14.25M14.25 14.25L2 2L26.5 26.5" stroke="white" stroke-width="3"
+                stroke-linejoin="round"/>
+        </svg>
+      </span>
+      <h2>Редагування</h2>
+      <form id="edit-form">
+        <label for="bonus-amount">Ціна:</label>
+        <input type="text" id="upd-bonus-amount" name="bonus-amount" class="bonus-amount">
+
+        <label for="bonus-description">Опис:</label>
+        <input type="text" id="upd-bonus-description" name="bonus-description" class="bonus-description">
+
+        <button type="button" id="edit-button-bonus-penalty">Редагувати</button>
+      </form>
     </div>
   </div>
   {% include 'dashboard/_confirmation-update-database.html' %}

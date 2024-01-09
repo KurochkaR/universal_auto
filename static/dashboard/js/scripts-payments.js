@@ -28,12 +28,31 @@ function driverPayment(period = null, start = null, end = null, paymentStatus = 
 					var notPayByn = '<button class="not-pay-btn">Не отримано</button>';
 
 					var buttonsColumn =
-							'<div class="box-btn-upd">' + arrowBtn + '<div class="btnPay">' + payByn + notPayByn + '</div>' + '</div>';
+						'<div class="box-btn-upd">' + arrowBtn + '<div class="btnPay">' + payByn + notPayByn + '</div>' + '</div>';
+					var rowBonus =
+						'<td colspan="10" class="bonus-table"><table><tr><th>Тип</th><th>Сума</th><th>Опис</th><th>Дії</th></tr>';
+
+					function generateRow(items, type, editClass, deleteClass) {
+						var row = '';
+						for (var j = 0; j < items.length; j++) {
+							var item = items[j];
+							row += '<tr>';
+							row += '<td class="' + type + '-type" data-' + type + '-id="' + item.id + '">' + type.charAt(0).toUpperCase() + type.slice(1) + '</td>';
+							row += '<td class="' + type +'-amount">' + item.amount + '</td>';
+							row += '<td class="' + type +'-description">' + item.description + '</td>';
+							row += '<td><button class="edit-' + type + '-btn" data-' + type + '-id="' + item.id + '" data-type="edit"><i class="fa fa-pencil-alt"></i></button> <button class="delete-' + type + '-btn" data-' + type + '-id="' + item.id + '" data-type="delete"><i class="fa fa-times"></i></button></td>';
+							row += '</tr>';
+						}
+						return row;
+					}
+
+					rowBonus += generateRow(response[i].bonuses_list, 'bonus', 'edit-bonus-btn', 'delete-bonus-btn');
+					rowBonus += generateRow(response[i].penalties_list, 'penalty', 'edit-penalty-btn', 'delete-penalty-btn');
 
 					var row = $('<tr>');
 					row.attr('data-id', response[i].id);
 					row.append('<td>' + response[i].report_from + ' - ' + response[i].report_to + '</td>');
-					row.append('<td>' + response[i].full_name + '</td>');
+					row.append('<td class="driver-name">' + response[i].full_name + '</td>');
 					row.append('<td>' + response[i].kasa + '</td>');
 					row.append('<td>' + response[i].cash + '</td>');
 					row.append('<td>' + response[i].rent + '</td>');
@@ -44,6 +63,8 @@ function driverPayment(period = null, start = null, end = null, paymentStatus = 
 					row.append('<td>' + editButton + confirmButton + buttonsColumn + '</td>');
 
 					tableBody.append(row);
+					tableBody.append(rowBonus);
+
 					$('.send-all-button').show();
 					if (response[i].status === 'Очікується') {
 						if (response[i].earning < 0) {
@@ -64,6 +85,48 @@ function driverPayment(period = null, start = null, end = null, paymentStatus = 
 					}
 				}
 			}
+
+			$('.bonus-table').on('click', '.edit-bonus-btn, .delete-bonus-btn, .edit-penalty-btn, .delete-penalty-btn', function () {
+				var itemId, actionType, itemType;
+
+				if ($(this).hasClass('edit-bonus-btn') || $(this).hasClass('edit-penalty-btn')) {
+					actionType = 'edit';
+					itemAmount = $(this).closest('tr').find('.bonus-amount').text();
+					itemDescription = $(this).closest('tr').find('.bonus-description').text();
+				} else if ($(this).hasClass('delete-bonus-btn') || $(this).hasClass('delete-penalty-btn')) {
+					actionType = 'delete';
+				}
+
+				if ($(this).hasClass('edit-bonus-btn') || $(this).hasClass('delete-bonus-btn')) {
+					itemId = $(this).data('bonus-id');
+					itemType = 'bonus';
+				} else if ($(this).hasClass('edit-penalty-btn') || $(this).hasClass('delete-penalty-btn')) {
+					itemId = $(this).data('penalty-id');
+					itemType = 'penalty';
+				}
+				if (actionType === 'delete') {
+					processAction(actionType, itemId, itemType, null, null);
+				} else {
+				$('#modal-upd-bonus').show();
+				$('#modal-upd-bonus .modal-content').attr('data-id', itemId);
+				$('#modal-upd-bonus .modal-content').attr('data-type', itemType);
+				$('#modal-upd-bonus .modal-content').attr('data-action', actionType);
+				$('#modal-upd-bonus').find('.bonus-amount').val(itemAmount);
+				$('#modal-upd-bonus').find('.bonus-description').val(itemDescription);
+				}
+			});
+		}
+	});
+
+	$('.driver-table tbody').on('click', '.driver-name', function () {
+		var row = $(this).closest('tr');
+		var bonusTable = row.next('.bonus-table');
+
+		if (bonusTable.is(':visible')) {
+			bonusTable.hide();
+		} else {
+			$('.bonus-table').hide();
+			bonusTable.show();
 		}
 	});
 }
@@ -120,6 +183,7 @@ $(document).ready(function () {
 	$('.shift-close-btn').off('click').on('click', function (e) {
   	e.preventDefault();
 		$('#modal-upd-payments').hide();
+		$('#modal-upd-bonus').hide();
 	});
 
 	$('.driver-table tbody').on('click', '.edit-btn', function () {
@@ -207,6 +271,26 @@ $(document).ready(function () {
     });
 		updStatusDriverPayments(null, status='pending', paymentStatus="on_inspection", all=allDataIds);
   });
+
+  $('#edit-button-bonus-penalty').on('click', function () {
+  	var id = $('#modal-upd-bonus .modal-content').data('id');
+		var type = $('#modal-upd-bonus .modal-content').data('type');
+		var action = $('#modal-upd-bonus .modal-content').data('action');
+		var amount = $('#modal-upd-bonus .bonus-amount').val();
+		var description = $('#modal-upd-bonus .bonus-description').val();
+
+		var dataToSend = {
+			action: "upd_delete_bonus_penalty",
+			id: id,
+			type: type,
+			action_type: action,
+			amount: amount,
+			description: description,
+			csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
+		};
+
+		updBonusPenalty(dataToSend);
+	});
 });
 
 function updStatusDriverPayments(id, status, paymentStatus, all=null) {
@@ -228,4 +312,29 @@ function updStatusDriverPayments(id, status, paymentStatus, all=null) {
 			driverPayment(null, null, null, paymentStatus=paymentStatus);
 		}
 	});
+}
+
+function updBonusPenalty(dataToSend) {
+	$.ajax({
+		url: ajaxPostUrl,
+		type: 'POST',
+		data: dataToSend,
+		dataType: 'json',
+		success: function (response) {
+			$('#modal-upd-bonus').hide();
+			driverPayment(null, null, null, paymentStatus="on_inspection");
+		}
+	});
+}
+
+function processAction(actionType, itemId, itemType) {
+	dataToSend = {
+		action: "upd_delete_bonus_penalty",
+		id: itemId,
+		type: itemType,
+		action_type: actionType,
+		csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
+	};
+
+	updBonusPenalty(dataToSend);
 }
