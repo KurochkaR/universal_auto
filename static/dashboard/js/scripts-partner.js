@@ -16,11 +16,12 @@ function formatTime(time) {
 	}
 }
 
-function applyCustomDateRange() {
+function сustomDateRange() {
 	$(".apply-filter-button").prop("disabled", true);
 
 	let startDate = $("#start_report").val();
 	let endDate = $("#end_report").val();
+	console.log(startDate, endDate)
 	const firstVehicle = $(".custom-dropdown .dropdown-options li:first");
 	const vehicleId = firstVehicle.data('value');
 	const vehicle_lc = firstVehicle.text();
