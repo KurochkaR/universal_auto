@@ -190,11 +190,6 @@ def login_in(aggregator=None, partner_id=None, login_name=None, password=None, t
         update_park_set(partner_id, 'UKLON_PASSWORD', password, description='Пароль користувача Uklon', park=False)
         update_park_set(partner_id, 'UKLON_NAME', login_name, description='Ім\'я користувача Uklon', park=False)
         update_park_set(partner_id, 'WITHDRAW_UKLON', '150000', description='Залишок грн на карті водія Uklon')
-        hex_length = 16
-        random_hex = secrets.token_hex(hex_length)
-        update_park_set(
-            partner_id, 'CLIENT_ID', random_hex,
-            description='Ідентифікатор клієнта Uklon', check_value=False, park=False)
         UklonRequest.objects.create(name=aggregator, partner_id=partner_id)
     elif aggregator == 'Uber':
         update_park_set(partner_id, 'UBER_PASSWORD', password, description='Пароль користувача Uber', park=False)
@@ -216,7 +211,7 @@ def partner_logout(aggregator, partner_pk):
     credential_dict = {
         'Uber': ('UBER_NAME', 'UBER_PASSWORD'),
         'Bolt': ('BOLT_NAME', 'BOLT_PASSWORD'),
-        'Uklon': ('UKLON_NAME', 'UKLON_PASSWORD', 'CLIENT_ID'),
+        'Uklon': ('UKLON_NAME', 'UKLON_PASSWORD'),
         'Gps': ('UAGPS_TOKEN',)
     }
 

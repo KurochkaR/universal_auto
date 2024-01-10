@@ -130,7 +130,10 @@ def auto_send_task_bot(self):
 
 @app.task(bind=True, queue='bot_tasks', retry_backoff=30, max_retries=3)
 def get_session(self, partner_pk, aggregator='Uber', login=None, password=None):
-    fleet = Fleet.objects.get(name=aggregator, partner=None)
+    try:
+        fleet = Fleet.objects.get(name=aggregator, partner=partner_pk, deleted_at__isnull=False)
+    except ObjectDoesNotExist:
+        fleet = Fleet.objects.get(name=aggregator, partner=None)
     try:
         token = fleet.create_session(partner_pk, login=login, password=password)
         if login and password:
@@ -158,7 +161,7 @@ def remove_gps_partner(self, partner_pk):
 @app.task(bind=True, queue='beat_tasks', retry_backoff=30, max_retries=4)
 def get_orders_from_fleets(self, partner_pk, schema=None, day=None):
     try:
-        fleets = Fleet.objects.filter(partner=partner_pk).exclude(name='Gps')
+        fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name='Gps')
         end, start = get_time_for_task(schema, day)[1:3]
         drivers = Driver.objects.get_active(partner=partner_pk)
         for fleet in fleets:
@@ -196,7 +199,7 @@ def check_orders_for_vehicle(self, partner_pk, schema):
 @app.task(bind=True, queue='beat_tasks', retry_backoff=30, max_retries=4)
 def get_today_orders(self, partner_pk):
     try:
-        fleets = Fleet.objects.filter(partner=partner_pk).exclude(name__in=('Gps', 'Uber'))
+        fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name__in=('Gps', 'Uber'))
         end = timezone.localtime()
         start = timezone.make_aware(datetime.combine(end, time.min))
         drivers = Driver.objects.get_active(partner=partner_pk)
@@ -275,7 +278,7 @@ def download_daily_report(self, partner_pk, schema, day=None):
         if schema_obj.is_weekly() or schema_obj.shift_time == time.min:
             return
         start, end = get_time_for_task(schema, day)[:2]
-        fleets = Fleet.objects.filter(partner=partner_pk).exclude(name='Gps')
+        fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name='Gps')
         for fleet in fleets:
             for driver in Driver.objects.get_active(schema=schema):
                 driver_id = driver.get_driver_external_id(fleet.name)
@@ -432,7 +435,7 @@ def get_car_efficiency(self, partner_pk):
 
 @app.task(bind=True, queue='beat_tasks')
 def get_driver_efficiency(self, partner_pk, schema, day=None):
-    if Fleet.objects.filter(partner=partner_pk, name="Gps").exists():
+    if Fleet.objects.filter(partner=partner_pk, deleted_at=None, name="Gps").exists():
         end, start = get_time_for_task(schema, day)[1:3]
         for driver in Driver.objects.get_active(partner=partner_pk, schema=schema):
             efficiency = DriverEfficiency.objects.filter(report_from=start,
@@ -490,7 +493,7 @@ def update_driver_status(self, partner_pk):
         if acquired:
             status_online = set()
             status_with_client = set()
-            fleets = Fleet.objects.filter(partner=partner_pk).exclude(name='Gps')
+            fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name='Gps')
             for fleet in fleets:
                 statuses = fleet.get_drivers_status()
                 logger.info(f"{fleet} {statuses}")
@@ -528,7 +531,7 @@ def update_driver_status(self, partner_pk):
 @app.task(bind=True, queue='bot_tasks')
 def update_driver_data(self, partner_pk, manager_id=None):
     try:
-        fleets = Fleet.objects.filter(partner=partner_pk)
+        fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None)
         for synchronization_class in fleets:
             synchronization_class.synchronize()
         success = True
@@ -587,7 +590,7 @@ def detaching_the_driver_from_the_car(self, partner_pk, licence_plate, eta):
 def get_rent_information(self, partner_pk, schema, day=None):
     try:
         end, start = get_time_for_task(schema, day)[1:3]
-        gps = UaGpsSynchronizer.objects.get(partner=partner_pk)
+        gps = UaGpsSynchronizer.objects.get(partner=partner_pk, deleted_at=None)
         gps.save_daily_rent(start, end, schema)
         logger.info('write rent report')
     except Exception as e:
@@ -599,7 +602,7 @@ def get_rent_information(self, partner_pk, schema, day=None):
 @app.task(bind=True, queue='beat_tasks', retry_backoff=30, max_retries=4)
 def get_today_rent(self, partner_pk):
     try:
-        gps = UaGpsSynchronizer.objects.get(partner=partner_pk)
+        gps = UaGpsSynchronizer.objects.get(partner=partner_pk, deleted_at=None)
         gps.check_today_rent()
     except ObjectDoesNotExist:
         return
@@ -615,7 +618,7 @@ def fleets_cash_trips(self, partner_pk, pk, enable):
         driver = Driver.objects.get(pk=pk)
         if not redis_instance().exists(f"{driver.id}_cash_enable"):
             redis_instance().set(f"{driver.id}_cash_enable", enable)
-        fleets = Fleet.objects.filter(partner=partner_pk).exclude(name='Gps')
+        fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name='Gps')
         for fleet in fleets:
             driver_id = driver.get_driver_external_id(fleet.name)
             if driver_id:
@@ -625,7 +628,7 @@ def fleets_cash_trips(self, partner_pk, pk, enable):
                 text = f"Готівка {driver} \U0001F7E2"
             else:
                 text = f"Готівка {driver} \U0001F534"
-            bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"),
+            bot.send_message(chat_id=ParkSettings.get_value("DRIVERS_CHAT"),
                              text=text)
         redis_instance().set(f"{driver.id}_cash_enable", enable)
 
@@ -638,7 +641,7 @@ def fleets_cash_trips(self, partner_pk, pk, enable):
 @app.task(bind=True, queue='beat_tasks', retry_backoff=30, max_retries=4)
 def withdraw_uklon(self, partner_pk):
     try:
-        fleet = UklonRequest.objects.get(partner=partner_pk)
+        fleet = UklonRequest.objects.get(partner=partner_pk, deleted_at=None)
         fleet.withdraw_money()
     except ObjectDoesNotExist:
         return
