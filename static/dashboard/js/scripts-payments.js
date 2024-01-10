@@ -280,6 +280,17 @@ $(document).ready(function () {
 
 		updBonusPenalty(dataToSend);
 	});
+
+	$('#bonus-amount, #penalty-amount').on('input', function () {
+		var inputValue = $(this).val();
+		$(this).val(inputValue.replace(/[^0-9.]/g, ''));
+
+		if (!/^[\d.]*$/.test($(this).val())) {
+			$(this).addClass('error');
+		} else {
+			$(this).removeClass('error');
+		}
+	});
 });
 
 function updStatusDriverPayments(id, status, paymentStatus, all=null) {
