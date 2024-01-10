@@ -117,25 +117,19 @@ class Synchronizer:
         vehicle.save()
 
     def update_driver_fields(self, driver, **kwargs):
-        yesterday = timezone.localtime() - datetime.timedelta(days=1)
         phone_number = kwargs.get('phone_number')
         photo = kwargs.get('photo')
         email = kwargs.get('email')
-        swap_vehicle = Vehicle.objects.filter(licence_plate=kwargs['licence_plate']).first()
-        reshuffle = DriverReshuffle.objects.filter(swap_vehicle=swap_vehicle,
-                                                   swap_time__date=yesterday.date())
+
         if photo and "default.jpeg" not in photo and 'drivers/default-driver.png' == driver.photo:
             response = requests.get(photo)
             if response.status_code == 200:
                 image_data = response.content
                 image_file = BytesIO(image_data)
                 driver.photo = File(image_file, name=f"{driver.name}_{driver.second_name}.jpg")
-        if reshuffle:
-            Driver.objects.filter(vehicle=swap_vehicle).update(vehicle=None)
         if driver.partner.contacts:
             if phone_number and not driver.phone_number:
                 driver.phone_number = phone_number
-
             if email and driver.email != email:
                 driver.email = email
         driver.save()

@@ -18,6 +18,7 @@ app.conf.task_queues = {
     },
 }
 app.conf.update(
+    task_ignore_result=True,
     task_serializer='json',
     result_serializer='json',
     timezone='Europe/Kiev',

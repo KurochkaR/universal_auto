@@ -349,6 +349,7 @@
 {% include 'footer.html' %}
 
 <script>
+  let sentryCdn = "{{ sentry_cdn }}";
 	let ajaxPostUrl = "{% url 'post_request' %}";
 	let ajaxGetUrl = "{% url 'get_request' %}";
 </script>

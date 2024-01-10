@@ -4,7 +4,7 @@ import random
 from datetime import datetime, date, time
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.validators import MaxLengthValidator, EmailValidator, RegexValidator
-from django.db.models import Sum
+from django.db.models import Sum, F
 from django.db.models.signals import post_delete
 from django.utils import timezone
 from django.db import models, ProgrammingError
@@ -388,10 +388,10 @@ class DriverPayments(Earnings):
         self.save(update_fields=['status'])
 
     def get_bonuses(self):
-        return self.bonus_set.all().aggregate(Sum('amount'))['amount__sum'] or 0
+        return self.bonus_set.aggregate(Sum('amount'))['amount__sum'] or 0
 
     def get_penalties(self):
-        return self.penalty_set.all().aggregate(Sum('amount'))['amount__sum'] or 0
+        return self.penalty_set.aggregate(Sum('amount'))['amount__sum'] or 0
 
     def __str__(self):
         return f"{self.driver}"

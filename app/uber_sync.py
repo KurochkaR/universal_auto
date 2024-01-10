@@ -139,7 +139,7 @@ class UberRequest(Fleet, Synchronizer):
         format_start = self.report_interval(start) * 1000
         format_end = self.report_interval(end) * 1000
         driver_id = driver.get_driver_external_id(self.name)
-        if format_start >= format_end:
+        if format_start >= format_end or not driver_id:
             return
         query = '''query GetPerformanceReport($performanceReportRequest: PerformanceReportRequest__Input!) {
                   getPerformanceReport(performanceReportRequest: $performanceReportRequest) {
@@ -233,7 +233,10 @@ class UberRequest(Fleet, Synchronizer):
 
     def get_earnings_per_driver(self, driver, start_time, end_time):
         report = self.generate_report(start_time, end_time, driver)
-        return report[0]['totalEarnings'], report[0]['cashEarnings'] if report else 0
+        if report:
+            return report[0]['totalEarnings'], report[0]['cashEarnings']
+        else:
+            return 0, 0
 
     def get_drivers_status(self):
         query = '''query GetDriverEvents($orgUUID: String!) {
@@ -301,7 +304,7 @@ class UberRequest(Fleet, Synchronizer):
             return vehicles_list
 
     def get_fleet_orders(self, start, end):
-        if not FleetOrder.objects.filter(fleet="Uber", accepted_time__range=(start, end)):
+        if not FleetOrder.objects.filter(fleet="Uber", accepted_time__range=(start, end)).exists():
             uber_driver = SeleniumTools(self.partner.id)
             uber_driver.download_payments_order(start, end)
             uber_driver.save_trips_report(start, end)
