@@ -372,8 +372,7 @@ class SeleniumTools:
                                  "vehicle": vehicle,
                                  "partner_id": self.partner}
                         if check_vehicle(driver) != vehicle:
-                            redis_instance().hset(f"wrong_vehicle_{self.partner}", driver.pk,
-                                                  vehicle)
+                            redis_instance().hset(f"wrong_vehicle_{self.partner}", driver.pk, vehicle)
                         obj, created = FleetOrder.objects.get_or_create(order_id=order['id'], defaults=order)
                         if not created:
                             for key, value in order.items():

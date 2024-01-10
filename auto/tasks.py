@@ -1179,7 +1179,6 @@ def check_cash_and_vehicle(self, partner_pk):
 @app.task(bind=True, queue='beat_tasks')
 def get_information_from_fleets(self, partner_pk, schema, day=None):
     task_chain = chain(
-        download_nightly_report.si(partner_pk, schema, day),
         download_daily_report.si(partner_pk, schema, day),
         get_orders_from_fleets.si(partner_pk, schema, day),
         generate_payments.si(partner_pk, schema, day),
@@ -1190,9 +1189,9 @@ def get_information_from_fleets(self, partner_pk, schema, day=None):
         send_daily_statistic.si(partner_pk, schema),
         send_driver_report.si(partner_pk, schema)
     )
-    schema = Schema.objects.get(pk=schema)
-    if schema.shift_time != time.min:
-        task_chain = task_chain + [send_driver_efficiency.si(partner_pk, schema)]
+    schema_obj = Schema.objects.get(pk=schema)
+    if schema_obj.shift_time != time.min:
+        task_chain = task_chain | send_driver_efficiency.si(partner_pk, schema)
     task_chain()
 
 
@@ -1232,6 +1231,8 @@ def update_schedule(self):
             for partner in partners:
                 create_task(db_task.name, partner.pk, schedule, db_task.arguments)
     for schema in work_schemas:
+        night_schedule = get_schedule("04", "30")
+        create_task('download_nightly_report', schema.partner.pk, night_schedule, schema.pk)
         if schema.shift_time != time.min:
             schedule = get_schedule(schema.shift_time.hour, schema.shift_time.minute)
         else:

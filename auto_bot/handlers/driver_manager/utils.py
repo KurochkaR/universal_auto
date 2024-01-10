@@ -388,6 +388,8 @@ def get_driver_efficiency_report(manager_id, schema=None, start=None, end=None):
         end = yesterday
         start = report_time - timedelta(days=report_time.weekday()) if report_time.weekday() else \
             report_time - timedelta(weeks=1)
+    else:
+        drivers = drivers.filter(schema__isnull=False)
     effective_driver = {}
     report = {}
 

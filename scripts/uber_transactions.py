@@ -39,14 +39,4 @@ def run():
                                                      report_to=report_to,
                                                      driver=driver,
                                                      defaults=data)
-                PartnerEarnings.objects.get_or_create(
-                    report_from=report_from,
-                    report_to=report_to,
-                    driver=driver,
-                    partner=driver.partner,
-                    defaults={
-                        "status": PaymentsStatus.COMPLETED,
-                        "earning": partner_income,
-                    }
-                )
 

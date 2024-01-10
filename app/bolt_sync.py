@@ -292,12 +292,12 @@ class BoltRequest(Fleet, Synchronizer):
                 check_order = FleetOrder.objects.filter(order_id=order['order_id'])
                 price = order.get('total_price', 0)
                 tip = order.get("tip", 0)
-                vehicle = Vehicle.objects.get(licence_plate=order['car_reg_number'])
-                if check_vehicle(driver) != vehicle:
-                    redis_instance().hset(f"wrong_vehicle_{self.partner.id}", pk, order['car_reg_number'])
                 if check_order.exists():
                     check_order.update(price=price, tips=tip)
                     continue
+                vehicle = Vehicle.objects.get(licence_plate=order['car_reg_number'])
+                if check_vehicle(driver) != vehicle:
+                    redis_instance().hset(f"wrong_vehicle_{self.partner.id}", pk, order['car_reg_number'])
                 try:
                     finish = timezone.make_aware(
                         datetime.fromtimestamp(order['order_stops'][-1]['arrived_at']))
