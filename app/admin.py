@@ -8,8 +8,8 @@ from django.db.models import Q
 from polymorphic.admin import PolymorphicParentModelAdmin
 from scripts.google_calendar import GoogleCalendar
 from .filters import VehicleEfficiencyUserFilter, DriverEfficiencyUserFilter, RentInformationUserFilter, \
-    TransactionInvestorUserFilter, ReportUserFilter, VehicleManagerFilter, SummaryReportUserFilter,\
-    FleetRelatedFilter, ChildModelFilter
+    TransactionInvestorUserFilter, ReportUserFilter, VehicleManagerFilter, SummaryReportUserFilter, \
+    FleetRelatedFilter, ChildModelFilter, PartnerPaymentFilter
 from .models import *
 
 
@@ -428,6 +428,17 @@ class TransactionsConversationAdmin(admin.ModelAdmin):
     def get_list_display(self, request):
         display = ['report_from', 'report_to', 'vehicle', 'earning',
                    'investor', 'status', 'currency', 'currency_rate', 'sum_after_transaction']
+        if request.user.is_superuser:
+            display.append('partner')
+        return display
+
+@admin.register(PartnerEarnings)
+class PartnerEarningsAdmin(admin.ModelAdmin):
+    list_filter = (PartnerPaymentFilter, )
+
+    def get_list_display(self, request):
+        display = ['report_from', 'report_to', 'vehicle', 'earning',
+                   ]
         if request.user.is_superuser:
             display.append('partner')
         return display
