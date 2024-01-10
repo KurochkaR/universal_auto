@@ -84,6 +84,8 @@ function driverPayment(period = null, start = null, end = null, paymentStatus = 
 
 $(document).ready(function () {
 
+	var itemId, actionType, itemType;
+
 	$(this).on('click', '.driver-table tbody .driver-name', function () {
 		var row = $(this).closest('tr');
 		var bonusTable = row.next().find('.bonus-table');
@@ -92,8 +94,6 @@ $(document).ready(function () {
 	});
 
 	$(this).on('click', '.bonus-table .edit-bonus-btn, .bonus-table .delete-bonus-btn, .bonus-table .edit-penalty-btn, .bonus-table .delete-penalty-btn', function () {
-		var itemId, actionType, itemType;
-
 		if ($(this).hasClass('edit-bonus-btn') || $(this).hasClass('edit-penalty-btn')) {
 			actionType = 'edit';
 			itemAmount = $(this).closest('tr').find('.bonus-amount').text();
@@ -108,7 +108,14 @@ $(document).ready(function () {
 		} else if ($(this).hasClass('edit-penalty-btn') || $(this).hasClass('delete-penalty-btn')) {
 			itemId = $(this).data('penalty-id');
 			itemType = 'penalty';
+			itemAmount = $(this).closest('tr').find('.penalty-amount').text();
+      itemDescription = $(this).closest('tr').find('.penalty-description').text();
 		}
+
+		itemId = itemId;
+    actionType = actionType;
+    itemType = itemType;
+
 		if (actionType === 'delete') {
 			processAction(actionType, itemId, itemType, null, null);
 		} else {
@@ -119,6 +126,22 @@ $(document).ready(function () {
 		$('#modal-upd-bonus').find('.bonus-amount').val(itemAmount);
 		$('#modal-upd-bonus').find('.bonus-description').val(itemDescription);
 		}
+	});
+
+	$(this).on('click', '#edit-button-bonus-penalty', function () {
+  	var amount = $('#modal-upd-bonus').find('.bonus-amount').val();
+  	var description = $('#modal-upd-bonus').find('.bonus-description').val();
+		var dataToSend = {
+			action: "upd_delete_bonus_penalty",
+			id: itemId,
+			type: itemType,
+			action_type: actionType,
+			amount: amount,
+			description: description,
+			csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
+		};
+
+		updBonusPenalty(dataToSend);
 	});
 
 	driverPayment(null, null, null, paymentStatus="on_inspection");
@@ -176,6 +199,10 @@ $(document).ready(function () {
 	});
 
 	$('.driver-table tbody').on('click', '.edit-btn', function () {
+		$('#bonus-amount').val('');
+    $('#bonus-description').val('');
+    $('#penalty-amount').val('');
+    $('#penalty-description').val('');
 		var id = $(this).closest('tr').data('id');
 		$('#modal-upd-payments').show();
 		$('#modal-upd-payments').data('id', id);
@@ -260,26 +287,6 @@ $(document).ready(function () {
     });
 		updStatusDriverPayments(null, status='pending', paymentStatus="on_inspection", all=allDataIds);
   });
-
-  $('#edit-button-bonus-penalty').on('click', function () {
-  	var id = $('#modal-upd-bonus .modal-content').data('id');
-		var type = $('#modal-upd-bonus .modal-content').data('type');
-		var action = $('#modal-upd-bonus .modal-content').data('action');
-		var amount = $('#modal-upd-bonus .bonus-amount').val();
-		var description = $('#modal-upd-bonus .bonus-description').val();
-
-		var dataToSend = {
-			action: "upd_delete_bonus_penalty",
-			id: id,
-			type: type,
-			action_type: action,
-			amount: amount,
-			description: description,
-			csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
-		};
-
-		updBonusPenalty(dataToSend);
-	});
 
 	$('#bonus-amount, #penalty-amount').on('input', function () {
 		var inputValue = $(this).val();
