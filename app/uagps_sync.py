@@ -163,7 +163,7 @@ class UaGpsSynchronizer(Fleet):
         previous_finish_time = None
         for order in orders:
             end_report = order.finish_time if order.finish_time < end else end
-            if order.distance is not None and order.road_time is not None:
+            if order.distance and order.road_time:
                 road_distance += order.distance
                 road_time += order.road_time
                 previous_finish_time = end_report

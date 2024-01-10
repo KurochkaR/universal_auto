@@ -203,7 +203,7 @@ def login_in(aggregator=None, partner_id=None, login_name=None, password=None, t
 
 def partner_logout(aggregator, partner_pk):
     settings = ParkSettings.objects.filter(partner=partner_pk)
-    Fleet.objects.filter(name=aggregator, partner=partner_pk).delete()
+    Fleet.objects.filter(name=aggregator, partner=partner_pk).update(deleted_at=timezone.localtime())
     credentials = CredentialPartner.objects.filter(partner=partner_pk)
     if aggregator == 'Uklon':
         settings.filter(key='WITHDRAW_UKLON').delete()

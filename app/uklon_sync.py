@@ -327,7 +327,7 @@ class UklonRequest(Fleet, Synchronizer):
                         "partner": self.partner
                         }
                 if check_vehicle(driver)[0] != vehicle:
-                    redis_instance().hset(f"wrong_vehicle_{self.partner}", pk, order['vehicle']['licencePlate'])
+                    redis_instance().hset(f"wrong_vehicle_{self.partner.pk}", pk, order['vehicle']['licencePlate'])
                 obj, created = FleetOrder.objects.get_or_create(order_id=order['id'], defaults=data)
                 if not created:
                     for key, value in data.items():
