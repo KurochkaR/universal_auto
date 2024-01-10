@@ -1901,3 +1901,7 @@ select:focus {
 	border-radius: 10px;
 	cursor: pointer;
 }
+
+.driver-table .driver-name {
+	display: table-cell;
+}
