@@ -213,6 +213,7 @@ class BoltRequest(Fleet, Synchronizer):
             return db_report
 
     def get_bonuses_info(self, driver, start, end):
+        time.sleep(0.5)
         bonuses = 0
         compensations = 0
         format_start = start.strftime("%Y-%m-%d")
@@ -288,18 +289,20 @@ class BoltRequest(Fleet, Synchronizer):
         time.sleep(0.5)
         if report.get('data'):
             for order in report['data']['rows']:
+                check_order = FleetOrder.objects.filter(order_id=order['order_id'])
+                price = order.get('total_price', 0)
+                tip = order.get("tip", 0)
+                vehicle = Vehicle.objects.get(licence_plate=order['car_reg_number'])
+                if check_vehicle(driver) != vehicle:
+                    redis_instance().hset(f"wrong_vehicle_{self.partner.id}", pk, order['car_reg_number'])
+                if check_order.exists():
+                    check_order.update(price=price, tips=tip)
+                    continue
                 try:
                     finish = timezone.make_aware(
                         datetime.fromtimestamp(order['order_stops'][-1]['arrived_at']))
                 except TypeError:
                     finish = None
-                try:
-                    price = order['total_price']
-                    tip = order["tip"]
-                except KeyError:
-                    price = 0
-                    tip = 0
-                vehicle = Vehicle.objects.get(licence_plate=order['car_reg_number'])
                 data = {"order_id": order['order_id'],
                         "fleet": self.name,
                         "driver": driver,
@@ -314,8 +317,6 @@ class BoltRequest(Fleet, Synchronizer):
                         "tips": tip,
                         "partner": self.partner
                         }
-                if check_vehicle(driver) != vehicle:
-                    redis_instance().hset(f"wrong_vehicle_{self.partner.id}", pk, order['car_reg_number'])
                 obj, created = FleetOrder.objects.get_or_create(order_id=order['order_id'], defaults=data)
                 if not created:
                     for key, value in data.items():
