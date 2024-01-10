@@ -85,7 +85,6 @@ function driverPayment(period = null, start = null, end = null, paymentStatus = 
 $(document).ready(function () {
 
 	$(this).on('click', '.driver-table tbody .driver-name', function () {
-		console.log('click');
 		var row = $(this).closest('tr');
 		var bonusTable = row.next().find('.bonus-table');
 		bonusTable.toggle();
