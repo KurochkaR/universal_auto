@@ -288,7 +288,7 @@ $(document).ready(function () {
 		updStatusDriverPayments(null, status='pending', paymentStatus="on_inspection", all=allDataIds);
   });
 
-	$('#bonus-amount, #penalty-amount, #upd-bonus-amount, #upd-bonus-description').on('input', function () {
+	$('#bonus-amount, #penalty-amount, #upd-bonus-amount').on('input', function () {
 		var inputValue = $(this).val();
 		$(this).val(inputValue.replace(/[^0-9.]/g, ''));
 
