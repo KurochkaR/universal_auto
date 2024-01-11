@@ -233,7 +233,6 @@ class UaGpsSynchronizer(Fleet):
             total_km = self.calc_total_km(driver, start, end)[0]
 
             rent_distance = total_km - distance
-            DriverEfficiency.objects.filter(driver=driver, report_from=start).update(road_time=road_time)
             RentInformation.objects.create(report_from=start,
                                            report_to=end,
                                            driver=driver,
