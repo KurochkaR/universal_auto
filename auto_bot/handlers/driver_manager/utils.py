@@ -395,41 +395,42 @@ def get_driver_efficiency_report(manager_id, schema=None, start=None, end=None):
 
     for driver in drivers:
         effect = calculate_efficiency_driver(driver, start, end)
-        total_kasa, total_rent = calculate_daily_reports(start, end, driver)
-        licence_plates = ', '.join(effect[6])
-        if end == yesterday:
-            yesterday_effect = calculate_efficiency_driver(driver, end, end)
-            day_kasa, rent_daily = calculate_daily_reports(end, end, driver)
-            efficiency = yesterday_effect[0]
-            car_plates = ', '.join(yesterday_effect[6])
-            orders = yesterday_effect[1]
-            accept_percent = yesterday_effect[2]
-            average_price = yesterday_effect[3]
-            distance = yesterday_effect[4]
-            road_time = yesterday_effect[5]
-            effective_driver[driver] = {
-                'Автомобілі': f"{licence_plates} ({car_plates})",
-                'Каса': f"{total_kasa} (+{day_kasa}) грн",
-                'Оренда': f"{total_rent} (+{rent_daily}) км",
-                'Ефективність': f"{effect[0]} (+{efficiency}) грн/км",
-                'Кількість замовлень': f"{effect[1]} (+{orders})",
-                'Прийнято замовлень': f"{effect[2]} ({accept_percent}) %",
-                'Cередній чек': f"{effect[3]} ({average_price}) грн",
-                'Пробіг': f"{effect[4]} (+{distance}) км",
-                'Час в дорозі': f"{effect[5]}(+{road_time})"
-            }
-        else:
-            effective_driver[driver] = {
-                'Автомобілі': f"{licence_plates}",
-                'Каса': f"{total_kasa} грн",
-                'Оренда': f"{total_rent} км",
-                'Ефективність': f"{effect[0]} грн/км",
-                'Кількість замовлень': f"{effect[1]}",
-                'Прийнято замовлень': f"{effect[2]}%",
-                'Cередній чек': f"{effect[3]} грн",
-                'Пробіг': f"{effect[4]} км",
-                'Час в дорозі': f"{effect[5]}"
-            }
+        if effect[0]:
+            total_kasa, total_rent = calculate_daily_reports(start, end, driver)
+            licence_plates = ', '.join(effect[6])
+            if end == yesterday:
+                yesterday_effect = calculate_efficiency_driver(driver, end, end)
+                day_kasa, rent_daily = calculate_daily_reports(end, end, driver)
+                efficiency = yesterday_effect[0]
+                car_plates = ', '.join(yesterday_effect[6])
+                orders = yesterday_effect[1]
+                accept_percent = yesterday_effect[2]
+                average_price = yesterday_effect[3]
+                distance = yesterday_effect[4]
+                road_time = yesterday_effect[5]
+                effective_driver[driver] = {
+                    'Автомобілі': f"{licence_plates} ({car_plates})",
+                    'Каса': f"{total_kasa} (+{day_kasa}) грн",
+                    'Оренда': f"{total_rent} (+{rent_daily}) км",
+                    'Ефективність': f"{effect[0]} (+{efficiency}) грн/км",
+                    'Кількість замовлень': f"{effect[1]} (+{orders})",
+                    'Прийнято замовлень': f"{effect[2]} ({accept_percent}) %",
+                    'Cередній чек': f"{effect[3]} ({average_price}) грн",
+                    'Пробіг': f"{effect[4]} (+{distance}) км",
+                    'Час в дорозі': f"{effect[5]}(+{road_time})"
+                }
+            else:
+                effective_driver[driver] = {
+                    'Автомобілі': f"{licence_plates}",
+                    'Каса': f"{total_kasa} грн",
+                    'Оренда': f"{total_rent} км",
+                    'Ефективність': f"{effect[0]} грн/км",
+                    'Кількість замовлень': f"{effect[1]}",
+                    'Прийнято замовлень': f"{effect[2]}%",
+                    'Cередній чек': f"{effect[3]} грн",
+                    'Пробіг': f"{effect[4]} км",
+                    'Час в дорозі': f"{effect[5]}"
+                }
     sorted_effective_driver = dict(sorted(effective_driver.items(),
                                           key=lambda x: float(x[1]['Каса'].split()[0]),
                                           reverse=True))

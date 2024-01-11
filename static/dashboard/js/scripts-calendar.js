@@ -630,13 +630,12 @@ $(document).ready(function () {
 
 function validateInputTime(input, field) {
   $(input).on('input', function () {
-    let valueWithoutColon = input.value.replace(/:/g, '');
-    if (valueWithoutColon.length < 2) {
-      return;
-    }
+    let numericValue = input.value.replace(/\D/g, '');
 
-    let hours = valueWithoutColon.slice(0, 2);
-    input.value = hours + ':' + valueWithoutColon.slice(2, 5);
+    let hours = numericValue.slice(0, 2);
+    let minutes = numericValue.slice(2, 4);
+
+    input.value = hours + ':' + minutes;
 
     input.value = input.value.slice(0, 5);
 
@@ -662,6 +661,7 @@ function validateInputTime(input, field) {
       blockBtn(true);
     }
   });
+  $(input).attr('inputmode', 'numeric');
 }
 
 function blockBtn(arg) {

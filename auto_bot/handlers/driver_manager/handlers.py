@@ -186,8 +186,11 @@ def create_driver_eff(update, context):
                 message += f"{k}\n" + "".join(v) + "\n"
         else:
             message += no_drivers_report_text
-        bot.edit_message_text(chat_id=update.effective_chat.id, text=message,
-                              message_id=msg.message_id, reply_markup=inline_manager_kb())
+        try:
+            bot.edit_message_text(chat_id=update.effective_chat.id, text=message,
+                                  message_id=msg.message_id, reply_markup=inline_manager_kb())
+        except BadRequest:
+            send_long_message(update.effective_chat.id, message, inline_manager_kb())
     else:
         redis_instance().hset(str(update.effective_chat.id), 'state', END_DRIVER_EFF)
         context.bot.send_message(chat_id=update.message.chat_id, text=invalid_end_data_text)

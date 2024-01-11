@@ -377,7 +377,8 @@ class UklonRequest(Fleet, Synchronizer):
                            data=json.dumps(payload),
                            method=method)
 
-        FleetsDriversVehiclesRate.objects.filter(driver_external_id=driver_id).update(pay_cash=enable)
+        result = FleetsDriversVehiclesRate.objects.filter(driver_external_id=driver_id).update(pay_cash=enable)
+        return result
 
     def withdraw_money(self):
         base_url = f"{Service.get_value('UKLON_1')}{self.uklon_id()}"

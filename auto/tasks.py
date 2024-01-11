@@ -19,7 +19,7 @@ from app.models import RawGPS, Vehicle, Order, Driver, JobApplication, ParkSetti
     Payments, SummaryReport, Manager, Partner, DriverEfficiency, FleetOrder, ReportTelegramPayments, \
     InvestorPayments, VehicleSpending, DriverReshuffle, DriverPayments, \
     PaymentTypes, TaskScheduler, DriverEffVehicleKasa, Schema, CustomReport, Fleet, \
-    VehicleGPS, PartnerEarnings, Investor, Bonus, Penalty, PaymentsStatus
+    VehicleGPS, PartnerEarnings, Investor, Bonus, Penalty, PaymentsStatus, FleetsDriversVehiclesRate
 from django.db.models import Sum, IntegerField, FloatField, Value, DecimalField
 from django.db.models.functions import Cast, Coalesce
 from app.utils import get_schedule, create_task
@@ -590,21 +590,21 @@ def get_today_rent(self, partner_pk):
 def fleets_cash_trips(self, partner_pk, pk, enable):
     try:
         driver = Driver.objects.get(pk=pk)
-        if not redis_instance().exists(f"{driver.id}_cash_enable"):
-            redis_instance().set(f"{driver.id}_cash_enable", enable)
         fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name='Gps')
+        disabled = []
         for fleet in fleets:
-            driver_id = driver.get_driver_external_id(fleet.name)
-            if driver_id:
-                fleet.disable_cash(driver_id, enable)
-        if int(redis_instance().get(f"{driver.id}_cash_enable")) != enable:
+            driver_rate = FleetsDriversVehiclesRate.objects.filter(
+                driver=driver, fleet=fleet).values('pay_cash', 'driver_external_id')
+            if driver_rate and int(driver_rate['pay_cash']) != enable:
+                result = fleet.disable_cash(driver_rate['driver_external_id'], enable)
+                disabled.append(result)
+        if disabled:
             if enable:
                 text = f"Готівка {driver} \U0001F7E2"
             else:
                 text = f"Готівка {driver} \U0001F534"
-            bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"),
+            bot.send_message(chat_id=ParkSettings.get_value("DRIVERS_CHAT", partner=partner_pk),
                              text=text)
-        redis_instance().set(f"{driver.id}_cash_enable", enable)
 
     except Exception as e:
         logger.error(e)
@@ -1115,10 +1115,6 @@ def calculate_driver_reports(self, partner_pk, schema, day=None):
     else:
         end, start = get_time_for_task(schema, day)[1:3]
     for driver in Driver.objects.get_active(partner=partner_pk, schema=schema):
-        if DriverPayments.objects.filter(report_from=start,
-                                         report_to=end,
-                                         driver=driver).exists():
-            continue
         data = create_driver_payments(start, end, driver, schema_obj)
         payment, created = DriverPayments.objects.get_or_create(report_from=start,
                                                                 report_to=end,

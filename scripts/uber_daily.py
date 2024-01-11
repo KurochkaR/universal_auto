@@ -11,10 +11,12 @@ def run(*args):
     records = CarEfficiency.objects.filter(report_from__lt=driver_earning)
     weekly_aggregates = records.annotate(
         week_start=TruncWeek('report_from'),
-        car=F("vehicle")
+        car=F("vehicle"),
+        owner=F('partner')
     ).values(
         'week_start',
-        'car'
+        'car',
+        'owner'
     ).annotate(
         total=Sum('total_kasa'),
     ).order_by('week_start')
@@ -26,7 +28,7 @@ def run(*args):
             report_from=report_from,
             report_to=report_to,
             vehicle_id=aggregate['car'],
-            partner_id=1,
+            partner_id=aggregate['owner'],
             defaults={
                 "status": PaymentsStatus.COMPLETED,
                 "earning": partner_income,
