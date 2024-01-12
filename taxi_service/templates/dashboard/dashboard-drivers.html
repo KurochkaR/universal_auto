@@ -15,7 +15,7 @@
     <div class="filter">
       <label for="period">{% trans 'Виберіть період:' %}</label>
       <div class="custom-select-drivers" id="period">
-        <span class="selected-option-drivers">{% trans 'Вчора' %}</span>
+        <span class="selected-option-drivers" data-value="yesterday">{% trans 'Вчора' %}</span>
         <i class="fas fa-angle-down"></i>
         <ul class="options-drivers">
           <li data-value="yesterday">{% trans 'Вчора' %}</li>
@@ -27,6 +27,21 @@
           <li data-value="last_quarter">{% trans 'Минулий квартал' %}</li>
           <li data-value="custom">{% trans 'Вибрати період >' %}</li>
         </ul>
+      </div>
+      <div class="filter-aggregators">
+        <div class="checkbox-container">
+          <input type="checkbox" id="sharedCheckbox" name="shared" value="shared" checked>
+          <label for="sharedCheckbox">{% trans 'Спільне' %}</label>
+
+          <input type="checkbox" id="uberCheckbox" name="uber" value="uber">
+          <label for="uberCheckbox">{% trans 'Uber' %}</label>
+
+          <input type="checkbox" id="uklonCheckbox" name="uklon" value="uklon">
+          <label for="uklonCheckbox">{% trans 'Uklon' %}</label>
+
+          <input type="checkbox" id="boltCheckbox" name="bolt" value="bolt">
+          <label for="boltCheckbox">{% trans 'Bolt' %}</label>
+        </div>
       </div>
     </div>
     <div id="datePickerDriver" style="display: none;">

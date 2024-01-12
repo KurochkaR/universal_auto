@@ -17,21 +17,28 @@ function formatTime(time) {
 }
 
 function customDateRange() {
+  aggregator = $('.checkbox-container input[type="checkbox"]:checked').map(function() {
+		return $(this).val();
+	}).get();
+
+	var aggregatorsString = aggregator.join('&');
+
 	$(".apply-filter-button").prop("disabled", true);
 
 	let startDate = $("#start_date").val();
 	let endDate = $("#end_date").val();
 
 	const selectedPeriod = periodSelect.val();
-	fetchDriverEfficiencyData(selectedPeriod, startDate, endDate);
+	fetchDriverEfficiencyData(selectedPeriod, startDate, endDate, aggregatorsString);
 }
 
-function fetchDriverEfficiencyData(period, start, end) {
+function fetchDriverEfficiencyData(period, start, end, aggregators) {
+	console.log(aggregators);
 	let apiUrl;
 	if (period === 'custom') {
-		apiUrl = `/api/drivers_info/${start}&${end}/`;
+		apiUrl = `/api/drivers_info/${start}&${end}/${aggregators}/`;
 	} else {
-		apiUrl = `/api/drivers_info/${period}/`;
+		apiUrl = `/api/drivers_info/${period}/${aggregators}/`;
 	};
 	$.ajax({
 		url: apiUrl,
@@ -175,7 +182,8 @@ $(document).ready(function () {
 		sortTable(column, sortOrder);
 	});
 
-	function initializeCustomSelect(customSelect, selectedOption, optionsList, iconDown, datePicker, vehicleId, vehicle_lc) {
+	function initializeCustomSelect(customSelect, selectedOption, optionsList, iconDown, datePicker) {
+
 		iconDown.click(function() {
 			customSelect.toggleClass("active");
 		});
@@ -186,16 +194,18 @@ $(document).ready(function () {
 
 		optionsList.on("click", "li", function() {
 			const clickedValue = $(this).data("value");
+			selectedOption.data("value", clickedValue);
 			selectedOption.text($(this).text());
 			customSelect.removeClass("active");
 
+			aggregators = $('.checkbox-container input[type="checkbox"]:checked').map(function() {
+				return $(this).val();
+			}).get();
+			var aggregatorsString = aggregators.join('&');
+
 			if (clickedValue !== "custom") {
-				if (vehicle_lc) {
-					fetchSummaryReportData(clickedValue);
-					fetchCarEfficiencyData(clickedValue, vehicleId, vehicle_lc);
-				} else {
-					fetchDriverEfficiencyData(clickedValue);
-				}
+				console.log(aggregatorsString);
+				fetchDriverEfficiencyData(clickedValue, null, null, aggregatorsString);
 			}
 
 			if (clickedValue === "custom") {
@@ -213,4 +223,33 @@ $(document).ready(function () {
 	const datePickerDriver = $("#datePickerDriver");
 
 	initializeCustomSelect(customSelectDriver, selectedOptionDriver, optionsListDriver, iconDownDriver, datePickerDriver);
+
+	var sharedCheckbox = $('#sharedCheckbox');
+	$('.checkbox-container input[type="checkbox"]').change(function() {
+		var checkboxId = $(this).attr('id');
+
+		if (checkboxId === 'sharedCheckbox' && $(this).prop('checked')) {
+			$('.checkbox-container input[type="checkbox"]').not(this).prop('checked', false);
+		} else {
+			$('#sharedCheckbox').prop('checked', false);
+		}
+
+		var anyOtherCheckboxChecked = $('.checkbox-container input[type="checkbox"]:not(#sharedCheckbox):checked').length > 0;
+		if (!anyOtherCheckboxChecked) {
+			sharedCheckbox.prop('checked', true);
+		}
+
+		checkSelection();
+	});
 });
+
+function checkSelection() {
+  var selectedAggregators = [];
+  $('.checkbox-container input[type="checkbox"]:checked').each(function() {
+    selectedAggregators.push($(this).val());
+  });
+  var aggregatorsString = selectedAggregators.join('&');
+  var selectedPeriod = $('#period .selected-option-drivers').data('value');
+
+  fetchDriverEfficiencyData(selectedPeriod, null, null, aggregatorsString);
+}
