@@ -329,6 +329,7 @@ class UklonRequest(Fleet, Synchronizer):
                     continue
                 vehicle = Vehicle.objects.get(licence_plate=order['vehicle']['licencePlate'])
                 if check_vehicle(driver) != vehicle:
+                    print('redis', vehicle)
                     redis_instance().hset(f"wrong_vehicle_{self.partner.id}", pk, order['vehicle']['licencePlate'])
                 detail = self.response_data(url=f"{Service.get_value('UKLON_1')}orders/{order['id']}",
                                             params={"driverId": str_driver_id})

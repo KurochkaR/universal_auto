@@ -375,6 +375,8 @@ class DriverPayments(Earnings):
     driver = models.ForeignKey(Driver, on_delete=models.CASCADE, verbose_name="Водій")
     kasa = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Заробіток за період')
     cash = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Готівка')
+    payment_type = models.CharField(max_length=20, default=SalaryCalculation.WEEK, choices=SalaryCalculation.choices,
+                                    verbose_name='Тип платежу')
     rent_distance = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Орендована дистанція')
     rent_price = models.IntegerField(default=6, verbose_name='Ціна оренди')
     rent = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Оренда авто')
@@ -392,6 +394,9 @@ class DriverPayments(Earnings):
 
     def get_penalties(self):
         return self.penalty_set.aggregate(Sum('amount'))['amount__sum'] or 0
+
+    def is_weekly(self):
+        return True if self.payment_type == SalaryCalculation.WEEK else False
 
     def __str__(self):
         return f"{self.driver}"

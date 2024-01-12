@@ -187,14 +187,14 @@ class UaGpsSynchronizer(Fleet):
                 road_distance = self.calculate_order_distance(orders, end)[0]
                 total_km = self.total_per_day(reshuffle.swap_vehicle.gps.gps_id, start_report, end_report)
                 rent_distance = total_km - road_distance
-                data = {"report_from": start,
-                        "report_to": end,
+                data = {"report_from": start_report,
+                        "report_to": end_report,
                         "rent_distance": rent_distance,
                         "vehicle": reshuffle.swap_vehicle,
                         "driver": driver,
                         "partner": self.partner}
-                VehicleRent.objects.get_or_create(report_from=start,
-                                                  report_to=end,
+                VehicleRent.objects.get_or_create(report_from=start_report,
+                                                  report_to=end_report,
                                                   vehicle=reshuffle.swap_vehicle,
                                                   defaults=data)
 
