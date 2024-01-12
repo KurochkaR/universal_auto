@@ -297,7 +297,6 @@ class BoltRequest(Fleet, Synchronizer):
                     continue
                 vehicle = Vehicle.objects.get(licence_plate=order['car_reg_number'])
                 if check_vehicle(driver) != vehicle:
-                    print('redis', vehicle)
                     redis_instance().hset(f"wrong_vehicle_{self.partner.id}", pk, order['car_reg_number'])
                 try:
                     finish = timezone.make_aware(
@@ -318,11 +317,7 @@ class BoltRequest(Fleet, Synchronizer):
                         "tips": tip,
                         "partner": self.partner
                         }
-                obj, created = FleetOrder.objects.get_or_create(order_id=order['order_id'], defaults=data)
-                if not created:
-                    for key, value in data.items():
-                        setattr(obj, key, value)
-                    obj.save()
+                FleetOrder.objects.create(order_id=order['order_id'], defaults=data)
 
     def get_drivers_status(self):
         with_client = []

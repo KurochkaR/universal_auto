@@ -358,11 +358,7 @@ class UklonRequest(Fleet, Synchronizer):
                         "price": order['payment']['cost'],
                         "partner": self.partner
                         }
-                obj, created = FleetOrder.objects.get_or_create(order_id=order['id'], defaults=data)
-                if not created:
-                    for key, value in data.items():
-                        setattr(obj, key, value)
-                    obj.save()
+                FleetOrder.objects.create(**data)
         except KeyError:
             bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"), text=f"{orders}")
 

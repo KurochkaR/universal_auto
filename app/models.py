@@ -390,10 +390,10 @@ class DriverPayments(Earnings):
         self.save(update_fields=['status'])
 
     def get_bonuses(self):
-        return self.bonus_set.aggregate(Sum('amount'))['amount__sum'] or 0
+        return self.penaltybonus_set.filter(bonus__isnull=False).aggregate(Sum('amount'))['amount__sum'] or 0
 
     def get_penalties(self):
-        return self.penalty_set.aggregate(Sum('amount'))['amount__sum'] or 0
+        return self.penaltybonus_set.filter(penalty__isnull=False).aggregate(Sum('amount'))['amount__sum'] or 0
 
     def is_weekly(self):
         return True if self.payment_type == SalaryCalculation.WEEK else False
@@ -405,7 +405,10 @@ class DriverPayments(Earnings):
 class PenaltyBonus(PolymorphicModel):
     amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Сума')
     description = models.CharField(max_length=255, null=True, verbose_name='Опис')
+
     driver = models.ForeignKey(Driver, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Водій')
+    driver_payments = models.ForeignKey(DriverPayments, null=True, blank=True, verbose_name='Виплата водію',
+                                        on_delete=models.CASCADE)
 
     class Meta:
         verbose_name = 'Штраф/Бонус'
@@ -421,13 +424,11 @@ class PenaltyBonus(PolymorphicModel):
 
 
 class Penalty(PenaltyBonus):
-    driver_payments = models.ForeignKey(DriverPayments, null=True, blank=True, verbose_name='Виплата водію',
-                                        on_delete=models.CASCADE)
+    pass
 
 
 class Bonus(PenaltyBonus):
-    driver_payments = models.ForeignKey(DriverPayments, null=True, blank=True, verbose_name='Виплата водію',
-                                        on_delete=models.CASCADE)
+    pass
 
 
 class InvestorPayments(Earnings):

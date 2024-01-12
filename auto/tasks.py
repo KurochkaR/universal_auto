@@ -128,7 +128,7 @@ def auto_send_task_bot(self):
     requests.post(webhook_url, json=message_data)
 
 
-@app.task(bind=True, queue='bot_tasks', retry_backoff=30, max_retries=3)
+@app.task(bind=True, queue='bot_tasks', ignore_result=False, retry_backoff=30, max_retries=3)
 def get_session(self, partner_pk, aggregator='Uber', login=None, password=None):
     try:
         fleet = Fleet.objects.get(name=aggregator, partner=partner_pk, deleted_at__isnull=False)
@@ -483,7 +483,7 @@ def update_driver_status(self, partner_pk):
             logger.info(f'{self.name}: passed')
 
 
-@app.task(bind=True, queue='bot_tasks')
+@app.task(bind=True, queue='bot_tasks', ignore_result=False)
 def update_driver_data(self, partner_pk, manager_id=None):
     try:
         fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None)
