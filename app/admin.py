@@ -612,11 +612,29 @@ class PaymentsOrderAdmin(BaseReportAdmin):
         base_list_display = super().get_list_display(request)
         return base_list_display + ['vendor']
 
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if request.user.is_partner():
+            qs.filter(partner=request.user).select_related('partner', 'driver')
+        if request.user.is_manager():
+            manager_drivers = Driver.objects.filter(manager=request.user)
+            qs.filter(driver__in=manager_drivers).select_related('partner', 'driver')
+        return qs
+
 
 @admin.register(SummaryReport)
 class SummaryReportAdmin(BaseReportAdmin):
     list_filter = (SummaryReportUserFilter,)
     ordering = ('-report_from', 'driver')
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if request.user.is_partner():
+            return qs.filter(partner=request.user).select_related('partner', 'driver')
+        if request.user.is_manager():
+            manager_drivers = Driver.objects.filter(manager=request.user)
+            return qs.filter(driver__in=manager_drivers).select_related('partner', 'driver')
+        return qs
 
 
 @admin.register(Partner)
@@ -1149,10 +1167,10 @@ class FleetsDriversVehiclesRateAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         if request.user.is_partner():
-            return qs.filter(partner=request.user)
+            return qs.filter(partner=request.user).select_related('fleet')
         elif request.user.is_manager():
             manager = Manager.objects.get(pk=request.user.pk)
-            return qs.filter(partner=manager.managers_partner)
+            return qs.filter(partner=manager.managers_partner).select_related('fleet')
         return qs
 
 

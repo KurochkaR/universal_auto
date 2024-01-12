@@ -317,11 +317,7 @@ class BoltRequest(Fleet, Synchronizer):
                         "tips": tip,
                         "partner": self.partner
                         }
-                obj, created = FleetOrder.objects.get_or_create(order_id=order['order_id'], defaults=data)
-                if not created:
-                    for key, value in data.items():
-                        setattr(obj, key, value)
-                    obj.save()
+                FleetOrder.objects.create(order_id=order['order_id'], defaults=data)
 
     def get_drivers_status(self):
         with_client = []
@@ -345,8 +341,8 @@ class BoltRequest(Fleet, Synchronizer):
             "has_cash_payment": enable
         }
         self.get_target_url(f'{self.base_url}driver/toggleCash', self.param(), payload, method="POST")
-        FleetsDriversVehiclesRate.objects.filter(driver_external_id=driver_id).update(pay_cash=enable)
-        return True
+        result = FleetsDriversVehiclesRate.objects.filter(driver_external_id=driver_id).update(pay_cash=enable)
+        return result
 
     def add_driver(self, job_application):
         headers = {
