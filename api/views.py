@@ -15,7 +15,7 @@ from api.mixins import CombinedPermissionsMixin, ManagerFilterMixin, InvestorFil
 from api.serializers import SummaryReportSerializer, CarEfficiencySerializer, CarDetailSerializer, \
     DriverEfficiencyRentSerializer, InvestorCarsSerializer, ReshuffleSerializer, DriverPaymentsSerializer
 from app.models import SummaryReport, CarEfficiency, Vehicle, DriverEfficiency, RentInformation, DriverReshuffle, \
-    PartnerEarnings, InvestorPayments, DriverPayments, PaymentsStatus
+    PartnerEarnings, InvestorPayments, DriverPayments, PaymentsStatus, DriverEfficiencyFleet
 from taxi_service.utils import get_start_end
 
 
@@ -143,28 +143,40 @@ class DriverEfficiencyListView(CombinedPermissionsMixin,
     serializer_class = DriverEfficiencyRentSerializer
 
     def get_queryset(self):
+        small_aggregators = self.kwargs['aggregators'].split('&')
+        aggregators = [aggregator.capitalize() for aggregator in small_aggregators]
         start, end, format_start, format_end = get_start_end(self.kwargs['period'])
-        queryset = ManagerFilterMixin.get_queryset(DriverEfficiency, self.request.user)
-        filtered_qs = queryset.filter(report_from__range=(start, end)).exclude(total_orders=0)
-        qs = filtered_qs.values('driver_id').annotate(
-            total_kasa=Sum('total_kasa'),
+        filter_request = {'report_from__range': (start, end)}
+        if 'Shared' in aggregators:
+            model = DriverEfficiency
+        else:
+            filter_request['fleet__name__in'] = aggregators
+            model = DriverEfficiencyFleet
+
+        queryset = ManagerFilterMixin.get_queryset(model, self.request.user)
+        filtered_qs = queryset.filter(**filter_request).exclude(total_orders=0)
+
+        qs = filtered_qs.annotate(
+            driver_total_kasa=Sum('total_kasa'),
             full_name=Concat(F("driver__user_ptr__name"),
                              Value(" "),
                              F("driver__user_ptr__second_name"), output_field=CharField()),
             orders=Sum('total_orders'),
-            average_price=Avg('average_price'),
-            accept_percent=Avg('accept_percent'),
-            road_time=Coalesce(Sum('road_time'), timedelta()),
-            mileage=Sum('mileage'),
-            efficiency=ExpressionWrapper(
+            driver_average_price=Avg('average_price'),
+            driver_accept_percent=Avg('accept_percent'),
+            driver_road_time=Coalesce(Sum('road_time'), timedelta()),
+            driver_mileage=Sum('mileage'),
+            driver_efficiency=ExpressionWrapper(
                 Case(
                     When(mileage__gt=0, then=F('total_kasa') / F('mileage')),
                     default=Value(0),
                     output_field=FloatField()
                 ),
                 output_field=FloatField()
-            ),
+            )
         )
+        if model == DriverEfficiencyFleet:
+            qs = qs.annotate(fleet_name=F('fleet__name'))
 
         return [{'start': format_start, 'end': format_end, 'drivers_efficiency': qs}]
 

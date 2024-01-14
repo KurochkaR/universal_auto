@@ -1,7 +1,7 @@
 from django.db.models import Sum
 from rest_framework import serializers
 
-from app.models import DriverPayments, Bonus, Penalty
+from app.models import DriverPayments, Bonus, Penalty, DriverEfficiencyFleet
 
 
 class AggregateReportSerializer(serializers.Serializer):
@@ -24,28 +24,34 @@ class CarDetailSerializer(serializers.Serializer):
 
 class DriverEfficiencySerializer(serializers.Serializer):
     full_name = serializers.CharField()
-    total_kasa = serializers.DecimalField(max_digits=10, decimal_places=2)
+    driver_total_kasa = serializers.DecimalField(max_digits=10, decimal_places=2)
     orders = serializers.IntegerField()
-    accept_percent = serializers.IntegerField()
-    road_time = serializers.DurationField()
-    efficiency = serializers.DecimalField(max_digits=10, decimal_places=2)
-    mileage = serializers.DecimalField(max_digits=10, decimal_places=2)
-    average_price = serializers.DecimalField(max_digits=10, decimal_places=2)
+    driver_accept_percent = serializers.IntegerField()
+    driver_road_time = serializers.DurationField()
+    driver_efficiency = serializers.DecimalField(max_digits=10, decimal_places=2)
+    driver_mileage = serializers.DecimalField(max_digits=10, decimal_places=2)
+    driver_average_price = serializers.DecimalField(max_digits=10, decimal_places=2)
     rent_amount = serializers.DecimalField(
         max_digits=10, decimal_places=2, read_only=True
     )
 
+    fleet_name = serializers.SerializerMethodField()
+
+    def get_fleet_name(self, obj):
+        return obj.fleet.name if isinstance(obj, DriverEfficiencyFleet) else None
+
     class Meta:
         fields = (
             "full_name",
-            "total_kasa",
+            "driver_total_kasa",
             "total_orders",
-            "accept_percent",
-            "average_price",
-            "road_time",
-            "efficiency",
-            "mileage",
+            "driver_accept_percent",
+            "driver_average_price",
+            "driver_road_time",
+            "driver_efficiency",
+            "driver_mileage",
             "rent_amount",
+            "fleet_name",
         )
 
 
