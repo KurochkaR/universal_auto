@@ -15,7 +15,7 @@ from api.mixins import CombinedPermissionsMixin, ManagerFilterMixin, InvestorFil
 from api.serializers import SummaryReportSerializer, CarEfficiencySerializer, CarDetailSerializer, \
     DriverEfficiencyRentSerializer, InvestorCarsSerializer, ReshuffleSerializer, DriverPaymentsSerializer
 from app.models import SummaryReport, CarEfficiency, Vehicle, DriverEfficiency, RentInformation, DriverReshuffle, \
-    PartnerEarnings, InvestorPayments, DriverPayments, PaymentsStatus, PenaltyBonus
+    PartnerEarnings, InvestorPayments, DriverPayments, PaymentsStatus, PenaltyBonus, Penalty, Bonus
 from taxi_service.utils import get_start_end
 
 
@@ -288,7 +288,7 @@ class DriverPaymentsListView(CombinedPermissionsMixin, generics.ListAPIView):
                                  status__in=[PaymentsStatus.COMPLETED, PaymentsStatus.FAILED],
                                  ).order_by('report_to', 'driver')
         queryset = queryset.select_related('driver__user_ptr').prefetch_related(
-            Prefetch('penaltybonus_set', queryset=PenaltyBonus.objects.select_related('penalty', 'bonus'),
+            Prefetch('penaltybonus_set', queryset=PenaltyBonus.objects.all(),
                      to_attr='prefetched_penaltybonuses')).annotate(
             full_name=Concat(
                 F("driver__user_ptr__name"),

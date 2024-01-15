@@ -136,11 +136,11 @@ class DriverPaymentsSerializer(serializers.ModelSerializer):
     penalties_list = serializers.SerializerMethodField()
 
     def get_bonuses_list(self, obj):
-        bonuses = [pb for pb in obj.prefetched_penaltybonuses if pb.bonus]
+        bonuses = [pb for pb in obj.prefetched_penaltybonuses if isinstance(pb, Bonus)]
         return BonusSerializer(bonuses, many=True).data
 
     def get_penalties_list(self, obj):
-        penalties = [pb for pb in obj.prefetched_penaltybonuses if pb.penalty]
+        penalties = [pb for pb in obj.prefetched_penaltybonuses if isinstance(pb, Penalty)]
         return PenaltySerializer(penalties, many=True).data
 
     def get_status(self, obj):

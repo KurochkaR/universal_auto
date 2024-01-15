@@ -17,6 +17,7 @@ from app.models import Driver, UseOfCars, VehicleGPS, Order, ParkSettings, Crede
 from app.uagps_sync import UaGpsSynchronizer
 from app.uber_sync import UberRequest
 from app.uklon_sync import UklonRequest
+from auto_bot.main import bot
 from scripts.redis_conn import get_logger
 
 
@@ -364,21 +365,26 @@ def add_shift(licence_plate, shift_date, start_time, end_time, driver_id, recurr
 
 
 def delete_shift(action, reshuffle_id):
-    reshuffle = DriverReshuffle.objects.get(id=reshuffle_id)
-    if action == 'delete_shift':
-        reshuffle.delete()
-        text = "Зміна успішно видалена"
-    else:
-        reshuffle_del = DriverReshuffle.objects.filter(
-            swap_time__gte=timezone.localtime(reshuffle.swap_time),
-            swap_time__time=timezone.localtime(reshuffle.swap_time).time(),
-            end_time__time=timezone.localtime(reshuffle.end_time).time(),
-            driver_start=reshuffle.driver_start,
-            swap_vehicle=reshuffle.swap_vehicle
-        )
-        reshuffle_count = reshuffle_del.count()
-        reshuffle_del.delete()
-        text = f"Видалено {reshuffle_count} змін"
+    try:
+        reshuffle = DriverReshuffle.objects.get(id=reshuffle_id)
+        if action == 'delete_shift':
+            reshuffle.delete()
+            text = "Зміна успішно видалена"
+        else:
+            reshuffle_del = DriverReshuffle.objects.filter(
+
+                swap_time__gte=timezone.localtime(reshuffle.swap_time),
+                swap_time__time=timezone.localtime(reshuffle.swap_time).time(),
+                end_time__time=timezone.localtime(reshuffle.end_time).time(),
+                driver_start=reshuffle.driver_start,
+                swap_vehicle=reshuffle.swap_vehicle
+            )
+            reshuffle_count = reshuffle_del.count()
+            reshuffle_del.delete()
+            text = f"Видалено {reshuffle_count} змін"
+    except ObjectDoesNotExist:
+        text = "Виникла помилка, спробуйте ще раз"
+        bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"), text="Reshuffle Does not exist")
     return True, text
 
 

@@ -317,7 +317,7 @@ class BoltRequest(Fleet, Synchronizer):
                         "tips": tip,
                         "partner": self.partner
                         }
-                FleetOrder.objects.create(order_id=order['order_id'], defaults=data)
+                FleetOrder.objects.create(**data)
 
     def get_drivers_status(self):
         with_client = []
