@@ -261,7 +261,6 @@ $(document).ready(function() {
 });
 
 function applyCustomDateRange(item) {
-	console.log(item)
 	$(".apply-filter-button_driver").prop("disabled", true);
 
 	let startDate = $("#start_report_driver").val();

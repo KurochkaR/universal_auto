@@ -172,6 +172,7 @@ def get_daily_report(manager_id, schema_obj=None):
 
 def generate_message_report(chat_id, schema_id=None, daily=None):
     drivers, user = get_drivers_vehicles_list(chat_id, Driver)
+    print(drivers)
     if schema_id:
         schema = Schema.objects.get(pk=schema_id)
         if schema.salary_calculation == SalaryCalculation.WEEK:
@@ -192,7 +193,7 @@ def generate_message_report(chat_id, schema_id=None, daily=None):
     drivers_dict = {}
     balance = 0
     for driver in drivers:
-        driver_payments_query = DriverPayments.objects.filter(report_from=start, report_to=end, driver=driver)
+        driver_payments_query = DriverPayments.objects.filter(report_from__date=start, report_to__date=end, driver=driver)
         if driver_payments_query.exists():
             payment = driver_payments_query.last()
 

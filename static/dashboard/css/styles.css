@@ -451,7 +451,7 @@ input[type="button"] {
 /* Extra Small <= 576px */
 
 @media screen and (max-width: 576px) {
-  .hedaer-left {
+  .header-left {
     display: none;
   }
 
@@ -486,6 +486,10 @@ input[type="button"] {
 
 	.driver-block {
 		background-color: white !important;
+	}
+
+	.driver-container {
+	    display: block !important;
 	}
 
 	.title-driver h2 {
