@@ -1053,7 +1053,9 @@ label[for="showPassword"] {
 }
 
 
-.img-box img {
+.about_section .container .img-box img {
+	width: 100% !important;
+	height: auto;
 	margin-top: 40%;
 }
 
@@ -1762,7 +1764,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	.img-box img {
 		width: 100% !important;
 		height: auto;
-		margin-top: 30px;
+		margin-top: 30px !important;
 	}
 
 	.row {
@@ -5020,6 +5022,10 @@ span.error-name {
 	bottom: 205px;
 }
 
+.investment-in-numbers-section .container .img-box img{
+	margin-top: 5%;
+}
+
 .investment-in-numbers-section .container .img-box .img-phone {
 	display: none;
 }
@@ -5096,6 +5102,10 @@ span.error-name {
 
 .investment-park-slider .img-box .slid-img-laptop {
 	width: 100%;
+}
+
+.investment-park-slider .img-box img {
+	margin-top: 5%;
 }
 
 .investment-park-slider .img-box .slid-img-phone {
