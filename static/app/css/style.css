@@ -921,7 +921,8 @@ label[for="showPassword"] {
 
 .left_images .one-background-img {
 	position: relative;
-	left: 215px;
+	top: 40px;
+	left: 0px;
 	width: 36%;
 	z-index: -1;
 }
@@ -1018,7 +1019,7 @@ label[for="showPassword"] {
 .heading_container h2 {
 	position: relative;
 	margin-top: 10px;
-	color: #141E17;
+	color: #FFFFFF;
 	font-size: 32px;
 	font-style: normal;
 	font-weight: 600;
@@ -1029,8 +1030,8 @@ label[for="showPassword"] {
 
 .about-section {
 	position: relative;
-	color: #53785E;
-	font-size: 23px;
+	color: #FFFFFF;
+	font-size: 25px;
 	font-style: normal;
 	font-weight: 400;
 	line-height: normal;
@@ -1048,7 +1049,7 @@ label[for="showPassword"] {
 
 
 .img-box img {
-	margin-top: 60px;
+	margin-top: 40%;
 }
 
 .detail-box .telegram-button {
@@ -1280,7 +1281,6 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 /*BLOCK-5 investment*/
 
 .investment-section-index {
-	margin-top: -105px;
 	padding-top: 20px;
 }
 
@@ -1602,11 +1602,12 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	}
 
 	.left_images .one-background-img {
-		margin-top: 75px;
-		position: relative;
-		left: 130px;
-		width: 36%;
-		z-index: -1;
+		margin-top: 20px;
+    width: 100%;
+    position: relative;
+    left: 0;
+    z-index: -1;
+    top: 0px;
 	}
 
 	.left_images .one-background-img img {
@@ -1675,7 +1676,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 
 	/*block 2*/
 	.about_section {
-		margin-top: 30px;
+		margin-top: 60px;
 		flex-direction: column;
 	}
 
