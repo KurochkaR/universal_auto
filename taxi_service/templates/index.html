@@ -217,51 +217,49 @@
       <!-- end app section -->
 
       <!-- investment section -->
-
-      <section class="investment-section-index layout_padding">
-        <div class="container">
-          <div class="heading_container">
-            <h2>{% trans "Інвестиція в екологічне майбутнє" %}</h2>
-            <p class="investment">
-              {% trans "Розкрийте потенціал інвестицій у світі електромобілів." %}
-              {% trans "Вас чекає неймовірна можливість стати частиною нашої революційної служби та заробити на екологічно орієнтованому бізнесі." %}
-              {% trans "Ninja Taxi запрошує вас приєднатися до нашої високоперспективної команди і вкласти кошти у стійку транспортну систему." %}
-            </p>
-            <div class="button-container">
-              <a href="{% url 'investment' %}" class="btn btn-primary">{% trans "Дізнатися більше" %}</a>
+      <div class="common-background" style="background-image: url('{% static 'app/images/index-block-background.webp' %}');">
+        <section class="investment-section-index layout_padding">
+          <div class="container">
+            <div class="heading_container">
+              <h2>{% trans "Інвестиція в екологічне майбутнє" %}</h2>
+              <p class="investment">
+                {% trans "Розкрийте потенціал інвестицій у світі електромобілів." %}
+                {% trans "Вас чекає неймовірна можливість стати частиною нашої революційної служби та заробити на екологічно орієнтованому бізнесі." %}
+                {% trans "Ninja Taxi запрошує вас приєднатися до нашої високоперспективної команди і вкласти кошти у стійку транспортну систему." %}
+              </p>
+              <div class="button-container">
+                <a href="{% url 'investment' %}" class="btn btn-primary">{% trans "Дізнатися більше" %}</a>
+              </div>
             </div>
-          </div>
-          <div class="row">
-            <div class="col-md-6">
-              <div class="video-box">
-                <a data-youtube href="https://www.youtube.com/watch?v=GCf8iURnec8" title="investor-1"></a>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="video-box">
+                  <a data-youtube href="https://www.youtube.com/watch?v=GCf8iURnec8" title="investor-1"></a>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <!-- end investment section -->
+        <!-- end investment section -->
 
-      <!-- automation for vehicle fleets section -->
+        <!-- automation for vehicle fleets section -->
 
-      <section class="automation-section-index layout_padding">
-        <div class="container">
-          <div class="block">
-            <div class="automation-img">
-              <img src="{% static 'app/images/automation-1.webp' %}" alt="" loading="lazy">
-            </div>
-            <div class="block-detail">
-              <h2>{% trans "Переверніть свій автопарк на 360 градусів" %}</h2>
-              <p>{% trans "Автоматизована система від Ninja Taxi- це ключ до ефективності, яка переверне ваш бізнес!" %}</p>
-              <a href="{% url 'auto-park' %}" class="button">{% trans "Дізнатися більше" %}</a>
-              <div class="automation-deckor-image">
-                <img src="{% static 'app/images/index-deckor-img-1.webp' %}" alt="" loading="lazy">
+        <section class="automation-section-index layout_padding">
+          <div class="container">
+            <div class="block">
+              <div class="automation-img">
+                <img src="{% static 'app/images/automation-1.webp' %}" alt="" loading="lazy">
+              </div>
+              <div class="block-detail">
+                <h2>{% trans "Переверніть свій автопарк на 360 градусів" %}</h2>
+                <p>{% trans "Автоматизована система від Ninja Taxi- це ключ до ефективності, яка переверне ваш бізнес!" %}</p>
+                <a href="{% url 'auto-park' %}" class="button">{% trans "Дізнатися більше" %}</a>
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </div>
 
       <!-- end automation for vehicle fleets section -->
 
@@ -393,6 +391,7 @@
 {% include 'footer.html' %}
 
 <script>
+  const imgYoutube = {% static 'app/images/index-youtube-img.webp' %}
   let sentryCdn = "{{ sentry_cdn }}";
 	let ajaxPostUrl = "{% url 'post_request' %}";
 	let ajaxGetUrl = "{% url 'get_request' %}";

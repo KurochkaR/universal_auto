@@ -923,9 +923,14 @@ label[for="showPassword"] {
 	position: relative;
 	top: 40px;
 	left: 0px;
-	width: 36%;
 	z-index: -1;
 }
+
+.left_images .one-background-img img {
+	width: 100%;
+}
+
+
 
 .left_images .overlay-image {
 	position: relative;
@@ -1451,6 +1456,11 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	bottom: 455px;
 	right: 30px;
 	z-index: -1;
+}
+
+.common-background {
+	background-size: 100% 85%;
+	background-repeat: no-repeat;
 }
 
 /*END BLOCK-7 automation*/

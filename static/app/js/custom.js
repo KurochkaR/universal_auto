@@ -251,9 +251,9 @@ $(document).ready(function () {
 		video.attr('role', 'button');
 
 		video.html(`
-    <img alt="" src="https://img.youtube.com/vi/${id}/maxresdefault.jpg" style="border-radius: 25px" width="552" height="310" loading="lazy"><br>
-    ${video.text()}
-  `);
+			<img alt="" src="https://storage.googleapis.com/jobdriver-bucket/docs/index-youtube-img.png" style="border-radius: 25px" width="552" height="310" loading="lazy"><br>
+			${video.text()}
+		`);
 	});
 
 	function clickHandler(event) {
