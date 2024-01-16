@@ -708,7 +708,7 @@ def check_time_order(self, order_id):
                                  text=text,
                                  reply_markup=inline_markup_accept(instance.pk),
                                  parse_mode=ParseMode.HTML)
-    redis_instance().hset('group_msg', order_id, group_msg.message_id)
+    redis_instance().hset('group_msg', order_id, group_msg.message_id, ex=6048000)
     instance.checked = True
     instance.save()
 

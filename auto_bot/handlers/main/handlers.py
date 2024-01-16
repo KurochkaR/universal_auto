@@ -24,7 +24,6 @@ processed_files = []
 def start(update, context):
     chat_id = update.effective_chat.id
     redis_instance().delete(str(chat_id))
-    redis_instance().expire(str(chat_id), 3600)
     menu(update, context)
     UserBank.objects.get_or_create(chat_id=chat_id)
     clients = list(User.objects.filter(chat_id=chat_id))

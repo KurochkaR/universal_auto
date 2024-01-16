@@ -27,7 +27,6 @@ def run():
                 report_from = aggregate['week_start'].date()
                 report_to = report_from + timedelta(days=6)
                 salary = aggregate['total'] * Decimal(0.5) - aggregate['cash']
-                partner_income = aggregate['total'] * Decimal(0.17)
                 data = {"rent_distance": 0,
                         "rent_price": 6,
                         "kasa": aggregate['total'],
