@@ -910,9 +910,12 @@ label[for="showPassword"] {
 /*BLOCK-1*/
 
 .one_section .container {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
+	display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.left_images, .right_content {
+	width: 100%;
 }
 
 .left_images {
@@ -930,12 +933,28 @@ label[for="showPassword"] {
 	width: 100%;
 }
 
-
-
 .left_images .overlay-image {
 	position: relative;
 	left: 5px;
 	margin-top: -146px;
+}
+
+.right_content {
+	position: relative;
+	width: 100%;
+}
+
+.right_content::before {
+	margin-right: -150px;
+	content: "";
+	background-image: url("/static/app/images/index-one-block-3.webp");
+	background-size: cover;
+	position: absolute;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	left: 0;
+	z-index: -1;
 }
 
 .right_content .decorate-img {
@@ -952,7 +971,7 @@ label[for="showPassword"] {
 	position: relative;
 	padding: 10px;
 	z-index: 1022;
-	margin-top: -435px;
+	margin-top: 150px;
 	right: -85px;
 }
 
@@ -1011,6 +1030,24 @@ label[for="showPassword"] {
 	font-style: normal;
 	font-weight: 700;
 	line-height: normal;
+}
+
+.one_section .contact-me-btn button {
+	margin-left: 35%;
+	margin-top: 10px;
+	width: 50%;
+	background-color: #EC6323;
+	color: #fff;
+	padding: 15px 0;
+	border: none;
+	border-radius: 20px;
+	font-size: 16px;
+	text-decoration: none;
+	cursor: pointer;
+	font-style: normal;
+	font-weight: 700;
+	line-height: normal;
+	z-index: 1000;
 }
 
 /*END BLOCK-1*/
@@ -3240,7 +3277,8 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 
 .free-access-section,
 .to-consult-section,
-.to-connect-section {
+.to-connect-section,
+.contact-me-section {
 	display: none;
 	background-color: #A1E8B9;
 	padding: 20px;
@@ -3252,11 +3290,13 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	border-radius: 62px;
 	width: 1070px;
 	height: 515px;
+	z-index: 99999;
 }
 
 .free-access-section h2,
 .to-consult-section h2,
-.to-connect-section h2 {
+.to-connect-section h2,
+.contact-me-section h2 {
 	margin-top: 55px;
 	color: #EC6323;
 	text-align: center;
@@ -3269,7 +3309,8 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 
 .free-access-section p,
 .to-consult-section p,
-.to-connect-section p {
+.to-connect-section p,
+.contact-me-section p {
 	margin-top: 15px;
 	color: #38423B;
 	text-align: center;
@@ -3284,7 +3325,9 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 .to-consult-section input[type="text"],
 .to-consult-section input[type="tel"],
 .to-connect-section input[type="text"],
-.to-connect-section input[type="tel"] {
+.to-connect-section input[type="tel"],
+.contact-me-section input[type="text"],
+.contact-me-section input[type="tel"]{
 	margin-top: 15px;
 	width: 70%;
 	padding: 25px 20px;
@@ -3294,7 +3337,8 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 
 .free-access-section input[type="submit"],
 .to-consult-section input[type="submit"],
-.to-connect-section input[type="submit"] {
+.to-connect-section input[type="submit"],
+.contact-me-section input[type="submit"]{
 	margin-top: 24px;
 	background-color: #EC6323;
 	color: #fff;
@@ -3307,11 +3351,15 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 
 .free-access-section input[type="submit"]:hover,
 .to-consult-section input[type="submit"]:hover,
-.to-connect-section input[type="submit"]:hover {
+.to-connect-section input[type="submit"]:hover,
+.contact-me-section input[type="submit"]:hover {
 	background-color: #FF8C24;
 }
 
-.free-access-section .close-button {
+.free-access-section .close-button,
+.to-consult-section .close-button,
+.to-connect-section .close-button,
+.contact-me-section .close-button {
 	position: absolute;
 	top: 10px;
 	right: 20px;
@@ -3346,6 +3394,7 @@ span.error-name {
 	border-radius: 62px;
 	width: 940px;
 	height: 650px;
+	z-index: 99999;
 }
 
 .existing-you-message {
@@ -3884,7 +3933,8 @@ span.error-name {
 
 	/*Form styles adaptive*/
 
-	.free-access-section {
+	.free-access-section,
+	.contact-me-section {
 		display: none;
 		background-color: #A1E8B9;
     padding: 20px;
@@ -3899,7 +3949,8 @@ span.error-name {
     z-index: 9999;
 	}
 
-	.free-access-section h2 {
+	.free-access-section h2,
+	.contact-me-section h2 {
 		margin-top: 55px;
 		color: #EC6323;
 		text-align: center;
@@ -3910,7 +3961,8 @@ span.error-name {
 		text-transform: uppercase;
 	}
 
-	.free-access-section p {
+	.free-access-section p,
+	.contact-me-section p {
 		margin-top: 15px;
 		color: #38423B;
 		text-align: center;
@@ -3921,7 +3973,9 @@ span.error-name {
 	}
 
 	.free-access-section input[type="text"],
-	.free-access-section input[type="tel"] {
+	.free-access-section input[type="tel"],
+	.contact-me-section input[type="text"],
+	.contact-me-section input[type="tel"] {
 		font-size: 15px;
 		margin-top: 0;
 		width: 100%;
@@ -3930,7 +3984,8 @@ span.error-name {
 		border-radius: 25px;
 	}
 
-	.free-access-section input[type="submit"] {
+	.free-access-section input[type="submit"],
+	.contact-me-section input[type="submit"] {
 		width: 100%;
 		font-size: 12px;
 		margin-top: 0;
@@ -3943,11 +3998,12 @@ span.error-name {
 		border-radius: 62px;
 	}
 
-	.free-access-section input[type="submit"]:hover {
+	.free-access-section input[type="submit"]:hover,
+	.contact-me-section input[type="submit"]:hover {
 		background-color: #FF8C24;
 	}
 
-	.free-access-section .close-button {
+	.free-access-section .close-button,{
 		position: absolute;
 		top: 10px;
 		right: 20px;
