@@ -221,7 +221,10 @@ $(document).ready(function () {
 	});
 
 	// js for index
-
+	const contactOpenBtn = $('.contact-me-button');
+	const formSection = $('#contact-me-form');
+	const closeButtonContact = $("#close-form-contact");
+	const contactForm = $("#contact-form");
 	const detailsRadio = $('#detailsRadio');
 	const howItWorksRadio = $('#howItWorksRadio');
 	const detailRadio1 = $('#detail-radio-1');
@@ -282,6 +285,39 @@ $(document).ready(function () {
 		}
 	});
 
+	contactOpenBtn.click(function () {
+		console.log('click');
+		formSection.show();
+		thankYouMessage.hide();
+	});
+
+	closeButtonContact.click(function () {
+		formSection.hide();
+	});
+
+	contactForm.on("submit", function (e) {
+		e.preventDefault();
+		let formData = contactForm.serialize();
+		let phoneInput = contactForm.find('#phone').val();
+		let nameInput = contactForm.find('#name').val();
+		$(".error-message").hide();
+		$(".error-name").hide();
+
+		if (!/^\+\d{1,3} \d{2,3} \d{2,3}-\d{2,3}-\d{2,3}$/.test(phoneInput)) {
+			$(".error-message").show();
+			return;
+		}
+
+		if (nameInput.trim() === "") {
+			$(".error-name").show();
+			return;
+		}
+
+		submitForm(formData);
+	});
+
+
+
 	// js for park page
 
 	const openButtonsFree = $(".free-access-button");
@@ -295,6 +331,8 @@ $(document).ready(function () {
 
 	function hideFormAndShowThankYou(success) {
     formSectionFree.hide();
+    formSection.hide();
+
 
     if (success) {
 			thankYouMessage.show();

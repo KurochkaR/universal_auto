@@ -2,7 +2,6 @@
 {% load static %}
 {% load i18n %}
 {% include 'header.html' %}
-
 <main>
   {% block content %}
     <div class="hero_area">
@@ -13,23 +12,18 @@
         <div class="container">
           <div class="left_images">
             <div class="one-background-img">
-              <img class="image-map" src="{% static 'app/images/index-one-block-1.webp' %}" alt="one image">
+                <img class="image-map" src="{% static 'app/images/index-one-block-1.png' %}" alt="one image">
             </div>
           </div>
           <div class="right_content">
-            <div class="decorate-img">
-              <img src="{% static 'app/images/index-one-block-3.webp' %}" alt="three image">
-              <div class="one-info">
-                <h2>{% trans "ninja taxi" %}</h2>
-                <p class="phone"><i class="fas fa-phone"></i> +38(093) 753 10 57</p>
-                <p class="text-1">{% trans "Довірте свій автопарк та" %}<br>{% trans "інвестиції безпечному" %}<br>{% trans "партнеру NINJA TAXI" %}
-                </p>
+            <div class="one-info">
+              <h2>{% trans "ninja taxi" %}</h2>
+              <p class="phone"><i class="fas fa-phone"></i> +38(093) 753 10 57</p>
+              <p class="text-1">{% trans "Довірте свій автопарк та" %}<br>{% trans "інвестиції безпечному" %}<br>{% trans "партнеру NINJA TAXI" %}
+              </p>
+              <div class="contact-me-btn" id="open-form">
+                <button class="contact-me-button">{% trans "Зв’яжіться зі мною" %}</button>
               </div>
-            </div>
-            <div class="telegram-button button-block-1">
-              <a href="{% url 'send_to_telegram' %}">
-                <button>{% trans "Перейти у Ninja бот" %}</button>
-              </a>
             </div>
           </div>
         </div>
@@ -380,6 +374,31 @@
           </div>
         </div>
       </section>
+
+      <section class="contact-me-section" id="contact-me-form">
+        <div class="container">
+          <button id="close-form-contact" class="close-button">×</button>
+          <h2>{% trans "Зв’яжіться зі мною" %}</h2>
+          <p>{% trans "Заповніть форму та наш менеджер зв'яжеться з Вами" %}</p>
+          <form id="contact-form">
+            {% csrf_token %}
+            <input type="text" id="name" name="name" placeholder="{% trans "Ваше ім'я*" %}"><br>
+            <span class="error-name">{% trans "Ім'я обовязкове!"%}</span><br>
+            <input type="tel" id="phone" name="phone" placeholder="{% trans 'Ваш номер телефону*' %}"><br>
+            <span class="error-message">{% trans "Не вірний формат номеру"%}</span><br>
+            <input type="submit" value="{% trans 'Зв’язатися з нами' %}">
+          </form>
+        </div>
+      </section>
+
+      <section class="thank-you-message" id="thank-you-message">
+        <div class="container">
+          <div class="message-box">
+            <h2>{% trans "Дякуємо! Наш менеджер найближчим часом зв’яжеться з Вами та проконсультує Вас. Гарного дня!" %}</h2>
+          </div>
+        </div>
+     </section>
+
     </div>
 
     <!-- end client section -->
@@ -388,7 +407,6 @@
 {% include 'footer.html' %}
 
 <script>
-  const imgYoutube = {% static 'app/images/index-youtube-img.webp' %}
   let sentryCdn = "{{ sentry_cdn }}";
 	let ajaxPostUrl = "{% url 'post_request' %}";
 	let ajaxGetUrl = "{% url 'get_request' %}";
