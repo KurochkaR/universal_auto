@@ -177,24 +177,27 @@ class UaGpsSynchronizer(Fleet):
         for driver in Driver.objects.get_active(partner=self.partner, schema=schema):
             reshuffles = check_reshuffle(driver, start, end)
             for reshuffle in reshuffles:
-                start_report = timezone.localtime(reshuffle.swap_time)
-                end_report = timezone.localtime(reshuffle.end_time)
+                if start > reshuffle.swap_time:
+                    start_period, end_period = start, reshuffle.end_time
+                elif reshuffle.end_time <= end:
+                    start_period, end_period = reshuffle.swap_time, reshuffle.end_time
+                else:
+                    start_period, end_period = reshuffle.swap_time, end
                 orders = FleetOrder.objects.filter(
                     driver=driver,
                     state=FleetOrder.COMPLETED,
-                    accepted_time__gte=start_report,
-                    accepted_time__lt=end_report).order_by('accepted_time')
+                    accepted_time__range=(start_period, end_period)).order_by('accepted_time')
                 road_distance = self.calculate_order_distance(orders, end)[0]
-                total_km = self.total_per_day(reshuffle.swap_vehicle.gps.gps_id, start_report, end_report)
+                total_km = self.total_per_day(reshuffle.swap_vehicle.gps.gps_id, start_period, end_period)
                 rent_distance = total_km - road_distance
-                data = {"report_from": start_report,
-                        "report_to": end_report,
+                data = {"report_from": start_period,
+                        "report_to": end_period,
                         "rent_distance": rent_distance,
                         "vehicle": reshuffle.swap_vehicle,
                         "driver": driver,
                         "partner": self.partner}
-                VehicleRent.objects.get_or_create(report_from=start_report,
-                                                  report_to=end_report,
+                VehicleRent.objects.get_or_create(report_from=start_period,
+                                                  report_to=end_period,
                                                   vehicle=reshuffle.swap_vehicle,
                                                   defaults=data)
 

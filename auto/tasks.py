@@ -1115,7 +1115,11 @@ def calculate_driver_reports(self, partner_pk, schema, day=None):
 def calculate_vehicle_earnings(self, payment_pk):
     payment = DriverPayments.objects.get(pk=payment_pk)
     driver = payment.driver
-    spending_rate = 1 - round((payment.earning + payment.cash + payment.rent) / payment.kasa, 6) if payment.kasa else 0
+    driver_value = payment.earning + payment.cash + payment.rent
+    if driver_value > 0:
+        spending_rate = 1 - round(driver_value / payment.kasa, 6) if payment.kasa else 0
+    else:
+        spending_rate = 1 - driver.schema.rate
     if payment.is_weekly():
         vehicles_income = get_vehicle_income(driver, payment.report_from, payment.report_to,
                                              spending_rate, payment.rent)
