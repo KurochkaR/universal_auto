@@ -953,7 +953,7 @@ label[for="showPassword"] {
 	padding: 10px;
 	z-index: 1022;
 	margin-top: -435px;
-	right: -125px;
+	right: -85px;
 }
 
 .right_content .one-info h2 {
@@ -1018,6 +1018,7 @@ label[for="showPassword"] {
 /*BLOCK-2 about*/
 
 .about_section {
+	padding: 20px;
 	margin-top: 100px;
 }
 
@@ -1737,7 +1738,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 
 	/*block 2*/
 	.about_section {
-		margin-top: 60px;
+		margin-top: 110px;
 		flex-direction: column;
 	}
 
