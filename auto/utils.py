@@ -60,7 +60,9 @@ def get_corrections(start, end, driver):
                                             driver=driver)
     if payment.exists():
         data = create_driver_payments(start, end, driver, driver.schema)
-        description = f"Корекція з {start} по {end}"
+        format_start = start.strftime("%d.%m")
+        format_end = end.strftime("%d.%m")
+        description = f"Корекція з {format_start} по {format_end}"
         correction = Decimal(data['earning']) - payment.first().earning
         correction_data = {"amount": abs(correction),
                            "driver": driver,

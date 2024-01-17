@@ -1,6 +1,5 @@
 function formatTime(time) {
-	let parts = time.match(/(\d+) days?, (\d+):(\d+):(\d+)/);
-
+	let parts = time.match(/(\d+) (\d+):(\d+):(\d+)/);
 	if (!parts) {
 		return time;
 	} else {
@@ -45,7 +44,7 @@ function fetchDriverEfficiencyData(period, start, end, aggregators) {
 		type: 'GET',
 		dataType: 'json',
 		success: function (data) {
-			$(".apply-filter-button").prop("disabled", false);
+			$(".apply-filter-button_driver").prop("disabled", false);
 			let table = $('.info-driver table');
 			let driverBlock = $('.driver-block');
 			let startDate = data[0]['start'];
@@ -54,23 +53,8 @@ function fetchDriverEfficiencyData(period, start, end, aggregators) {
 			if (data[0]['drivers_efficiency'].length !== 0) {
 				data[0]['drivers_efficiency'].forEach(function (item) {
 					let row = $('<tr></tr>');
-					let time = item.road_time
-					let parts = time.match(/(\d+) (\d+):(\d+):(\d+)/);
-					if (!parts) {
-						time = time
-					} else {
-						let days = parseInt(parts[1]);
-						let hours = parseInt(parts[2]);
-						let minutes = parseInt(parts[3]);
-						let seconds = parseInt(parts[4]);
-
-						hours += days * 24;
-
-						// Форматувати рядок у вигляді HH:mm:ss
-						let formattedTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-
-						time = formattedTime
-					}
+					let formattedTime = formatTime(item.road_time);
+					let time = formattedTime
 
 					row.append('<td class="driver">' + item.full_name + '</td>');
 					row.append('<td class="kasa">' + item.total_kasa + '</td>');

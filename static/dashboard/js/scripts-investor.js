@@ -202,7 +202,7 @@ commonPeriodSelect.on('change', function () {
 fetchInvestorData('yesterday');
 
 
-function applyCustomDateRange() {
+function applyDateRange() {
 	$(".apply-filter-button").prop("disabled", true);
 
 	let startDate = $("#start_report").val();
@@ -211,3 +211,52 @@ function applyCustomDateRange() {
 	const selectedPeriod = "custom";
 	fetchInvestorData(selectedPeriod, startDate, endDate);
 }
+
+$(document).ready(function () {
+	function initializeCustomSelect(customSelect, selectedOption, optionsList, iconDown, datePicker, vehicleId, vehicle_lc) {
+		iconDown.click(function() {
+			customSelect.toggleClass("active");
+		});
+
+		selectedOption.click(function() {
+			customSelect.toggleClass("active");
+		});
+
+		optionsList.on("click", "li", function() {
+			const clickedValue = $(this).data("value");
+			selectedOption.text($(this).text());
+			customSelect.removeClass("active");
+
+			if (clickedValue !== "custom") {
+				if (vehicle_lc) {
+					fetchInvestorData(clickedValue);
+				} else {
+					fetchInvestorData(clickedValue);
+				}
+			}
+
+			if (clickedValue === "custom") {
+				datePicker.css("display", "block");
+			} else {
+				datePicker.css("display", "none");
+			}
+		});
+	}
+
+	const customSelect = $(".custom-select");
+	const selectedOption = customSelect.find(".selected-option");
+	const optionsList = customSelect.find(".options");
+	const iconDown = customSelect.find(".fas.fa-angle-down");
+	const datePicker = $("#datePicker");
+
+	const firstVehicle = $(".custom-dropdown .dropdown-options li:first");
+	const vehicleId = firstVehicle.data('value');
+	const vehicle_lc = firstVehicle.text();
+
+	fetchInvestorData('yesterday');
+	if (vehicleId !== undefined) {
+	    fetchCarEfficiencyData('yesterday', vehicleId, vehicle_lc);
+       }
+	initializeCustomSelect(customSelect, selectedOption, optionsList, iconDown, datePicker, vehicleId, vehicle_lc);
+
+});

@@ -324,12 +324,13 @@ class UklonRequest(Fleet, Synchronizer):
         orders = self.response_data(url=f"{Service.get_value('UKLON_1')}orders", params=params)
         try:
             for order in orders['items']:
-                vehicle = Vehicle.objects.get(licence_plate=order['vehicle']['licencePlate'])
-                if check_vehicle(driver) != vehicle:
-                    redis_instance().hset(f"wrong_vehicle_{self.partner.id}", pk, order['vehicle']['licencePlate'])
                 if (order['status'] in ("running", "accepted", "arrived") or
                         FleetOrder.objects.filter(order_id=order['id']).exists()):
                     continue
+                vehicle = Vehicle.objects.get(licence_plate=order['vehicle']['licencePlate'])
+                if check_vehicle(driver) != vehicle:
+                    print('redis', vehicle)
+                    redis_instance().hset(f"wrong_vehicle_{self.partner.id}", pk, order['vehicle']['licencePlate'])
                 detail = self.response_data(url=f"{Service.get_value('UKLON_1')}orders/{order['id']}",
                                             params={"driverId": str_driver_id})
                 try:
@@ -357,11 +358,7 @@ class UklonRequest(Fleet, Synchronizer):
                         "price": order['payment']['cost'],
                         "partner": self.partner
                         }
-                obj, created = FleetOrder.objects.get_or_create(order_id=order['id'], defaults=data)
-                if not created:
-                    for key, value in data.items():
-                        setattr(obj, key, value)
-                    obj.save()
+                FleetOrder.objects.create(**data)
         except KeyError:
             bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"), text=f"{orders}")
 
@@ -377,7 +374,8 @@ class UklonRequest(Fleet, Synchronizer):
                            data=json.dumps(payload),
                            method=method)
 
-        FleetsDriversVehiclesRate.objects.filter(driver_external_id=driver_id).update(pay_cash=enable)
+        result = FleetsDriversVehiclesRate.objects.filter(driver_external_id=driver_id).update(pay_cash=enable)
+        return result
 
     def withdraw_money(self):
         base_url = f"{Service.get_value('UKLON_1')}{self.uklon_id()}"

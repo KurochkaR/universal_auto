@@ -358,8 +358,8 @@ class PaymentsStatus(models.TextChoices):
 
 
 class Earnings(PolymorphicModel):
-    report_from = models.DateField(verbose_name="Дохід з")
-    report_to = models.DateField(verbose_name="Дохід по")
+    report_from = models.DateTimeField(verbose_name="Дохід з")
+    report_to = models.DateTimeField(verbose_name="Дохід по")
     earning = models.DecimalField(decimal_places=2, max_digits=10, verbose_name='Сума доходу')
     status = models.CharField(max_length=20, choices=PaymentsStatus.choices, default=PaymentsStatus.CHECKING)
     partner = models.ForeignKey(Partner, on_delete=models.CASCADE, verbose_name='Партнер')
@@ -375,6 +375,8 @@ class DriverPayments(Earnings):
     driver = models.ForeignKey(Driver, on_delete=models.CASCADE, verbose_name="Водій")
     kasa = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Заробіток за період')
     cash = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Готівка')
+    payment_type = models.CharField(max_length=20, default=SalaryCalculation.WEEK, choices=SalaryCalculation.choices,
+                                    verbose_name='Тип платежу')
     rent_distance = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Орендована дистанція')
     rent_price = models.IntegerField(default=6, verbose_name='Ціна оренди')
     rent = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Оренда авто')
@@ -388,10 +390,13 @@ class DriverPayments(Earnings):
         self.save(update_fields=['status'])
 
     def get_bonuses(self):
-        return self.bonus_set.aggregate(Sum('amount'))['amount__sum'] or 0
+        return self.penaltybonus_set.filter(bonus__isnull=False).aggregate(Sum('amount'))['amount__sum'] or 0
 
     def get_penalties(self):
-        return self.penalty_set.aggregate(Sum('amount'))['amount__sum'] or 0
+        return self.penaltybonus_set.filter(penalty__isnull=False).aggregate(Sum('amount'))['amount__sum'] or 0
+
+    def is_weekly(self):
+        return True if self.payment_type == SalaryCalculation.WEEK else False
 
     def __str__(self):
         return f"{self.driver}"
@@ -400,7 +405,10 @@ class DriverPayments(Earnings):
 class PenaltyBonus(PolymorphicModel):
     amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Сума')
     description = models.CharField(max_length=255, null=True, verbose_name='Опис')
+
     driver = models.ForeignKey(Driver, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Водій')
+    driver_payments = models.ForeignKey(DriverPayments, null=True, blank=True, verbose_name='Виплата водію',
+                                        on_delete=models.CASCADE)
 
     class Meta:
         verbose_name = 'Штраф/Бонус'
@@ -416,13 +424,11 @@ class PenaltyBonus(PolymorphicModel):
 
 
 class Penalty(PenaltyBonus):
-    driver_payments = models.ForeignKey(DriverPayments, null=True, blank=True, verbose_name='Виплата водію',
-                                        on_delete=models.CASCADE)
+    pass
 
 
 class Bonus(PenaltyBonus):
-    driver_payments = models.ForeignKey(DriverPayments, null=True, blank=True, verbose_name='Виплата водію',
-                                        on_delete=models.CASCADE)
+    pass
 
 
 class InvestorPayments(Earnings):
@@ -802,7 +808,6 @@ class FleetOrder(models.Model):
 
     order_id = models.CharField(max_length=50, verbose_name='Ідентифікатор замовлення')
     fleet = models.CharField(max_length=20, verbose_name='Агрегатор замовлення')
-    driver = models.ForeignKey(Driver, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Водій')
     from_address = models.CharField(max_length=255, null=True, verbose_name='Місце посадки')
     destination = models.CharField(max_length=255, blank=True, null=True, verbose_name='Місце висадки')
     accepted_time = models.DateTimeField(blank=True, null=True, verbose_name='Час прийняття замовлення')
@@ -813,8 +818,10 @@ class FleetOrder(models.Model):
     payment = models.CharField(max_length=25, choices=PaymentTypes.choices, null=True, verbose_name="Тип оплати")
     price = models.IntegerField(null=True, verbose_name="Вартість")
     tips = models.IntegerField(null=True, verbose_name="Чайові")
-    vehicle = models.ForeignKey(Vehicle, on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Автомобіль')
     created_at = models.DateTimeField(editable=False, auto_now_add=True, verbose_name='Cтворено')
+
+    driver = models.ForeignKey(Driver, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Водій')
+    vehicle = models.ForeignKey(Vehicle, on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Автомобіль')
     partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
 
     class Meta:
@@ -950,13 +957,14 @@ def admin_image_preview(image):
 class CarEfficiency(models.Model):
     report_from = models.DateTimeField(verbose_name='Звіт з')
     report_to = models.DateTimeField(null=True, verbose_name='Звіт по')
-    drivers = models.ManyToManyField(Driver, through="DriverEffVehicleKasa", verbose_name='Водії', db_index=True)
-    vehicle = models.ForeignKey(Vehicle, null=True, on_delete=models.CASCADE, verbose_name='Автомобіль', db_index=True)
     total_kasa = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Каса')
     clean_kasa = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Чистий дохід')
     total_spending = models.DecimalField(null=True, decimal_places=2, max_digits=10, default=0, verbose_name='Витрати')
     mileage = models.DecimalField(decimal_places=2, max_digits=6, default=0, verbose_name='Пробіг, км')
     efficiency = models.DecimalField(decimal_places=2, max_digits=4, default=0, verbose_name='Ефективність, грн/км')
+
+    drivers = models.ManyToManyField(Driver, through="DriverEffVehicleKasa", verbose_name='Водії', db_index=True)
+    vehicle = models.ForeignKey(Vehicle, null=True, on_delete=models.CASCADE, verbose_name='Автомобіль', db_index=True)
     partner = models.ForeignKey(Partner, null=True, on_delete=models.SET_NULL, verbose_name='Партнер')
 
     class Meta:
@@ -968,16 +976,15 @@ class CarEfficiency(models.Model):
 
 
 class DriverEffVehicleKasa(models.Model):
+    kasa = models.DecimalField(max_digits=10, decimal_places=2)
+
     driver = models.ForeignKey(Driver, on_delete=models.CASCADE)
     efficiency_car = models.ForeignKey(CarEfficiency, on_delete=models.CASCADE)
-    kasa = models.DecimalField(max_digits=10, decimal_places=2)
 
 
 class DriverEfficiencyPolymorphic(PolymorphicModel):
     report_from = models.DateTimeField(verbose_name='Звіт з')
     report_to = models.DateTimeField(null=True, verbose_name='Звіт по')
-    driver = models.ForeignKey(Driver, null=True, on_delete=models.SET_NULL, verbose_name='Водій', db_index=True)
-    vehicles = models.ManyToManyField(Vehicle, verbose_name="Автомобілі", db_index=True)
     total_kasa = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Каса')
     total_orders = models.IntegerField(default=0, verbose_name="Замовлень за день")
     accept_percent = models.IntegerField(default=0, verbose_name="Відсоток прийнятих замовлень")
@@ -985,8 +992,10 @@ class DriverEfficiencyPolymorphic(PolymorphicModel):
     mileage = models.DecimalField(decimal_places=2, max_digits=6, default=0, verbose_name='Пробіг, км')
     efficiency = models.DecimalField(decimal_places=2, max_digits=6, default=0, verbose_name='Ефективність, грн/км')
     road_time = models.DurationField(null=True, blank=True, verbose_name='Час в дорозі')
-    online_time = models.DurationField(null=True, blank=True, verbose_name='Час онлайн')
+
     partner = models.ForeignKey(Partner, null=True, on_delete=models.CASCADE, verbose_name='Партнер')
+    driver = models.ForeignKey(Driver, null=True, on_delete=models.SET_NULL, verbose_name='Водій', db_index=True)
+    vehicles = models.ManyToManyField(Vehicle, verbose_name="Автомобілі", db_index=True)
 
     def __str__(self):
         return f"{self.driver}"
@@ -1010,9 +1019,10 @@ class UseOfCars(models.Model):
     user_vehicle = models.CharField(max_length=255, verbose_name='Користувач автомобіля')
     chat_id = models.CharField(blank=True, max_length=10, verbose_name='Ідентифікатор чата')
     licence_plate = models.CharField(max_length=24, verbose_name='Номерний знак')
-    partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='Дата використання авто')
     end_at = models.DateTimeField(null=True, blank=True, verbose_name='Кінець використання авто')
+
+    partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
 
     class Meta:
         verbose_name = 'Користувача автомобіля'
@@ -1026,6 +1036,7 @@ class ParkSettings(models.Model):
     key = models.CharField(max_length=255, verbose_name='Ключ')
     value = models.CharField(max_length=255, verbose_name='Значення')
     description = models.CharField(max_length=255, null=True, verbose_name='Опиc')
+
     partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
 
     class Meta:
@@ -1047,6 +1058,7 @@ class ParkSettings(models.Model):
 class CredentialPartner(models.Model):
     key = models.CharField(max_length=255, verbose_name='Ключ')
     value = models.BinaryField(verbose_name='Значення')
+
     partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
 
     @staticmethod
@@ -1106,6 +1118,7 @@ class UberSession(models.Model):
     cook_session = models.CharField(max_length=255, verbose_name='Ідентифікатор cookie')
     uber_uuid = models.UUIDField(verbose_name="Код автопарку Uber")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='Створено')
+
     partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
 
 

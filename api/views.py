@@ -6,7 +6,7 @@ from itertools import groupby
 from operator import itemgetter
 
 from django.db.models import Sum, F, OuterRef, Subquery, DecimalField, Avg, Value, CharField, ExpressionWrapper, Case, \
-    When, Func, FloatField, Exists
+    When, Func, FloatField, Exists, Prefetch, Q
 from django.db.models.functions import Concat, Round, Coalesce, TruncTime
 from rest_framework import generics
 from rest_framework.response import Response
@@ -15,7 +15,7 @@ from api.mixins import CombinedPermissionsMixin, ManagerFilterMixin, InvestorFil
 from api.serializers import SummaryReportSerializer, CarEfficiencySerializer, CarDetailSerializer, \
     DriverEfficiencyRentSerializer, InvestorCarsSerializer, ReshuffleSerializer, DriverPaymentsSerializer
 from app.models import SummaryReport, CarEfficiency, Vehicle, DriverEfficiency, RentInformation, DriverReshuffle, \
-    PartnerEarnings, InvestorPayments, DriverPayments, PaymentsStatus, DriverEfficiencyFleet
+    PartnerEarnings, InvestorPayments, DriverPayments, PaymentsStatus, PenaltyBonus, Penalty, Bonus, DriverEfficiencyFleet
 from taxi_service.utils import get_start_end
 
 
@@ -289,18 +289,24 @@ class DriverPaymentsListView(CombinedPermissionsMixin, generics.ListAPIView):
 
     def get_queryset(self):
         qs = ManagerFilterMixin.get_queryset(DriverPayments, self.request.user)
-
         period = self.kwargs.get('period')
 
         if not period:
-            queryset = (qs.select_related('driver__user_ptr').filter(
-                status__in=[PaymentsStatus.CHECKING, PaymentsStatus.PENDING],
-            )).order_by('report_to', 'driver')
+            queryset = qs.filter(
+                status__in=[PaymentsStatus.CHECKING, PaymentsStatus.PENDING],).order_by('report_to', 'driver')
         else:
             start, end, format_start, format_end = get_start_end(period)
-            queryset = (qs.select_related('driver__user_ptr').filter(
-                report_to__range=(start, end),
-                status__in=[PaymentsStatus.COMPLETED, PaymentsStatus.FAILED],
-            )).order_by('report_to', 'driver')
-
+            queryset = qs.filter(report_to__range=(start, end),
+                                 status__in=[PaymentsStatus.COMPLETED, PaymentsStatus.FAILED],
+                                 ).order_by('report_to', 'driver')
+        queryset = queryset.select_related('driver__user_ptr').prefetch_related(
+            Prefetch('penaltybonus_set', queryset=PenaltyBonus.objects.all(),
+                     to_attr='prefetched_penaltybonuses')).annotate(
+            full_name=Concat(
+                F("driver__user_ptr__name"),
+                Value(" "),
+                F("driver__user_ptr__second_name")),
+            bonuses=Coalesce(Sum('penaltybonus__amount', filter=Q(penaltybonus__bonus__isnull=False)), Decimal(0)),
+            penalties=Coalesce(Sum('penaltybonus__amount', filter=Q(penaltybonus__penalty__isnull=False)), Decimal(0)),
+        )
         return queryset

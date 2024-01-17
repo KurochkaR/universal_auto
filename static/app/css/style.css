@@ -910,9 +910,12 @@ label[for="showPassword"] {
 /*BLOCK-1*/
 
 .one_section .container {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
+	display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.left_images, .right_content {
+	width: 100%;
 }
 
 .left_images {
@@ -921,15 +924,37 @@ label[for="showPassword"] {
 
 .left_images .one-background-img {
 	position: relative;
-	left: 215px;
-	width: 36%;
+	top: 40px;
+	left: 0px;
 	z-index: -1;
+}
+
+.left_images .one-background-img img {
+	width: 100%;
 }
 
 .left_images .overlay-image {
 	position: relative;
 	left: 5px;
 	margin-top: -146px;
+}
+
+.right_content {
+	position: relative;
+	width: 100%;
+}
+
+.right_content::before {
+	margin-right: -150px;
+	content: "";
+	background-image: url("/static/app/images/index-one-block-3.webp");
+	background-size: cover;
+	position: absolute;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	left: 0;
+	z-index: -1;
 }
 
 .right_content .decorate-img {
@@ -946,8 +971,8 @@ label[for="showPassword"] {
 	position: relative;
 	padding: 10px;
 	z-index: 1022;
-	margin-top: -435px;
-	right: -125px;
+	margin-top: 150px;
+	right: -85px;
 }
 
 .right_content .one-info h2 {
@@ -1007,18 +1032,37 @@ label[for="showPassword"] {
 	line-height: normal;
 }
 
+.one_section .contact-me-btn button {
+	margin-left: 35%;
+	margin-top: 10px;
+	width: 50%;
+	background-color: #EC6323;
+	color: #fff;
+	padding: 15px 0;
+	border: none;
+	border-radius: 20px;
+	font-size: 16px;
+	text-decoration: none;
+	cursor: pointer;
+	font-style: normal;
+	font-weight: 700;
+	line-height: normal;
+	z-index: 1000;
+}
+
 /*END BLOCK-1*/
 
 /*BLOCK-2 about*/
 
 .about_section {
+	padding: 20px;
 	margin-top: 100px;
 }
 
 .heading_container h2 {
 	position: relative;
 	margin-top: 10px;
-	color: #141E17;
+	color: #FFFFFF;
 	font-size: 32px;
 	font-style: normal;
 	font-weight: 600;
@@ -1029,8 +1073,8 @@ label[for="showPassword"] {
 
 .about-section {
 	position: relative;
-	color: #53785E;
-	font-size: 23px;
+	color: #FFFFFF;
+	font-size: 25px;
 	font-style: normal;
 	font-weight: 400;
 	line-height: normal;
@@ -1047,8 +1091,10 @@ label[for="showPassword"] {
 }
 
 
-.img-box img {
-	margin-top: 60px;
+.about_section .container .img-box img {
+	width: 100% !important;
+	height: auto;
+	margin-top: 40%;
 }
 
 .detail-box .telegram-button {
@@ -1059,7 +1105,56 @@ label[for="showPassword"] {
 
 /*END BLOCK-2 about*/
 
-/*BLOCK-3 services*/
+
+/*BLOCK-3 refueling*/
+
+.refueling_section {
+	margin-top: 100px;
+}
+
+.refueling_section .container {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+
+.refueling-section .heading_container h2 {
+	position: relative;
+	margin-top: 10px;
+	color: #141E17;
+	font-size: 32px;
+	font-style: normal;
+	font-weight: 600;
+	line-height: normal;
+	text-transform: uppercase;
+	z-index: 2;
+}
+
+.refueling-section .row {
+	margin-top: 24px;
+	margin-left: 0;
+}
+
+.refueling-section .detail-box {
+	margin-top: 50%;
+}
+
+.refueling-section .about-section {
+	color: #53785E;
+	font-size: 25px;
+	font-style: normal;
+	font-weight: 400;
+	line-height: normal;
+}
+
+.refueling-section .img-box img {
+	margin-left: 20%;
+	margin-top: 0;
+}
+
+
+
+/*BLOCK-4 services*/
 
 .services {
 	margin-top: 60px;
@@ -1154,9 +1249,9 @@ label[for="showPassword"] {
 	line-height: normal;
 }
 
-/*END BLOCK-3 services*/
+/*END BLOCK-4 services*/
 
-/*BLOCK-4 app*/
+/*BLOCK-5 app*/
 
 .app_section {
 	height: 725px;
@@ -1274,13 +1369,12 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	line-height: normal;
 }
 
-/*END BLOCK-4 app*/
+/*END BLOCK-5 app*/
 
 
-/*BLOCK-5 investment*/
+/*BLOCK-6 investment*/
 
 .investment-section-index {
-	margin-top: -105px;
 	padding-top: 20px;
 }
 
@@ -1350,9 +1444,9 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	line-height: normal;
 }
 
-/*END BLOCK-5 investment*/
+/*END BLOCK-6 investment*/
 
-/*BLOCK-6 automation*/
+/*BLOCK-7 automation*/
 
 .automation-section-index {
 	margin-top: 100px;
@@ -1404,9 +1498,14 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	z-index: -1;
 }
 
-/*END BLOCK-6 automation*/
+.common-background {
+	background-size: 100% 85%;
+	background-repeat: no-repeat;
+}
 
-/*BLOCK-7 blog*/
+/*END BLOCK-7 automation*/
+
+/*BLOCK-8 blog*/
 
 .blog-selection {
 	margin-top: 80px;
@@ -1480,10 +1579,10 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	line-height: normal;
 }
 
-/*END BLOCK-7 blog*/
+/*END BLOCK-8 blog*/
 
 
-/*BLOCK-8 client*/
+/*BLOCK-9 client*/
 
 .client_section {
 	margin-top: 80px;
@@ -1591,7 +1690,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	left: -160px;
 }
 
-/*END BLOCK-8 client*/
+/*END BLOCK-9 client*/
 
 /*adaptive for phone vertical*/
 
@@ -1602,11 +1701,12 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	}
 
 	.left_images .one-background-img {
-		margin-top: 75px;
-		position: relative;
-		left: 130px;
-		width: 36%;
-		z-index: -1;
+		margin-top: 20px;
+    width: 100%;
+    position: relative;
+    left: 0;
+    z-index: -1;
+    top: 0px;
 	}
 
 	.left_images .one-background-img img {
@@ -1675,7 +1775,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 
 	/*block 2*/
 	.about_section {
-		margin-top: 30px;
+		margin-top: 110px;
 		flex-direction: column;
 	}
 
@@ -1702,7 +1802,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	.img-box img {
 		width: 100% !important;
 		height: auto;
-		margin-top: 30px;
+		margin-top: 30px !important;
 	}
 
 	.row {
@@ -1734,6 +1834,56 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	}
 
 	/*block 3*/
+	.refueling_section {
+		margin-top: 60px;
+		flex-direction: column;
+	}
+
+	.refueling_section .container {
+		flex-direction: column;
+	}
+
+	.refueling-section .heading_container h2 {
+		text-align: center;
+		font-size: 20px;
+	}
+
+	.refueling-section .row {
+		display: flex;
+		flex-direction: column;
+	}
+
+	.refueling-section .detail-box {
+		margin-top: 0;
+	}
+
+	.refueling-section .about-section {
+		font-size: 15px;
+	}
+
+	.refueling-section .img-box img {
+		width: 100% !important;
+		height: auto;
+		margin-top: 30px;
+		margin-left: 0;
+	}
+
+	.refueling-section .telegram-button button {
+		width: 100%;
+		background-color: #EC6323;
+		color: #fff;
+		padding: 5px 0;
+		border: none;
+		border-radius: 25px;
+		font-size: 15px;
+		text-decoration: none;
+		cursor: pointer;
+		font-style: normal;
+		font-weight: 700;
+		line-height: normal;
+	}
+
+	/*block 4*/
 	.services {
 		margin-top: 30px;
 		display: flex;
@@ -1784,7 +1934,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 		display: none;
 	}
 
-	/*block 4*/
+	/*block 5*/
 	.app_section {
 		display: flex;
 		flex-direction: column;
@@ -1882,7 +2032,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 		line-height: normal;
 	}
 
-	/*block 5*/
+	/*block 6*/
 	.investment-section-index {
 		margin-top: 30px;
 		height: auto;
@@ -1939,7 +2089,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 		line-height: normal;
 	}
 
-	/*block 6*/
+	/*block 7*/
 	.automation-section-index {
 		margin-top: 30px;
 		height: auto;
@@ -1980,7 +2130,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 		text-align: center;
 	}
 
-	/*block 7*/
+	/*block 8*/
 	.blog-selection {
 		margin-top: 30px;
 	}
@@ -2016,7 +2166,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 		text-align: center;
 	}
 
-	/*block 8*/
+	/*block 9*/
 	.client_section {
 		margin-top: 30px;
 		height: auto;
@@ -3127,7 +3277,8 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 
 .free-access-section,
 .to-consult-section,
-.to-connect-section {
+.to-connect-section,
+.contact-me-section {
 	display: none;
 	background-color: #A1E8B9;
 	padding: 20px;
@@ -3139,11 +3290,13 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	border-radius: 62px;
 	width: 1070px;
 	height: 515px;
+	z-index: 99999;
 }
 
 .free-access-section h2,
 .to-consult-section h2,
-.to-connect-section h2 {
+.to-connect-section h2,
+.contact-me-section h2 {
 	margin-top: 55px;
 	color: #EC6323;
 	text-align: center;
@@ -3156,7 +3309,8 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 
 .free-access-section p,
 .to-consult-section p,
-.to-connect-section p {
+.to-connect-section p,
+.contact-me-section p {
 	margin-top: 15px;
 	color: #38423B;
 	text-align: center;
@@ -3171,7 +3325,9 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 .to-consult-section input[type="text"],
 .to-consult-section input[type="tel"],
 .to-connect-section input[type="text"],
-.to-connect-section input[type="tel"] {
+.to-connect-section input[type="tel"],
+.contact-me-section input[type="text"],
+.contact-me-section input[type="tel"]{
 	margin-top: 15px;
 	width: 70%;
 	padding: 25px 20px;
@@ -3181,7 +3337,8 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 
 .free-access-section input[type="submit"],
 .to-consult-section input[type="submit"],
-.to-connect-section input[type="submit"] {
+.to-connect-section input[type="submit"],
+.contact-me-section input[type="submit"]{
 	margin-top: 24px;
 	background-color: #EC6323;
 	color: #fff;
@@ -3194,11 +3351,15 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 
 .free-access-section input[type="submit"]:hover,
 .to-consult-section input[type="submit"]:hover,
-.to-connect-section input[type="submit"]:hover {
+.to-connect-section input[type="submit"]:hover,
+.contact-me-section input[type="submit"]:hover {
 	background-color: #FF8C24;
 }
 
-.free-access-section .close-button {
+.free-access-section .close-button,
+.to-consult-section .close-button,
+.to-connect-section .close-button,
+.contact-me-section .close-button {
 	position: absolute;
 	top: 10px;
 	right: 20px;
@@ -3233,6 +3394,7 @@ span.error-name {
 	border-radius: 62px;
 	width: 940px;
 	height: 650px;
+	z-index: 99999;
 }
 
 .existing-you-message {
@@ -3771,7 +3933,8 @@ span.error-name {
 
 	/*Form styles adaptive*/
 
-	.free-access-section {
+	.free-access-section,
+	.contact-me-section {
 		display: none;
 		background-color: #A1E8B9;
     padding: 20px;
@@ -3786,7 +3949,8 @@ span.error-name {
     z-index: 9999;
 	}
 
-	.free-access-section h2 {
+	.free-access-section h2,
+	.contact-me-section h2 {
 		margin-top: 55px;
 		color: #EC6323;
 		text-align: center;
@@ -3797,7 +3961,8 @@ span.error-name {
 		text-transform: uppercase;
 	}
 
-	.free-access-section p {
+	.free-access-section p,
+	.contact-me-section p {
 		margin-top: 15px;
 		color: #38423B;
 		text-align: center;
@@ -3808,7 +3973,9 @@ span.error-name {
 	}
 
 	.free-access-section input[type="text"],
-	.free-access-section input[type="tel"] {
+	.free-access-section input[type="tel"],
+	.contact-me-section input[type="text"],
+	.contact-me-section input[type="tel"] {
 		font-size: 15px;
 		margin-top: 0;
 		width: 100%;
@@ -3817,7 +3984,8 @@ span.error-name {
 		border-radius: 25px;
 	}
 
-	.free-access-section input[type="submit"] {
+	.free-access-section input[type="submit"],
+	.contact-me-section input[type="submit"] {
 		width: 100%;
 		font-size: 12px;
 		margin-top: 0;
@@ -3830,11 +3998,12 @@ span.error-name {
 		border-radius: 62px;
 	}
 
-	.free-access-section input[type="submit"]:hover {
+	.free-access-section input[type="submit"]:hover,
+	.contact-me-section input[type="submit"]:hover {
 		background-color: #FF8C24;
 	}
 
-	.free-access-section .close-button {
+	.free-access-section .close-button,{
 		position: absolute;
 		top: 10px;
 		right: 20px;
@@ -4910,6 +5079,10 @@ span.error-name {
 	bottom: 205px;
 }
 
+.investment-in-numbers-section .container .img-box img{
+	margin-top: 5%;
+}
+
 .investment-in-numbers-section .container .img-box .img-phone {
 	display: none;
 }
@@ -4986,6 +5159,10 @@ span.error-name {
 
 .investment-park-slider .img-box .slid-img-laptop {
 	width: 100%;
+}
+
+.investment-park-slider .img-box img {
+	margin-top: 5%;
 }
 
 .investment-park-slider .img-box .slid-img-phone {

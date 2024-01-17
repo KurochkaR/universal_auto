@@ -67,7 +67,7 @@ class VehiclesEfficiencySerializer(serializers.Serializer):
 
 
 class CarEfficiencySerializer(serializers.Serializer):
-    dates = serializers.ListField(child=serializers.DateField())
+    dates = serializers.ListField(child=serializers.DateTimeField())
     vehicles = VehiclesEfficiencySerializer(many=True)
     total_mileage = serializers.DecimalField(max_digits=10, decimal_places=2)
     average_efficiency = serializers.DecimalField(max_digits=10, decimal_places=2)
@@ -119,27 +119,41 @@ class ReshuffleSerializer(serializers.Serializer):
     reshuffles = DriverChangesSerializer(many=True)
 
 
-class DriverPaymentsSerializer(serializers.ModelSerializer):
-    full_name = serializers.SerializerMethodField()
-    status = serializers.SerializerMethodField()
-    report_from = serializers.DateField(format='%d.%m.%Y')
-    report_to = serializers.DateField(format='%d.%m.%Y')
-    bonuses = serializers.SerializerMethodField()
-    penalties = serializers.SerializerMethodField()
+class BonusSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Bonus
+        fields = ('id', 'amount', 'description', 'driver')
 
-    def get_full_name(self, obj):
-        return f"{obj.driver.user_ptr.name} {obj.driver.user_ptr.second_name}"
+
+class PenaltySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Penalty
+        fields = ('id', 'amount', 'description', 'driver')
+
+
+class DriverPaymentsSerializer(serializers.ModelSerializer):
+    full_name = serializers.CharField()
+    status = serializers.SerializerMethodField()
+    report_from = serializers.DateTimeField(format='%d.%m.%Y %H:%M')
+    report_to = serializers.DateTimeField(format='%d.%m.%Y %H:%M')
+    bonuses = serializers.DecimalField(max_digits=10, decimal_places=2)
+    penalties = serializers.DecimalField(max_digits=10, decimal_places=2)
+    bonuses_list = serializers.SerializerMethodField()
+    penalties_list = serializers.SerializerMethodField()
+
+    def get_bonuses_list(self, obj):
+        bonuses = [pb for pb in obj.prefetched_penaltybonuses if isinstance(pb, Bonus)]
+        return BonusSerializer(bonuses, many=True).data
+
+    def get_penalties_list(self, obj):
+        penalties = [pb for pb in obj.prefetched_penaltybonuses if isinstance(pb, Penalty)]
+        return PenaltySerializer(penalties, many=True).data
 
     def get_status(self, obj):
         return obj.get_status_display()
 
-    def get_bonuses(self, obj):
-        return obj.get_bonuses()
-
-    def get_penalties(self, obj):
-        return obj.get_penalties()
 
     class Meta:
         model = DriverPayments
         fields = ('full_name', 'kasa', 'cash', 'rent', 'earning', 'status', 'report_from',
-                  'report_to', 'id', 'bonuses', 'penalties')
+                  'report_to', 'id', 'bonuses', 'penalties', 'bonuses_list', 'penalties_list')

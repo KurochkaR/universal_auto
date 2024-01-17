@@ -107,7 +107,7 @@ def remove_cash_by_manager(update, context):
 def get_drivers_from_fleets(update, context):
     query = update.callback_query
     manager = Manager.get_by_chat_id(query.from_user.id)
-    partner_id = manager.managers_partner if manager else Partner.get_by_chat_id(query.from_user.id).pk
+    partner_id = manager.managers_partner_id if manager else Partner.get_by_chat_id(query.from_user.id).pk
     update_driver_data.delay(partner_id, query.from_user.id)
     query.edit_message_text(get_drivers_text)
 
@@ -186,8 +186,11 @@ def create_driver_eff(update, context):
                 message += f"{k}\n" + "".join(v) + "\n"
         else:
             message += no_drivers_report_text
-        bot.edit_message_text(chat_id=update.effective_chat.id, text=message,
-                              message_id=msg.message_id, reply_markup=inline_manager_kb())
+        try:
+            bot.edit_message_text(chat_id=update.effective_chat.id, text=message,
+                                  message_id=msg.message_id, reply_markup=inline_manager_kb())
+        except BadRequest:
+            send_long_message(update.effective_chat.id, message, inline_manager_kb())
     else:
         redis_instance().hset(str(update.effective_chat.id), 'state', END_DRIVER_EFF)
         context.bot.send_message(chat_id=update.message.chat_id, text=invalid_end_data_text)
@@ -198,8 +201,12 @@ def get_weekly_report(update, context):
     query.edit_message_text(generate_text)
     daily = True if query.data == "Daily_payment" else False
     messages = generate_message_report(query.from_user.id, daily=daily)
-    owner_message = messages.get(str(query.from_user.id))
-    query.edit_message_text(owner_message)
+    try:
+        owner_message = messages.get(str(query.from_user.id))
+        query.edit_message_text(owner_message)
+    except BadRequest as e:
+        if "Message text is empty" in str(e):
+            query.edit_message_text(no_drivers_report_text)
     query.edit_message_reply_markup(back_to_main_menu())
 
 

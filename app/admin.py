@@ -4,12 +4,12 @@ from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from django.shortcuts import redirect
-from django.db.models import Q
+from django.db.models import Q, Prefetch
 from polymorphic.admin import PolymorphicParentModelAdmin
 from scripts.google_calendar import GoogleCalendar
 from .filters import VehicleEfficiencyUserFilter, DriverEfficiencyUserFilter, RentInformationUserFilter, \
-    TransactionInvestorUserFilter, ReportUserFilter, VehicleManagerFilter, SummaryReportUserFilter,\
-    FleetRelatedFilter, ChildModelFilter
+    TransactionInvestorUserFilter, ReportUserFilter, VehicleManagerFilter, SummaryReportUserFilter, \
+    FleetRelatedFilter, ChildModelFilter, PartnerPaymentFilter
 from .models import *
 
 
@@ -432,6 +432,17 @@ class TransactionsConversationAdmin(admin.ModelAdmin):
             display.append('partner')
         return display
 
+@admin.register(PartnerEarnings)
+class PartnerEarningsAdmin(admin.ModelAdmin):
+    list_filter = (PartnerPaymentFilter, )
+
+    def get_list_display(self, request):
+        display = ['report_from', 'report_to', 'vehicle', 'earning',
+                   ]
+        if request.user.is_superuser:
+            display.append('partner')
+        return display
+
 
 @admin.register(CarEfficiency)
 class CarEfficiencyAdmin(admin.ModelAdmin):
@@ -601,11 +612,29 @@ class PaymentsOrderAdmin(BaseReportAdmin):
         base_list_display = super().get_list_display(request)
         return base_list_display + ['vendor']
 
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if request.user.is_partner():
+            qs.filter(partner=request.user).select_related('partner', 'driver')
+        if request.user.is_manager():
+            manager_drivers = Driver.objects.filter(manager=request.user)
+            qs.filter(driver__in=manager_drivers).select_related('partner', 'driver')
+        return qs
+
 
 @admin.register(SummaryReport)
 class SummaryReportAdmin(BaseReportAdmin):
     list_filter = (SummaryReportUserFilter,)
     ordering = ('-report_from', 'driver')
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if request.user.is_partner():
+            return qs.filter(partner=request.user).select_related('partner', 'driver')
+        if request.user.is_manager():
+            manager_drivers = Driver.objects.filter(manager=request.user)
+            return qs.filter(driver__in=manager_drivers).select_related('partner', 'driver')
+        return qs
 
 
 @admin.register(Partner)
@@ -760,7 +789,7 @@ class ManagerAdmin(admin.ModelAdmin):
 
     def formfield_for_manytomany(self, db_field, request, **kwargs):
         if db_field.name == 'driver_id':
-            kwargs['queryset'] = Driver.objects.filter(partner=request.user)
+            kwargs['queryset'] = Driver.objects.filter(partner=request.user).only('first_name', 'last_name')
 
         return super().formfield_for_manytomany(db_field, request, **kwargs)
 
@@ -776,16 +805,22 @@ class DriverAdmin(SoftDeleteAdmin):
     search_fields = ('name', 'second_name')
     ordering = ('name', 'second_name')
     list_display_links = ('name', 'second_name')
-    list_per_page = 25
+    list_per_page = 10
     readonly_fields = ('name', 'second_name', 'email', 'phone_number', 'driver_status')
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         if request.user.is_partner():
-            return qs.filter(partner=request.user).select_related('schema', 'manager')
-        if request.user.is_manager():
-            return qs.filter(manager=request.user).select_related('schema')
+            qs = qs.prefetch_related(
+                Prefetch('schema', queryset=Schema.objects.filter(partner=request.user)),
+                Prefetch('manager', queryset=Manager.objects.filter(managers_partner=request.user))
+            ).filter(partner=request.user)
+        elif request.user.is_manager():
+            qs = qs.prefetch_related(
+                Prefetch('schema', queryset=Schema.objects.filter(partner=request.user))
+            )
         return qs
+
     def get_list_editable(self, request):
         if request.user.is_partner():
             return ['schema', 'manager']
@@ -851,14 +886,15 @@ class DriverAdmin(SoftDeleteAdmin):
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if request.user.is_partner():
             if db_field.name == 'schema':
-                kwargs['queryset'] = db_field.related_model.objects.filter(partner=request.user)
+                kwargs['queryset'] = db_field.related_model.objects.filter(partner=request.user).only('title')
             if db_field.name == 'manager':
-                kwargs['queryset'] = db_field.related_model.objects.filter(managers_partner=request.user)
+                kwargs['queryset'] = db_field.related_model.objects.filter(
+                    managers_partner=request.user).only('first_name', 'last_name')
         if request.user.is_manager():
             if db_field.name == 'schema':
                 manager = Manager.objects.get(pk=request.user.pk)
                 kwargs['queryset'] = db_field.related_model.objects.filter(
-                    partner=manager.managers_partner_pk).select_related('partner')
+                    partner=manager.managers_partner_pk).only('title')
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
     def save_model(self, request, obj, form, change):
@@ -993,20 +1029,20 @@ class VehicleAdmin(admin.ModelAdmin):
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         filter_mapping = {
-            'investor_car': 'investors_partner',
-            'manager': 'managers_partner',
-            'gps': 'partner',
+            'investor_car': ('investors_partner', ('first_name', 'last_name')),
+            'manager': ('managers_partner', ('first_name', 'last_name')),
+            'gps': ('partner', ('name',))
         }
         if request.user.is_partner():
             related_field_name = filter_mapping.get(db_field.name)
             if related_field_name:
-                filter_param = {related_field_name: request.user}
+                filter_param = {related_field_name[0]: request.user}
                 kwargs['queryset'] = db_field.related_model.objects.filter(
-                    **filter_param).select_related(related_field_name)
+                    **filter_param).only(*related_field_name[1])
         elif request.user.is_manager():
             if db_field.name == 'gps':
                 manager = Manager.objects.get(pk=request.user.pk)
-                kwargs['queryset'] = db_field.related_model.objects.filter(partner=manager.managers_partner.pk).select_related('partner')
+                kwargs['queryset'] = db_field.related_model.objects.filter(partner=manager.managers_partner.pk).only('name')
 
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
@@ -1138,10 +1174,10 @@ class FleetsDriversVehiclesRateAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         if request.user.is_partner():
-            return qs.filter(partner=request.user)
+            return qs.filter(partner=request.user).select_related('fleet')
         elif request.user.is_manager():
             manager = Manager.objects.get(pk=request.user.pk)
-            return qs.filter(partner=manager.managers_partner)
+            return qs.filter(partner=manager.managers_partner).select_related('fleet')
         return qs
 
 
