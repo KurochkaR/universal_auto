@@ -5,9 +5,8 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('app', '0074_driverefficiencypolymorphic_and_more'),
+        ('app', '0076_driverefficiencypolymorphic_and_more'),
     ]
 
     operations = [
@@ -34,10 +33,6 @@ class Migration(migrations.Migration):
         migrations.RemoveField(
             model_name='driverefficiency',
             name='mileage',
-        ),
-        migrations.RemoveField(
-            model_name='driverefficiency',
-            name='online_time',
         ),
         migrations.RemoveField(
             model_name='driverefficiency',
@@ -70,6 +65,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='driverefficiency',
             name='driverefficiencypolymorphic_ptr',
-            field=models.OneToOneField(auto_created=True, on_delete=django.db.models.deletion.CASCADE, parent_link=True, primary_key=True, serialize=False, to='app.driverefficiencypolymorphic'),
+            field=models.OneToOneField(auto_created=True, on_delete=django.db.models.deletion.CASCADE, parent_link=True,
+                                       primary_key=True, serialize=False, to='app.driverefficiencypolymorphic'),
         ),
     ]

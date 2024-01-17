@@ -5,6 +5,7 @@ from _decimal import Decimal
 from itertools import groupby
 from operator import itemgetter
 
+from django.contrib.postgres.aggregates import ArrayAgg
 from django.db.models import Sum, F, OuterRef, Subquery, DecimalField, Avg, Value, CharField, ExpressionWrapper, Case, \
     When, Func, FloatField, Exists, Prefetch, Q
 from django.db.models.functions import Concat, Round, Coalesce, TruncTime
@@ -15,7 +16,8 @@ from api.mixins import CombinedPermissionsMixin, ManagerFilterMixin, InvestorFil
 from api.serializers import SummaryReportSerializer, CarEfficiencySerializer, CarDetailSerializer, \
     DriverEfficiencyRentSerializer, InvestorCarsSerializer, ReshuffleSerializer, DriverPaymentsSerializer
 from app.models import SummaryReport, CarEfficiency, Vehicle, DriverEfficiency, RentInformation, DriverReshuffle, \
-    PartnerEarnings, InvestorPayments, DriverPayments, PaymentsStatus, PenaltyBonus, Penalty, Bonus, DriverEfficiencyFleet
+    PartnerEarnings, InvestorPayments, DriverPayments, PaymentsStatus, PenaltyBonus, Penalty, Bonus, \
+    DriverEfficiencyFleet
 from taxi_service.utils import get_start_end
 
 
@@ -147,26 +149,18 @@ class DriverEfficiencyListView(CombinedPermissionsMixin,
         aggregators = [aggregator.capitalize() for aggregator in small_aggregators]
         start, end, format_start, format_end = get_start_end(self.kwargs['period'])
         filter_request = {'report_from__range': (start, end)}
-        if 'Shared' in aggregators:
-            model = DriverEfficiency
-        else:
-            filter_request['fleet__name__in'] = aggregators
-            model = DriverEfficiencyFleet
-
-        queryset = ManagerFilterMixin.get_queryset(model, self.request.user)
-        filtered_qs = queryset.filter(**filter_request).exclude(total_orders=0)
-
-        qs = filtered_qs.annotate(
-            driver_total_kasa=Sum('total_kasa'),
-            full_name=Concat(F("driver__user_ptr__name"),
-                             Value(" "),
-                             F("driver__user_ptr__second_name"), output_field=CharField()),
-            orders=Sum('total_orders'),
-            driver_average_price=Avg('average_price'),
-            driver_accept_percent=Avg('accept_percent'),
-            driver_road_time=Coalesce(Sum('road_time'), timedelta()),
-            driver_mileage=Sum('mileage'),
-            driver_efficiency=ExpressionWrapper(
+        values_request = ['driver_id']
+        dynamic_fleet = {
+            'driver_total_kasa': Sum('total_kasa'),
+            'full_name': Concat(F("driver__user_ptr__name"),
+                                Value(" "),
+                                F("driver__user_ptr__second_name"), output_field=CharField()),
+            'orders': Sum('total_orders'),
+            'driver_average_price': Avg('average_price'),
+            'driver_accept_percent': Avg('accept_percent'),
+            'driver_road_time': Coalesce(Sum('road_time'), timedelta()),
+            'driver_mileage': Sum('mileage'),
+            'driver_efficiency': ExpressionWrapper(
                 Case(
                     When(mileage__gt=0, then=F('total_kasa') / F('mileage')),
                     default=Value(0),
@@ -174,11 +168,41 @@ class DriverEfficiencyListView(CombinedPermissionsMixin,
                 ),
                 output_field=FloatField()
             )
-        )
-        if model == DriverEfficiencyFleet:
-            qs = qs.annotate(fleet_name=F('fleet__name'))
+        }
+        if 'Shared' in aggregators:
+            model = DriverEfficiency
+        else:
+            filter_request['fleet__name__in'] = aggregators
+            model = DriverEfficiencyFleet
+            values_request.append('fleet__name')
+            dynamic_fleet['fleet_name'] = F('fleet__name')
 
-        return [{'start': format_start, 'end': format_end, 'drivers_efficiency': qs}]
+        queryset = ManagerFilterMixin.get_queryset(model, self.request.user)
+        filtered_qs = queryset.filter(**filter_request).exclude(total_orders=0)
+
+        qs = filtered_qs.values(*values_request).annotate(
+            **dynamic_fleet
+        )
+
+        grouped_qs = []
+        for key, group in groupby(qs, key=itemgetter('full_name')):
+            driver_data = {'full_name': key, 'fleets': []}
+            for item in group:
+                fleet_data = {
+                    item.get('fleet_name', 'AllFleet'): {
+                        'driver_id': item['driver_id'],
+                        'driver_total_kasa': item['driver_total_kasa'],
+                        'orders': item['orders'],
+                        'driver_average_price': item['driver_average_price'],
+                        'driver_accept_percent': item['driver_accept_percent'],
+                        'driver_road_time': item['driver_road_time'],
+                        'driver_mileage': item['driver_mileage'],
+                        'driver_efficiency': item['driver_efficiency']
+                    }
+                }
+                driver_data['fleets'].append(fleet_data)
+            grouped_qs.append(driver_data)
+        return [{'start': format_start, 'end': format_end, 'drivers_efficiency': grouped_qs}]
 
 
 class CarsInformationListView(CombinedPermissionsMixin,
@@ -293,7 +317,7 @@ class DriverPaymentsListView(CombinedPermissionsMixin, generics.ListAPIView):
 
         if not period:
             queryset = qs.filter(
-                status__in=[PaymentsStatus.CHECKING, PaymentsStatus.PENDING],).order_by('report_to', 'driver')
+                status__in=[PaymentsStatus.CHECKING, PaymentsStatus.PENDING], ).order_by('report_to', 'driver')
         else:
             start, end, format_start, format_end = get_start_end(period)
             queryset = qs.filter(report_to__range=(start, end),

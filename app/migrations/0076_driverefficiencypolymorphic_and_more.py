@@ -20,7 +20,6 @@ def replace_driver_efficiency(apps, schema_editor):
             mileage=driver_efficiency.mileage,
             efficiency=driver_efficiency.efficiency,
             road_time=driver_efficiency.road_time,
-            online_time=driver_efficiency.online_time,
             driver=driver_efficiency.driver,
             partner=driver_efficiency.partner,
             polymorphic_ctype=content_type
@@ -34,7 +33,7 @@ def replace_driver_efficiency(apps, schema_editor):
 class Migration(migrations.Migration):
     dependencies = [
         ('contenttypes', '0002_remove_content_type_name'),
-        ('app', '0073_remove_customreport_bonuses_and_more'),
+        ('app', '0075_remove_bonus_driver_payments_and_more'),
     ]
 
     operations = [
@@ -53,7 +52,6 @@ class Migration(migrations.Migration):
                 ('efficiency',
                  models.DecimalField(decimal_places=2, default=0, max_digits=6, verbose_name='Ефективність, грн/км')),
                 ('road_time', models.DurationField(blank=True, null=True, verbose_name='Час в дорозі')),
-                ('online_time', models.DurationField(blank=True, null=True, verbose_name='Час онлайн')),
                 ('driver', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, to='app.driver',
                                              verbose_name='Водій')),
                 ('partner', models.ForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, to='app.partner',

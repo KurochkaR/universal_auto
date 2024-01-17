@@ -22,43 +22,25 @@ class CarDetailSerializer(serializers.Serializer):
         fields = ("licence_plate", "price", "kasa", "spending", "progress_percentage")
 
 
-class DriverEfficiencySerializer(serializers.Serializer):
-    full_name = serializers.CharField()
+class FleetEfficiencySerializer(serializers.Serializer):
     driver_total_kasa = serializers.DecimalField(max_digits=10, decimal_places=2)
     orders = serializers.IntegerField()
-    driver_accept_percent = serializers.IntegerField()
-    driver_road_time = serializers.DurationField()
-    driver_efficiency = serializers.DecimalField(max_digits=10, decimal_places=2)
-    driver_mileage = serializers.DecimalField(max_digits=10, decimal_places=2)
     driver_average_price = serializers.DecimalField(max_digits=10, decimal_places=2)
-    rent_amount = serializers.DecimalField(
-        max_digits=10, decimal_places=2, read_only=True
-    )
+    driver_accept_percent = serializers.DecimalField(max_digits=5, decimal_places=2)
+    driver_road_time = serializers.DurationField()
+    driver_mileage = serializers.DecimalField(max_digits=10, decimal_places=2)
+    driver_efficiency = serializers.DecimalField(max_digits=10, decimal_places=2)
 
-    fleet_name = serializers.SerializerMethodField()
 
-    def get_fleet_name(self, obj):
-        return obj.fleet.name if isinstance(obj, DriverEfficiencyFleet) else None
-
-    class Meta:
-        fields = (
-            "full_name",
-            "driver_total_kasa",
-            "total_orders",
-            "driver_accept_percent",
-            "driver_average_price",
-            "driver_road_time",
-            "driver_efficiency",
-            "driver_mileage",
-            "rent_amount",
-            "fleet_name",
-        )
+class DriverEfficiencySerializer(serializers.Serializer):
+    full_name = serializers.CharField()
+    fleets = serializers.ListField(child=serializers.DictField(child=FleetEfficiencySerializer()))
 
 
 class DriverEfficiencyRentSerializer(serializers.Serializer):
     start = serializers.CharField()
     end = serializers.CharField()
-    drivers_efficiency = DriverEfficiencySerializer(many=True)
+    drivers_efficiency = serializers.ListField(child=DriverEfficiencySerializer())
 
 
 class VehiclesEfficiencySerializer(serializers.Serializer):
@@ -151,7 +133,6 @@ class DriverPaymentsSerializer(serializers.ModelSerializer):
 
     def get_status(self, obj):
         return obj.get_status_display()
-
 
     class Meta:
         model = DriverPayments
