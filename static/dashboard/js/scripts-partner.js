@@ -329,6 +329,7 @@ function fetchSummaryReportData(period, start, end) {
 			}
 			;
 			$('.weekly-income-rent').text(totalDistance + ' ' + gettext('км'));
+			$('.weekly-income-amount').text(data[0]["kasa"] + ' ' + gettext('грн'));
 		},
 		error: function (error) {
 			console.error(error);
@@ -379,7 +380,6 @@ function fetchCarEfficiencyData(period, vehicleId, vehicle_lc, start, end) {
 				$('#bar-three-chart').hide();
 				$('.car-select').hide();
 			};
-			$('.weekly-income-amount').text(data["kasa"] + ' ' + gettext('грн'));
 			$('.weekly-clean-amount').text(data["earning"] + ' ' + gettext('грн'));
 			$('.income-km').text(data["total_mileage"] + ' ' + gettext("км"));
 			$('.income-efficiency').text(data["average_efficiency"].toFixed(2) + ' ' + gettext('грн/км'));

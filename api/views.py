@@ -37,6 +37,7 @@ class SummaryReportListView(CombinedPermissionsMixin,
         start, end, format_start, format_end = get_start_end(self.kwargs['period'])
         queryset = ManagerFilterMixin.get_queryset(SummaryReport, self.request.user)
         filtered_qs = queryset.filter(report_from__range=(start, end))
+        kasa = filtered_qs.aggregate(kasa=Coalesce(Sum('total_amount_without_fee'), Decimal(0)))['kasa']
         rent_amount_subquery = RentInformation.objects.filter(
             report_from__range=(start, end)
         ).values('driver_id').annotate(
@@ -55,7 +56,8 @@ class SummaryReportListView(CombinedPermissionsMixin,
         )
         total_rent = queryset.aggregate(total_rent=Sum('rent_amount'))['total_rent'] or 0
         queryset = queryset.exclude(total_kasa=0).order_by('full_name')
-        return [{'total_rent': total_rent, 'start': format_start, 'end': format_end, 'drivers': queryset}]
+        return [{'total_rent': total_rent, 'kasa': kasa,
+                 'start': format_start, 'end': format_end, 'drivers': queryset}]
 
 
 class InvestorCarsEarningsView(CombinedPermissionsMixin,
@@ -103,6 +105,7 @@ class CarEfficiencyListView(CombinedPermissionsMixin,
         filtered_qs = queryset.filter(
             report_from__range=(start, end))
         earning = PartnerEarnings.objects.filter(
+            partner=self.request.user,
             report_from__range=(start, end)
         ).aggregate(earning=Coalesce(Sum('earning'), Decimal(0)))['earning']
         return filtered_qs, earning
@@ -134,7 +137,6 @@ class CarEfficiencyListView(CombinedPermissionsMixin,
             "vehicles": efficiency_dict,
             "dates": format_dates,
             "total_mileage": total_mileage,
-            "kasa": kasa,
             "earning": earning,
             "average_efficiency": average
         }

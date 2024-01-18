@@ -243,19 +243,6 @@ def login_in_investor(request, login_name, password):
         return {'success': False, 'message': 'User is not found'}
 
 
-def change_password_investor(request, password, new_password, user_email):
-    user = CustomUser.objects.filter(email=user_email).first()
-    if user is not None:
-        user = authenticate(username=user.username, password=password)
-        if user.is_active:
-            user.set_password(new_password)
-            user.save()
-            logout(request)
-            return {'success': True}
-        else:
-            return {'success': False, 'message': 'User is not active'}
-    else:
-        return {'success': False, 'message': 'User is not found'}
 
 
 def send_reset_code(email, user_login):

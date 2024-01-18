@@ -488,7 +488,7 @@ def calculate_income_partner(driver, start, end, spending_rate, rent):
             vehicle=vehicle, driver=driver, report_to__date=start).aggregate(
             vehicle_distance=Coalesce(Sum('rent_distance'), Decimal(0)))['vehicle_distance']
         if driver_rent and rent_vehicle:
-            total_rent = driver_rent / rent_vehicle * rent
+            total_rent = rent_vehicle / driver_rent * rent
         else:
             total_rent = 0
         fleets = Fleet.objects.filter(partner=driver.partner, name__in=("Uklon", "Uber"))

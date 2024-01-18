@@ -331,9 +331,9 @@ class Driver(User):
         verbose_name = 'Водія'
         verbose_name_plural = 'Водії'
 
-    def get_driver_external_id(self, vendor: str):
+    def get_driver_external_id(self, fleet: str):
         try:
-            return FleetsDriversVehiclesRate.objects.get(fleet__name=vendor, driver=self,
+            return FleetsDriversVehiclesRate.objects.get(fleet=fleet, driver=self,
                                                          partner=self.partner,
                                                          deleted_at=None).driver_external_id
         except ObjectDoesNotExist:
@@ -515,7 +515,7 @@ class NinjaFleet(Fleet):
     def download_report(self, day=None):
         report = Payments.objects.filter(report_from=self.start_report_interval(day),
                                          report_to=self.end_report_interval(day),
-                                         vendor_name=self.name)
+                                         fleet=self)
         return list(report)
 
 
@@ -577,7 +577,7 @@ class DriverReport(PolymorphicModel):
 
 
 class Payments(DriverReport):
-    vendor = models.ForeignKey(Fleet, on_delete=models.CASCADE, verbose_name='Агрегатор')
+    fleet = models.ForeignKey(Fleet, on_delete=models.CASCADE, verbose_name='Агрегатор')
 
     class Meta:
         verbose_name = 'Звіт'
@@ -591,15 +591,15 @@ class SummaryReport(DriverReport):
 
 
 class CustomReport(DriverReport):
-    vendor = models.ForeignKey(Fleet, on_delete=models.CASCADE, verbose_name='Агрегатор')
+    fleet = models.ForeignKey(Fleet, on_delete=models.CASCADE, verbose_name='Агрегатор')
 
 
 class WeeklyReport(DriverReport):
-    vendor = models.ForeignKey(Fleet, on_delete=models.CASCADE, verbose_name='Агрегатор')
+    fleet = models.ForeignKey(Fleet, on_delete=models.CASCADE, verbose_name='Агрегатор')
 
 
 class DailyReport(DriverReport):
-    vendor = models.ForeignKey(Fleet, on_delete=models.CASCADE, verbose_name='Агрегатор')
+    fleet = models.ForeignKey(Fleet, on_delete=models.CASCADE, verbose_name='Агрегатор')
 
 
 class StatusChange(models.Model):

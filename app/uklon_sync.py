@@ -145,7 +145,7 @@ class UklonRequest(Fleet, Synchronizer):
         report = {
             "report_from": start,
             "report_to": end,
-            "vendor": self,
+            "fleet": self,
             "driver": driver,
             "total_rides": driver_report.get('total_orders_count', 0),
             "total_distance": self.to_float(distance, div=1000),
@@ -163,7 +163,7 @@ class UklonRequest(Fleet, Synchronizer):
         return report, distance
 
     def generate_report(self, driver, start, end):
-        driver_id = driver.get_driver_external_id(self.name)
+        driver_id = driver.get_driver_external_id(self)
         param = {'dateFrom': self.report_interval(start),
                  'dateTo': self.report_interval(end),
                  'limit': '50', 'offset': '0',
@@ -187,7 +187,7 @@ class UklonRequest(Fleet, Synchronizer):
                 if custom:
                     uklon_custom = CustomReport.objects.filter(report_from__date=start_time,
                                                                driver=driver,
-                                                               vendor=self,
+                                                               fleet=self,
                                                                partner=self.partner).last()
                     if uklon_custom:
                         report.update({
@@ -206,7 +206,7 @@ class UklonRequest(Fleet, Synchronizer):
                         })
                 db_report = CustomReport.objects.filter(report_from=start,
                                                         driver=driver,
-                                                        vendor=self,
+                                                        fleet=self,
                                                         partner=self.partner)
                 db_report.update(**report) if db_report else CustomReport.objects.create(**report)
 
@@ -217,7 +217,7 @@ class UklonRequest(Fleet, Synchronizer):
                 report = self.parse_json_report(start, end, driver, driver_report)[0]
                 db_report, created = model.objects.get_or_create(report_from=start,
                                                                  driver=driver,
-                                                                 vendor=self,
+                                                                 fleet=self,
                                                                  partner=self.partner,
                                                                  defaults=report)
                 if not created:
@@ -233,7 +233,7 @@ class UklonRequest(Fleet, Synchronizer):
         return self.save_report(start, end, driver, DailyReport)
 
     def get_earnings_per_driver(self, driver, start, end):
-        driver_id = driver.get_driver_external_id(vendor=self.name)
+        driver_id = driver.get_driver_external_id(self)
         total_amount_without_fee = total_amount_cash = 0
         param = {'dateFrom': int(start.timestamp()),
                  'dateTo': int(end.timestamp()),
@@ -279,13 +279,6 @@ class UklonRequest(Fleet, Synchronizer):
         url_2 = url + Service.get_value('UKLON_2')
         all_drivers = self.response_data(url=url_1, params=param)
         for driver in all_drivers['items']:
-            pay_cash, vehicle_name, vin_code = True, '', ''
-            if driver['restrictions']:
-                pay_cash = False if 'Cash' in driver['restrictions'][0]['restriction_types'] else True
-            elif self.find_value_str(driver, *('selected_vehicle',)):
-                vehicle_name = f"{driver['selected_vehicle']['make']} {driver['selected_vehicle']['model']}"
-                vin_code = self.response_data(f"{url_2}/{driver['selected_vehicle']['vehicle_id']}")
-                vin_code = vin_code.get('vin_code', '')
             email = self.response_data(url=f"{url_1}/{driver['id']}")
             driver_data = self.response_data(
                 url=f"{Service.get_value('UKLON_1')}{Service.get_value('UKLON_6')}/{driver['id']}/images",
@@ -298,10 +291,6 @@ class UklonRequest(Fleet, Synchronizer):
                 'phone_number': f"+{driver['phone']}",
                 'driver_external_id': driver['id'],
                 'photo': driver_data["driver_avatar_photo"]["url"],
-                'pay_cash': pay_cash,
-                'licence_plate': self.find_value_str(driver, *('selected_vehicle', 'license_plate')),
-                'vehicle_name': vehicle_name,
-                'vin_code': vin_code,
             })
         return drivers
 
@@ -329,7 +318,6 @@ class UklonRequest(Fleet, Synchronizer):
                     continue
                 vehicle = Vehicle.objects.get(licence_plate=order['vehicle']['licencePlate'])
                 if check_vehicle(driver) != vehicle:
-                    print('redis', vehicle)
                     redis_instance().hset(f"wrong_vehicle_{self.partner.id}", pk, order['vehicle']['licencePlate'])
                 detail = self.response_data(url=f"{Service.get_value('UKLON_1')}orders/{order['id']}",
                                             params={"driverId": str_driver_id})
