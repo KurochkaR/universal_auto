@@ -15,29 +15,13 @@ function formatTime(time) {
 	}
 }
 
-function customDateRange() {
-  aggregator = $('.checkbox-container input[type="checkbox"]:checked').map(function() {
-		return $(this).val();
-	}).get();
 
-	var aggregatorsString = aggregator.join('&');
-
-	$(".apply-filter-button").prop("disabled", true);
-
-	let startDate = $("#start_date").val();
-	let endDate = $("#end_date").val();
-
-	const selectedPeriod = periodSelect.val();
-	fetchDriverEfficiencyData(selectedPeriod, startDate, endDate, aggregatorsString);
-}
-
-function fetchDriverEfficiencyData(period, start, end, aggregators) {
-	console.log(aggregators);
+function fetchDriverEfficiencyData(period, start, end) {
 	let apiUrl;
 	if (period === 'custom') {
-		apiUrl = `/api/drivers_info/${start}&${end}/${aggregators}/`;
+		apiUrl = `/api/drivers_info/${start}&${end}/`;
 	} else {
-		apiUrl = `/api/drivers_info/${period}/${aggregators}/`;
+		apiUrl = `/api/drivers_info/${period}/`;
 	};
 	$.ajax({
 		url: apiUrl,
@@ -57,6 +41,7 @@ function fetchDriverEfficiencyData(period, start, end, aggregators) {
 					let time = formattedTime
 
 					row.append('<td class="driver">' + item.full_name + '</td>');
+					row.append('<td class="aggregator">"-----"</td>');
 					row.append('<td class="kasa">' + item.total_kasa + '</td>');
 					row.append('<td class="orders">' + item.orders + '</td>');
 					row.append('<td class="accept">' + item.accept_percent + " %" + '</td>');
@@ -106,6 +91,68 @@ function fetchDriverEfficiencyData(period, start, end, aggregators) {
 				$('.income-drivers-date').text(startDate);
 			} else {
 				$('.income-drivers-date').text('З ' + startDate + ' ' + gettext('по') + ' ' + endDate);
+			}
+		},
+		error: function (error) {
+			console.error(error);
+		}
+	});
+}
+
+
+function fetchDriverFleetEfficiencyData(period, start, end, aggregators) {
+	let apiUrl;
+	if (period === 'custom') {
+		apiUrl = `/api/drivers_info/${start}&${end}/${aggregators}/`;
+	} else {
+		apiUrl = `/api/drivers_info/${period}/${aggregators}/`;
+	};
+	$.ajax({
+		url: apiUrl,
+		type: 'GET',
+		dataType: 'json',
+		success: function (data) {
+			$(".apply-filter-button_driver").prop("disabled", false);
+			let table = $('.info-driver table');
+			let startDate = data[0]['start'];
+			let endDate = data[0]['end'];
+
+			table.find('tr:gt(0)').remove();
+
+			if (data.length !== 0) {
+				data.forEach(function (item, index) {
+					let efficiency = item.drivers_efficiency;
+
+					efficiency.forEach(function (items, innerIndex) {
+						let fleets = items.fleets;
+
+						fleets.forEach(function (fleet, fleetIndex) {
+							let row = $('<tr></tr>');
+
+							if (fleetIndex === 0) {
+								// Додати ім'я водія лише для першого рядка флоту
+								row.append('<td class="driver" rowspan="' + fleets.length + '">' + items.full_name + '</td>');
+							}
+
+							row.append('<td class="fleet">' + Object.keys(fleet)[0] + '</td>');
+							row.append('<td class="kasa">' + fleet[Object.keys(fleet)[0]].driver_total_kasa + '</td>');
+							row.append('<td class="orders">' + fleet[Object.keys(fleet)[0]].orders + '</td>');
+							row.append('<td class="accept">' + fleet[Object.keys(fleet)[0]].driver_accept_percent + " %" + '</td>');
+							row.append('<td class="price">' + fleet[Object.keys(fleet)[0]].driver_average_price + '</td>');
+							row.append('<td class="mileage">' + fleet[Object.keys(fleet)[0]].driver_mileage + '</td>');
+							row.append('<td class="efficiency">' + fleet[Object.keys(fleet)[0]].driver_efficiency + '</td>');
+							row.append('<td class="time">' + formatTime(fleet[Object.keys(fleet)[0]].driver_road_time) + '</td>');
+
+							table.append(row);
+						});
+					});
+				});
+			}
+
+			if (period === 'yesterday') {
+					$('.income-drivers-date').text(startDate);
+			} else {
+					$('.income-drivers-date').text('З ' + startDate + ' ' + gettext('по') + ' ' + endDate);
 			}
 		},
 		error: function (error) {
@@ -186,10 +233,12 @@ $(document).ready(function () {
 				return $(this).val();
 			}).get();
 			var aggregatorsString = aggregators.join('&');
-
 			if (clickedValue !== "custom") {
-				console.log(aggregatorsString);
-				fetchDriverEfficiencyData(clickedValue, null, null, aggregatorsString);
+				if (aggregatorsString === "shared") {
+					fetchDriverEfficiencyData(clickedValue, null, null);
+				} else {
+					fetchDriverEfficiencyData(clickedValue, null, null, aggregatorsString);
+				}
 			}
 
 			if (clickedValue === "custom") {
@@ -234,6 +283,12 @@ function checkSelection() {
   });
   var aggregatorsString = selectedAggregators.join('&');
   var selectedPeriod = $('#period .selected-option-drivers').data('value');
+	var startDate = $("#start_report_driver").val();
+	var endDate = $("#end_report_driver").val();
 
-  fetchDriverEfficiencyData(selectedPeriod, null, null, aggregatorsString);
+  if (selectedPeriod === "custom" && aggregatorsString === "shared") {
+		fetchDriverEfficiencyData(selectedPeriod, startDate, endDate);
+	} else {
+		fetchDriverFleetEfficiencyData(selectedPeriod, startDate, endDate, aggregatorsString);
+	}
 }

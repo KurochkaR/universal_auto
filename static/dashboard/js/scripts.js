@@ -263,13 +263,23 @@ $(document).ready(function() {
 function applyCustomDateRange(item) {
 	$(".apply-filter-button_driver").prop("disabled", true);
 
+
 	let startDate = $("#start_report_driver").val();
 	let endDate = $("#end_report_driver").val();
 
 	const selectedPeriod = 'custom'
 
 	if (item === 'driver') {
-		fetchDriverEfficiencyData(selectedPeriod, startDate, endDate);
+		aggregator = $('.checkbox-container input[type="checkbox"]:checked').map(function() {
+			return $(this).val();
+		}).get();
+
+		var aggregatorsString = aggregator.join('&');
+		if (aggregatorsString === 'share') {
+			fetchDriverEfficiencyData(selectedPeriod, startDate, endDate);
+		} else {
+			fetchDriverEfficiencyData(selectedPeriod, startDate, endDate, aggregatorsString);
+		}
 	}
 
 	if (item === 'payments') {
