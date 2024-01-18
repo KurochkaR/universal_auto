@@ -33,7 +33,7 @@ def replace_driver_efficiency(apps, schema_editor):
 class Migration(migrations.Migration):
     dependencies = [
         ('contenttypes', '0002_remove_content_type_name'),
-        ('app', '0075_remove_bonus_driver_payments_and_more'),
+        ('app', '0076_rename_vendor_customreport_fleet_and_more'),
     ]
 
     operations = [
