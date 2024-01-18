@@ -104,7 +104,7 @@ class BoltRequest(Fleet, Synchronizer):
         report = {
             "report_from": start,
             "report_to": end,
-            "vendor": self,
+            "fleet": self,
             "driver": driver,
             "total_amount_cash": driver_report['cash_in_hand'],
             "total_amount": driver_report['gross_revenue'],
@@ -144,7 +144,7 @@ class BoltRequest(Fleet, Synchronizer):
             if custom:
                 bolt_custom = CustomReport.objects.filter(report_from__date=start,
                                                           driver=driver,
-                                                          vendor=self,
+                                                          fleet=self,
                                                           partner=self.partner).last()
                 if bolt_custom:
                     report.update(
@@ -162,7 +162,7 @@ class BoltRequest(Fleet, Synchronizer):
                          })
             db_report = CustomReport.objects.filter(report_from=start,
                                                     driver=driver,
-                                                    vendor=self,
+                                                    fleet=self,
                                                     partner=self.partner)
             db_report.update(**report) if db_report else CustomReport.objects.create(**report)
 
@@ -179,7 +179,7 @@ class BoltRequest(Fleet, Synchronizer):
             report = self.parse_json_report(start, end, driver, driver_report)
             db_report, created = WeeklyReport.objects.get_or_create(report_from=start,
                                                                     driver=driver,
-                                                                    vendor=self,
+                                                                    fleet=self,
                                                                     partner=self.partner,
                                                                     defaults=report)
             if not created:
@@ -203,7 +203,7 @@ class BoltRequest(Fleet, Synchronizer):
             report = self.parse_json_report(start, end, driver, driver_report)
             db_report, created = DailyReport.objects.get_or_create(report_from=start,
                                                                    driver=driver,
-                                                                   vendor=self,
+                                                                   fleet=self,
                                                                    partner=self.partner,
                                                                    defaults=report)
             if not created:
@@ -254,10 +254,6 @@ class BoltRequest(Fleet, Synchronizer):
                     'email': driver_info['data']['email'],
                     'phone_number': driver_info['data']['phone'],
                     'driver_external_id': driver_info['data']['id'],
-                    'pay_cash': driver_info['data']['has_cash_payment'],
-                    'licence_plate': '',
-                    'vehicle_name': '',
-                    'vin_code': '',
                 })
         return driver_list
 

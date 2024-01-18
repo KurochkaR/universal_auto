@@ -82,6 +82,7 @@ $(document).ready(function () {
 	$(".close-btn").click(function () {
 		$("#loginForm").fadeOut();
 		$(".forgot-password-form").fadeOut();
+		$(".reset-password-form").fadeOut();
 	});
 
 	$("#login-invest").click(function () {
@@ -187,11 +188,16 @@ $(document).ready(function () {
 		const confirmPassword = $('#confirmPassword').val();
 		const resetCode = sendResetCodeBtn.data('resetCode');
 
-		if (newPassword !== confirmPassword || activeCode !== resetCode) {
+		if (newPassword !== confirmPassword || activeCode !== resetCode || newPassword.trim() === "") {
 			if (newPassword !== confirmPassword) {
 				$('#passwordError').text(gettext('Паролі не співпадають')).addClass('error-message').show();
 			} else {
 				$('#passwordError').hide()
+			}
+			if (newPassword.trim() === "") {
+				$('#emptyPassError').text(gettext('Пароль не може бути пустим')).addClass('error-message').show();
+			} else {
+				$('#emptyPassError').hide()
 			}
 
 			if (activeCode !== resetCode) {

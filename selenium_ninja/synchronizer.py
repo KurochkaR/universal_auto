@@ -47,12 +47,9 @@ class Synchronizer:
             FleetsDriversVehiclesRate.objects.create(fleet=self,
                                                      driver_external_id=kwargs['driver_external_id'],
                                                      driver=self.get_or_create_driver(**kwargs),
-                                                     pay_cash=kwargs['pay_cash'],
                                                      partner=self.partner)
         else:
             self.update_driver_fields(driver.driver, **kwargs)
-            driver.pay_cash = kwargs["pay_cash"]
-            driver.save(update_fields=['pay_cash'])
 
     def get_or_create_driver(self, **kwargs):
         driver = Driver.objects.filter((Q(name=kwargs['name'], second_name=kwargs['second_name']) |
@@ -114,7 +111,7 @@ class Synchronizer:
             vehicle.vin_code = vin_code
 
         vehicle.partner = self.partner
-        vehicle.save()
+        vehicle.save(update_fields=['vehicle_name', 'vin_code', 'partner'])
 
     def update_driver_fields(self, driver, **kwargs):
         phone_number = kwargs.get('phone_number')
@@ -132,7 +129,7 @@ class Synchronizer:
                 driver.phone_number = phone_number
             if email and driver.email != email:
                 driver.email = email
-        driver.save()
+        driver.save(update_fields=['phone_number', 'photo', 'email'])
 
     @staticmethod
     def report_interval(date_time):

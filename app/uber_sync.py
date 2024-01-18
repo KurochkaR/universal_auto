@@ -113,13 +113,6 @@ class UberRequest(Fleet, Synchronizer):
             return drivers
         drivers_data = response.json()['data']['getDrivers']['drivers']
         for driver in drivers_data:
-            licence_plate = ''
-            vehicle_name = ''
-            vin_code = ''
-            if driver['associatedVehicles']:
-                licence_plate = driver['associatedVehicles'][0]['licensePlate']
-                vehicle_name = driver['associatedVehicles'][0]['make']
-                vin_code = driver['associatedVehicles'][0]['vin']
             phone = driver['member']['user']['phone']
             drivers.append({'fleet_name': self.name,
                             'name': self.remove_dup(driver['member']['user']['name']['firstName']),
@@ -127,18 +120,14 @@ class UberRequest(Fleet, Synchronizer):
                             'email': driver['member']['user']['email'],
                             'phone_number': phone['countryCode'] + phone['nationalPhoneNumber'],
                             'driver_external_id': driver['member']['user']['uuid'],
-                            'licence_plate': licence_plate,
-                            'pay_cash': True,
                             'photo': driver['member']['user']['pictureUrl'],
-                            'vehicle_name': vehicle_name,
-                            'vin_code': vin_code,
                             })
         return drivers
 
     def generate_report(self, start, end, driver):
         format_start = self.report_interval(start) * 1000
         format_end = self.report_interval(end) * 1000
-        driver_id = driver.get_driver_external_id(self.name)
+        driver_id = driver.get_driver_external_id(self)
         if format_start >= format_end or not driver_id:
             return
         query = '''query GetPerformanceReport($performanceReportRequest: PerformanceReportRequest__Input!) {
@@ -194,7 +183,7 @@ class UberRequest(Fleet, Synchronizer):
         payment = {
             "report_from": start,
             "report_to": end,
-            "vendor": self,
+            "fleet": self,
             "driver": driver,
             "total_amount": round(report['totalEarnings'], 2),
             "total_amount_without_fee": round(report['totalEarnings'], 2),
@@ -213,7 +202,7 @@ class UberRequest(Fleet, Synchronizer):
                     payment = self.parse_json_report(start, end, driver, report)
                     db_report, created = model.objects.get_or_create(report_from=start,
                                                                      driver=driver,
-                                                                     vendor=self,
+                                                                     fleet=self,
                                                                      partner=self.partner,
                                                                      defaults=payment)
                     if not created:

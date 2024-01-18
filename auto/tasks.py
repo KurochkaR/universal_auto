@@ -172,7 +172,7 @@ def get_orders_from_fleets(self, partner_pk, schema=None, day=None):
                     logger.error(e)
             else:
                 for driver in drivers:
-                    driver_id = driver.get_driver_external_id(fleet.name)
+                    driver_id = driver.get_driver_external_id(fleet)
                     if driver_id:
                         fleet.get_fleet_orders(start, end, driver.pk, driver_id)
     except Exception as e:
@@ -192,7 +192,7 @@ def get_today_orders(self, partner_pk):
             if isinstance(fleet, UklonRequest) and end <= start:
                 continue
             for driver in drivers:
-                driver_id = driver.get_driver_external_id(fleet.name)
+                driver_id = driver.get_driver_external_id(fleet)
                 if driver_id:
                     fleet.get_fleet_orders(start, end, driver.pk, driver_id)
     except Exception as e:
@@ -266,7 +266,7 @@ def download_daily_report(self, partner_pk, schema, day=None):
         fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name='Gps')
         for fleet in fleets:
             for driver in Driver.objects.get_active(schema=schema):
-                driver_id = driver.get_driver_external_id(fleet.name)
+                driver_id = driver.get_driver_external_id(fleet)
                 if driver_id:
                     fleet.save_custom_report(start, end, driver)
     except Exception as e:
@@ -284,7 +284,7 @@ def download_weekly_report(self, partner_pk):
         fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name='Gps')
         for driver in Driver.objects.get_active(partner=partner_pk):
             for fleet in fleets:
-                driver_id = driver.get_driver_external_id(fleet.name)
+                driver_id = driver.get_driver_external_id(fleet)
                 if driver_id:
                     report = fleet.save_weekly_report(start, end, driver)
                     if report:
@@ -311,7 +311,7 @@ def check_daily_report(self, partner_pk, start=None, end=None):
             fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name='Gps')
             for driver in Driver.objects.get_active(partner=partner_pk):
                 for fleet in fleets:
-                    driver_id = driver.get_driver_external_id(fleet.name)
+                    driver_id = driver.get_driver_external_id(fleet)
                     if driver_id:
                         report = fleet.save_daily_report(start, end, driver)
                         if report:
@@ -333,7 +333,7 @@ def download_nightly_report(self, partner_pk, schema, day=None):
         fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name='Gps')
         for fleet in fleets:
             for driver in Driver.objects.get_active(schema=schema):
-                driver_id = driver.get_driver_external_id(fleet.name)
+                driver_id = driver.get_driver_external_id(fleet)
                 if driver_id:
                     if isinstance(fleet, UberRequest):
                         fleet.save_custom_report(start, end, driver)
@@ -578,9 +578,9 @@ def fleets_cash_trips(self, partner_pk, pk, enable):
         disabled = []
         for fleet in fleets:
             driver_rate = FleetsDriversVehiclesRate.objects.filter(
-                driver=driver, fleet=fleet).values('pay_cash', 'driver_external_id')
-            if driver_rate and int(driver_rate['pay_cash']) != enable:
-                result = fleet.disable_cash(driver_rate['driver_external_id'], enable)
+                driver=driver, fleet=fleet).first()
+            if driver_rate and int(driver_rate.pay_cash) != enable:
+                result = fleet.disable_cash(driver_rate.driver_external_id, enable)
                 disabled.append(result)
         if disabled:
             if enable:
