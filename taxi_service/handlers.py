@@ -5,13 +5,13 @@ from celery.result import AsyncResult
 from django.core.serializers.json import DjangoJSONEncoder
 from django.http import JsonResponse, HttpResponse
 from django.forms.models import model_to_dict
-from django.contrib.auth import logout
+from django.contrib.auth import logout, authenticate
 
-from app.models import SubscribeUsers, Manager, CustomUser, DriverPayments, Bonus, Penalty, Earnings, PaymentsStatus
+from app.models import SubscribeUsers, Manager, CustomUser, DriverPayments, Bonus, Penalty
 from taxi_service.forms import MainOrderForm, CommentForm
 from taxi_service.utils import (update_order_sum_or_status, restart_order,
                                 partner_logout, login_in_investor,
-                                change_password_investor, send_reset_code,
+                                send_reset_code,
                                 active_vehicles_gps, order_confirm,
                                 check_aggregators, add_shift, delete_shift, upd_shift)
 
@@ -109,10 +109,16 @@ class PostRequestHandler:
         if request.POST.get('action') == 'change_password':
             password = request.POST.get('password')
             new_password = request.POST.get('newPassword')
-            user_email = request.user.email
-
-            change = change_password_investor(request, password, new_password, user_email)
-            json_data = JsonResponse({'data': change}, safe=False)
+            print(request.user.username)
+            user = authenticate(username=request.user.username, password=password)
+            if user is not None and user.is_active:
+                user.set_password(new_password)
+                user.save()
+                logout(request)
+                data = {'success': True}
+            else:
+                data = {'success': False, 'message': 'Password incorrect'}
+            json_data = JsonResponse({'data': data}, safe=False)
             response = HttpResponse(json_data, content_type='application/json')
             return response
 

@@ -46,9 +46,12 @@ $(document).ready(function () {
 		let password = $("#oldPassword").val();
 		let newPassword = $("#newPassword").val();
 		let confirmPassword = $("#confirmPassword").val();
-
-		if (newPassword !== confirmPassword) {
+        if (newPassword.trim() === "") {
+            $("#EmptyPasswordError").show();
+            $("#ChangeErrorMessage").hide();
+        } else if (newPassword !== confirmPassword) {
 			$("#ChangeErrorMessage").show();
+			$("#EmptyPasswordError").hide();
 		} else {
 			$.ajax({
 				url: ajaxPostUrl,

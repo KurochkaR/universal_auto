@@ -9,7 +9,7 @@ from polymorphic.admin import PolymorphicParentModelAdmin
 from scripts.google_calendar import GoogleCalendar
 from .filters import VehicleEfficiencyUserFilter, DriverEfficiencyUserFilter, RentInformationUserFilter, \
     TransactionInvestorUserFilter, ReportUserFilter, VehicleManagerFilter, SummaryReportUserFilter, \
-    FleetRelatedFilter, ChildModelFilter, PartnerPaymentFilter
+    FleetRelatedFilter, ChildModelFilter, PartnerPaymentFilter, FleetFilter
 from .models import *
 
 
@@ -604,13 +604,13 @@ class BaseReportAdmin(admin.ModelAdmin):
 @admin.register(DailyReport)
 @admin.register(CustomReport)
 class PaymentsOrderAdmin(BaseReportAdmin):
-    search_fields = ('vendor',)
-    list_filter = ('vendor', ReportUserFilter)
+    search_fields = ('fleet',)
+    list_filter = (FleetFilter, ReportUserFilter)
     ordering = ('-report_from',)
 
     def get_list_display(self, request):
         base_list_display = super().get_list_display(request)
-        return base_list_display + ['vendor']
+        return base_list_display + ['fleet']
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
@@ -827,6 +827,12 @@ class DriverAdmin(SoftDeleteAdmin):
         elif request.user.is_manager():
             return ['schema']
 
+    def get_list_select_related(self, request):
+        if request.user.is_partner():
+            return ['schema', 'manager']
+        elif request.user.is_manager():
+            return ['schema']
+
     def changelist_view(self, request, extra_context=None):
         self.list_editable = self.get_list_editable(request)
         return super().changelist_view(request, extra_context)
@@ -915,10 +921,23 @@ class DriverAdmin(SoftDeleteAdmin):
 @admin.register(FiredDriver)
 class FiredDriverAdmin(admin.ModelAdmin):
 
+    def get_list_display(self, request):
+        if request.user.is_superuser:
+            return [f.name for f in self.model._meta.fields]
+        elif request.user.is_partner():
+            return ['name', 'second_name',
+                    'manager', 'chat_id',
+                    'schema',
+                    ]
+        else:
+            return ['name', 'second_name',
+                    'chat_id', 'schema',
+                    ]
+
     def get_model_perms(self, request):
         perms = super().get_model_perms(request)
         if request.user.is_partner():
-            perms.update(view=True, change=True, add=True, delete=True)
+            perms.update(view=True, change=False, add=False, delete=True)
         return perms
 
     def get_queryset(self, request):
@@ -1174,7 +1193,7 @@ class FleetsDriversVehiclesRateAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         if request.user.is_partner():
-            return qs.filter(partner=request.user).select_related('fleet')
+            return qs.filter(partner=request.user).select_related('fleet', 'partner', 'driver')
         elif request.user.is_manager():
             manager = Manager.objects.get(pk=request.user.pk)
             return qs.filter(partner=manager.managers_partner).select_related('fleet')
@@ -1249,3 +1268,12 @@ class TaskSchedulerAdmin(admin.ModelAdmin):
         ]
 
         return fieldsets
+
+
+@admin.register(DriverReshuffle)
+class DriverReshuffle(admin.ModelAdmin):
+    list_display = ['driver_start', 'swap_vehicle', 'swap_time', 'end_time']
+    fieldsets = [
+        ('Інформація', {'fields': ['driver_start', 'swap_vehicle', 'swap_time', 'end_time'
+                               ]}),
+    ]

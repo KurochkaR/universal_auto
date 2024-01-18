@@ -67,6 +67,8 @@
         <input type="password" id="newPassword" name="newPassword" required>
         <p class="error-message" id="ChangeErrorMessage"
            style="display:none; color: red">{% trans 'Пароль не співпадає' %}</p>
+        <p class="error-message" id="EmptyPasswordError"
+           style="display:none; color: red">{% trans 'Пароль не може бути пустим' %}</p>
         <h4>{% trans 'Підтвердити новий пароль:' %}</h4>
         <input type="password" id="confirmPassword" name="confirmPassword" required>
 

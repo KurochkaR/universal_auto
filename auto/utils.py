@@ -29,7 +29,7 @@ def compare_reports(fleet, start, end, driver, correction_report, compare_model,
               "cancels", "compensations", "refunds"
               )
     message_fields = ("total_amount_cash", "total_amount_without_fee")
-    custom_reports = compare_model.objects.filter(vendor=fleet, report_from__range=(start, end), driver=driver)
+    custom_reports = compare_model.objects.filter(fleet=fleet, report_from__range=(start, end), driver=driver)
     if custom_reports:
         last_report = custom_reports.last()
         for field in fields:
@@ -46,7 +46,7 @@ def compare_reports(fleet, start, end, driver, correction_report, compare_model,
             else:
                 continue
         last_report.save()
-        payment_report = Payments.objects.filter(vendor=fleet, report_from=last_report.report_from, driver=driver)
+        payment_report = Payments.objects.filter(fleet=fleet, report_from=last_report.report_from, driver=driver)
         if payment_report.exists():
             last_payment = payment_report.last()
             payment_24hours_create(last_payment.report_from, last_payment.report_to, fleet, driver, partner_pk)
@@ -76,7 +76,7 @@ def get_corrections(start, end, driver):
 def payment_24hours_create(start, end, fleet, driver, partner_pk):
     reports = CustomReport.objects.filter(
         report_from__range=(start, end),
-        vendor=fleet,
+        fleet=fleet,
         driver=driver).values('vehicle').annotate(
         without_fee=Sum('total_amount_without_fee'),
         cash=Sum('total_amount_cash'),
@@ -109,7 +109,7 @@ def payment_24hours_create(start, end, fleet, driver, partner_pk):
         }
         payment, created = Payments.objects.get_or_create(report_from=start,
                                                           report_to=end,
-                                                          vendor=fleet,
+                                                          fleet=fleet,
                                                           driver=driver,
                                                           partner=partner_pk,
                                                           defaults={**data})

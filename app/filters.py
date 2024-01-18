@@ -162,12 +162,13 @@ class ReportUserFilter(DriverRelatedFilter):
 
 
 class FleetRelatedFilter(admin.SimpleListFilter):
-    parameter_name = "fleet_driver_user"
+    parameter_name = None
+    model_class = None
     title = 'автопарком'
 
     def lookups(self, request, model_admin):
         user = request.user
-        queryset = FleetsDriversVehiclesRate.objects.all()
+        queryset = self.model_class.objects.all().select_related('partner')
         fleet_choices = []
         if user.is_partner():
             queryset = queryset.filter(partner=user)
@@ -180,3 +181,13 @@ class FleetRelatedFilter(admin.SimpleListFilter):
         value = self.value()
         if value:
             return queryset.filter(fleet__id=value)
+
+
+class FleetDriverFilter(FleetRelatedFilter):
+    parameter_name = 'fleet_driver_fleet'
+    model_class = FleetsDriversVehiclesRate
+
+
+class FleetFilter(FleetRelatedFilter):
+    parameter_name = 'fleet_payment_fleet'
+    model_class = Payments
