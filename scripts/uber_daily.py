@@ -9,8 +9,8 @@ from auto_bot.handlers.driver_manager.utils import get_time_for_task
 
 
 def run(partner_pk=1):
-    start_date = datetime(2024, 1, 1)
-    end_date = datetime(2024, 1, 17)
+    start_date = datetime(2023, 10, 1)
+    end_date = datetime(2024, 1, 19)
     while start_date <= end_date:
         start_time = datetime.combine(start_date, datetime.min.time())
         end_time = datetime.combine(start_date, datetime.max.time())
