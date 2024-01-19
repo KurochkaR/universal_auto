@@ -214,7 +214,6 @@ $(document).ready(function () {
 	});
 
 	function initializeCustomSelect(customSelect, selectedOption, optionsList, iconDown, datePicker) {
-
 		iconDown.click(function() {
 			customSelect.toggleClass("active");
 		});
@@ -224,6 +223,7 @@ $(document).ready(function () {
 		});
 
 		optionsList.on("click", "li", function() {
+
 			const clickedValue = $(this).data("value");
 			selectedOption.data("value", clickedValue);
 			selectedOption.text($(this).text());
@@ -232,12 +232,14 @@ $(document).ready(function () {
 			aggregators = $('.checkbox-container input[type="checkbox"]:checked').map(function() {
 				return $(this).val();
 			}).get();
+
 			var aggregatorsString = aggregators.join('&');
+
 			if (clickedValue !== "custom") {
 				if (aggregatorsString === "shared") {
 					fetchDriverEfficiencyData(clickedValue, null, null);
 				} else {
-					fetchDriverEfficiencyData(clickedValue, null, null, aggregatorsString);
+					fetchDriverFleetEfficiencyData(clickedValue, null, null, aggregatorsString);
 				}
 			}
 
