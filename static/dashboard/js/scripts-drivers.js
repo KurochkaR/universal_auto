@@ -164,49 +164,54 @@ function fetchDriverFleetEfficiencyData(period, start, end, aggregators) {
 $(document).ready(function () {
 	let $table = $('.driver-table');
 	let $tbody = $table.find('tbody');
+	let tableClone;
 
 	function sortTable(column, order) {
-		aggregators = $('.checkbox-container input[type="checkbox"]:checked').map(function() {
-			return $(this).val();
-		}).get();
+		var groups = [];
+		var group = [];
 
-		var aggregatorsString = aggregators.join('&');
-		if (aggregatorsString.includes('&')) {
-        return;
-    }
-
-		let rows = $tbody.find('tr').toArray();
-
-		let collator = new Intl.Collator(undefined, {sensitivity: 'base'});
-
-		rows.sort(function (a, b) {
-			let valueA = $(a).find(`td.${column}`).text();
-			let valueB = $(b).find(`td.${column}`).text();
-			if (column === 'driver') {
-				if (order === 'asc') {
-					return collator.compare(valueA, valueB);
-				} else {
-					return collator.compare(valueB, valueA);
+		$('tr').each(function() {
+			if ($(this).find('.driver').length > 0) {
+				if (group.length > 0) {
+					groups.push(group);
 				}
-				;
+				group = [$(this)];
 			} else {
-				let floatA = parseFloat(valueA);
-				let floatB = parseFloat(valueB);
-				if (order === 'asc') {
-					return floatA - floatB;
-				} else {
-					return floatB - floatA;
-				}
-				;
+				group.push($(this));
 			}
 		});
 
-		$tbody.empty().append(rows);
+		if (group.length > 0) {
+			groups.push(group);
+		}
+
+		groups.sort(function(a, b) {
+				var sumA = 0;
+				a.forEach(function(row) {
+						sumA += parseFloat($(row).find(`td.${column}`).text());
+				});
+				var sumB = 0; b.forEach(function(row) {
+						sumB += parseFloat($(row).find(`td.${column}`).text());
+				});
+	/*     return sumA - sumB; */
+		 if (order === 'asc') {
+				return sumA - sumB;
+		 } else {
+				return sumB - sumA;
+		 }
+
+		});
+
+	 $tbody.empty();
+
+		groups.forEach(function(group) {
+			group.forEach(function(row) {
+				$tbody.append(row);
+			});
+		});
 	}
 
-	// Attach click event handlers to the table headers for sorting
-	$table.find('th.sortable').click(function () {
-
+	$(document).on('click', 'th.sortable', function() {
 		let column = $(this).data('sort');
 		let sortOrder = $(this).hasClass('sorted-asc') ? 'desc' : 'asc';
 
