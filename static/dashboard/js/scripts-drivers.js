@@ -166,6 +166,15 @@ $(document).ready(function () {
 	let $tbody = $table.find('tbody');
 
 	function sortTable(column, order) {
+		aggregators = $('.checkbox-container input[type="checkbox"]:checked').map(function() {
+			return $(this).val();
+		}).get();
+
+		var aggregatorsString = aggregators.join('&');
+		if (aggregatorsString.includes('&')) {
+        return;
+    }
+
 		let rows = $tbody.find('tr').toArray();
 
 		let collator = new Intl.Collator(undefined, {sensitivity: 'base'});
@@ -280,15 +289,17 @@ $(document).ready(function () {
 
 function checkSelection() {
   var selectedAggregators = [];
+
   $('.checkbox-container input[type="checkbox"]:checked').each(function() {
     selectedAggregators.push($(this).val());
   });
+
   var aggregatorsString = selectedAggregators.join('&');
   var selectedPeriod = $('#period .selected-option-drivers').data('value');
 	var startDate = $("#start_report_driver").val();
 	var endDate = $("#end_report_driver").val();
 
-  if (selectedPeriod === "custom" && aggregatorsString === "shared") {
+  if (selectedPeriod !== "custom" && aggregatorsString === "shared") {
 		fetchDriverEfficiencyData(selectedPeriod, startDate, endDate);
 	} else {
 		fetchDriverFleetEfficiencyData(selectedPeriod, startDate, endDate, aggregatorsString);

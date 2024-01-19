@@ -157,7 +157,7 @@ def get_efficiency_info(partner_pk, driver, start, end, payments_modals, aggrega
 
     if aggregator:
         filter_request['fleet'] = aggregator.name
-        payment_request['vendor'] = aggregator
+        payment_request['fleet'] = aggregator
 
     fleet_orders = FleetOrder.objects.filter(**filter_request)
     payments = payments_modals.objects.filter(**payment_request)
