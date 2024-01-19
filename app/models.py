@@ -982,7 +982,7 @@ class DriverEffVehicleKasa(models.Model):
     efficiency_car = models.ForeignKey(CarEfficiency, on_delete=models.CASCADE)
 
 
-class DriverEfficiency(models.Model):
+class DriverEfficiencyPolymorphic(PolymorphicModel):
     report_from = models.DateTimeField(verbose_name='Звіт з')
     report_to = models.DateTimeField(null=True, verbose_name='Звіт по')
     total_kasa = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Каса')
@@ -997,12 +997,22 @@ class DriverEfficiency(models.Model):
     driver = models.ForeignKey(Driver, null=True, on_delete=models.SET_NULL, verbose_name='Водій', db_index=True)
     vehicles = models.ManyToManyField(Vehicle, verbose_name="Автомобілі", db_index=True)
 
+    def __str__(self):
+        return f"{self.driver}"
+
+
+class DriverEfficiency(DriverEfficiencyPolymorphic):
     class Meta:
         verbose_name = 'Ефективність водія'
         verbose_name_plural = 'Ефективність водіїв'
 
-    def __str__(self):
-        return f"{self.driver}"
+
+class DriverEfficiencyFleet(DriverEfficiencyPolymorphic):
+    fleet = models.ForeignKey(Fleet, null=True, on_delete=models.CASCADE, verbose_name='Агрегатор')
+
+    class Meta:
+        verbose_name = 'Ефективність водія в агрегаторах'
+        verbose_name_plural = 'Ефективність водіїв в агрегаторах'
 
 
 class UseOfCars(models.Model):

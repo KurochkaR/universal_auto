@@ -137,6 +137,16 @@ class BaseDashboardView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         user = self.request.user
         context = super().get_context_data(**kwargs)
+        context["get_all_vehicle"] = None
+        context["get_all_driver"] = None
+
+        if user.is_manager():
+            context["get_all_vehicle"] = Vehicle.objects.filter(manager=user)
+            context["get_all_driver"] = Driver.objects.get_active(manager=user)
+        elif user.is_partner():
+            context["get_all_vehicle"] = Vehicle.objects.filter(partner=user)
+            context["get_all_driver"] = Driver.objects.get_active(partner=user)
+
         context["investor_group"] = user.is_investor()
         context["partner_group"] = user.is_partner()
         context["manager_group"] = user.is_manager()
@@ -146,18 +156,6 @@ class BaseDashboardView(LoginRequiredMixin, TemplateView):
 
 class DashboardView(BaseDashboardView):
     template_name = "dashboard/dashboard.html"
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        user = self.request.user
-        if user.is_manager():
-            context["get_all_vehicle"] = Vehicle.objects.filter(manager=user)
-            context["get_all_driver"] = Driver.objects.get_active(manager=user)
-
-        elif user.is_partner():
-            context["get_all_vehicle"] = Vehicle.objects.filter(partner=user)
-            context["get_all_driver"] = Driver.objects.get_active(partner=user)
-        return context
 
 
 class DashboardPaymentView(BaseDashboardView):
@@ -179,18 +177,6 @@ class DashboardDriversView(BaseDashboardView):
 
 class DashboardCalendarView(BaseDashboardView):
     template_name = "dashboard/dashboard-calendar.html"
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        user = self.request.user
-        if user.is_manager():
-            context["get_all_vehicle"] = Vehicle.objects.filter(manager=user)
-            context["get_all_driver"] = Driver.objects.get_active(manager=user)
-
-        elif user.is_partner():
-            context["get_all_vehicle"] = Vehicle.objects.filter(partner=user)
-            context["get_all_driver"] = Driver.objects.get_active(partner=user)
-        return context
 
 
 class GoogleAuthView(View):

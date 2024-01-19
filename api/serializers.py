@@ -1,7 +1,7 @@
 from django.db.models import Sum
 from rest_framework import serializers
 
-from app.models import DriverPayments, Bonus, Penalty
+from app.models import DriverPayments, Bonus, Penalty, DriverEfficiencyFleet
 
 
 class AggregateReportSerializer(serializers.Serializer):
@@ -53,6 +53,27 @@ class DriverEfficiencyRentSerializer(serializers.Serializer):
     start = serializers.CharField()
     end = serializers.CharField()
     drivers_efficiency = DriverEfficiencySerializer(many=True)
+
+
+class FleetEfficiencySerializer(serializers.Serializer):
+    driver_total_kasa = serializers.DecimalField(max_digits=10, decimal_places=2)
+    orders = serializers.IntegerField()
+    driver_average_price = serializers.DecimalField(max_digits=10, decimal_places=2)
+    driver_accept_percent = serializers.DecimalField(max_digits=5, decimal_places=2)
+    driver_road_time = serializers.DurationField()
+    driver_mileage = serializers.DecimalField(max_digits=10, decimal_places=2)
+    driver_efficiency = serializers.DecimalField(max_digits=10, decimal_places=2)
+
+
+class DriverEfficiencyFleetSerializer(serializers.Serializer):
+    full_name = serializers.CharField()
+    fleets = serializers.ListField(child=serializers.DictField(child=FleetEfficiencySerializer()))
+
+
+class DriverEfficiencyFleetRentSerializer(serializers.Serializer):
+    start = serializers.CharField()
+    end = serializers.CharField()
+    drivers_efficiency = serializers.ListField(child=DriverEfficiencyFleetSerializer())
 
 
 class VehiclesEfficiencySerializer(serializers.Serializer):
@@ -143,7 +164,6 @@ class DriverPaymentsSerializer(serializers.ModelSerializer):
 
     def get_status(self, obj):
         return obj.get_status_display()
-
 
     class Meta:
         model = DriverPayments

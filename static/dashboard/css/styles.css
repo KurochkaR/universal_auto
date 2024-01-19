@@ -1909,3 +1909,28 @@ select:focus {
 .driver-table .driver-name {
 	display: table-cell;
 }
+
+/* Стилі для контейнера з чекбоксами */
+.checkbox-container {
+  margin-top: 10px;
+   margin-left: 65px;
+}
+
+.checkbox-container input[type="checkbox"] {
+  display: none;
+}
+
+.checkbox-container label {
+  display: inline-block;
+  margin-right: 10px;
+  padding: 5px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.checkbox-container input[type="checkbox"]:checked + label {
+  background-color: #4CAF50;
+  color: #fff;
+  border-color: #4CAF50;
+}

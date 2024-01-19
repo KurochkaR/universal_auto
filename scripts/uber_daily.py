@@ -1,50 +1,45 @@
 from datetime import datetime, timedelta
 from _decimal import Decimal, ROUND_HALF_UP
 from django.db.models import Sum, F
-from django.db.models.functions import TruncWeek
-from app.models import CarEfficiency, InvestorPayments, Investor, Vehicle, PaymentsStatus, PartnerEarnings, \
-    SummaryReport
-from auto.utils import get_currency_rate
+from django.db.models.functions import TruncWeek, Coalesce
+from app.models import CarEfficiency, InvestorPayments, Investor, Vehicle, PaymentsStatus, PartnerEarnings, Fleet, \
+    Driver, Payments, DriverEfficiencyFleet
+from auto.utils import get_currency_rate, polymorphic_efficiency_create, get_efficiency_info
+from auto_bot.handlers.driver_manager.utils import get_time_for_task
 
 
-def run(*args):
-    driver_earning = datetime(2024, 1, 14)
-    records = CarEfficiency.objects.filter(report_from__lt=driver_earning)
-    weekly_aggregates = records.annotate(
-        week_start=TruncWeek('report_from'),
-        owner=F('partner')
-    ).values(
-        'week_start',
-        'owner'
-    ).annotate(
-        total=Sum('total_kasa'),
-    ).order_by('week_start')
-    for aggregate in weekly_aggregates:
-        report_from = aggregate['week_start'].date()
-        report_to = report_from + timedelta(days=6)
+def run(partner_pk=1):
+    start_date = datetime(2023, 10, 1)
+    end_date = datetime(2024, 1, 19)
+    while start_date <= end_date:
+        start_time = datetime.combine(start_date, datetime.min.time())
+        end_time = datetime.combine(start_date, datetime.max.time())
 
-        for investor in Investor.objects.filter(investors_partner=aggregate['owner']):
-            vehicles = Vehicle.objects.filter(investor_car=investor)
-            if vehicles.exists():
-                vehicle_kasa = aggregate['total'] / vehicles.count()
-                for vehicle in vehicles:
-                    currency = vehicle.currency_back
-                    earning = vehicle_kasa * Decimal(0.33)
-                    if currency != Vehicle.Currency.UAH:
-                        rate = 37.84
-                        amount_usd = float(earning) / rate
-                        car_earnings = Decimal(str(amount_usd)).quantize(Decimal('0.00'), rounding=ROUND_HALF_UP)
-                    else:
-                        car_earnings = earning
-                        rate = 0.00
-                    InvestorPayments.objects.get_or_create(
-                        report_from=report_from,
-                        report_to=report_to,
-                        vehicle=vehicle,
-                        investor=vehicle.investor_car,
-                        partner_id=1,
-                        defaults={
-                            "earning": earning,
-                            "currency": currency,
-                            "currency_rate": rate,
-                            "sum_after_transaction": car_earnings})
+        for driver in Driver.objects.get_active(partner=partner_pk):
+            aggregators = Fleet.objects.filter(partner=partner_pk).exclude(name="Gps")
+
+            for aggregator in aggregators:
+                total_kasa, total_orders, canceled_orders, completed_orders, fleet_orders, payments = get_efficiency_info(
+                    partner_pk, driver, start_time, end_time, Payments, aggregator)
+                vehicles = fleet_orders.values_list('vehicle', flat=True).distinct()
+                mileage = fleet_orders.aggregate(km=Coalesce(Sum('distance'), Decimal(0)))['km']
+                data = {
+                    'total_kasa': total_kasa,
+                    'total_orders': total_orders,
+                    'accept_percent': (total_orders - canceled_orders) / total_orders * 100 if total_orders else 0,
+                    'average_price': total_kasa / completed_orders if completed_orders else 0,
+                    'mileage': mileage,
+                    'road_time': fleet_orders.aggregate(
+                        road_time=Coalesce(Sum('road_time'), timedelta()))['road_time'],
+                    'efficiency': total_kasa / mileage if mileage else 0,
+                    'partner_id': partner_pk
+                }
+
+                result, created = polymorphic_efficiency_create(DriverEfficiencyFleet, partner_pk, driver, start_time,
+                                                                end_time,
+                                                                data, aggregator)
+                if created:
+                    if vehicles:
+                        result.vehicles.add(*vehicles)
+
+        start_date += timedelta(days=1)
