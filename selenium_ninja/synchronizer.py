@@ -111,7 +111,7 @@ class Synchronizer:
             vehicle.vin_code = vin_code
 
         vehicle.partner = self.partner
-        vehicle.save(update_fields=['vehicle_name', 'vin_code', 'partner'])
+        vehicle.save(update_fields=['name', 'vin_code', 'partner'])
 
     def update_driver_fields(self, driver, **kwargs):
         phone_number = kwargs.get('phone_number')

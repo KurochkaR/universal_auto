@@ -219,7 +219,7 @@ class User(models.Model):
 
 
 class Manager(CustomUser):
-    managers_partner = models.ForeignKey(Partner, on_delete=models.CASCADE, verbose_name='Партнер')
+    managers_partner = models.ForeignKey(Partner, null=True, on_delete=models.CASCADE, verbose_name='Партнер')
 
     class Meta:
         verbose_name = 'Менеджера'
@@ -227,7 +227,7 @@ class Manager(CustomUser):
 
 
 class Investor(CustomUser):
-    investors_partner = models.ForeignKey(Partner, on_delete=models.CASCADE, verbose_name='Партнер')
+    investors_partner = models.ForeignKey(Partner, null=True, on_delete=models.CASCADE, verbose_name='Партнер')
 
     class Meta:
         verbose_name = 'Інвестора'
