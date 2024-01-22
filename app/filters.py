@@ -168,7 +168,7 @@ class FleetRelatedFilter(admin.SimpleListFilter):
 
     def lookups(self, request, model_admin):
         user = request.user
-        queryset = self.model_class.objects.all().select_related('partner')
+        queryset = self.model_class.objects.all().select_related('fleet')
         fleet_choices = []
         if user.is_partner():
             queryset = queryset.filter(partner=user)

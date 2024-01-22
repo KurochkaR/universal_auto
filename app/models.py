@@ -460,6 +460,10 @@ class DriverReshuffle(models.Model):
     end_time = models.DateTimeField(verbose_name="Час завершення зміни")
     partner = models.ForeignKey(Partner, null=True, on_delete=models.CASCADE, verbose_name='Партнер')
 
+    class Meta:
+        verbose_name = 'Календар водіїв'
+        verbose_name_plural = 'Календар водіїв'
+
 
 class RentInformation(models.Model):
     report_from = models.DateTimeField(verbose_name='Звіт з')
@@ -572,6 +576,7 @@ class DriverReport(PolymorphicModel):
     updated_at = models.DateTimeField(auto_now=True, verbose_name='Оновлено')
 
     class Meta:
+        unique_together = ('report_from', 'driver', 'polymorphic_ctype_id')
         verbose_name = 'Звіт водія'
         verbose_name_plural = 'Зведені звіти'
 
@@ -597,9 +602,17 @@ class CustomReport(DriverReport):
 class WeeklyReport(DriverReport):
     fleet = models.ForeignKey(Fleet, on_delete=models.CASCADE, verbose_name='Агрегатор')
 
+    class Meta:
+        verbose_name = 'Тижневий звіт'
+        verbose_name_plural = 'Тижневі звіти'
+
 
 class DailyReport(DriverReport):
     fleet = models.ForeignKey(Fleet, on_delete=models.CASCADE, verbose_name='Агрегатор')
+
+    class Meta:
+        verbose_name = 'Денний звіт'
+        verbose_name_plural = 'Денні звіти'
 
 
 class StatusChange(models.Model):
