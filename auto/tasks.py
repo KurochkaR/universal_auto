@@ -15,16 +15,17 @@ from celery.schedules import crontab
 from django_celery_beat.models import IntervalSchedule, PeriodicTask
 from telegram import ParseMode
 from telegram.error import BadRequest
-from app.models import RawGPS, Vehicle, Order, Driver, JobApplication, ParkSettings, UseOfCars, CarEfficiency, \
+from app.models import (RawGPS, Vehicle, Order, Driver, JobApplication, ParkSettings, UseOfCars, CarEfficiency, \
     Payments, SummaryReport, Manager, Partner, DriverEfficiency, FleetOrder, ReportTelegramPayments, \
     InvestorPayments, VehicleSpending, DriverReshuffle, DriverPayments, \
     PaymentTypes, TaskScheduler, DriverEffVehicleKasa, Schema, CustomReport, Fleet, \
-    VehicleGPS, PartnerEarnings, Investor, Bonus, Penalty, PaymentsStatus, FleetsDriversVehiclesRate, SalaryCalculation
+    VehicleGPS, PartnerEarnings, Investor, Bonus, Penalty, PaymentsStatus, FleetsDriversVehiclesRate,
+                        SalaryCalculation, DriverEfficiencyFleet)
 from django.db.models import Sum, IntegerField, FloatField, Value, DecimalField
 from django.db.models.functions import Cast, Coalesce
 from app.utils import get_schedule, create_task
 from auto.utils import payment_24hours_create, summary_report_create, compare_reports, get_corrections, \
-    get_currency_rate
+    get_currency_rate, polymorphic_efficiency_create, get_efficiency_info
 from auto_bot.handlers.driver_manager.utils import get_daily_report, get_efficiency, generate_message_report, \
     get_driver_efficiency_report, calculate_rent, get_vehicle_income, get_time_for_task, \
     create_driver_payments, calculate_income_partner
@@ -409,37 +410,55 @@ def get_driver_efficiency(self, partner_pk, schema, day=None):
     if Fleet.objects.filter(partner=partner_pk, deleted_at=None, name="Gps").exists():
         end, start = get_time_for_task(schema, day)[1:3]
         for driver in Driver.objects.get_active(partner=partner_pk, schema=schema):
-            efficiency = DriverEfficiency.objects.filter(report_from=start,
-                                                         partner=partner_pk,
-                                                         driver=driver)
-            if not efficiency:
-                accept = 0
-                avg_price = 0
-                total_km, driver_vehicles = UaGpsSynchronizer.objects.get(
-                    partner=partner_pk).calc_total_km(driver, start, end)
-                if driver_vehicles:
-                    report = SummaryReport.objects.filter(report_from=start, driver=driver).first()
-                    total_kasa = report.total_amount_without_fee if report else 0
-                    result = Decimal(total_kasa) / Decimal(total_km) if total_km else 0
-                    orders = FleetOrder.objects.filter(driver=driver, accepted_time__range=(start, end))
-                    total_orders = orders.count()
-                    if total_orders:
-                        canceled = orders.filter(state=FleetOrder.DRIVER_CANCEL).count()
-                        completed = orders.filter(state=FleetOrder.COMPLETED).count()
-                        accept = int((total_orders - canceled) / total_orders * 100) if canceled else 100
-                        avg_price = Decimal(total_kasa) / Decimal(completed) if completed else 0
+            mileage, vehicles = UaGpsSynchronizer.objects.get(
+                partner=partner_pk).calc_total_km(driver, start, end)
+            if vehicles:
+                total_kasa, total_orders, canceled_orders, completed_orders, fleet_orders, payments = get_efficiency_info(
+                    partner_pk, driver, start, end, SummaryReport)
+                data = {
+                    'total_kasa': total_kasa,
+                    'total_orders': total_orders,
+                    'accept_percent': (total_orders - canceled_orders) / total_orders * 100,
+                    'average_price': total_kasa / completed_orders if completed_orders else 0,
+                    'mileage': mileage,
+                    'road_time': fleet_orders.aggregate(
+                        road_time=Coalesce(Sum('road_time'), timedelta()))['road_time'],
+                    'efficiency': total_kasa / mileage if mileage else 0,
+                    'partner_id': partner_pk
+                }
 
-                    driver_efficiency = DriverEfficiency.objects.create(report_from=start,
-                                                                        report_to=end,
-                                                                        driver=driver,
-                                                                        total_kasa=total_kasa,
-                                                                        total_orders=total_orders,
-                                                                        accept_percent=accept,
-                                                                        average_price=avg_price,
-                                                                        mileage=total_km or 0,
-                                                                        efficiency=result,
-                                                                        partner_id=partner_pk)
-                    driver_efficiency.vehicles.add(*driver_vehicles)
+                result, created = polymorphic_efficiency_create(DriverEfficiency, partner_pk, driver, start, end, data)
+                if created:
+                    result.vehicles.add(*vehicles)
+
+
+@app.task(bind=True, queue='beat_tasks')
+def get_driver_efficiency_fleet(self, partner_pk, schema, day=None):
+    if Fleet.objects.filter(partner=partner_pk, name="Gps").exists():
+        end, start = get_time_for_task(schema)[1:3]
+        for driver in Driver.objects.get_active(partner=partner_pk, schema=schema):
+            aggregators = Fleet.objects.filter(partner=partner_pk).exclude(name="Gps")
+            for aggregator in aggregators:
+                total_kasa, total_orders, canceled_orders, completed_orders, fleet_orders, payments = get_efficiency_info(
+                    partner_pk, driver, start, end, Payments, aggregator)
+                vehicles = fleet_orders.values_list('vehicle', flat=True).distinct()
+                mileage = fleet_orders.aggregate(km=Coalesce(Sum('distance'), Decimal(0)))['km']
+                data = {
+                    'total_kasa': total_kasa,
+                    'total_orders': total_orders,
+                    'accept_percent': (total_orders - canceled_orders) / total_orders * 100 if total_orders else 0,
+                    'average_price': total_kasa / completed_orders if completed_orders else 0,
+                    'mileage': mileage,
+                    'road_time': fleet_orders.aggregate(
+                        road_time=Coalesce(Sum('road_time'), timedelta()))['road_time'],
+                    'efficiency': total_kasa / mileage if mileage else 0,
+                    'partner_id': partner_pk
+                }
+
+                result, created = polymorphic_efficiency_create(DriverEfficiencyFleet, partner_pk, driver, start, end,
+                                                                data, aggregator)
+                if created:
+                    result.vehicles.add(*vehicles)
 
 
 @app.task(bind=True, queue='beat_tasks')
@@ -1165,14 +1184,22 @@ def check_cash_and_vehicle(self, partner_pk):
 
 
 @app.task(bind=True, queue='beat_tasks')
+def driver_efficiency_all(self, partner_pk, schema, day=None):
+    tasks = chain(get_driver_efficiency.si(partner_pk, schema, day),
+                  get_driver_efficiency_fleet.si(partner_pk, schema, day),
+                  )
+    tasks()
+
+
+@app.task(bind=True, queue='beat_tasks')
 def get_information_from_fleets(self, partner_pk, schema, day=None):
     task_chain = chain(
         download_daily_report.si(partner_pk, schema, day),
         get_orders_from_fleets.si(partner_pk, schema, day),
         generate_payments.si(partner_pk, schema, day),
         generate_summary_report.si(partner_pk, schema, day),
-        get_driver_efficiency.si(partner_pk, schema, day),
         get_rent_information.si(partner_pk, schema, day),
+        driver_efficiency_all.si(partner_pk, schema, day),
         calculate_driver_reports.si(partner_pk, schema, day),
         send_daily_statistic.si(partner_pk, schema),
         send_driver_report.si(partner_pk, schema)

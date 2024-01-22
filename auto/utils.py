@@ -3,9 +3,10 @@ import time
 import requests
 from _decimal import Decimal
 from django.db.models import Sum, DecimalField
+from django.db.models.functions import Coalesce
 
-from app.models import CustomReport, ParkSettings, Vehicle, Partner, Payments, SummaryReport, DriverPayments, Penalty,\
-    Bonus
+from app.models import CustomReport, ParkSettings, Vehicle, Partner, Payments, SummaryReport, DriverPayments, Penalty, \
+    Bonus, FleetOrder
 from auto_bot.handlers.driver_manager.utils import create_driver_payments
 from auto_bot.handlers.order.utils import check_vehicle
 from auto_bot.main import bot
@@ -141,3 +142,45 @@ def summary_report_create(start, end, driver, partner_pk):
             for field in fields:
                 setattr(report, field, sum(getattr(payment, field, 0) or 0 for payment in payments))
             report.save(update_fields=fields)
+
+
+def get_efficiency_info(partner_pk, driver, start, end, payments_modals, aggregator=None):
+    filter_request = {
+        'driver': driver,
+        'accepted_time__range': (start, end), 'partner_id': partner_pk
+    }
+
+    payment_request = {
+        'driver': driver,
+        'report_from': start, 'partner_id': partner_pk
+    }
+
+    if aggregator:
+        filter_request['fleet'] = aggregator.name
+        payment_request['fleet'] = aggregator
+
+    fleet_orders = FleetOrder.objects.filter(**filter_request)
+    payments = payments_modals.objects.filter(**payment_request)
+    total_kasa = payments.aggregate(kasa=Coalesce(Sum('total_amount_without_fee'), Decimal(0)))['kasa']
+    total_orders = fleet_orders.count()
+    canceled_orders = fleet_orders.filter(state=FleetOrder.DRIVER_CANCEL).count()
+    completed_orders = fleet_orders.filter(state=FleetOrder.COMPLETED).count()
+
+    return total_kasa, total_orders, canceled_orders, completed_orders, fleet_orders, payments
+
+
+def polymorphic_efficiency_create(modal, partner_pk, driver, start, end, data, aggregator=None):
+    efficiency_filter = {
+        'report_from': start,
+        'report_to': end,
+        'driver': driver,
+        'partner_id': partner_pk,
+        'defaults': data
+    }
+
+    if aggregator:
+        efficiency_filter['fleet'] = aggregator
+
+    result, created = modal.objects.get_or_create(**efficiency_filter)
+
+    return result, created
