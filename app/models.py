@@ -575,11 +575,6 @@ class DriverReport(PolymorphicModel):
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='Створено')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='Оновлено')
 
-    class Meta:
-        unique_together = ('report_from', 'driver', 'polymorphic_ctype_id')
-        verbose_name = 'Звіт водія'
-        verbose_name_plural = 'Зведені звіти'
-
 
 class Payments(DriverReport):
     fleet = models.ForeignKey(Fleet, on_delete=models.CASCADE, verbose_name='Агрегатор')
@@ -591,6 +586,7 @@ class Payments(DriverReport):
 
 class SummaryReport(DriverReport):
     class Meta:
+
         verbose_name = 'Зведений звіт'
         verbose_name_plural = 'Зведені звіти'
 
@@ -603,6 +599,7 @@ class WeeklyReport(DriverReport):
     fleet = models.ForeignKey(Fleet, on_delete=models.CASCADE, verbose_name='Агрегатор')
 
     class Meta:
+
         verbose_name = 'Тижневий звіт'
         verbose_name_plural = 'Тижневі звіти'
 
@@ -611,6 +608,7 @@ class DailyReport(DriverReport):
     fleet = models.ForeignKey(Fleet, on_delete=models.CASCADE, verbose_name='Агрегатор')
 
     class Meta:
+
         verbose_name = 'Денний звіт'
         verbose_name_plural = 'Денні звіти'
 
