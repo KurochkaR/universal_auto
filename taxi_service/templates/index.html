@@ -76,7 +76,9 @@
                   {% trans "У світі, де екологічні питання стають все більш актуальними, електрокари не просто є перевізниками, вони - це майбутнє транспорту."%}
                 </p>
               </div>
-              <button class="btn-read-more" href="#">{% trans "Читати більше" %}</button>
+              <a href="#">
+                <button class="btn-read-more">{% trans "Читати більше" %}</button>
+              </a>
             </div>
             <div class="col-md-6 row-detail-img">
               <div class="img-box">
@@ -316,64 +318,64 @@
 
       <!-- client section -->
 
-      <section class="client_section layout_padding-bottom">
-        <div class="container">
-          <h2 class="title-block">{% trans "Відгуки" %}</h2>
-          <div class="client-cards">
-            <div class="client-card">
-              <div class="client-card-header">
-                <div class="rounded-image-container">
-                  <img src="{% static 'app/images/client-Ganna.webp' %}" class="client-img rounded-image" alt="">
-                </div>
-                <div class="client-name">
-                  <h2>{% trans "Ганна" %}</h2>
-                  <p>{% trans "Постійний клієнт" %}</p>
-                </div>
-              </div>
-              <div class="client-description">
-                <p class="client-description-text">
-                  {% trans "Я була приємно здивована електротаксі - комфорт, тиша та екологічність відчувається з перших хвилин поїздки." %}
-                  {% trans "Це дорожче, ніж традиційні таксі, але я раджу спробувати його хоча б раз, якщо ви можете собі це дозволити." %}
-                </p>
-              </div>
-            </div>
-            <div class="client-card">
-              <div class="client-card-header">
-                <div class="rounded-image-container">
-                  <img src="{% static 'app/images/client-Vasil.webp' %}" class="client-img rounded-image" alt="">
-                </div>
-                <div class="client-name">
-                  <h2>{% trans "Василь" %}</h2>
-                  <p>{% trans "Постійний клієнт" %}</p>
-                </div>
-              </div>
-              <div class="client-description">
-                <p class="client-description-text">
-                  {% trans "Я був приємно здивований, коли вперше використав електротаксі - це було так комфортно та тихо." %}
-                  {% trans "Я відчував себе більш екологічно свідомим, використовуючи таксі, що не виділяє викидів." %}
-                </p>
-              </div>
-            </div>
-            <div class="client-card">
-              <div class="client-card-header">
-                <div class="rounded-image-container">
-                  <img src="{% static 'app/images/client-Alina.webp' %}" class="client-img rounded-image" alt="">
-                </div>
-                <div class="client-name">
-                  <h2>{% trans "Аліна" %}</h2>
-                  <p>{% trans "Постійний клієнт" %}</p>
-                </div>
-              </div>
-              <div class="client-description">
-                <p class="client-description-text">
-                  {% trans "Я була дуже вражена чистотою в електротаксі. Це було дійсно приємним додатком до мого досвіду використання таксі." %}
-                  {% trans "Я би, безперечно, рекомендувала електротаксі тим, хто знаходиться в пошуку екологічних альтернатив." %}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+<!--      <section class="client_section layout_padding-bottom">-->
+<!--        <div class="container">-->
+<!--          <h2 class="title-block">{% trans "Відгуки" %}</h2>-->
+<!--          <div class="client-cards">-->
+<!--            <div class="client-card">-->
+<!--              <div class="client-card-header">-->
+<!--                <div class="rounded-image-container">-->
+<!--                  <img src="{% static 'app/images/client-Ganna.webp' %}" class="client-img rounded-image" alt="">-->
+<!--                </div>-->
+<!--                <div class="client-name">-->
+<!--                  <h2>{% trans "Ганна" %}</h2>-->
+<!--                  <p>{% trans "Постійний клієнт" %}</p>-->
+<!--                </div>-->
+<!--              </div>-->
+<!--              <div class="client-description">-->
+<!--                <p class="client-description-text">-->
+<!--                  {% trans "Я була приємно здивована електротаксі - комфорт, тиша та екологічність відчувається з перших хвилин поїздки." %}-->
+<!--                  {% trans "Це дорожче, ніж традиційні таксі, але я раджу спробувати його хоча б раз, якщо ви можете собі це дозволити." %}-->
+<!--                </p>-->
+<!--              </div>-->
+<!--            </div>-->
+<!--            <div class="client-card">-->
+<!--              <div class="client-card-header">-->
+<!--                <div class="rounded-image-container">-->
+<!--                  <img src="{% static 'app/images/client-Vasil.webp' %}" class="client-img rounded-image" alt="">-->
+<!--                </div>-->
+<!--                <div class="client-name">-->
+<!--                  <h2>{% trans "Василь" %}</h2>-->
+<!--                  <p>{% trans "Постійний клієнт" %}</p>-->
+<!--                </div>-->
+<!--              </div>-->
+<!--              <div class="client-description">-->
+<!--                <p class="client-description-text">-->
+<!--                  {% trans "Я був приємно здивований, коли вперше використав електротаксі - це було так комфортно та тихо." %}-->
+<!--                  {% trans "Я відчував себе більш екологічно свідомим, використовуючи таксі, що не виділяє викидів." %}-->
+<!--                </p>-->
+<!--              </div>-->
+<!--            </div>-->
+<!--            <div class="client-card">-->
+<!--              <div class="client-card-header">-->
+<!--                <div class="rounded-image-container">-->
+<!--                  <img src="{% static 'app/images/client-Alina.webp' %}" class="client-img rounded-image" alt="">-->
+<!--                </div>-->
+<!--                <div class="client-name">-->
+<!--                  <h2>{% trans "Аліна" %}</h2>-->
+<!--                  <p>{% trans "Постійний клієнт" %}</p>-->
+<!--                </div>-->
+<!--              </div>-->
+<!--              <div class="client-description">-->
+<!--                <p class="client-description-text">-->
+<!--                  {% trans "Я була дуже вражена чистотою в електротаксі. Це було дійсно приємним додатком до мого досвіду використання таксі." %}-->
+<!--                  {% trans "Я би, безперечно, рекомендувала електротаксі тим, хто знаходиться в пошуку екологічних альтернатив." %}-->
+<!--                </p>-->
+<!--              </div>-->
+<!--            </div>-->
+<!--          </div>-->
+<!--        </div>-->
+<!--      </section>-->
 
       <section class="contact-me-section" id="contact-me-form">
         <div class="container">
@@ -382,7 +384,7 @@
           <p>{% trans "Заповніть форму та наш менеджер зв'яжеться з Вами" %}</p>
           <form id="contact-form">
             {% csrf_token %}
-            <input type="text" id="name" name="name" placeholder="{% trans "Ваше ім'я*" %}"><br>
+            <input type="text" id="name" name="name" placeholder="{% trans 'Ваше ім`я*' %}"><br>
             <span class="error-name">{% trans "Ім'я обовязкове!"%}</span><br>
             <input type="tel" id="phone" name="phone" placeholder="{% trans 'Ваш номер телефону*' %}"><br>
             <span class="error-message">{% trans "Не вірний формат номеру"%}</span><br>
