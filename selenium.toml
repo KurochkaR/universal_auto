@@ -7,7 +7,7 @@ app = "selenium-staging"
 primary_region = "otp"
 
 [build]
-  image = "selenium/standalone-chrome:latest"
+  image = "selenium/standalone-chrome:118.0"
 
 [env]
   PORT = "4444"
