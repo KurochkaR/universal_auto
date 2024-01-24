@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 from app.models import CarEfficiency, Vehicle, DriverEfficiency, Driver, RentInformation, \
-    InvestorPayments, SummaryReport, Payments, FleetOrder, FleetsDriversVehiclesRate, PartnerEarnings
+    InvestorPayments, SummaryReport, Payments, FleetOrder, FleetsDriversVehiclesRate, PartnerEarnings, Manager
 
 
 class VehicleEfficiencyUserFilter(admin.SimpleListFilter):
@@ -173,7 +173,8 @@ class FleetRelatedFilter(admin.SimpleListFilter):
         if user.is_partner():
             queryset = queryset.filter(partner=user)
         if user.is_manager():
-            queryset = queryset.filter(partner=request.user.managers_partner)
+            manager = Manager.objects.get(pk=request.user.pk)
+            queryset = queryset.filter(partner=manager.managers_partner)
         fleet_choices.extend(queryset.values_list('fleet_id', 'fleet__name'))
         return set(fleet_choices)
 

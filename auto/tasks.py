@@ -29,7 +29,7 @@ from auto.utils import payment_24hours_create, summary_report_create, compare_re
     get_currency_rate, polymorphic_efficiency_create, get_efficiency_info
 from auto_bot.handlers.driver_manager.utils import get_daily_report, get_efficiency, generate_message_report, \
     get_driver_efficiency_report, calculate_rent, get_vehicle_income, get_time_for_task, \
-    create_driver_payments, calculate_income_partner
+    create_driver_payments, calculate_income_partner, get_failed_income
 from auto_bot.handlers.order.keyboards import inline_markup_accept, inline_search_kb, inline_client_spot, \
     inline_spot_keyboard, inline_second_payment_kb, inline_reject_order, personal_order_end_kb, \
     personal_driver_end_kb
@@ -37,7 +37,7 @@ from auto_bot.handlers.order.static_text import decline_order, order_info, searc
     search_driver_2, no_driver_in_radius, driver_arrived, driver_complete_text, \
     order_customer_text, search_driver, personal_time_route_end, personal_order_info, \
     pd_order_not_accepted, driver_text_personal_end, client_text_personal_end, payment_text
-from auto_bot.handlers.order.utils import text_to_client, check_vehicle
+from auto_bot.handlers.order.utils import text_to_client, check_vehicle, check_reshuffle
 from auto_bot.main import bot
 from scripts.conversion import convertion, haversine, get_location_from_db
 from auto.celery import app
@@ -1135,17 +1135,17 @@ def calculate_driver_reports(self, partner_pk, schema, day=None):
 def calculate_vehicle_earnings(self, payment_pk):
     payment = DriverPayments.objects.get(pk=payment_pk)
     driver = payment.driver
+    start = timezone.localtime(payment.report_from)
+    end = timezone.localtime(payment.report_to)
     driver_value = payment.earning + payment.cash + payment.rent
     if driver_value > 0:
         spending_rate = 1 - round(driver_value / payment.kasa, 6) if payment.kasa else 0
     else:
-        spending_rate = 1 - driver.schema.rate
+        spending_rate = driver.schema.rate * driver.schema.plan
     if payment.is_weekly():
-        vehicles_income = get_vehicle_income(driver, payment.report_from, payment.report_to,
-                                             spending_rate, payment.rent)
+        vehicles_income = get_vehicle_income(driver, start, end, spending_rate, payment.rent)
     else:
-        vehicles_income = calculate_income_partner(driver, payment.report_from, payment.report_to,
-                                                   spending_rate, payment.rent)
+        vehicles_income = calculate_income_partner(driver, start, end, spending_rate, payment.rent)
     for vehicle, income in vehicles_income.items():
         PartnerEarnings.objects.get_or_create(
             report_from=payment.report_from,
@@ -1173,6 +1173,24 @@ def calculate_vehicle_spending(self, payment_pk):
             "earning": spending,
         }
     )
+
+
+@app.task(bind=True, queue='beat_tasks')
+def calculate_failed_earnings(self, payment_pk):
+    payment = DriverPayments.objects.get(payment_pk)
+    vehicle_income = get_failed_income(payment)
+    for vehicle, income in vehicle_income.items():
+        PartnerEarnings.objects.get_or_create(
+            report_from=payment.report_from,
+            report_to=payment.report_to,
+            vehicle_id=vehicle.id,
+            driver=payment.driver,
+            partner=payment.partner,
+            defaults={
+                "status": PaymentsStatus.COMPLETED,
+                "earning": income,
+            }
+        )
 
 
 @app.task(bind=True, queue='beat_tasks')

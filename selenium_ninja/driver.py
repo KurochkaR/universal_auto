@@ -72,7 +72,7 @@ class SeleniumTools:
         options.add_argument("--enable-file-cookies")
         options.add_argument('--allow-profiles-outside-user-dir')
         options.add_argument('--enable-profile-shortcut-manager')
-
+        options.enable_downloads = True
         options.add_argument('--disable-gpu')
         options.add_argument("--no-sandbox")
         options.add_argument("--start-maximized")
@@ -352,7 +352,7 @@ class SeleniumTools:
                 reader = csv.reader(file)
                 next(reader)
                 for row in reader:
-                    if FleetOrder.objects.filter(order_id=row[0]):
+                    if FleetOrder.objects.filter(order_id=row[0], fleet="Uber").exists():
                         continue
                     try:
                         finish = timezone.make_aware(datetime.strptime(row[8], "%Y-%m-%d %H:%M:%S"))
@@ -371,13 +371,9 @@ class SeleniumTools:
                                  "state": states.get(row[12]),
                                  "vehicle": vehicle,
                                  "partner_id": self.partner}
-                        if check_vehicle(driver) != vehicle:
-                            redis_instance().hset(f"wrong_vehicle_{self.partner}", driver.pk, vehicle)
-                        obj, created = FleetOrder.objects.get_or_create(order_id=order['id'], defaults=order)
-                        if not created:
-                            for key, value in order.items():
-                                setattr(obj, key, value)
-                            obj.save()
+                        if check_vehicle(driver.driver) != vehicle:
+                            redis_instance().hset(f"wrong_vehicle_{self.partner}", driver.driver, row[5])
+                        FleetOrder.objects.create(**order)
                 os.remove(file_path)
 
     def add_driver(self, job_application):

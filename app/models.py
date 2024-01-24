@@ -365,10 +365,13 @@ class Earnings(PolymorphicModel):
     partner = models.ForeignKey(Partner, on_delete=models.CASCADE, verbose_name='Партнер')
 
     def is_completed(self):
-        return True if self.status in [PaymentsStatus.COMPLETED, PaymentsStatus.FAILED] else False
+        return True if self.status == PaymentsStatus.COMPLETED else False
 
     def is_pending(self):
         return True if self.status == PaymentsStatus.PENDING else False
+
+    def is_failed(self):
+        return True if self.status == PaymentsStatus.FAILED else False
 
 
 class DriverPayments(Earnings):

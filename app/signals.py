@@ -8,7 +8,7 @@ from django_celery_beat.models import PeriodicTask
 from telegram.error import BadRequest
 
 from auto.tasks import send_on_job_application_on_driver, check_time_order, search_driver_for_order, \
-    calculate_vehicle_earnings, calculate_vehicle_spending
+    calculate_vehicle_earnings, calculate_vehicle_spending, calculate_failed_earnings
 from django.db.models.signals import pre_save, post_save, post_delete, pre_delete
 from django.dispatch import receiver
 from app.models import Driver, StatusChange, JobApplication, ParkSettings, Partner, Order, DriverSchemaRate, \
@@ -50,7 +50,10 @@ def create_payments(sender, instance, created, **kwargs):
                     bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"),
                                      text=f"У {instance.driver} відсутній чат айді")
         else:
-            pass  # InvestorMassage
+            pass
+    # InvestorMassage
+    elif instance.is_failed():
+        calculate_failed_earnings.delay(instance.pk)
 
 
 @receiver(post_save, sender=Partner)

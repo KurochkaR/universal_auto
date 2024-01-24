@@ -876,14 +876,9 @@ class DriverAdmin(SoftDeleteAdmin):
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         if request.user.is_partner():
-            qs = qs.prefetch_related(
-                Prefetch('schema', queryset=Schema.objects.filter(partner=request.user).only('title')),
-                Prefetch('manager', queryset=Manager.objects.filter(managers_partner=request.user))
-            ).filter(partner=request.user)
+            qs = qs.filter(partner=request.user).select_related('schema', 'manager')
         elif request.user.is_manager():
-            qs = qs.prefetch_related(
-                Prefetch('schema', queryset=Schema.objects.filter(partner=request.user))
-            )
+            qs = qs.filter(manager=request.user).select_related('schema')
         return qs
 
     def get_readonly_fields(self, request, obj=None):
@@ -1068,9 +1063,9 @@ class VehicleAdmin(admin.ModelAdmin):
 
         elif request.user.is_partner():
             fieldsets = (
-                ('Номер автомобіля',            {'fields': ['licence_plate', 'gps_imei', 'gps',
+                ('Номер автомобіля',            {'fields': ['licence_plate',
                                                             ]}),
-                ('Інформація про машину',       {'fields': ['name', 'purchase_price',
+                ('Інформація про машину',       {'fields': ['name', 'purchase_price', 'gps_imei', 'gps',
                                                             'investor_car', 'investor_percentage'
                                                             ]}),
                 ('Додатково',                   {'fields': ['manager',
@@ -1078,9 +1073,9 @@ class VehicleAdmin(admin.ModelAdmin):
             )
         elif request.user.is_manager():
             fieldsets = (
-                ('Номер автомобіля',            {'fields': ['licence_plate', 'gps_imei', 'gps',
+                ('Номер автомобіля',            {'fields': ['licence_plate',
                                                             ]}),
-                ('Інформація про машину',       {'fields': ['name', 'purchase_price',
+                ('Інформація про машину',       {'fields': ['name', 'gps_imei', 'gps',
                                                             ]}),
             )
         else:
