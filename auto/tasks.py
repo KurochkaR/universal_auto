@@ -16,10 +16,11 @@ from django_celery_beat.models import IntervalSchedule, PeriodicTask
 from telegram import ParseMode
 from telegram.error import BadRequest
 from app.models import (RawGPS, Vehicle, Order, Driver, JobApplication, ParkSettings, UseOfCars, CarEfficiency, \
-    Payments, SummaryReport, Manager, Partner, DriverEfficiency, FleetOrder, ReportTelegramPayments, \
-    InvestorPayments, VehicleSpending, DriverReshuffle, DriverPayments, \
-    PaymentTypes, TaskScheduler, DriverEffVehicleKasa, Schema, CustomReport, Fleet, \
-    VehicleGPS, PartnerEarnings, Investor, Bonus, Penalty, PaymentsStatus, FleetsDriversVehiclesRate,
+                        Payments, SummaryReport, Manager, Partner, DriverEfficiency, FleetOrder, ReportTelegramPayments, \
+                        InvestorPayments, VehicleSpending, DriverReshuffle, DriverPayments, \
+                        PaymentTypes, TaskScheduler, DriverEffVehicleKasa, Schema, CustomReport, Fleet, \
+                        VehicleGPS, PartnerEarnings, Investor, Bonus, Penalty, PaymentsStatus,
+                        FleetsDriversVehiclesRate,
                         SalaryCalculation, DriverEfficiencyFleet)
 from django.db.models import Sum, IntegerField, FloatField, Value, DecimalField
 from django.db.models.functions import Cast, Coalesce
@@ -418,7 +419,7 @@ def get_driver_efficiency(self, partner_pk, schema, day=None):
                 data = {
                     'total_kasa': total_kasa,
                     'total_orders': total_orders,
-                    'accept_percent': (total_orders - canceled_orders) / total_orders * 100,
+                    'accept_percent': (total_orders - canceled_orders) / total_orders * 100 if total_orders else 0,
                     'average_price': total_kasa / completed_orders if completed_orders else 0,
                     'mileage': mileage,
                     'road_time': fleet_orders.aggregate(

@@ -628,6 +628,18 @@ $(document).ready(function () {
 	});
 });
 
+
+function compareTimes(time1, time2) {
+  const [hours1, minutes1] = time1.split(':').map(Number);
+  const [hours2, minutes2] = time2.split(':').map(Number);
+
+  if (hours1 !== hours2) {
+    return hours1 - hours2;
+  }
+
+  return minutes1 - minutes2;
+}
+
 function validateInputTime(input, field) {
   $(input).on('input', function () {
     let numericValue = input.value.replace(/\D/g, '');
