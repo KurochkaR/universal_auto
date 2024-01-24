@@ -194,9 +194,12 @@ def get_today_orders(self, partner_pk):
             if isinstance(fleet, UklonRequest) and end <= start:
                 continue
             for driver in drivers:
+                last_order = FleetOrder.objects.filter(fleet=fleet.name, driver=driver,
+                                                       accepted_time__gt=start).order_by("-accepted_time").first()
+                start_check = last_order.accepted_time if last_order else start
                 driver_id = driver.get_driver_external_id(fleet)
                 if driver_id:
-                    fleet.get_fleet_orders(start, end, driver.pk, driver_id)
+                    fleet.get_fleet_orders(start_check, end, driver.pk, driver_id)
     except Exception as e:
         logger.error(e)
         retry_delay = retry_logic(e, self.request.retries + 1)
