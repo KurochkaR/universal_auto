@@ -103,7 +103,7 @@ class AutoParkView(BaseContextView, TemplateView):
         context = super().get_context_data(**kwargs)
         context["seo_keywords"] = seo_park_page
         context["seo_title"] = seo_park_page_title
-        context["seo_description"] = seo_description
+        context["seo_description"] = seo_description_park_page
         return context
 
 
@@ -114,7 +114,7 @@ class InvestmentView(BaseContextView, TemplateView):
         context = super().get_context_data(**kwargs)
         context["seo_keywords"] = seo_investment_page
         context["seo_title"] = seo_investment_page_title
-        context["seo_description"] = seo_description
+        context["seo_description"] = seo_description_investment_page
         return context
 
 
