@@ -126,6 +126,9 @@ class DriversView(TemplateView):
         return context
 
 
+# DASHBOARD VIEWS ->
+
+
 class BaseDashboardView(LoginRequiredMixin, TemplateView):
     login_url = "index"
 
@@ -178,6 +181,8 @@ class DashboardDriversView(BaseDashboardView):
 class DashboardCalendarView(BaseDashboardView):
     template_name = "dashboard/dashboard-calendar.html"
 
+
+# OTHER PAGES VIEWS ->
 
 class GoogleAuthView(View):
     @method_decorator(csrf_exempt)

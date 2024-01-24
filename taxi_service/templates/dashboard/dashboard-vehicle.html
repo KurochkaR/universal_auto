@@ -7,6 +7,33 @@
   <div class="main-title">
     <h2>{% trans 'Автомобілі' %}</h2>
   </div>
+
+  <div class="filter">
+    <label for="period">{% trans 'Виберіть період:' %}</label>
+    <div class="custom-select-drivers" id="period">
+      <span class="selected-option-drivers" data-value="yesterday">{% trans 'Вчора' %}</span>
+      <i class="fas fa-angle-down"></i>
+      <ul class="options-drivers">
+        <li data-value="yesterday">{% trans 'Вчора' %}</li>
+        <li data-value="current_week">{% trans 'Поточний тиждень' %}</li>
+        <li data-value="last_week">{% trans 'Минулий тиждень' %}</li>
+        <li data-value="current_month">{% trans 'Поточний місяць' %}</li>
+        <li data-value="last_month">{% trans 'Минулий місяць' %}</li>
+        <li data-value="current_quarter">{% trans 'Поточний квартал' %}</li>
+        <li data-value="last_quarter">{% trans 'Минулий квартал' %}</li>
+        <li data-value="custom">{% trans 'Вибрати період >' %}</li>
+      </ul>
+    </div>
+  </div>
+  <div id="datePickerDriver" style="display: none;">
+    <label for="start_report_driver">{% trans 'Початкова дата:' %}</label>
+    <input type="date" id="start_report_driver" name="start_date">
+    <label for="end_report_driver">{% trans 'Кінцева дата:' %}</label>
+    <input type="date" id="end_report_driver" name="end_date">
+    <input class="apply-filter-button_driver" type="button" onclick="applyCustomDateRange('driver')"
+           value="{% trans 'Фільтрувати'%}">
+  </div>
+
   {% for car in car_piggy_bank %}
   <div class="payback-car">
     <div class="car-item">
@@ -43,5 +70,6 @@
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.3/dist/jquery.min.js" defer></script>
 <script src="{% static 'dashboard/js/header-sidebar.js' %}" defer></script>
 <script src="{% static 'dashboard/js/scripts.js' %}" defer></script>
+<script src="{% static 'dashboard/js/scripts-vehicle.js' %}" defer></script>
 </body>
 </html>
