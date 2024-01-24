@@ -171,29 +171,6 @@ class DriverEfficiencyListView(CombinedPermissionsMixin,
                                generics.ListAPIView):
     serializer_class = DriverEfficiencyRentSerializer
 
-    # def get_queryset(self):
-    #     start, end, format_start, format_end = get_start_end(self.kwargs['period'])
-    #     queryset = ManagerFilterMixin.get_queryset(DriverEfficiency, self.request.user)
-    #     filtered_qs = queryset.filter(report_from__range=(start, end)).exclude(total_orders=0)
-    #     qs = filtered_qs.values('driver_id').annotate(
-    #         total_kasa=Sum('total_kasa'),
-    #         full_name=Concat(F("driver__user_ptr__name"),
-    #                          Value(" "),
-    #                          F("driver__user_ptr__second_name"), output_field=CharField()),
-    #         orders=Sum('total_orders'),
-    #         average_price=Avg('average_price'),
-    #         accept_percent=Avg('accept_percent'),
-    #         road_time=Coalesce(Sum('road_time'), timedelta()),
-    #         mileage=Sum('mileage'),
-    #         efficiency=ExpressionWrapper(
-    #             Case(
-    #                 When(mileage__gt=0, then=F('total_kasa') / F('mileage')),
-    #                 default=Value(0),
-    #                 output_field=FloatField()
-    #             ),
-    #             output_field=FloatField()
-    #         ),
-    #     )
     def get_queryset(self):
         start, end, format_start, format_end = get_start_end(self.kwargs['period'])
         queryset = ManagerFilterMixin.get_queryset(DriverEfficiency, self.request.user)
@@ -222,9 +199,6 @@ class DriverEfficiencyFleetListView(CombinedPermissionsMixin,
         qs = filtered_qs.values('driver_id', 'fleet__name').annotate(
             **dynamic_fleet
         )
-        print("#" * 100)
-        print(qs)
-        print("#" * 100)
         qs = sorted(qs, key=itemgetter('full_name'))
         grouped_qs = []
         for key, group in groupby(qs, key=itemgetter('full_name')):
@@ -244,7 +218,6 @@ class DriverEfficiencyFleetListView(CombinedPermissionsMixin,
                 }
                 driver_data['fleets'].append(fleet_data)
             grouped_qs.append(driver_data)
-        print(grouped_qs)
         return [{'start': format_start, 'end': format_end, 'drivers_efficiency': grouped_qs}]
 
 

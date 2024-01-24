@@ -193,13 +193,12 @@ $(document).ready(function () {
 				var sumB = 0; b.forEach(function(row) {
 						sumB += parseFloat($(row).find(`td.${column}`).text());
 				});
-	/*     return sumA - sumB; */
+		 /*     return sumA - sumB; */
 		 if (order === 'asc') {
 				return sumA - sumB;
 		 } else {
 				return sumB - sumA;
 		 }
-
 		});
 
 	 $tbody.empty();
