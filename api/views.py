@@ -222,9 +222,6 @@ class DriverEfficiencyFleetListView(CombinedPermissionsMixin,
         qs = filtered_qs.values('driver_id', 'fleet__name').annotate(
             **dynamic_fleet
         )
-        print("#" * 100)
-        print(qs)
-        print("#" * 100)
         qs = sorted(qs, key=itemgetter('full_name'))
         grouped_qs = []
         for key, group in groupby(qs, key=itemgetter('full_name')):
@@ -244,7 +241,7 @@ class DriverEfficiencyFleetListView(CombinedPermissionsMixin,
                 }
                 driver_data['fleets'].append(fleet_data)
             grouped_qs.append(driver_data)
-        print(grouped_qs)
+
         return [{'start': format_start, 'end': format_end, 'drivers_efficiency': grouped_qs}]
 
 
@@ -253,12 +250,15 @@ class CarsInformationListView(CombinedPermissionsMixin,
     serializer_class = CarDetailSerializer
 
     def get_queryset(self):
+        start, end, format_start, format_end = get_start_end(self.kwargs['period'])
         investor_queryset = InvestorFilterMixin.get_queryset(Vehicle, self.request.user)
         if investor_queryset:
             queryset = investor_queryset
-            earning_subquery = InvestorPayments.objects.all().values('vehicle__licence_plate').annotate(
+            earning_subquery = InvestorPayments.objects.filter(report_to__range=(start, end)).values(
+                'vehicle__licence_plate').annotate(
                 vehicle_earning=Coalesce(Sum('earning'), Decimal(0)),
             )
+
             queryset = queryset.values('licence_plate').annotate(
                 price=F('purchase_price'),
                 kasa=Subquery(earning_subquery.filter(
@@ -267,6 +267,8 @@ class CarsInformationListView(CombinedPermissionsMixin,
                               ),
                 spending=Coalesce(Sum('vehiclespending__amount'), Decimal(0))
             ).annotate(
+                start_date=Value(format_start),
+                end_date=Value(format_end),
                 progress_percentage=ExpressionWrapper(
                     Case(
                         When(purchase_price__gt=0, then=Round((F('kasa') / F('purchase_price')) * 100)),
@@ -279,7 +281,7 @@ class CarsInformationListView(CombinedPermissionsMixin,
         else:
             queryset = ManagerFilterMixin.get_queryset(Vehicle, self.request.user)
             earning_subquery = PartnerEarnings.objects.filter(
-                vehicle__licence_plate=OuterRef('licence_plate')
+                report_to__range=(start, end), vehicle__licence_plate=OuterRef('licence_plate')
             ).values('vehicle__licence_plate').annotate(
                 vehicle_earning=Coalesce(Sum('earning'), Value(0), output_field=DecimalField())
             )
@@ -292,6 +294,8 @@ class CarsInformationListView(CombinedPermissionsMixin,
                           ),
                 spending=Coalesce(Sum('vehiclespending__amount'), Decimal(0))
             ).annotate(
+                start_date=Value(format_start),
+                end_date=Value(format_end),
                 progress_percentage=ExpressionWrapper(
                     Case(
                         When(purchase_price__gt=0,

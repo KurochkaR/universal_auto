@@ -9,7 +9,7 @@ urlpatterns = [
     path(
         "car_efficiencies/<str:period>/<int:vehicle>", CarEfficiencyListView.as_view()
     ),
-    path("vehicles_info/", CarsInformationListView.as_view()),
+    path("vehicles_info/<str:period>/", CarsInformationListView.as_view()),
     path("investor_info/<str:period>/", InvestorCarsEarningsView.as_view()),
     path("drivers_info/<str:period>/<str:aggregators>/", DriverEfficiencyFleetListView.as_view()),
     path("drivers_info/<str:period>/", DriverEfficiencyListView.as_view()),
