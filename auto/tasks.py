@@ -1122,16 +1122,18 @@ def calculate_driver_reports(self, partner_pk, schema, day=None):
     else:
         end, start = get_time_for_task(schema, day)[1:3]
     for driver in Driver.objects.get_active(partner=partner_pk, schema=schema):
-        data = create_driver_payments(start, end, driver, schema_obj)
-        payment, created = DriverPayments.objects.get_or_create(report_from=start,
-                                                                report_to=end,
-                                                                driver=driver,
-                                                                defaults=data)
-        if created:
-            Bonus.objects.filter(driver=driver, driver_payments__isnull=True).update(driver_payments=payment)
-            Penalty.objects.filter(driver=driver, driver_payments__isnull=True).update(driver_payments=payment)
-            payment.earning = Decimal(payment.earning) + payment.get_bonuses() - payment.get_penalties()
-            payment.save(update_fields=['earning'])
+        reshuffles = check_reshuffle(driver, start, end)
+        if reshuffles:
+            data = create_driver_payments(start, end, driver, schema_obj)
+            payment, created = DriverPayments.objects.get_or_create(report_from=start,
+                                                                    report_to=end,
+                                                                    driver=driver,
+                                                                    defaults=data)
+            if created:
+                Bonus.objects.filter(driver=driver, driver_payments__isnull=True).update(driver_payments=payment)
+                Penalty.objects.filter(driver=driver, driver_payments__isnull=True).update(driver_payments=payment)
+                payment.earning = Decimal(payment.earning) + payment.get_bonuses() - payment.get_penalties()
+                payment.save(update_fields=['earning'])
 
 
 @app.task(bind=True, queue='bot_tasks')

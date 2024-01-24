@@ -517,7 +517,7 @@ def get_failed_income(payment):
     while start.date() <= end.date():
         bolt_report = CustomReport.objects.filter(report_from=start, driver=payment.driver, fleet=bolt_fleet).first()
         bolt_total_cash = bolt_report.total_amount_cash
-        end_report = bolt_report.report_end
+        end_report = bolt_report.report_to
         orders_total_cash = 0
         bonuses = 0
         compensations = 0
