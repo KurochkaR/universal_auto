@@ -1180,7 +1180,7 @@ def calculate_vehicle_spending(self, payment_pk):
 
 @app.task(bind=True, queue='beat_tasks')
 def calculate_failed_earnings(self, payment_pk):
-    payment = DriverPayments.objects.get(payment_pk)
+    payment = DriverPayments.objects.get(pk=payment_pk)
     vehicle_income = get_failed_income(payment)
     for vehicle, income in vehicle_income.items():
         PartnerEarnings.objects.get_or_create(
