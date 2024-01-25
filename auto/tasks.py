@@ -1143,26 +1143,27 @@ def calculate_vehicle_earnings(self, payment_pk):
     start = timezone.localtime(payment.report_from)
     end = timezone.localtime(payment.report_to)
     driver_value = payment.earning + payment.cash + payment.rent
-    if driver_value > 0:
-        spending_rate = 1 - round(driver_value / payment.kasa, 6) if payment.kasa else 0
+    if payment.kasa:
+        spending_rate = 1 - round(driver_value / payment.kasa, 6) if driver_value > 0 else 1
+        if payment.is_weekly():
+            vehicles_income = get_vehicle_income(driver, start, end, spending_rate, payment.rent)
+        else:
+            vehicles_income = calculate_income_partner(driver, start, end, spending_rate, payment.rent)
+        for vehicle, income in vehicles_income.items():
+            PartnerEarnings.objects.get_or_create(
+                report_from=payment.report_from,
+                report_to=payment.report_to,
+                vehicle_id=vehicle.id,
+                driver=driver,
+                partner=driver.partner,
+                defaults={
+                    "status": PaymentsStatus.COMPLETED,
+                    "earning": income,
+                }
+            )
     else:
-        spending_rate = driver.schema.rate * driver.schema.plan
-    if payment.is_weekly():
-        vehicles_income = get_vehicle_income(driver, start, end, spending_rate, payment.rent)
-    else:
-        vehicles_income = calculate_income_partner(driver, start, end, spending_rate, payment.rent)
-    for vehicle, income in vehicles_income.items():
-        PartnerEarnings.objects.get_or_create(
-            report_from=payment.report_from,
-            report_to=payment.report_to,
-            vehicle_id=vehicle.id,
-            driver=driver,
-            partner=driver.partner,
-            defaults={
-                "status": PaymentsStatus.COMPLETED,
-                "earning": income,
-            }
-        )
+        income = -payment.earning
+
 
 
 @app.task(bind=True, queue='bot_tasks')

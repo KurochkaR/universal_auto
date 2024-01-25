@@ -1327,3 +1327,8 @@ class DriverReshuffle(admin.ModelAdmin):
             qs.filter(driver_start__in=drivers)
         return qs.select_related('driver_start', 'swap_vehicle')
 
+
+@admin.register(DriverPayments)
+class DriverPaymentsAdmin(admin.ModelAdmin):
+    list_display = ['driver', 'status', 'earning']
+

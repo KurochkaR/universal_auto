@@ -122,6 +122,7 @@ class BoltRequest(Fleet, Synchronizer):
         return report
 
     def save_custom_report(self, start, end, driver, custom=None):
+        print(start, end)
         time.sleep(0.5)
         param = self.param()
         if not custom:
