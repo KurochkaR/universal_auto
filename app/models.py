@@ -219,7 +219,7 @@ class User(models.Model):
 
 
 class Manager(CustomUser):
-    managers_partner = models.ForeignKey(Partner, on_delete=models.CASCADE, verbose_name='Партнер')
+    managers_partner = models.ForeignKey(Partner, null=True, on_delete=models.CASCADE, verbose_name='Партнер')
 
     class Meta:
         verbose_name = 'Менеджера'
@@ -227,7 +227,7 @@ class Manager(CustomUser):
 
 
 class Investor(CustomUser):
-    investors_partner = models.ForeignKey(Partner, on_delete=models.CASCADE, verbose_name='Партнер')
+    investors_partner = models.ForeignKey(Partner, null=True, on_delete=models.CASCADE, verbose_name='Партнер')
 
     class Meta:
         verbose_name = 'Інвестора'
@@ -365,10 +365,13 @@ class Earnings(PolymorphicModel):
     partner = models.ForeignKey(Partner, on_delete=models.CASCADE, verbose_name='Партнер')
 
     def is_completed(self):
-        return True if self.status in [PaymentsStatus.COMPLETED, PaymentsStatus.FAILED] else False
+        return True if self.status == PaymentsStatus.COMPLETED else False
 
     def is_pending(self):
         return True if self.status == PaymentsStatus.PENDING else False
+
+    def is_failed(self):
+        return True if self.status == PaymentsStatus.FAILED else False
 
 
 class DriverPayments(Earnings):
@@ -459,6 +462,10 @@ class DriverReshuffle(models.Model):
     swap_time = models.DateTimeField(verbose_name="Час початку зміни")
     end_time = models.DateTimeField(verbose_name="Час завершення зміни")
     partner = models.ForeignKey(Partner, null=True, on_delete=models.CASCADE, verbose_name='Партнер')
+
+    class Meta:
+        verbose_name = 'Календар водіїв'
+        verbose_name_plural = 'Календар водіїв'
 
 
 class RentInformation(models.Model):
@@ -571,10 +578,6 @@ class DriverReport(PolymorphicModel):
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='Створено')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='Оновлено')
 
-    class Meta:
-        verbose_name = 'Звіт водія'
-        verbose_name_plural = 'Зведені звіти'
-
 
 class Payments(DriverReport):
     fleet = models.ForeignKey(Fleet, on_delete=models.CASCADE, verbose_name='Агрегатор')
@@ -586,6 +589,7 @@ class Payments(DriverReport):
 
 class SummaryReport(DriverReport):
     class Meta:
+
         verbose_name = 'Зведений звіт'
         verbose_name_plural = 'Зведені звіти'
 
@@ -597,9 +601,19 @@ class CustomReport(DriverReport):
 class WeeklyReport(DriverReport):
     fleet = models.ForeignKey(Fleet, on_delete=models.CASCADE, verbose_name='Агрегатор')
 
+    class Meta:
+
+        verbose_name = 'Тижневий звіт'
+        verbose_name_plural = 'Тижневі звіти'
+
 
 class DailyReport(DriverReport):
     fleet = models.ForeignKey(Fleet, on_delete=models.CASCADE, verbose_name='Агрегатор')
+
+    class Meta:
+
+        verbose_name = 'Денний звіт'
+        verbose_name_plural = 'Денні звіти'
 
 
 class StatusChange(models.Model):

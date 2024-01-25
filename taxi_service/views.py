@@ -16,7 +16,7 @@ from django.utils.decorators import method_decorator
 from api.views import CarsInformationListView
 from taxi_service.forms import SubscriberForm, MainOrderForm
 from taxi_service.handlers import PostRequestHandler, GetRequestHandler
-from taxi_service.seo_keywords import seo_index, seo_park_page
+from taxi_service.seo_keywords import *
 from app.models import Driver, Vehicle, CustomUser
 from auto_bot.main import bot
 
@@ -91,6 +91,8 @@ class IndexView(BaseContextView, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["seo_keywords"] = seo_index
+        context["seo_title"] = seo_index_title
+        context["seo_description"] = seo_description
         return context
 
 
@@ -100,6 +102,8 @@ class AutoParkView(BaseContextView, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["seo_keywords"] = seo_park_page
+        context["seo_title"] = seo_park_page_title
+        context["seo_description"] = seo_description_park_page
         return context
 
 
@@ -108,6 +112,9 @@ class InvestmentView(BaseContextView, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        context["seo_keywords"] = seo_investment_page
+        context["seo_title"] = seo_investment_page_title
+        context["seo_description"] = seo_description_investment_page
         return context
 
 

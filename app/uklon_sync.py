@@ -303,7 +303,6 @@ class UklonRequest(Fleet, Synchronizer):
                   }
 
         driver = Driver.objects.get(pk=pk)
-        str_driver_id = driver_id.replace("-", "")
         params = {"limit": 50,
                   "fleetId": self.uklon_id(),
                   "driverId": driver_id,
@@ -319,14 +318,12 @@ class UklonRequest(Fleet, Synchronizer):
                 vehicle = Vehicle.objects.get(licence_plate=order['vehicle']['licencePlate'])
                 if check_vehicle(driver) != vehicle:
                     redis_instance().hset(f"wrong_vehicle_{self.partner.id}", pk, order['vehicle']['licencePlate'])
-                detail = self.response_data(url=f"{Service.get_value('UKLON_1')}orders/{order['id']}",
-                                            params={"driverId": str_driver_id})
                 try:
-                    finish_time = timezone.make_aware(datetime.fromtimestamp(detail["completedAt"]))
+                    finish_time = timezone.make_aware(datetime.fromtimestamp(order["completedAt"]))
                 except KeyError:
                     finish_time = None
                 try:
-                    start_time = timezone.make_aware(datetime.fromtimestamp(detail["createdAt"]))
+                    start_time = timezone.make_aware(datetime.fromtimestamp(order["acceptedAt"]))
                 except KeyError:
                     start_time = None
                 if order['status'] != "completed":

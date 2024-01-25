@@ -978,7 +978,7 @@ label[for="showPassword"] {
 .right_content .one-info h2 {
 	color: #FFF;
 	text-align: center;
-	font-size: 36px;
+	font-size: 64px;
 	font-style: normal;
 	font-weight: 700;
 	line-height: normal;
@@ -1697,7 +1697,8 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 @media screen and (max-width: 767px) {
 	/*BLOCK-1*/
 	.one_section .container {
-		flex-direction: column;
+		display: grid;
+  	grid-template-columns: 1fr;
 	}
 
 	.left_images .one-background-img {
@@ -1725,16 +1726,17 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 		height: auto;
 	}
 
-	.right_content .decorate-img {
-		margin-top: 20px;
-		right: 15px;
-		position: relative;
+	.right_content::before {
+		margin-right: -150px;
+		content: "";
+		background-image: url(/static/app/images/index-one-block-3.webp);
+		background-size: cover;
+		position: absolute;
+		top: 0;
+		right: 0;
+		bottom: 0;
+		left: -30px;
 		z-index: -1;
-	}
-
-	.right_content .decorate-img img {
-		width: 108%;
-		height: auto;
 	}
 
 	.right_content .one-info {
@@ -1746,25 +1748,43 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	}
 
 	.right_content .one-info {
-		position: relative;
-		padding: 10px;
-		z-index: 1022;
-		margin-top: -245px;
-		right: -23px;
+		width: 80%;
+    position: relative;
+    padding: 10px;
+    z-index: 1022;
+    margin-top: 45px;
+    left: 50px;
 	}
 
 	.right_content .one-info h2 {
-		font-size: 20px;
+		font-size: 40px;
 	}
 
 	.right_content .one-info .phone {
-		font-size: 15px;
+		font-size: 25px;
 		margin-top: 10px;
 	}
 
 	.right_content .one-info .text-1 {
 		margin-bottom: 10px;
-		font-size: 15px;
+		font-size: 28px;
+	}
+
+	.one_section .contact-me-btn button {
+    margin-left: 0%;
+    margin-top: 10px;
+    width: 100%;
+    background-color: #EC6323;
+    color: #fff;
+    padding: 15px 0;
+    border: none;
+    border-radius: 20px;
+    font-size: 16px;
+    text-decoration: none;
+    cursor: pointer;
+    font-style: normal;
+    font-weight: 700;
+    line-height: normal;
 	}
 
 	.telegram-button button {

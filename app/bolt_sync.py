@@ -286,11 +286,10 @@ class BoltRequest(Fleet, Synchronizer):
         time.sleep(0.5)
         if report.get('data'):
             for order in report['data']['rows']:
-                check_order = FleetOrder.objects.filter(order_id=order['order_id'])
                 price = order.get('total_price', 0)
                 tip = order.get("tip", 0)
-                if check_order.exists():
-                    check_order.update(price=price, tips=tip)
+                if FleetOrder.objects.filter(order_id=order['order_id']).exists():
+                    FleetOrder.objects.filter(order_id=order['order_id']).update(price=price, tips=tip)
                     continue
                 vehicle = Vehicle.objects.get(licence_plate=order['car_reg_number'])
                 if check_vehicle(driver) != vehicle:

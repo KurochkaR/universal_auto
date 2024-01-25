@@ -16,10 +16,11 @@ from django_celery_beat.models import IntervalSchedule, PeriodicTask
 from telegram import ParseMode
 from telegram.error import BadRequest
 from app.models import (RawGPS, Vehicle, Order, Driver, JobApplication, ParkSettings, UseOfCars, CarEfficiency, \
-    Payments, SummaryReport, Manager, Partner, DriverEfficiency, FleetOrder, ReportTelegramPayments, \
-    InvestorPayments, VehicleSpending, DriverReshuffle, DriverPayments, \
-    PaymentTypes, TaskScheduler, DriverEffVehicleKasa, Schema, CustomReport, Fleet, \
-    VehicleGPS, PartnerEarnings, Investor, Bonus, Penalty, PaymentsStatus, FleetsDriversVehiclesRate,
+                        Payments, SummaryReport, Manager, Partner, DriverEfficiency, FleetOrder, ReportTelegramPayments, \
+                        InvestorPayments, VehicleSpending, DriverReshuffle, DriverPayments, \
+                        PaymentTypes, TaskScheduler, DriverEffVehicleKasa, Schema, CustomReport, Fleet, \
+                        VehicleGPS, PartnerEarnings, Investor, Bonus, Penalty, PaymentsStatus,
+                        FleetsDriversVehiclesRate,
                         SalaryCalculation, DriverEfficiencyFleet)
 from django.db.models import Sum, IntegerField, FloatField, Value, DecimalField
 from django.db.models.functions import Cast, Coalesce
@@ -28,7 +29,7 @@ from auto.utils import payment_24hours_create, summary_report_create, compare_re
     get_currency_rate, polymorphic_efficiency_create, get_efficiency_info
 from auto_bot.handlers.driver_manager.utils import get_daily_report, get_efficiency, generate_message_report, \
     get_driver_efficiency_report, calculate_rent, get_vehicle_income, get_time_for_task, \
-    create_driver_payments, calculate_income_partner
+    create_driver_payments, calculate_income_partner, get_failed_income
 from auto_bot.handlers.order.keyboards import inline_markup_accept, inline_search_kb, inline_client_spot, \
     inline_spot_keyboard, inline_second_payment_kb, inline_reject_order, personal_order_end_kb, \
     personal_driver_end_kb
@@ -36,7 +37,7 @@ from auto_bot.handlers.order.static_text import decline_order, order_info, searc
     search_driver_2, no_driver_in_radius, driver_arrived, driver_complete_text, \
     order_customer_text, search_driver, personal_time_route_end, personal_order_info, \
     pd_order_not_accepted, driver_text_personal_end, client_text_personal_end, payment_text
-from auto_bot.handlers.order.utils import text_to_client, check_vehicle
+from auto_bot.handlers.order.utils import text_to_client, check_vehicle, check_reshuffle
 from auto_bot.main import bot
 from scripts.conversion import convertion, haversine, get_location_from_db
 from auto.celery import app
@@ -193,9 +194,12 @@ def get_today_orders(self, partner_pk):
             if isinstance(fleet, UklonRequest) and end <= start:
                 continue
             for driver in drivers:
+                last_order = FleetOrder.objects.filter(fleet=fleet.name, driver=driver,
+                                                       accepted_time__gt=start).order_by("-accepted_time").first()
+                start_check = last_order.accepted_time if last_order else start
                 driver_id = driver.get_driver_external_id(fleet)
                 if driver_id:
-                    fleet.get_fleet_orders(start, end, driver.pk, driver_id)
+                    fleet.get_fleet_orders(start_check, end, driver.pk, driver_id)
     except Exception as e:
         logger.error(e)
         retry_delay = retry_logic(e, self.request.retries + 1)
@@ -418,7 +422,7 @@ def get_driver_efficiency(self, partner_pk, schema, day=None):
                 data = {
                     'total_kasa': total_kasa,
                     'total_orders': total_orders,
-                    'accept_percent': (total_orders - canceled_orders) / total_orders * 100,
+                    'accept_percent': (total_orders - canceled_orders) / total_orders * 100 if total_orders else 0,
                     'average_price': total_kasa / completed_orders if completed_orders else 0,
                     'mileage': mileage,
                     'road_time': fleet_orders.aggregate(
@@ -1118,33 +1122,35 @@ def calculate_driver_reports(self, partner_pk, schema, day=None):
     else:
         end, start = get_time_for_task(schema, day)[1:3]
     for driver in Driver.objects.get_active(partner=partner_pk, schema=schema):
-        data = create_driver_payments(start, end, driver, schema_obj)
-        payment, created = DriverPayments.objects.get_or_create(report_from=start,
-                                                                report_to=end,
-                                                                driver=driver,
-                                                                defaults=data)
-        if created:
-            Bonus.objects.filter(driver=driver, driver_payments__isnull=True).update(driver_payments=payment)
-            Penalty.objects.filter(driver=driver, driver_payments__isnull=True).update(driver_payments=payment)
-            payment.earning = Decimal(payment.earning) + payment.get_bonuses() - payment.get_penalties()
-            payment.save(update_fields=['earning'])
+        reshuffles = check_reshuffle(driver, start, end)
+        if reshuffles:
+            data = create_driver_payments(start, end, driver, schema_obj)
+            payment, created = DriverPayments.objects.get_or_create(report_from=start,
+                                                                    report_to=end,
+                                                                    driver=driver,
+                                                                    defaults=data)
+            if created:
+                Bonus.objects.filter(driver=driver, driver_payments__isnull=True).update(driver_payments=payment)
+                Penalty.objects.filter(driver=driver, driver_payments__isnull=True).update(driver_payments=payment)
+                payment.earning = Decimal(payment.earning) + payment.get_bonuses() - payment.get_penalties()
+                payment.save(update_fields=['earning'])
 
 
 @app.task(bind=True, queue='bot_tasks')
 def calculate_vehicle_earnings(self, payment_pk):
     payment = DriverPayments.objects.get(pk=payment_pk)
     driver = payment.driver
+    start = timezone.localtime(payment.report_from)
+    end = timezone.localtime(payment.report_to)
     driver_value = payment.earning + payment.cash + payment.rent
     if driver_value > 0:
         spending_rate = 1 - round(driver_value / payment.kasa, 6) if payment.kasa else 0
     else:
-        spending_rate = 1 - driver.schema.rate
+        spending_rate = driver.schema.rate * driver.schema.plan
     if payment.is_weekly():
-        vehicles_income = get_vehicle_income(driver, payment.report_from, payment.report_to,
-                                             spending_rate, payment.rent)
+        vehicles_income = get_vehicle_income(driver, start, end, spending_rate, payment.rent)
     else:
-        vehicles_income = calculate_income_partner(driver, payment.report_from, payment.report_to,
-                                                   spending_rate, payment.rent)
+        vehicles_income = calculate_income_partner(driver, start, end, spending_rate, payment.rent)
     for vehicle, income in vehicles_income.items():
         PartnerEarnings.objects.get_or_create(
             report_from=payment.report_from,
@@ -1172,6 +1178,24 @@ def calculate_vehicle_spending(self, payment_pk):
             "earning": spending,
         }
     )
+
+
+@app.task(bind=True, queue='beat_tasks')
+def calculate_failed_earnings(self, payment_pk):
+    payment = DriverPayments.objects.get(pk=payment_pk)
+    vehicle_income = get_failed_income(payment)
+    for vehicle, income in vehicle_income.items():
+        PartnerEarnings.objects.get_or_create(
+            report_from=payment.report_from,
+            report_to=payment.report_to,
+            vehicle_id=vehicle.id,
+            driver=payment.driver,
+            partner=payment.partner,
+            defaults={
+                "status": PaymentsStatus.COMPLETED,
+                "earning": income,
+            }
+        )
 
 
 @app.task(bind=True, queue='beat_tasks')
