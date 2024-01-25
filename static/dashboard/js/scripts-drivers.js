@@ -42,11 +42,11 @@ function fetchDriverEfficiencyData(period, start, end) {
 
 					row.append('<td class="driver">' + item.full_name + '</td>');
 					row.append('<td class="aggregator">"-----"</td>');
-					row.append('<td class="kasa">' + item.total_kasa + '</td>');
+					row.append('<td class="kasa">' + Math.round(item.total_kasa) + '</td>');
 					row.append('<td class="orders">' + item.orders + '</td>');
-					row.append('<td class="accept">' + item.accept_percent + " %" + '</td>');
-					row.append('<td class="price">' + item.average_price + '</td>');
-					row.append('<td class="mileage">' + item.mileage + '</td>');
+					row.append('<td class="accept">' + item.accept_percent + '</td>');
+					row.append('<td class="price">' + Math.round(item.average_price) + '</td>');
+					row.append('<td class="mileage">' + Math.round(item.mileage) + '</td>');
 					row.append('<td class="efficiency">' + item.efficiency + '</td>');
 					row.append('<td class="road">' + time + '</td>');
 
@@ -72,11 +72,11 @@ function fetchDriverEfficiencyData(period, start, end) {
 						}
 					});
 
-					driverInfo.append('<p>' + gettext("Каса: ") + driver.total_kasa + gettext(" грн") + '</p>');
+					driverInfo.append('<p>' + gettext("Каса: ") + Math.round(driver.total_kasa) + gettext(" грн") + '</p>');
 					driverInfo.append('<p>' + gettext("Кількість замовлень: ") + driver.orders + '</p>');
-					driverInfo.append('<p>' + gettext("Відсоток прийнятих замовлень: ") + driver.accept_percent + '%' + '</p>');
-					driverInfo.append('<p>' + gettext("Середній чек, грн: ") + driver.average_price + '</p>');
-					driverInfo.append('<p>' + gettext("Пробіг, км: ") + driver.mileage + '</p>');
+					driverInfo.append('<p>' + gettext("% прийнятих замовлень: ") + driver.accept_percent + '</p>');
+					driverInfo.append('<p>' + gettext("Середній чек, грн: ") + Math.round(driver.average_price) + '</p>');
+					driverInfo.append('<p>' + gettext("Пробіг, км: ") + Math.round(driver.mileage) + '</p>');
 					driverInfo.append('<p>' + gettext("Ефективність, грн/км: ") + driver.efficiency + '</p>');
 					driverInfo.append('<p>' + gettext("Час в дорозі: ") + formatTime(driver.road_time) + '</p>');
 
@@ -137,13 +137,73 @@ function fetchDriverFleetEfficiencyData(period, start, end, aggregators) {
 							row.append('<td class="fleet">' + Object.keys(fleet)[0] + '</td>');
 							row.append('<td class="kasa">' + fleet[Object.keys(fleet)[0]].driver_total_kasa + '</td>');
 							row.append('<td class="orders">' + fleet[Object.keys(fleet)[0]].orders + '</td>');
-							row.append('<td class="accept">' + fleet[Object.keys(fleet)[0]].driver_accept_percent + " %" + '</td>');
+							row.append('<td class="accept">' + fleet[Object.keys(fleet)[0]].driver_accept_percent + '</td>');
 							row.append('<td class="price">' + fleet[Object.keys(fleet)[0]].driver_average_price + '</td>');
 							row.append('<td class="mileage">' + fleet[Object.keys(fleet)[0]].driver_mileage + '</td>');
 							row.append('<td class="efficiency">' + fleet[Object.keys(fleet)[0]].driver_efficiency + '</td>');
 							row.append('<td class="time">' + formatTime(fleet[Object.keys(fleet)[0]].driver_road_time) + '</td>');
 
 							table.append(row);
+						});
+					});
+					$('.driver-container').empty();
+
+					// Створюємо об'єкт для зберігання водіїв за іменем
+					let driversMap = {};
+
+					data.forEach(function (item, index) {
+						let efficiency = item.drivers_efficiency;
+
+						efficiency.forEach(function (items, innerIndex) {
+							let driverName = items.full_name;
+
+							// Перевіряємо, чи вже є водій з таким іменем
+							if (!driversMap.hasOwnProperty(driverName)) {
+								// Якщо немає, створюємо запис в об'єкті і створюємо блок водія
+								driversMap[driverName] = {
+									'driverBlock': $('<div class="driver-block"></div>'),
+									'driverName': $('<div class="driver-name"></div>'),
+									'driverInfoContainer': $('<div class="driver-info-container"></div>')
+								};
+
+								// Додаємо заголовок та стрілку для розгортання/згортання
+								driversMap[driverName].driverName.append('<h3>' + driverName + '</h3>');
+								driversMap[driverName].driverName.append('<div class="arrow">▼</div>');
+
+								// Додаємо ім'я водія і блок інформації до основного блоку
+								driversMap[driverName].driverBlock.append(driversMap[driverName].driverName);
+								driversMap[driverName].driverBlock.append(driversMap[driverName].driverInfoContainer);
+								$('.driver-container').append(driversMap[driverName].driverBlock);
+
+								// Встановлюємо подію кліку на ім'я водія
+								driversMap[driverName].driverName.on('click', function () {
+									let infoContainer = driversMap[driverName].driverInfoContainer;
+									if (infoContainer.is(':hidden')) {
+										infoContainer.slideDown();
+										driversMap[driverName].driverName.find('.arrow').html('▲');
+									} else {
+										infoContainer.slideUp();
+										driversMap[driverName].driverName.find('.arrow').html('▼');
+									}
+								});
+							}
+
+							let fleets = items.fleets;
+
+							fleets.forEach(function (fleet, fleetIndex) {
+								// Створюємо блок інформації для кожного флоту та додаємо його до відповідного блоку водія
+								let driverInfo = $('<div class="driver-info "></div>');
+								driverInfo.append('<p>' + gettext("Флот: ") + Object.keys(fleet)[0] + '</p>');
+								driverInfo.append('<p>' + gettext("Каса: ") + Math.round(fleet[Object.keys(fleet)[0]].driver_total_kasa) + gettext(" грн") + '</p>');
+								driverInfo.append('<p>' + gettext("Кількість замовлень: ") + fleet[Object.keys(fleet)[0]].orders + '</p>');
+								driverInfo.append('<p>' + gettext("% прийнятих замовлень: ") + fleet[Object.keys(fleet)[0]].driver_accept_percent + '</p>');
+								driverInfo.append('<p>' + gettext("Середній чек, грн: ") + Math.round(fleet[Object.keys(fleet)[0]].driver_average_price) + '</p>');
+								driverInfo.append('<p>' + gettext("Пробіг, км: ") + Math.round(fleet[Object.keys(fleet)[0]].driver_mileage) + '</p>');
+								driverInfo.append('<p>' + gettext("Ефективність, грн/км: ") + fleet[Object.keys(fleet)[0]].driver_efficiency + '</p>');
+								driverInfo.append('<p>' + gettext("Час в дорозі: ") + formatTime(fleet[Object.keys(fleet)[0]].driver_road_time) + '</p><br>');
+
+								driversMap[driverName].driverInfoContainer.append(driverInfo);
+							});
 						});
 					});
 				});
