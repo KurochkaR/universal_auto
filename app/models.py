@@ -128,6 +128,7 @@ class Schema(models.Model):
     schema = models.CharField(max_length=25, default=SCHEMA_CHOICES[1],
                               choices=SCHEMA_CHOICES, verbose_name='Шаблон схеми')
     plan = models.IntegerField(default=12000, verbose_name='План водія')
+    cash = models.IntegerField(default=500, verbose_name='Готівка водія')
     rental = models.IntegerField(default=6000, verbose_name='Вартість прокату')
     rate = models.DecimalField(decimal_places=2, max_digits=3, default=0.5, verbose_name='Відсоток водія')
     rent_price = models.IntegerField(default=6, verbose_name='Вартість холостого пробігу')
@@ -361,6 +362,7 @@ class Earnings(PolymorphicModel):
     report_from = models.DateTimeField(verbose_name="Дохід з")
     report_to = models.DateTimeField(verbose_name="Дохід по")
     earning = models.DecimalField(decimal_places=2, max_digits=10, verbose_name='Сума доходу')
+    salary = models.DecimalField(decimal_places=2, null=True, blank=True, max_digits=10, verbose_name='Зарплата')
     status = models.CharField(max_length=20, choices=PaymentsStatus.choices, default=PaymentsStatus.CHECKING)
     partner = models.ForeignKey(Partner, on_delete=models.CASCADE, verbose_name='Партнер')
 
@@ -461,6 +463,8 @@ class DriverReshuffle(models.Model):
     driver_start = models.ForeignKey(Driver, on_delete=models.SET_NULL, null=True, verbose_name="Водій")
     swap_time = models.DateTimeField(verbose_name="Час початку зміни")
     end_time = models.DateTimeField(verbose_name="Час завершення зміни")
+    created_at = models.DateTimeField(editable=False, auto_now_add=True, verbose_name='Створено')
+
     partner = models.ForeignKey(Partner, null=True, on_delete=models.CASCADE, verbose_name='Партнер')
 
     class Meta:
@@ -589,7 +593,6 @@ class Payments(DriverReport):
 
 class SummaryReport(DriverReport):
     class Meta:
-
         verbose_name = 'Зведений звіт'
         verbose_name_plural = 'Зведені звіти'
 
@@ -602,7 +605,6 @@ class WeeklyReport(DriverReport):
     fleet = models.ForeignKey(Fleet, on_delete=models.CASCADE, verbose_name='Агрегатор')
 
     class Meta:
-
         verbose_name = 'Тижневий звіт'
         verbose_name_plural = 'Тижневі звіти'
 
@@ -611,7 +613,6 @@ class DailyReport(DriverReport):
     fleet = models.ForeignKey(Fleet, on_delete=models.CASCADE, verbose_name='Агрегатор')
 
     class Meta:
-
         verbose_name = 'Денний звіт'
         verbose_name_plural = 'Денні звіти'
 
@@ -1001,6 +1002,7 @@ class DriverEfficiencyPolymorphic(PolymorphicModel):
     report_to = models.DateTimeField(null=True, verbose_name='Звіт по')
     total_kasa = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Каса')
     total_orders = models.IntegerField(default=0, verbose_name="Замовлень за день")
+    total_orders_rejected = models.IntegerField(default=0, verbose_name="Відмовлено в замовленнях")
     accept_percent = models.IntegerField(default=0, verbose_name="Відсоток прийнятих замовлень")
     average_price = models.DecimalField(decimal_places=2, max_digits=6, default=0, verbose_name='Середній чек, грн')
     mileage = models.DecimalField(decimal_places=2, max_digits=6, default=0, verbose_name='Пробіг, км')
