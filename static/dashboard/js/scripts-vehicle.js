@@ -44,6 +44,9 @@ function fetchVehicleEarningsData(period, start, end) {
 
 
 $(document).ready(function() {
+
+	fetchVehicleEarningsData("yesterday", null, null);
+
 	function initializeCustomSelect(customSelect, selectedOption, optionsList, iconDown, datePicker) {
 
 		iconDown.click(function() {
