@@ -37,6 +37,16 @@ def get_time_for_task(schema, day=None):
     return start, end, previous_start, previous_end
 
 
+def find_reshuffle_period(reshuffle, start, end):
+    if start > reshuffle.swap_time:
+        start_period, end_period = start, reshuffle.end_time
+    elif reshuffle.end_time <= end:
+        start_period, end_period = reshuffle.swap_time, reshuffle.end_time
+    else:
+        start_period, end_period = reshuffle.swap_time, end
+    return start_period, end_period
+
+
 def create_driver_payments(start, end, driver, schema, delete=None):
     driver_report = SummaryReport.objects.filter(report_from__range=(start, end),
                                                  driver=driver).aggregate(
@@ -470,13 +480,9 @@ def calculate_income_partner(driver, start, end, spending_rate, rent, driver_ren
     checked = False
     for reshuffle in reshuffles:
         uber_uklon_income = 0
-        if start > reshuffle.swap_time:
-            start_period, end_period = start, reshuffle.end_time
-        elif reshuffle.end_time <= end:
-            start_period, end_period = reshuffle.swap_time, reshuffle.end_time
-        else:
-            start_period, end_period = reshuffle.swap_time, end
+        start_period, end_period = find_reshuffle_period(reshuffle, start, end)
         vehicle = reshuffle.swap_vehicle
+        print(start_period)
         bolt_income = FleetOrder.objects.filter(
             fleet="Bolt",
             accepted_time__range=(start_period, end_period),
@@ -496,13 +502,16 @@ def calculate_income_partner(driver, start, end, spending_rate, rent, driver_ren
             total_rent = rent_vehicle / driver_rent * rent
         else:
             total_rent = 0
+        print(f"rent {total_rent}")
         fleets = Fleet.objects.filter(partner=driver.partner, name__in=("Uklon", "Uber"))
         for fleet in fleets:
             uber_uklon_income += Decimal(fleet.get_earnings_per_driver(driver, start_period, end_period)[0])
+            print(uber_uklon_income)
         total_bolt_income = Decimal(bolt_income['total_price'] * 0.75004 +
                                     bolt_income['total_tips'] + compensations + bonuses)
         total_kasa = Decimal((total_bolt_income + uber_uklon_income)) * spending_rate
         total_income = total_kasa + total_rent
+        print(f"total{total_income}")
         if not vehicle_income.get(vehicle):
             vehicle_income[vehicle] = total_income
         else:
@@ -532,12 +541,7 @@ def get_failed_income(payment):
         for reshuffle in reshuffles:
             uber_uklon_income = 0
             uber_uklon_cash = 0
-            if start_report > reshuffle.swap_time:
-                start_period, end_period = start_report, reshuffle.end_time
-            elif reshuffle.end_time <= end_report:
-                start_period, end_period = reshuffle.swap_time, reshuffle.end_time
-            else:
-                start_period, end_period = reshuffle.swap_time, end_report
+            start_period, end_period = find_reshuffle_period(reshuffle, start_report, end_report)
             vehicle = reshuffle.swap_vehicle
             print(start_period, end_period)
             bolt_orders = FleetOrder.objects.filter(

@@ -109,7 +109,6 @@ class PostRequestHandler:
         if request.POST.get('action') == 'change_password':
             password = request.POST.get('password')
             new_password = request.POST.get('newPassword')
-            print(request.user.username)
             user = authenticate(username=request.user.username, password=password)
             if user is not None and user.is_active:
                 user.set_password(new_password)
