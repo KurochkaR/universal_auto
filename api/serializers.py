@@ -12,6 +12,8 @@ class AggregateReportSerializer(serializers.Serializer):
 
 
 class CarDetailSerializer(serializers.Serializer):
+    start_date = serializers.CharField()
+    end_date = serializers.CharField()
     licence_plate = serializers.CharField()
     price = serializers.IntegerField()
     kasa = serializers.DecimalField(max_digits=10, decimal_places=2)
@@ -19,7 +21,7 @@ class CarDetailSerializer(serializers.Serializer):
     progress_percentage = serializers.DecimalField(max_digits=10, decimal_places=2)
 
     class Meta:
-        fields = ("licence_plate", "price", "kasa", "spending", "progress_percentage")
+        fields = ("licence_plate", "price", "kasa", "spending", "progress_percentage", "start_date", "end_date")
 
 
 class DriverEfficiencySerializer(serializers.Serializer):

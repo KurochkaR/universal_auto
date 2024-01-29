@@ -282,6 +282,10 @@ function applyCustomDateRange(item) {
 		}
 	}
 
+	if (item === 'vehicle') {
+		fetchVehicleEarningsData(selectedPeriod, startDate, endDate);
+	}
+
 	if (item === 'payments') {
 		driverPayment(selectedPeriod, startDate, endDate, paymentStatus="closed");
 	}
