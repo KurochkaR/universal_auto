@@ -15,10 +15,10 @@ from celery.schedules import crontab
 from django_celery_beat.models import IntervalSchedule, PeriodicTask
 from telegram import ParseMode
 from telegram.error import BadRequest
-from app.models import (RawGPS, Vehicle, Order, Driver, JobApplication, ParkSettings, UseOfCars, CarEfficiency, \
-                        Payments, SummaryReport, Manager, Partner, DriverEfficiency, FleetOrder, ReportTelegramPayments, \
-                        InvestorPayments, VehicleSpending, DriverReshuffle, DriverPayments, \
-                        PaymentTypes, TaskScheduler, DriverEffVehicleKasa, Schema, CustomReport, Fleet, \
+from app.models import (RawGPS, Vehicle, Order, Driver, JobApplication, ParkSettings, UseOfCars, CarEfficiency,
+                        Payments, SummaryReport, Manager, Partner, DriverEfficiency, FleetOrder, ReportTelegramPayments,
+                        InvestorPayments, VehicleSpending, DriverReshuffle, DriverPayments,
+                        PaymentTypes, TaskScheduler, DriverEffVehicleKasa, Schema, CustomReport, Fleet,
                         VehicleGPS, PartnerEarnings, Investor, Bonus, Penalty, PaymentsStatus,
                         FleetsDriversVehiclesRate,
                         SalaryCalculation, DriverEfficiencyFleet)
@@ -29,7 +29,7 @@ from auto.utils import payment_24hours_create, summary_report_create, compare_re
     get_currency_rate, polymorphic_efficiency_create, get_efficiency_info
 from auto_bot.handlers.driver_manager.utils import get_daily_report, get_efficiency, generate_message_report, \
     get_driver_efficiency_report, calculate_rent, get_vehicle_income, get_time_for_task, \
-    create_driver_payments, calculate_income_partner, get_failed_income
+    create_driver_payments, calculate_income_partner, get_failed_income, find_reshuffle_period
 from auto_bot.handlers.order.keyboards import inline_markup_accept, inline_search_kb, inline_client_spot, \
     inline_spot_keyboard, inline_second_payment_kb, inline_reject_order, personal_order_end_kb, \
     personal_driver_end_kb
@@ -1149,21 +1149,41 @@ def calculate_vehicle_earnings(self, payment_pk):
             vehicles_income = get_vehicle_income(driver, start, end, spending_rate, payment.rent)
         else:
             vehicles_income = calculate_income_partner(driver, start, end, spending_rate, payment.rent)
-        for vehicle, income in vehicles_income.items():
-            PartnerEarnings.objects.get_or_create(
-                report_from=payment.report_from,
-                report_to=payment.report_to,
-                vehicle_id=vehicle.id,
-                driver=driver,
-                partner=driver.partner,
-                defaults={
-                    "status": PaymentsStatus.COMPLETED,
-                    "earning": income,
-                }
-            )
     else:
-        income = -payment.earning
-
+        reshuffles_income = {}
+        total_reshuffles = 0
+        driver_payment = -payment.earning
+        total_duration = (payment.report_to - payment.report_from).total_seconds()
+        reshuffles = check_reshuffle(driver, start, end)
+        for reshuffle in reshuffles:
+            vehicle = reshuffle.swap_vehicle
+            start_period, end_period = find_reshuffle_period(reshuffle, start, end)
+            reshuffle_duration = (end_period - start_period).total_seconds()
+            total_reshuffles += reshuffle_duration
+            vehicle_earn = Decimal(reshuffle_duration / total_duration) * driver_payment
+            if not reshuffles_income.get(vehicle):
+                reshuffles_income[vehicle] = vehicle_earn
+            else:
+                reshuffles_income[vehicle] += vehicle_earn
+        if total_reshuffles != total_duration and reshuffles_income:
+            duration_without_car = total_duration - total_reshuffles
+            no_car_income = Decimal(duration_without_car / total_duration) * driver_payment
+            vehicle_bonus = Decimal(no_car_income / len(reshuffles_income))
+            vehicles_income = {key: value + vehicle_bonus for key, value in reshuffles_income.items()}
+        else:
+            vehicles_income = reshuffles_income
+    for vehicle, income in vehicles_income.items():
+        PartnerEarnings.objects.get_or_create(
+            report_from=payment.report_from,
+            report_to=payment.report_to,
+            vehicle_id=vehicle.id,
+            driver=driver,
+            partner=driver.partner,
+            defaults={
+                "status": PaymentsStatus.COMPLETED,
+                "earning": income,
+            }
+        )
 
 
 @app.task(bind=True, queue='bot_tasks')

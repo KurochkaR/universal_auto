@@ -372,7 +372,7 @@ class SeleniumTools:
                                  "vehicle": vehicle,
                                  "partner_id": self.partner}
                         if check_vehicle(driver.driver) != vehicle:
-                            redis_instance().hset(f"wrong_vehicle_{self.partner}", driver.driver, row[5])
+                            redis_instance().hset(f"wrong_vehicle_{self.partner}", driver.driver.pk, row[5])
                         FleetOrder.objects.create(**order)
                 os.remove(file_path)
 
