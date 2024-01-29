@@ -26,6 +26,7 @@ class DriverEfficiencySerializer(serializers.Serializer):
     full_name = serializers.CharField()
     total_kasa = serializers.DecimalField(max_digits=10, decimal_places=2)
     orders = serializers.IntegerField()
+    orders_rejected = serializers.IntegerField()
     accept_percent = serializers.IntegerField()
     road_time = serializers.DurationField()
     efficiency = serializers.DecimalField(max_digits=10, decimal_places=2)
@@ -40,6 +41,7 @@ class DriverEfficiencySerializer(serializers.Serializer):
             "full_name",
             "total_kasa",
             "total_orders",
+            "total_orders_rejected",
             "accept_percent",
             "average_price",
             "road_time",
@@ -58,6 +60,7 @@ class DriverEfficiencyRentSerializer(serializers.Serializer):
 class FleetEfficiencySerializer(serializers.Serializer):
     driver_total_kasa = serializers.DecimalField(max_digits=10, decimal_places=2)
     orders = serializers.IntegerField()
+    orders_rejected = serializers.IntegerField()
     driver_average_price = serializers.DecimalField(max_digits=10, decimal_places=2)
     driver_accept_percent = serializers.DecimalField(max_digits=5, decimal_places=2)
     driver_road_time = serializers.DurationField()

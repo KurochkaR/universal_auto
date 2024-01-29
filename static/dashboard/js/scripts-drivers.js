@@ -44,6 +44,7 @@ function fetchDriverEfficiencyData(period, start, end) {
 					row.append('<td class="aggregator">"-----"</td>');
 					row.append('<td class="kasa">' + item.total_kasa + '</td>');
 					row.append('<td class="orders">' + item.orders + '</td>');
+					row.append('<td class="order_rejected">' + item.orders_rejected + '</td>');
 					row.append('<td class="accept">' + item.accept_percent + " %" + '</td>');
 					row.append('<td class="price">' + item.average_price + '</td>');
 					row.append('<td class="mileage">' + item.mileage + '</td>');
@@ -74,6 +75,7 @@ function fetchDriverEfficiencyData(period, start, end) {
 
 					driverInfo.append('<p>' + gettext("Каса: ") + driver.total_kasa + gettext(" грн") + '</p>');
 					driverInfo.append('<p>' + gettext("Кількість замовлень: ") + driver.orders + '</p>');
+					driverInfo.append('<p>' + gettext("Кількість відхилених замовлень: ") + driver.orders_rejected + '</p>');
 					driverInfo.append('<p>' + gettext("Відсоток прийнятих замовлень: ") + driver.accept_percent + '%' + '</p>');
 					driverInfo.append('<p>' + gettext("Середній чек, грн: ") + driver.average_price + '</p>');
 					driverInfo.append('<p>' + gettext("Пробіг, км: ") + driver.mileage + '</p>');
@@ -137,6 +139,7 @@ function fetchDriverFleetEfficiencyData(period, start, end, aggregators) {
 							row.append('<td class="fleet">' + Object.keys(fleet)[0] + '</td>');
 							row.append('<td class="kasa">' + fleet[Object.keys(fleet)[0]].driver_total_kasa + '</td>');
 							row.append('<td class="orders">' + fleet[Object.keys(fleet)[0]].orders + '</td>');
+							row.append('<td class="order_rejected">' + fleet[Object.keys(fleet)[0]].orders_rejected + '</td>');
 							row.append('<td class="accept">' + fleet[Object.keys(fleet)[0]].driver_accept_percent + " %" + '</td>');
 							row.append('<td class="price">' + fleet[Object.keys(fleet)[0]].driver_average_price + '</td>');
 							row.append('<td class="mileage">' + fleet[Object.keys(fleet)[0]].driver_mileage + '</td>');

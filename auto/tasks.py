@@ -422,6 +422,7 @@ def get_driver_efficiency(self, partner_pk, schema, day=None):
                 data = {
                     'total_kasa': total_kasa,
                     'total_orders': total_orders,
+                    'total_orders_rejected': canceled_orders,
                     'accept_percent': (total_orders - canceled_orders) / total_orders * 100 if total_orders else 0,
                     'average_price': total_kasa / completed_orders if completed_orders else 0,
                     'mileage': mileage,
@@ -450,6 +451,7 @@ def get_driver_efficiency_fleet(self, partner_pk, schema, day=None):
                 data = {
                     'total_kasa': total_kasa,
                     'total_orders': total_orders,
+                    'total_orders_rejected': canceled_orders,
                     'accept_percent': (total_orders - canceled_orders) / total_orders * 100 if total_orders else 0,
                     'average_price': total_kasa / completed_orders if completed_orders else 0,
                     'mileage': mileage,
@@ -1163,7 +1165,6 @@ def calculate_vehicle_earnings(self, payment_pk):
             )
     else:
         income = -payment.earning
-
 
 
 @app.task(bind=True, queue='bot_tasks')
