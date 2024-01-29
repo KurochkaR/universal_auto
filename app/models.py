@@ -2,6 +2,8 @@ import os
 import string
 import random
 from datetime import datetime, date, time
+from decimal import Decimal
+
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.validators import MaxLengthValidator, EmailValidator, RegexValidator
 from django.db.models import Sum, F
@@ -402,6 +404,10 @@ class DriverPayments(Earnings):
 
     def is_weekly(self):
         return True if self.payment_type == SalaryCalculation.WEEK else False
+
+    def save(self, *args, **kwargs):
+        self.salary = Decimal(str(self.cash)) + Decimal(str(self.earning))
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.driver}"

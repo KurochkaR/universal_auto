@@ -197,6 +197,7 @@ function fetchDriverFleetEfficiencyData(period, start, end, aggregators) {
 								driverInfo.append('<p>' + gettext("Флот: ") + Object.keys(fleet)[0] + '</p>');
 								driverInfo.append('<p>' + gettext("Каса: ") + Math.round(fleet[Object.keys(fleet)[0]].driver_total_kasa) + gettext(" грн") + '</p>');
 								driverInfo.append('<p>' + gettext("Кількість замовлень: ") + fleet[Object.keys(fleet)[0]].orders + '</p>');
+								driverInfo.append('<p>' + gettext("Кількість відмов: ") + fleet[Object.keys(fleet)[0]].orders_rejected + '</p>');
 								driverInfo.append('<p>' + gettext("% прийнятих замовлень: ") + fleet[Object.keys(fleet)[0]].driver_accept_percent + '</p>');
 								driverInfo.append('<p>' + gettext("Середній чек, грн: ") + Math.round(fleet[Object.keys(fleet)[0]].driver_average_price) + '</p>');
 								driverInfo.append('<p>' + gettext("Пробіг, км: ") + Math.round(fleet[Object.keys(fleet)[0]].driver_mileage) + '</p>');
