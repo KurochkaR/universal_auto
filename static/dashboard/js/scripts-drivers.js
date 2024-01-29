@@ -28,6 +28,7 @@ function fetchDriverEfficiencyData(period, start, end) {
 		type: 'GET',
 		dataType: 'json',
 		success: function (data) {
+			$(".aggregator").css("display", "none");
 			$(".apply-filter-button_driver").prop("disabled", false);
 			let table = $('.info-driver table');
 			let driverBlock = $('.driver-block');
@@ -41,7 +42,6 @@ function fetchDriverEfficiencyData(period, start, end) {
 					let time = formattedTime
 
 					row.append('<td class="driver">' + item.full_name + '</td>');
-					row.append('<td class="aggregator">"-----"</td>');
 					row.append('<td class="kasa">' + Math.round(item.total_kasa) + '</td>');
 					row.append('<td class="orders">' + item.orders + '</td>');
 					row.append('<td class="order_rejected">' + item.orders_rejected + '</td>');
@@ -113,6 +113,7 @@ function fetchDriverFleetEfficiencyData(period, start, end, aggregators) {
 		type: 'GET',
 		dataType: 'json',
 		success: function (data) {
+			$(".aggregator").css("display", "block");
 			$(".apply-filter-button_driver").prop("disabled", false);
 			let table = $('.info-driver table');
 			let startDate = data[0]['start'];

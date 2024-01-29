@@ -232,7 +232,7 @@ class CarsInformationListView(CombinedPermissionsMixin,
         investor_queryset = InvestorFilterMixin.get_queryset(Vehicle, self.request.user)
         if investor_queryset:
             queryset = investor_queryset
-            earning_subquery = InvestorPayments.objects.filter(report_to__range=(start, end)).values(
+            earning_subquery = InvestorPayments.objects.filter(report_to__date__range=(start, end)).values(
                 'vehicle__licence_plate').annotate(
                 vehicle_earning=Coalesce(Sum('earning'), Decimal(0)),
             )

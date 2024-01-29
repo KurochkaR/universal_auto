@@ -146,6 +146,8 @@ def get_dates(period=None):
             start_date = current_date - timedelta(days=weekday)
         end_date = current_date
 
+    start_date = datetime.combine(start_date, time.min)
+    end_date = datetime.combine(end_date, time.max)
     return start_date, end_date
 
 
@@ -241,8 +243,6 @@ def login_in_investor(request, login_name, password):
             return {'success': False, 'message': 'User is not active'}
     else:
         return {'success': False, 'message': 'User is not found'}
-
-
 
 
 def send_reset_code(email, user_login):
