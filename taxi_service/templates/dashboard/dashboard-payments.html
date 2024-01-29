@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+{% load static %}
+{% load i18n %}
+{% include 'dashboard/dashboard-header-sidebar.html' %}
+
+<!-- Content -->
+<main class="main-container">
+  <div class="main-title">
+    <h2>{% trans 'Водії' %}</h2>
+  </div>
+  <div class="info-driver">
+    <div class="title-driver">
+      <h2>{% trans 'Виплати водіям' %}</h2>
+      <h2 class="income-drivers-date"></h2>
+    </div>
+    <div class="radio-btn-box">
+      <input type="radio" id="on_inspection" name="payment-status" value="on_inspection" checked>
+      <label for="on_inspection">{% trans 'На перевірці' %}</label>
+      <input type="radio" id="not_closed" name="payment-status" value="not_closed">
+      <label for="not_closed">{% trans 'Не закриті' %}</label>
+      <input type="radio" id="closed" name="payment-status" value="closed">
+      <label for="closed">{% trans 'Закриті' %}</label>
+    </div>
+    <div class="filter-driver-payments">
+      <label for="period">{% trans 'Виберіть період:' %}</label>
+      <div class="custom-select-drivers" id="period">
+        <span class="selected-option-drivers">{% trans 'Поточний квартал' %}</span>
+        <i class="fas fa-angle-down"></i>
+        <ul class="options-drivers">
+          <li data-value="current_quarter">{% trans 'Поточний квартал' %}</li>
+          <li data-value="last_quarter">{% trans 'Минулий квартал' %}</li>
+          <li data-value="custom">{% trans 'Вибрати період >' %}</li>
+        </ul>
+      </div>
+    </div>
+    <div id="datePickerDriver" style="display: none;">
+      <label for="start_report_driver">{% trans 'Початкова дата:' %}</label>
+      <input type="date" id="start_report_driver" name="start_date">
+      <label for="end_report_driver">{% trans 'Кінцева дата:' %}</label>
+      <input type="date" id="end_report_driver" name="end_date">
+      <input class="apply-filter-button_driver" type="button" onclick="applyCustomDateRange('payments')"
+             value="{% trans 'Фільтрувати'%}">
+    </div>
+    <table class="driver-table">
+      <thead>
+      <tr>
+        <th class="sortable" data-sort="period">{% trans 'Період виплати' %}</th>
+        <th class="sortable" data-sort="driver">{% trans 'Водій' %}</th>
+        <th class="sortable" data-sort="kasa">{% trans 'Каса' %}</th>
+        <th class="sortable" data-sort="cash">{% trans 'Готівка' %}</th>
+        <th class="sortable" data-sort="rent">{% trans 'Оренда' %}</th>
+        <th class="sortable" data-sort="bonus">{% trans 'Бонуси' %}</th>
+        <th class="sortable" data-sort="fines">{% trans 'Штрафи' %}</th>
+        <th class="sortable" data-sort="salary">{% trans 'Зарплата' %}</th>
+        <th class="sortable" data-sort="status">{% trans 'Статус виплати' %}</th>
+        <th class="sortable" data-sort="button"><button class="send-all-button">{% trans 'Відправити усім' %}</button></th>
+      </tr>
+      </thead>
+      <tr>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+      </tr>
+    </table>
+  </div>
+
+  <div id="modal-upd-payments">
+    <div class="modal-upd-payments">
+      <h2>{% trans "Редагування виплати" %}</h2>
+      <span class="modal-payments-date"></span>
+      <span class="shift-close-btn">
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28" fill="none">
+          <path d="M26.5 2L14.25 14.25M2 26.5L14.25 14.25M14.25 14.25L2 2L26.5 26.5" stroke="white" stroke-width="3"
+                stroke-linejoin="round"/>
+        </svg>
+      </span>
+    </div>
+    <div class="payments-content">
+      <div class="bonus-payments">
+        <div class="bonus-field">
+          <label for="bonus-amount">{% trans "Бонус" %}</label>
+          <input type="text" id="bonus-amount" name="bonus-amount">
+        </div>
+        <div class="bonus-description-field">
+          <label for="bonus-description">{% trans "Опис бонусу" %}</label>
+          <textarea id="bonus-description" name="bonus-description"></textarea>
+        </div>
+      </div>
+      <div class="penalty-payments">
+        <div class="penalty-field">
+          <label for="penalty-amount">{% trans "Штраф" %}</label>
+          <input type="text" id="penalty-amount" name="penalty-amount">
+        </div>
+        <div class="penalty-description-field">
+          <label for="penalty-description">{% trans "Опис штрафу" %}</label>
+          <textarea id="penalty-description" name="penalty-description"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="payments-btn-box">
+        <button class="upd-payments-btn">{% trans "Додати" %}</button>
+    </div>
+  </div>
+
+  <!-- Модальне вікно для редагування бонуса або штрафа -->
+  <div id="modal-upd-bonus" class="modal">
+    <div class="modal-content">
+      <span class="shift-close-btn">
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28" fill="none">
+          <path d="M26.5 2L14.25 14.25M2 26.5L14.25 14.25M14.25 14.25L2 2L26.5 26.5" stroke="white" stroke-width="3"
+                stroke-linejoin="round"/>
+        </svg>
+      </span>
+      <h2>Редагування</h2>
+      <form id="edit-form">
+        <div class="box-amount">
+          <label for="bonus-amount">Ціна:</label><br>
+          <input type="text" id="upd-bonus-amount" name="bonus-amount" class="bonus-amount">
+        </div>
+        <div class="box-description">
+          <label for="bonus-description">Опис:</label><br>
+          <input type="text" id="upd-bonus-description" name="bonus-description" class="bonus-description">
+        </div>
+      </form>
+      <button type="button" id="edit-button-bonus-penalty">Редагувати</button>
+    </div>
+  </div>
+  {% include 'dashboard/_confirmation-update-database.html' %}
+</main>
+
+<!-- End Content -->
+</div>
+<!-- Scripts -->
+<script>
+  const smsImg = "{% static 'app/images/sms-for-driver.svg' %}";
+  const logoImageUrl = "{% static 'app/images/logo-2.svg' %}";
+  let ajaxPostUrl = "{% url 'post_request' %}";
+  let ajaxGetUrl = "{% url 'get_request' %}";
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.6.3/dist/jquery.min.js" defer></script>
+<script src="{% static 'dashboard/js/header-sidebar.js' %}" defer></script>
+<script src="{% static 'dashboard/js/scripts-payments.js' %}" defer></script>
+<script src="{% static 'dashboard/js/scripts.js' %}" defer></script>
+</body>
+</html>

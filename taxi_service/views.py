@@ -2,6 +2,7 @@ import os
 
 import jwt
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db.models import Q
 
 from django.urls import reverse
 from django.shortcuts import render, redirect
@@ -15,19 +16,9 @@ from django.utils.decorators import method_decorator
 from api.views import CarsInformationListView
 from taxi_service.forms import SubscriberForm, MainOrderForm
 from taxi_service.handlers import PostRequestHandler, GetRequestHandler
-from taxi_service.seo_keywords import seo_index, seo_park_page
+from taxi_service.seo_keywords import *
 from app.models import Driver, Vehicle, CustomUser
 from auto_bot.main import bot
-
-
-class IndexView(TemplateView):
-    template_name = "index.html"
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["seo_keywords"] = seo_index
-        context["subscribe_form"] = SubscriberForm()
-        return context
 
 
 class PostRequestView(View):
@@ -57,6 +48,9 @@ class PostRequestView(View):
             "delete_all_shift": handler.handler_delete_shift,
             "update_shift": handler.handler_update_shift,
             "update_all_shift": handler.handler_update_shift,
+            "upd-payments": handler.handler_update_payments,
+            "upd-status-payment": handler.handler_upd_payment_status,
+            "upd_delete_bonus_penalty": handler.handler_upd_delete_bonus_penalty,
         }
 
         if action in method:
@@ -83,19 +77,45 @@ class GetRequestView(View):
             return handler.handle_unknown_action(request)
 
 
-class AutoParkView(TemplateView):
+class BaseContextView(TemplateView):
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["subscribe_form"] = SubscriberForm()
+        context["sentry_cdn"] = os.environ.get("SENTRY_CDN_FRONTEND")
+        return context
+
+
+class IndexView(BaseContextView, TemplateView):
+    template_name = "index.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["seo_keywords"] = seo_index
+        context["seo_title"] = seo_index_title
+        context["seo_description"] = seo_description
+        return context
+
+
+class AutoParkView(BaseContextView, TemplateView):
     template_name = "auto-park.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["seo_keywords"] = seo_park_page
-        context["subscribe_form"] = SubscriberForm()
+        context["seo_title"] = seo_park_page_title
+        context["seo_description"] = seo_description_park_page
         return context
 
 
-class InvestmentView(View):
-    def get(self, request):
-        return render(request, "investment.html", {"subscribe_form": SubscriberForm()})
+class InvestmentView(BaseContextView, TemplateView):
+    template_name = "investment.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["seo_keywords"] = seo_investment_page
+        context["seo_title"] = seo_investment_page_title
+        context["seo_description"] = seo_description_investment_page
+        return context
 
 
 class DriversView(TemplateView):
@@ -113,8 +133,7 @@ class DriversView(TemplateView):
         return context
 
 
-class DashboardView(LoginRequiredMixin, TemplateView):
-    template_name = "dashboard.html"
+class BaseDashboardView(LoginRequiredMixin, TemplateView):
     login_url = "index"
 
     def dispatch(self, request, *args, **kwargs):
@@ -125,9 +144,8 @@ class DashboardView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         user = self.request.user
         context = super().get_context_data(**kwargs)
-        context["investor_group"] = user.is_investor()
-        context["partner_group"] = user.is_partner()
-        context["manager_group"] = user.is_manager()
+        context["get_all_vehicle"] = None
+        context["get_all_driver"] = None
 
         if user.is_manager():
             context["get_all_vehicle"] = Vehicle.objects.filter(manager=user)
@@ -136,9 +154,36 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             context["get_all_vehicle"] = Vehicle.objects.filter(partner=user)
             context["get_all_driver"] = Driver.objects.get_active(partner=user)
 
-        context["car_piggy_bank"] = CarsInformationListView.get_queryset(self)
-
+        context["investor_group"] = user.is_investor()
+        context["partner_group"] = user.is_partner()
+        context["manager_group"] = user.is_manager()
+        context["sentry_cdn"] = os.environ.get("SENTRY_CDN_FRONTEND")
         return context
+
+
+class DashboardView(BaseDashboardView):
+    template_name = "dashboard/dashboard.html"
+
+
+class DashboardPaymentView(BaseDashboardView):
+    template_name = "dashboard/dashboard-payments.html"
+
+
+class DashboardVehicleView(BaseDashboardView):
+    template_name = "dashboard/dashboard-vehicle.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["car_piggy_bank"] = CarsInformationListView.get_queryset(self)
+        return context
+
+
+class DashboardDriversView(BaseDashboardView):
+    template_name = "dashboard/dashboard-drivers.html"
+
+
+class DashboardCalendarView(BaseDashboardView):
+    template_name = "dashboard/dashboard-calendar.html"
 
 
 class GoogleAuthView(View):

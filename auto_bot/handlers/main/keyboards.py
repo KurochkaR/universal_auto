@@ -19,7 +19,7 @@ driver_keyboard = [
 def inline_more_func_kb():
     keyboard = [
         [InlineKeyboardButton(main_buttons[1], callback_data="Comment client")],
-        [InlineKeyboardButton(main_buttons[2], callback_data="Job_application")],
+        # [InlineKeyboardButton(main_buttons[2], callback_data="Job_application")],
         [InlineKeyboardButton(main_buttons[8], url=ParkSettings.get_value('SHIPPING_CHILDS'))],
         [InlineKeyboardButton(order_inline_buttons[6], callback_data="Back_to_main")]
     ]

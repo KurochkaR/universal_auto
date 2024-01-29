@@ -1,7 +1,8 @@
 from django.db.models import Q
 from rest_framework import authentication
 
-from app.models import SummaryReport, Driver, CarEfficiency, DriverEfficiency, Vehicle, InvestorPayments
+from app.models import SummaryReport, Driver, CarEfficiency, DriverEfficiency, Vehicle, InvestorPayments, \
+    DriverPayments, DriverEfficiencyFleet
 from .permissions import IsPartnerUser, IsManagerUser, IsInvestorUser
 from api.authentication import TokenAuthentication
 
@@ -20,7 +21,9 @@ class ManagerFilterMixin:
             SummaryReport: (Q(driver__in=Driver.objects.filter(manager=user)) | Q(partner=user)),
             CarEfficiency: (Q(vehicle__manager=user) | Q(partner=user)),
             DriverEfficiency: (Q(driver__manager=user) | Q(partner=user)),
+            DriverEfficiencyFleet: (Q(driver__manager=user) | Q(partner=user)),
             Vehicle: (Q(manager=user) | Q(partner=user)),
+            DriverPayments: (Q(driver__manager=user) | Q(partner=user)),
         }
 
         filter_condition = model_filter_map.get(model)

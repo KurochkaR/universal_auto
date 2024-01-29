@@ -10,6 +10,10 @@ urlpatterns = [
     path('investment/', InvestmentView.as_view(), name='investment'),
     path('drivers/', DriversView.as_view(), name='drivers'),
     path('dashboard/', DashboardView.as_view(), name='dashboard'),
+    path('dashboard/vehicle/', DashboardVehicleView.as_view(), name='dashboard_vehicle'),
+    path('dashboard/driver/', DashboardDriversView.as_view(), name='dashboard_driver'),
+    path('dashboard/driver-payment/', DashboardPaymentView.as_view(), name='dashboard_payment'),
+    path('dashboard/driver-calendar/', DashboardCalendarView.as_view(), name='dashboard_calendar'),
     path('sign-in/', GoogleAuthView.as_view(), name='sign_in'),
     path('send-to-telegram/', SendToTelegramView.as_view(), name='send_to_telegram'),
     path('blog/', blog, name='blog'),
@@ -18,5 +22,6 @@ urlpatterns = [
     path("jsi18n/", JavaScriptCatalog.as_view(), name="javascript-catalog"),
 
     path('robots.txt', TemplateView.as_view(template_name="robots.txt", content_type="text/plain"), name="robots_file"),
-    path('sitemap.xml', TemplateView.as_view(template_name="sitemap.xml", content_type="text/xml"), name="sitemap_file"),
+    path('sitemap.xml', TemplateView.as_view(template_name="sitemap.xml", content_type="text/xml"),
+         name="sitemap_file"),
 ]

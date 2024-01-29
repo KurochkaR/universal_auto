@@ -47,12 +47,9 @@ class Synchronizer:
             FleetsDriversVehiclesRate.objects.create(fleet=self,
                                                      driver_external_id=kwargs['driver_external_id'],
                                                      driver=self.get_or_create_driver(**kwargs),
-                                                     pay_cash=kwargs['pay_cash'],
                                                      partner=self.partner)
         else:
             self.update_driver_fields(driver.driver, **kwargs)
-            driver.pay_cash = kwargs["pay_cash"]
-            driver.save(update_fields=['pay_cash'])
 
     def get_or_create_driver(self, **kwargs):
         driver = Driver.objects.filter((Q(name=kwargs['name'], second_name=kwargs['second_name']) |
@@ -95,10 +92,10 @@ class Synchronizer:
         if licence_plate:
             vehicle, created = Vehicle.objects.get_or_create(licence_plate=licence_plate,
                                                              defaults={
-                                                                  "name": v_name.upper(),
-                                                                  "licence_plate": licence_plate,
-                                                                  "vin_code": vin,
-                                                                  "partner": self.partner
+                                                                 "name": v_name.upper(),
+                                                                 "licence_plate": licence_plate,
+                                                                 "vin_code": vin,
+                                                                 "partner": self.partner
                                                              })
             if not created:
                 self.update_vehicle_fields(vehicle, **kwargs)
@@ -114,33 +111,26 @@ class Synchronizer:
             vehicle.vin_code = vin_code
 
         vehicle.partner = self.partner
-        vehicle.save()
+        vehicle.save(update_fields=['name', 'vin_code', 'partner'])
 
     def update_driver_fields(self, driver, **kwargs):
-        yesterday = timezone.localtime() - datetime.timedelta(days=1)
         phone_number = kwargs.get('phone_number')
         photo = kwargs.get('photo')
         email = kwargs.get('email')
-        swap_vehicle = Vehicle.objects.filter(licence_plate=kwargs['licence_plate']).first()
-        reshuffle = DriverReshuffle.objects.filter(swap_vehicle=swap_vehicle,
-                                                   swap_time__date=yesterday.date())
-        if photo and not driver.photo and "default.jpeg" not in photo:
+
+        if photo and "default.jpeg" not in photo and 'drivers/default-driver.png' == driver.photo:
             response = requests.get(photo)
             if response.status_code == 200:
                 image_data = response.content
                 image_file = BytesIO(image_data)
                 driver.photo = File(image_file, name=f"{driver.name}_{driver.second_name}.jpg")
-        if reshuffle:
-            Driver.objects.filter(vehicle=swap_vehicle).update(vehicle=None)
         if driver.partner.contacts:
             if phone_number and not driver.phone_number:
                 driver.phone_number = phone_number
-
             if email and driver.email != email:
                 driver.email = email
-        driver.save()
+        driver.save(update_fields=['phone_number', 'photo', 'email'])
 
     @staticmethod
     def report_interval(date_time):
         return int(date_time.timestamp())
-

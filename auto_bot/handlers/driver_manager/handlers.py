@@ -107,7 +107,7 @@ def remove_cash_by_manager(update, context):
 def get_drivers_from_fleets(update, context):
     query = update.callback_query
     manager = Manager.get_by_chat_id(query.from_user.id)
-    partner_id = manager.managers_partner if manager else Partner.get_by_chat_id(query.from_user.id).pk
+    partner_id = manager.managers_partner_id if manager else Partner.get_by_chat_id(query.from_user.id).pk
     update_driver_data.delay(partner_id, query.from_user.id)
     query.edit_message_text(get_drivers_text)
 
@@ -149,7 +149,7 @@ def get_efficiency_for_drivers(update, context):
             for k, v in result.items():
                 message += f"{k}\n" + "".join(v) + "\n"
         else:
-            message += no_drivers_text
+            message += no_drivers_report_text
         try:
             query.edit_message_text(message)
             query.edit_message_reply_markup(reply_markup=inline_manager_kb())
@@ -185,9 +185,12 @@ def create_driver_eff(update, context):
             for k, v in result.items():
                 message += f"{k}\n" + "".join(v) + "\n"
         else:
-            message += no_drivers_text
-        bot.edit_message_text(chat_id=update.effective_chat.id, text=message,
-                              message_id=msg.message_id, reply_markup=inline_manager_kb())
+            message += no_drivers_report_text
+        try:
+            bot.edit_message_text(chat_id=update.effective_chat.id, text=message,
+                                  message_id=msg.message_id, reply_markup=inline_manager_kb())
+        except BadRequest:
+            send_long_message(update.effective_chat.id, message, inline_manager_kb())
     else:
         redis_instance().hset(str(update.effective_chat.id), 'state', END_DRIVER_EFF)
         context.bot.send_message(chat_id=update.message.chat_id, text=invalid_end_data_text)
@@ -198,8 +201,12 @@ def get_weekly_report(update, context):
     query.edit_message_text(generate_text)
     daily = True if query.data == "Daily_payment" else False
     messages = generate_message_report(query.from_user.id, daily=daily)
-    owner_message = messages.get(str(query.from_user.id))
-    query.edit_message_text(owner_message)
+    try:
+        owner_message = messages.get(str(query.from_user.id))
+        query.edit_message_text(owner_message)
+    except BadRequest as e:
+        if "Message text is empty" in str(e):
+            query.edit_message_text(no_drivers_report_text)
     query.edit_message_reply_markup(back_to_main_menu())
 
 
@@ -220,7 +227,7 @@ def get_report(update, context):
             query.edit_message_text(message)
         except BadRequest as e:
             if "Message text is empty" in str(e):
-                query.edit_message_text(no_drivers_text)
+                query.edit_message_text(no_drivers_report_text)
         query.edit_message_reply_markup(reply_markup=inline_manager_kb())
 
 
@@ -320,16 +327,16 @@ def send_into_group(sender=None, **kwargs):
         for partner, message in messages.items():
             schema_message = f'Схема роботи: "{schema}"\n'
             schema_message += message
-            if message and ParkSettings.get_value('DRIVERS_CHAT', partner=partner):
-                bot.send_message(chat_id=ParkSettings.get_value('DRIVERS_CHAT', partner=partner), text=schema_message)
-            else:
+            if message:
                 try:
-                    bot.send_message(chat_id=Partner.objects.get(pk=partner).chat_id, text=schema_message)
+                    bot.send_message(chat_id=ParkSettings.get_value('DRIVERS_CHAT',
+                                                                    default=Partner.objects.get(pk=partner).chat_id,
+                                                                    partner=partner), text=schema_message)
                 except BadRequest:
                     pass
         for pk, message in drivers_messages.items():
             driver = Driver.objects.get(pk=pk)
-            vehicle = check_vehicle(driver, yesterday, max_time=True)[0]
+            vehicle = check_vehicle(driver, yesterday, max_time=True)
             if vehicle:
                 if vehicle.chat_id and message:
                     try:
@@ -343,13 +350,18 @@ def send_vehicle_efficiency(sender=None, **kwargs):
     if sender == send_efficiency_report:
         messages = kwargs.get('retval')
         for partner, message in messages.items():
-            if message and ParkSettings.get_value('DRIVERS_CHAT', partner=partner):
-                bot.send_message(chat_id=ParkSettings.get_value('DRIVERS_CHAT', partner=partner), text=message)
-            else:
+            if message:
                 try:
-                    bot.send_message(chat_id=Partner.objects.get(pk=partner).chat_id, text=message)
-                except BadRequest:
-                    pass
+                    bot.send_message(chat_id=ParkSettings.get_value('DRIVERS_CHAT',
+                                                                    default=Partner.objects.get(pk=partner).chat_id,
+                                                                    partner=partner), text=message)
+                except BadRequest as e:
+                    if e.message == 'Message is too long':
+                        send_long_message(chat_id=ParkSettings.get_value('DRIVERS_CHAT',
+                                          default=Partner.objects.get(pk=partner).chat_id,
+                                          partner=partner), text=message)
+                    else:
+                        pass
 
 
 @task_postrun.connect
@@ -383,13 +395,13 @@ def get_partner_drivers(update, context):
     query = update.callback_query
     pk_vehicle = query.data.split()[1]
     user = CustomUser.get_by_chat_id(query.from_user.id)
-    drivers = Driver.objects.filter(manager=user) if user.is_manager() else Driver.objects.filter(partner=user)
+    drivers = Driver.objects.get_active(manager=user) if user.is_manager() else Driver.objects.get_active(partner=user)
     if drivers:
         query.edit_message_text(partner_drivers)
         query.edit_message_reply_markup(reply_markup=inline_partner_drivers(pin_vehicle_callback, drivers,
                                                                             'Pin_vehicle_to_driver', pk_vehicle,))
     else:
-        query.edit_message_text(no_drivers_text)
+        query.edit_message_text(no_manager_drivers)
 
 
 def pin_partner_vehicle_to_driver(update, context):

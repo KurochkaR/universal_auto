@@ -24,7 +24,6 @@ processed_files = []
 def start(update, context):
     chat_id = update.effective_chat.id
     redis_instance().delete(str(chat_id))
-    redis_instance().expire(str(chat_id), 3600)
     menu(update, context)
     UserBank.objects.get_or_create(chat_id=chat_id)
     clients = list(User.objects.filter(chat_id=chat_id))
@@ -114,7 +113,7 @@ def celery_test(update, context):
     try:
         health_check.delay()
     except Exception as e:
-        context.bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"), message=e)
+        context.bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"), text=e)
 
 
 def helptext(update, context):

@@ -82,6 +82,7 @@ $(document).ready(function () {
 	$(".close-btn").click(function () {
 		$("#loginForm").fadeOut();
 		$(".forgot-password-form").fadeOut();
+		$(".reset-password-form").fadeOut();
 	});
 
 	$("#login-invest").click(function () {
@@ -187,11 +188,16 @@ $(document).ready(function () {
 		const confirmPassword = $('#confirmPassword').val();
 		const resetCode = sendResetCodeBtn.data('resetCode');
 
-		if (newPassword !== confirmPassword || activeCode !== resetCode) {
+		if (newPassword !== confirmPassword || activeCode !== resetCode || newPassword.trim() === "") {
 			if (newPassword !== confirmPassword) {
 				$('#passwordError').text(gettext('Паролі не співпадають')).addClass('error-message').show();
 			} else {
 				$('#passwordError').hide()
+			}
+			if (newPassword.trim() === "") {
+				$('#emptyPassError').text(gettext('Пароль не може бути пустим')).addClass('error-message').show();
+			} else {
+				$('#emptyPassError').hide()
 			}
 
 			if (activeCode !== resetCode) {
@@ -221,7 +227,10 @@ $(document).ready(function () {
 	});
 
 	// js for index
-
+	const contactOpenBtn = $('.contact-me-button');
+	const formSection = $('#contact-me-form');
+	const closeButtonContact = $("#close-form-contact");
+	const contactForm = $("#contact-form");
 	const detailsRadio = $('#detailsRadio');
 	const howItWorksRadio = $('#howItWorksRadio');
 	const detailRadio1 = $('#detail-radio-1');
@@ -251,9 +260,9 @@ $(document).ready(function () {
 		video.attr('role', 'button');
 
 		video.html(`
-    <img alt="" src="https://img.youtube.com/vi/${id}/maxresdefault.jpg" style="border-radius: 25px" width="552" height="310" loading="lazy"><br>
-    ${video.text()}
-  `);
+			<img alt="" src="https://storage.googleapis.com/jobdriver-bucket/docs/index-youtube-img.png" style="border-radius: 25px" width="552" height="310" loading="lazy"><br>
+			${video.text()}
+		`);
 	});
 
 	function clickHandler(event) {
@@ -282,6 +291,39 @@ $(document).ready(function () {
 		}
 	});
 
+	contactOpenBtn.click(function () {
+		console.log('click');
+		formSection.show();
+		thankYouMessage.hide();
+	});
+
+	closeButtonContact.click(function () {
+		formSection.hide();
+	});
+
+	contactForm.on("submit", function (e) {
+		e.preventDefault();
+		let formData = contactForm.serialize();
+		let phoneInput = contactForm.find('#phone').val();
+		let nameInput = contactForm.find('#name').val();
+		$(".error-message").hide();
+		$(".error-name").hide();
+
+		if (!/^\+\d{1,3} \d{2,3} \d{2,3}-\d{2,3}-\d{2,3}$/.test(phoneInput)) {
+			$(".error-message").show();
+			return;
+		}
+
+		if (nameInput.trim() === "") {
+			$(".error-name").show();
+			return;
+		}
+
+		submitForm(formData);
+	});
+
+
+
 	// js for park page
 
 	const openButtonsFree = $(".free-access-button");
@@ -295,6 +337,8 @@ $(document).ready(function () {
 
 	function hideFormAndShowThankYou(success) {
     formSectionFree.hide();
+    formSection.hide();
+
 
     if (success) {
 			thankYouMessage.show();
@@ -408,7 +452,6 @@ $(document).ready(function() {
 		investmentParkSlider.mount();
 	}
 
-
 	$(".learn-more-button").click(function (e) {
 		sendData("#email-input");
 		e.preventDefault();
@@ -448,7 +491,6 @@ $(document).ready(function() {
 				csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
 			},
 			success: function (response) {
-			console.log(response.success);
 				if (response.success === true) {
 					$("#thank-you-message").show();
 					$("#InvestModal").hide();
@@ -482,5 +524,16 @@ $(document).ready(function () {
 	var closeFormAccessButton = $("#close-form-access");
 	closeFormAccessButton.on("click", function () {
 		investModal.hide();
+	});
+
+	var passwordInput = $('#password');
+	var showPasswordCheckbox = $('#showPassword');
+
+	showPasswordCheckbox.change(function () {
+		if (showPasswordCheckbox.is(':checked')) {
+			passwordInput.attr('type', 'text');
+		} else {
+			passwordInput.attr('type', 'password');
+		}
 	});
 });

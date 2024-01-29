@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 from app.models import CarEfficiency, Vehicle, DriverEfficiency, Driver, RentInformation, \
-    InvestorPayments, SummaryReport, Payments, FleetOrder, FleetsDriversVehiclesRate
+    InvestorPayments, SummaryReport, Payments, FleetOrder, FleetsDriversVehiclesRate, PartnerEarnings, Manager
 
 
 class VehicleEfficiencyUserFilter(admin.SimpleListFilter):
@@ -27,6 +27,27 @@ class VehicleEfficiencyUserFilter(admin.SimpleListFilter):
         value = self.value()
         if value:
             return queryset.filter(vehicle__id=int(value))
+
+
+class PartnerPaymentFilter(admin.SimpleListFilter):
+    title = 'номером автомобіля'
+    parameter_name = 'partner_payments_user'
+
+    def lookups(self, request, model_admin):
+        user = request.user
+        queryset = PartnerEarnings.objects.all().select_related('vehicle')
+        vehicle_choices = []
+        if user.is_partner():
+            queryset.filter(vehicle__partner=user)
+
+        vehicle_choices.extend(queryset.values_list('vehicle_id', 'vehicle__licence_plate'))
+        return sorted(set(vehicle_choices), key=lambda x: x[1])
+
+    def queryset(self, request, queryset):
+        value = self.value()
+        if value:
+            return queryset.filter(vehicle__id=int(value))
+
 
 
 class TransactionInvestorUserFilter(admin.SimpleListFilter):
@@ -135,47 +156,25 @@ class FleetOrderFilter(DriverRelatedFilter):
     model_class = FleetOrder
 
 
-class PaymentsRelatedFilter(admin.SimpleListFilter):
-    parameter_name = None
-    model_class = None
-    title = 'водієм'
-
-    def lookups(self, request, model_admin):
-        user = request.user
-        queryset = self.model_class.objects.all()
-        if user.is_manager():
-            drivers = Driver.objects.filter(manager=user)
-            full_names = [f"{driver.name} {driver.second_name}" for driver in drivers]
-            queryset = queryset.filter(full_name__in=full_names)
-        if user.is_partner():
-            queryset = queryset.filter(partner=user)
-
-        driver_labels = set([driver.full_name for driver in queryset])
-        return [(full_name, full_name) for full_name in driver_labels]
-
-    def queryset(self, request, queryset):
-        value = self.value()
-        if value:
-            return queryset.filter(full_name=value)
-
-
-class ReportUserFilter(PaymentsRelatedFilter):
+class ReportUserFilter(DriverRelatedFilter):
     parameter_name = 'payment_report_user'
     model_class = Payments
 
 
 class FleetRelatedFilter(admin.SimpleListFilter):
-    parameter_name = "fleet_driver_user"
+    parameter_name = None
+    model_class = None
     title = 'автопарком'
 
     def lookups(self, request, model_admin):
         user = request.user
-        queryset = FleetsDriversVehiclesRate.objects.all()
+        queryset = self.model_class.objects.all().select_related('fleet')
         fleet_choices = []
         if user.is_partner():
             queryset = queryset.filter(partner=user)
         if user.is_manager():
-            queryset = queryset.filter(partner=request.user.managers_partner)
+            manager = Manager.objects.get(pk=request.user.pk)
+            queryset = queryset.filter(partner=manager.managers_partner)
         fleet_choices.extend(queryset.values_list('fleet_id', 'fleet__name'))
         return set(fleet_choices)
 
@@ -183,3 +182,13 @@ class FleetRelatedFilter(admin.SimpleListFilter):
         value = self.value()
         if value:
             return queryset.filter(fleet__id=value)
+
+
+class FleetDriverFilter(FleetRelatedFilter):
+    parameter_name = 'fleet_driver_fleet'
+    model_class = FleetsDriversVehiclesRate
+
+
+class FleetFilter(FleetRelatedFilter):
+    parameter_name = 'fleet_payment_fleet'
+    model_class = Payments

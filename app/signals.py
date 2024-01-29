@@ -5,14 +5,15 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import F
 from django.utils import timezone
 from django_celery_beat.models import PeriodicTask
+from telegram.error import BadRequest
 
 from auto.tasks import send_on_job_application_on_driver, check_time_order, search_driver_for_order, \
-    calculate_vehicle_earnings, calculate_vehicle_spending
+    calculate_vehicle_earnings, calculate_vehicle_spending, calculate_failed_earnings
 from django.db.models.signals import pre_save, post_save, post_delete, pre_delete
 from django.dispatch import receiver
 from app.models import Driver, StatusChange, JobApplication, ParkSettings, Partner, Order, DriverSchemaRate, \
     Schema, DriverPayments, InvestorPayments
-from auto_bot.handlers.driver_manager.utils import get_time_for_task, create_driver_payments
+from auto_bot.handlers.driver_manager.utils import get_time_for_task, create_driver_payments, message_driver_report
 from auto_bot.handlers.order.keyboards import inline_reject_order
 from auto_bot.handlers.order.static_text import client_order_info
 from auto_bot.main import bot
@@ -30,12 +31,29 @@ def calculate_fired_driver(sender, instance, **kwargs):
 
 @receiver(post_save, sender=DriverPayments)
 @receiver(post_save, sender=InvestorPayments)
-def create_park_settings(sender, instance, created, **kwargs):
-    if instance.status.is_completed():
+def create_payments(sender, instance, created, **kwargs):
+    if instance.is_completed():
         if isinstance(instance, DriverPayments):
             calculate_vehicle_earnings.delay(instance.pk)
         else:
             calculate_vehicle_spending.delay(instance.pk)
+    elif instance.is_pending():
+        if isinstance(instance, DriverPayments):
+            message = message_driver_report(instance.driver, instance)
+            try:
+                bot.send_message(chat_id=instance.driver.chat_id, text=message)
+            except BadRequest as e:
+                if e.message == 'Chat not found':
+                    bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"),
+                                     text=f"Driver {instance.driver} Не вірний чат айді")
+                else:
+                    bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"),
+                                     text=f"У {instance.driver} відсутній чат айді")
+        else:
+            pass
+    # InvestorMassage
+    elif instance.is_failed():
+        calculate_failed_earnings.delay(instance.pk)
 
 
 @receiver(post_save, sender=Partner)
@@ -48,28 +66,28 @@ def create_park_settings(sender, instance, created, **kwargs):
                 DriverSchemaRate.objects.create(period=key, threshold=value[0], rate=value[1], partner=instance)
 
 
-@receiver(pre_save, sender=Driver)
-def create_status_change(sender, instance, **kwargs):
-    try:
-        old_instance = Driver.objects.get(pk=instance.pk)
-    except ObjectDoesNotExist:
-        # new instance, ignore
-        return
-    if old_instance.driver_status != instance.driver_status:
-        # update the end time of the previous status change
-        prev_status_changes = StatusChange.objects.filter(driver=instance, end_time=None)
-        prev_status_changes.update(end_time=timezone.now(), duration=F('end_time') - F('start_time'))
-        if prev_status_changes.count() > 1:
-            bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"),
-                             text=f'Multiple status for driver {instance.id} deleted')
-        # driver_status has changed, create new status change
-        status_change = StatusChange(
-            driver=instance,
-            name=instance.driver_status,
-            vehicle=instance.vehicle,
-            start_time=timezone.now(),
-        )
-        status_change.save()
+# @receiver(pre_save, sender=Driver)
+# def create_status_change(sender, instance, **kwargs):
+#     try:
+#         old_instance = Driver.objects.get(pk=instance.pk)
+#     except ObjectDoesNotExist:
+#         # new instance, ignore
+#         return
+#     if old_instance.driver_status != instance.driver_status:
+#         # update the end time of the previous status change
+#         prev_status_changes = StatusChange.objects.filter(driver=instance, end_time=None)
+#         prev_status_changes.update(end_time=timezone.now(), duration=F('end_time') - F('start_time'))
+#         if prev_status_changes.count() > 1:
+#             bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"),
+#                              text=f'Multiple status for driver {instance.id} deleted')
+#         # driver_status has changed, create new status change
+#         status_change = StatusChange(
+#             driver=instance,
+#             name=instance.driver_status,
+#             vehicle=instance.vehicle,
+#             start_time=timezone.now(),
+#         )
+#         status_change.save()
 
 
 @receiver(pre_delete, sender=Partner)

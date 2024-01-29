@@ -1,25 +1,3 @@
-// SIDEBAR TOGGLE
-
-let sidebarOpen = false;
-let sidebar = document.getElementById("sidebar");
-
-// Визначте змінну для стану бічного бару
-
-function toggleSidebar() {
-	const sidebar = document.getElementById("sidebar");
-
-	if (sidebarOpen) {
-		// Закрити бічний бар
-		sidebar.classList.remove("sidebar-responsive");
-		sidebarOpen = false;
-	} else {
-		// Відкрити бічний бар
-		sidebar.classList.add("sidebar-responsive");
-		sidebarOpen = true;
-	}
-}
-
-
 // ---------- CHARTS ----------
 
 var investorBarChart = echarts.init(document.getElementById('investor-bar-chart'));
@@ -224,7 +202,7 @@ commonPeriodSelect.on('change', function () {
 fetchInvestorData('yesterday');
 
 
-function applyCustomDateRange() {
+function applyDateRange() {
 	$(".apply-filter-button").prop("disabled", true);
 
 	let startDate = $("#start_report").val();
@@ -235,152 +213,50 @@ function applyCustomDateRange() {
 }
 
 $(document).ready(function () {
+	function initializeCustomSelect(customSelect, selectedOption, optionsList, iconDown, datePicker, vehicleId, vehicle_lc) {
+		iconDown.click(function() {
+			customSelect.toggleClass("active");
+		});
 
-	$("#logout-dashboard").click(function () {
-		$.ajax({
-			type: "POST",
-			url: ajaxPostUrl,
-			data: {
-				csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val(),
-				action: "logout_invest",
-			},
-			success: function (response) {
-				if (response.logged_out === true) {
-					window.location.href = "/";
+		selectedOption.click(function() {
+			customSelect.toggleClass("active");
+		});
+
+		optionsList.on("click", "li", function() {
+			const clickedValue = $(this).data("value");
+			selectedOption.text($(this).text());
+			customSelect.removeClass("active");
+
+			if (clickedValue !== "custom") {
+				if (vehicle_lc) {
+					fetchInvestorData(clickedValue);
+				} else {
+					fetchInvestorData(clickedValue);
 				}
 			}
+
+			if (clickedValue === "custom") {
+				datePicker.css("display", "block");
+			} else {
+				datePicker.css("display", "none");
+			}
 		});
-	});
-
-	// change-password
-
-	$("#changePassword").click(function () {
-		$("#passwordChangeForm").toggle();
-	});
-
-
-	$("#submitPassword").click(function () {
-		let password = $("#oldPassword").val();
-		let newPassword = $("#newPassword").val();
-		let confirmPassword = $("#confirmPassword").val();
-
-		if (newPassword !== confirmPassword) {
-			$("#ChangeErrorMessage").show();
-		} else {
-			$.ajax({
-				url: ajaxPostUrl,
-				type: 'POST',
-				data: {
-					action: 'change_password',
-					password: password,
-					newPassword: newPassword,
-					csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
-				},
-				success: function (response) {
-					if (response.data['success'] === true) {
-						$("#passwordChangeForm").hide();
-						window.location.href = "/";
-					} else {
-						$("#oldPasswordMessage").show();
-					}
-				}
-			});
-		}
-	});
-
-	$(".close-btn").click(function () {
-		$("#settingsWindow").fadeOut();
-		sessionStorage.setItem('settings', 'false');
-		location.reload();
-	});
-
-	// burger-menu
-	$('.burger-menu').click(function () {
-		$('.burger-menu').toggleClass('open');
-	});
-
-	$('#VehicleBtnContainer').click(function () {
-		$('.payback-car').css('display', 'flex');
-		$('.charts').hide();
-		$('.main-cards').hide();
-		$('.info-driver').hide();
-		$('.common-period').hide();
-		$('#datePicker').hide()
-		$('.driver-container').hide()
-		$('#sidebar').removeClass('sidebar-responsive');
-	});
-
+	}
 
 	const customSelect = $(".custom-select");
-  const selectedOption = customSelect.find(".selected-option");
-  const optionsList = customSelect.find(".options");
-  const iconDown = customSelect.find(".fas.fa-angle-down");
+	const selectedOption = customSelect.find(".selected-option");
+	const optionsList = customSelect.find(".options");
+	const iconDown = customSelect.find(".fas.fa-angle-down");
+	const datePicker = $("#datePicker");
 
-  iconDown.click(function() {
-  	customSelect.toggleClass("active");
-  });
+	const firstVehicle = $(".custom-dropdown .dropdown-options li:first");
+	const vehicleId = firstVehicle.data('value');
+	const vehicle_lc = firstVehicle.text();
 
-  selectedOption.click(function() {
-    customSelect.toggleClass("active");
-  });
+	fetchInvestorData('yesterday');
+	if (vehicleId !== undefined) {
+	    fetchCarEfficiencyData('yesterday', vehicleId, vehicle_lc);
+       }
+	initializeCustomSelect(customSelect, selectedOption, optionsList, iconDown, datePicker, vehicleId, vehicle_lc);
 
-  optionsList.on("click", "li", function() {
-    const clickedValue = $(this).data("value");
-    selectedOption.text($(this).text());
-    customSelect.removeClass("active");
-
-	  if (clickedValue !== "custom") {
-	  fetchInvestorData(clickedValue);
-		}
-
-		if (clickedValue === "custom") {
-			$("#datePicker").css("display", "block");
-		} else {
-			$("#datePicker").css("display", "none");
-		}
-  });
-
-  const gridContainer = $(".grid-container");
-  const sidebarToggle = $("#sidebar-toggle");
-  const sidebarTitle = $(".sidebar-title");
-  const sidebarListItems = $("#sidebar .sidebar-list-item span");
-  const sidebarToggleIcon = sidebarToggle.find("i");
-
-  let isSidebarOpen = false;
-
-  function toggleSidebar() {
-    isSidebarOpen = !isSidebarOpen;
-
-    if (isSidebarOpen) {
-      gridContainer.css("grid-template-columns", "300px 1fr 1fr 1fr");
-      sidebarTitle.css("padding", "10px 30px 0px 30px");
-      sidebarToggleIcon.removeClass("fa-angle-double-right").addClass("fa-angle-double-left");
-
-      $(".logo-1").hide();
-      $(".logo-2").show();
-
-      setTimeout(function() {
-        sidebarListItems.each(function(index) {
-          $(this).css("display", "block");
-          $(this).css("transition-delay", `${0.1 * (index + 1)}s`);
-          $(this).css("opacity", 1);
-        });
-      }, 500);
-    } else {
-      gridContainer.css("grid-template-columns", "60px 1fr 1fr 1fr");
-      sidebarTitle.css("padding", "30px 30px 50px 30px");
-      sidebarToggleIcon.removeClass("fa-angle-double-left").addClass("fa-angle-double-right");
-
-      $(".logo-1").show();
-      $(".logo-2").hide();
-
-      sidebarListItems.each(function() {
-        $(this).css("display", "none");
-        $(this).css("transition-delay", "0s");
-        $(this).css("opacity", 0);
-      });
-    }
-  }
-
-  sidebarToggle.click(toggleSidebar);
-})
+});

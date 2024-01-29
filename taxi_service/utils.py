@@ -1,6 +1,7 @@
 import json
 import random
 import secrets
+import uuid
 from datetime import timedelta, date, datetime, time
 
 from django.db.models import Q
@@ -12,10 +13,11 @@ from django.core.exceptions import ObjectDoesNotExist
 
 from app.bolt_sync import BoltRequest
 from app.models import Driver, UseOfCars, VehicleGPS, Order, ParkSettings, CredentialPartner, Fleet, \
-    Vehicle, DriverReshuffle, CustomUser, Partner
+    Vehicle, DriverReshuffle, CustomUser
 from app.uagps_sync import UaGpsSynchronizer
 from app.uber_sync import UberRequest
 from app.uklon_sync import UklonRequest
+from auto_bot.main import bot
 from scripts.redis_conn import get_logger
 
 
@@ -135,6 +137,7 @@ def get_dates(period=None):
             start_date = date(current_date.year, 7, 1)
             end_date = date(current_date.year, 9, 30)
 
+
     else:
         weekday = current_date.weekday()
         if weekday == 0:
@@ -154,8 +157,8 @@ def get_start_end(period):
         format_end = end.strftime("%d.%m.%Y")
     else:
         start_str, end_str = period.split('&')
-        start = timezone.make_aware(datetime.strptime(start_str, "%Y-%m-%d"))
-        end = timezone.make_aware(datetime.strptime(end_str, "%Y-%m-%d"))
+        start = timezone.make_aware(datetime.combine(datetime.strptime(start_str, "%Y-%m-%d"), time.min))
+        end = timezone.make_aware(datetime.combine(datetime.strptime(end_str, "%Y-%m-%d"), time.max))
         format_start = ".".join(start_str.split("-")[::-1])
         format_end = ".".join(end_str.split("-")[::-1])
     return start, end, format_start, format_end
@@ -185,19 +188,22 @@ def login_in(aggregator=None, partner_id=None, login_name=None, password=None, t
     if aggregator == 'Bolt':
         update_park_set(partner_id, 'BOLT_PASSWORD', password, description='Пароль користувача Bolt', park=False)
         update_park_set(partner_id, 'BOLT_NAME', login_name, description='Ім\'я користувача Bolt', park=False)
-        BoltRequest.objects.create(name=aggregator, partner_id=partner_id)
+        obj, created = BoltRequest.objects.get_or_create(name=aggregator, partner_id=partner_id)
     elif aggregator == 'Uklon':
         update_park_set(partner_id, 'UKLON_PASSWORD', password, description='Пароль користувача Uklon', park=False)
         update_park_set(partner_id, 'UKLON_NAME', login_name, description='Ім\'я користувача Uklon', park=False)
         update_park_set(partner_id, 'WITHDRAW_UKLON', '150000', description='Залишок грн на карті водія Uklon')
-        UklonRequest.objects.create(name=aggregator, partner_id=partner_id)
+        obj, created = UklonRequest.objects.get_or_create(name=aggregator, partner_id=partner_id)
     elif aggregator == 'Uber':
         update_park_set(partner_id, 'UBER_PASSWORD', password, description='Пароль користувача Uber', park=False)
         update_park_set(partner_id, 'UBER_NAME', login_name, description='Ім\'я користувача Uber', park=False)
-        UberRequest.objects.create(name=aggregator, partner_id=partner_id)
-    elif aggregator == 'Gps':
+        obj, created = UberRequest.objects.get_or_create(name=aggregator, partner_id=partner_id)
+    else:
         update_park_set(partner_id, 'UAGPS_TOKEN', token, description='Токен для GPS сервісу', park=False)
-        UaGpsSynchronizer.objects.create(name=aggregator, partner_id=partner_id)
+        obj, created = UaGpsSynchronizer.objects.get_or_create(name=aggregator, partner_id=partner_id)
+    if not created:
+        obj.deleted_at = None
+        obj.save(update_fields=['deleted_at'])
     return True
 
 
@@ -237,19 +243,6 @@ def login_in_investor(request, login_name, password):
         return {'success': False, 'message': 'User is not found'}
 
 
-def change_password_investor(request, password, new_password, user_email):
-    user = CustomUser.objects.filter(email=user_email).first()
-    if user is not None:
-        user = authenticate(username=user.username, password=password)
-        if user.is_active:
-            user.set_password(new_password)
-            user.save()
-            logout(request)
-            return {'success': True}
-        else:
-            return {'success': False, 'message': 'User is not active'}
-    else:
-        return {'success': False, 'message': 'User is not found'}
 
 
 def send_reset_code(email, user_login):
@@ -273,7 +266,7 @@ def send_reset_code(email, user_login):
 
 
 def check_aggregators(user_pk):
-    aggregators = Fleet.objects.filter(partner=user_pk).values_list('name', flat=True)
+    aggregators = Fleet.objects.filter(partner=user_pk, deleted_at=None).values_list('name', flat=True)
     fleets = Fleet.objects.all().values_list('name', flat=True).distinct()
     return list(aggregators), list(fleets)
 
@@ -359,21 +352,26 @@ def add_shift(licence_plate, shift_date, start_time, end_time, driver_id, recurr
 
 
 def delete_shift(action, reshuffle_id):
-    reshuffle = DriverReshuffle.objects.get(id=reshuffle_id)
-    if action == 'delete_shift':
-        reshuffle.delete()
-        text = "Зміна успішно видалена"
-    else:
-        reshuffle_del = DriverReshuffle.objects.filter(
-            swap_time__gte=timezone.localtime(reshuffle.swap_time),
-            swap_time__time=timezone.localtime(reshuffle.swap_time).time(),
-            end_time__time=timezone.localtime(reshuffle.end_time).time(),
-            driver_start=reshuffle.driver_start,
-            swap_vehicle=reshuffle.swap_vehicle
-        )
-        reshuffle_count = reshuffle_del.count()
-        reshuffle_del.delete()
-        text = f"Видалено {reshuffle_count} змін"
+    try:
+        reshuffle = DriverReshuffle.objects.get(id=reshuffle_id)
+        if action == 'delete_shift':
+            reshuffle.delete()
+            text = "Зміна успішно видалена"
+        else:
+            reshuffle_del = DriverReshuffle.objects.filter(
+
+                swap_time__gte=timezone.localtime(reshuffle.swap_time),
+                swap_time__time=timezone.localtime(reshuffle.swap_time).time(),
+                end_time__time=timezone.localtime(reshuffle.end_time).time(),
+                driver_start=reshuffle.driver_start,
+                swap_vehicle=reshuffle.swap_vehicle
+            )
+            reshuffle_count = reshuffle_del.count()
+            reshuffle_del.delete()
+            text = f"Видалено {reshuffle_count} змін"
+    except ObjectDoesNotExist:
+        text = "Виникла помилка, спробуйте ще раз"
+        bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"), text="Reshuffle Does not exist")
     return True, text
 
 
