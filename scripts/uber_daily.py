@@ -17,30 +17,24 @@ def run(*args):
     for f in fleet:
         driver_efficiency = DriverEfficiencyFleet.objects.filter(fleet_id=f.id)
         for driver in driver_efficiency:
-            formatted_date = driver.report_from.strftime('%Y-%m-%d')
-            driver_id = driver.driver.id
-
-            driver_canceled_orders = FleetOrder.objects.filter(driver_id=driver_id,
-                                                               created_at__date=formatted_date,
+            driver_canceled_orders = FleetOrder.objects.filter(driver_id=driver,
+                                                               accepted_time__date=driver.report_from.date(),
                                                                fleet=driver.fleet.name,
                                                                state=FleetOrder.DRIVER_CANCEL).count()
 
             driver.total_orders_rejected = driver_canceled_orders
-            driver.save()
+            driver.save(update_fields=['total_orders_rejected'])
         print('Done', f.name)
     print('Done all fleets')
 
     driver_efficiency = DriverEfficiency.objects.all()
     for driver in driver_efficiency:
-        formatted_date = driver.report_from.strftime('%Y-%m-%d')
-        driver_id = driver.driver.id
-
-        driver_canceled_orders = FleetOrder.objects.filter(driver_id=driver_id,
-                                                           created_at__date=formatted_date,
+        driver_canceled_orders = FleetOrder.objects.filter(driver_id=driver,
+                                                           accepted_time__date=driver.report_from.date(),
                                                            state=FleetOrder.DRIVER_CANCEL).count()
 
         driver.total_orders_rejected = driver_canceled_orders
-        driver.save()
+        driver.save(update_fields=['total_orders_rejected'])
 
     print('Done all drivers')
 
@@ -50,6 +44,6 @@ def run(*args):
         cash = driver.cash
         earning = driver.earning
         driver.salary = cash + earning
-        driver.save()
+        driver.save(update_fields=['salary'])
 
     print('Done all drivers payments')
