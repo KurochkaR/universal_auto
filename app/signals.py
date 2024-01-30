@@ -7,15 +7,17 @@ from django.utils import timezone
 from django_celery_beat.models import PeriodicTask
 from telegram.error import BadRequest
 
+from app.uagps_sync import UaGpsSynchronizer
 from auto.tasks import send_on_job_application_on_driver, check_time_order, search_driver_for_order, \
     calculate_vehicle_earnings, calculate_vehicle_spending, calculate_failed_earnings
 from django.db.models.signals import pre_save, post_save, post_delete, pre_delete
 from django.dispatch import receiver
 from app.models import Driver, StatusChange, JobApplication, ParkSettings, Partner, Order, DriverSchemaRate, \
-    Schema, DriverPayments, InvestorPayments
+    Schema, DriverPayments, InvestorPayments, FleetOrder
 from auto_bot.handlers.driver_manager.utils import get_time_for_task, create_driver_payments, message_driver_report
 from auto_bot.handlers.order.keyboards import inline_reject_order
 from auto_bot.handlers.order.static_text import client_order_info
+from auto_bot.handlers.order.utils import check_vehicle
 from auto_bot.main import bot
 from scripts.redis_conn import redis_instance
 from scripts.settings_for_park import standard_rates, settings_for_partner
@@ -27,6 +29,22 @@ def calculate_fired_driver(sender, instance, **kwargs):
         end = timezone.localtime().date()
         start = end - timedelta(days=end.weekday())
         create_driver_payments(start, end, instance, instance.schema, delete=True)
+
+
+@receiver(post_save, sender=FleetOrder)
+def add_road_time_and_distance(sender, instance, created, **kwargs):
+    if created:
+        if instance.finish_time and instance.vehicle.gps:
+            distance, road_time = UaGpsSynchronizer.objects.get(
+                partner=instance.partner).generate_report(int(instance.accepted_time.timestamp()),
+                                                          int(instance.finish_time.timestamp()),
+                                                          instance.vehicle.gps.gps_id)
+            instance.distance = distance
+            instance.road_time = road_time
+            instance.save(update_fields=["distance", "road_time"])
+        # if check_vehicle(instance.driver) != instance.vehicle:
+        #     redis_instance().hset(f"wrong_vehicle_{instance.partner}", instance.driver_id,
+        #                           instance.vehicle.licence_plate)
 
 
 @receiver(post_save, sender=DriverPayments)

@@ -17,11 +17,10 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver import DesiredCapabilities
 from selenium.common import TimeoutException, NoSuchElementException, InvalidArgumentException
 
-from app.models import FleetOrder, Partner, Vehicle, FleetsDriversVehiclesRate, UberService, UberSession, \
+from app.models import FleetOrder, Vehicle, FleetsDriversVehiclesRate, UberService, UberSession, \
     UaGpsService, NewUklonService
 from app.uklon_sync import UklonRequest
 from auto import settings
-from auto_bot.handlers.order.utils import check_vehicle
 from scripts.redis_conn import get_logger, redis_instance
 from selenium_ninja.synchronizer import AuthenticationError, InfinityTokenError
 
@@ -288,12 +287,12 @@ class SeleniumTools:
         return f'{fleet} {sy}{sm}{sd}-{ey}{em}{ed}-{self.partner}.csv'
 
     def click_uber_calendar(self, month, year, day):
-        self.driver.find_element(By.XPATH, UberService.get_value('UBER_CALENDAR_1')).click()
-        self.driver.find_element(By.XPATH,
-                                 f'{UberService.get_value("UBER_CALENDAR_2")}{month}")]]').click()
         self.driver.find_element(By.XPATH, UberService.get_value("UBER_CALENDAR_3")).click()
         self.driver.find_element(By.XPATH,
                                  f'{UberService.get_value("UBER_CALENDAR_2")}{year}")]]').click()
+        self.driver.find_element(By.XPATH, UberService.get_value('UBER_CALENDAR_1')).click()
+        self.driver.find_element(By.XPATH,
+                                 f'{UberService.get_value("UBER_CALENDAR_2")}{month}")]]').click()
         self.driver.find_element(By.XPATH,
                                  f'{UberService.get_value("UBER_CALENDAR_4")}{day}]').click()
 
@@ -361,19 +360,17 @@ class SeleniumTools:
                     driver = FleetsDriversVehiclesRate.objects.filter(driver_external_id=row[1]).first()
                     if driver:
                         vehicle = Vehicle.objects.get(licence_plate=row[5])
-                        order = {"order_id": row[0],
-                                 "driver": driver.driver,
-                                 "fleet": "Uber",
-                                 "from_address": row[9],
-                                 "destination": row[10],
-                                 "accepted_time": timezone.make_aware(datetime.strptime(row[7], "%Y-%m-%d %H:%M:%S")),
-                                 "finish_time": finish,
-                                 "state": states.get(row[12]),
-                                 "vehicle": vehicle,
-                                 "partner_id": self.partner}
-                        if check_vehicle(driver.driver) != vehicle:
-                            redis_instance().hset(f"wrong_vehicle_{self.partner}", driver.driver.pk, row[5])
-                        FleetOrder.objects.create(**order)
+                        data = {"order_id": row[0],
+                                "driver": driver.driver,
+                                "fleet": "Uber",
+                                "from_address": row[9],
+                                "destination": row[10],
+                                "accepted_time": timezone.make_aware(datetime.strptime(row[7], "%Y-%m-%d %H:%M:%S")),
+                                "finish_time": finish,
+                                "state": states.get(row[12]),
+                                "vehicle": vehicle,
+                                "partner_id": self.partner}
+                        FleetOrder.objects.create(**data)
                 os.remove(file_path)
 
     def add_driver(self, job_application):

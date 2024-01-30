@@ -1,3 +1,4 @@
+from django.core.exceptions import PermissionDenied
 from django.db.models import Q
 from rest_framework import authentication
 
@@ -16,7 +17,8 @@ class PartnerFilterMixin:
 class ManagerFilterMixin:
     @staticmethod
     def get_queryset(model, user):
-
+        if not user.is_authenticated:
+            raise PermissionDenied("Authentication required")
         model_filter_map = {
             SummaryReport: (Q(driver__in=Driver.objects.filter(manager=user)) | Q(partner=user)),
             CarEfficiency: (Q(vehicle__manager=user) | Q(partner=user)),
@@ -38,6 +40,8 @@ class ManagerFilterMixin:
 class InvestorFilterMixin:
     @staticmethod
     def get_queryset(model, user):
+        if not user.is_authenticated:
+            raise PermissionDenied("Authentication required")
         if isinstance(model(), Vehicle):
             queryset = model.objects.filter(investor_car=user)
         elif isinstance(model(), InvestorPayments):

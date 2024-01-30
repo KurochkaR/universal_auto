@@ -1,16 +1,18 @@
 from django.contrib import admin
 
 from app.models import CarEfficiency, Vehicle, DriverEfficiency, Driver, RentInformation, \
-    InvestorPayments, SummaryReport, Payments, FleetOrder, FleetsDriversVehiclesRate, PartnerEarnings, Manager
+    InvestorPayments, SummaryReport, Payments, FleetOrder, FleetsDriversVehiclesRate, PartnerEarnings, Manager, \
+    VehicleSpending
 
 
-class VehicleEfficiencyUserFilter(admin.SimpleListFilter):
+class VehicleRelatedFilter(admin.SimpleListFilter):
+    parameter_name = None
+    model_class = None
     title = 'номером автомобіля'
-    parameter_name = 'efficiency_vehicle_partner_user'
 
     def lookups(self, request, model_admin):
         user = request.user
-        queryset = CarEfficiency.objects.all()
+        queryset = self.model_class.objects.all()
         vehicle_choices = []
         if user.is_manager():
             vehicles = Vehicle.objects.filter(manager=user)
@@ -27,6 +29,16 @@ class VehicleEfficiencyUserFilter(admin.SimpleListFilter):
         value = self.value()
         if value:
             return queryset.filter(vehicle__id=int(value))
+
+
+class VehicleEfficiencyUserFilter(VehicleRelatedFilter):
+    parameter_name = 'efficiency_vehicle_partner_user'
+    model_class = CarEfficiency
+
+
+class VehicleSpendingFilter(VehicleRelatedFilter):
+    parameter_name = 'spending_vehicle_user'
+    model_class = VehicleSpending
 
 
 class PartnerPaymentFilter(admin.SimpleListFilter):
@@ -47,7 +59,6 @@ class PartnerPaymentFilter(admin.SimpleListFilter):
         value = self.value()
         if value:
             return queryset.filter(vehicle__id=int(value))
-
 
 
 class TransactionInvestorUserFilter(admin.SimpleListFilter):
@@ -97,7 +108,7 @@ class VehicleManagerFilter(admin.SimpleListFilter):
         if user.is_partner():
             queryset = queryset.filter(partner=user)
             manager_ids = queryset.values_list('manager_id', flat=True)
-            manager_labels = [f'{item.manager.first_name} {item.manager.last_name}' for item in queryset]
+            manager_labels = [f'{item.manager.last_name} {item.manager.first_name}' for item in queryset]
             return set(zip(manager_ids, manager_labels))
 
     def queryset(self, request, queryset):
@@ -122,13 +133,13 @@ class DriverRelatedFilter(admin.SimpleListFilter):
             queryset = queryset.filter(partner=user)
         drivers_data = queryset.values('driver_id', 'driver__name', 'driver__second_name')
 
-        driver_id_to_name = {item['driver_id']: f"{item['driver__name']} {item['driver__second_name']}" for item in
+        driver_id_to_name = {item['driver_id']: f"{item['driver__second_name']} {item['driver__name']}" for item in
                              drivers_data}
 
         driver_ids = list(driver_id_to_name.keys())
         driver_labels = list(driver_id_to_name.values())
-
-        return set(zip(driver_ids, driver_labels))
+        driver_set = set(zip(driver_ids, driver_labels))
+        return sorted(list(driver_set), key=lambda x: x[1])
 
     def queryset(self, request, queryset):
         value = self.value()

@@ -2,6 +2,7 @@ import json
 from decimal import Decimal
 
 from celery.result import AsyncResult
+from django.core.exceptions import PermissionDenied
 from django.core.serializers.json import DjangoJSONEncoder
 from django.http import JsonResponse, HttpResponse
 from django.forms.models import model_to_dict
@@ -324,6 +325,8 @@ class GetRequestHandler:
 
     @staticmethod
     def handle_check_aggregators(request):
+        if not request.user.is_authenticated:
+            raise PermissionDenied("Authentication required")
         aggregators, fleets = check_aggregators(request.user)
         json_data = JsonResponse({'data': aggregators, 'fleets': fleets}, safe=False)
         response = HttpResponse(json_data, content_type='application/json')
