@@ -27,7 +27,7 @@ function driverPayment(period = null, start = null, end = null, paymentStatus = 
 					var payByn = '<button class="pay-btn">Отримано</button>';
 					var notPayByn = '<button class="not-pay-btn">Не отримано</button>';
 
-					var rowBonus = '<tr><td colspan="10" class="bonus-table"><table><tr><th>Тип</th><th>Сума</th><th>Опис</th>' + (response[i].status === 'Перевіряється' ? '<th>Дії</th>' : '') + '</tr>';
+					var rowBonus = '<tr><td colspan="11" class="bonus-table"><table><tr><th>Тип</th><th>Сума</th><th>Опис</th>' + (response[i].status === 'Перевіряється' ? '<th>Дії</th>' : '') + '</tr>';
 
 					function generateRow(items, type, editClass, deleteClass) {
 						var rowBon = '';
@@ -59,6 +59,7 @@ function driverPayment(period = null, start = null, end = null, paymentStatus = 
 					row.append('<td>' + response[i].bonuses + '</td>');
 					row.append('<td>' + response[i].penalties + '</td>');
 					row.append('<td>' + response[i].earning + '</td>');
+					row.append('<td>' + response[i].salary + '</td>');
 					row.append('<td>' + response[i].status + '</td>');
 					var showAllButton = $('.send-all-button');
 					showAllButton.hide(0);

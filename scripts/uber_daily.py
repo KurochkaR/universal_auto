@@ -1,25 +1,49 @@
-from datetime import datetime, timedelta, time
+from datetime import datetime, timedelta
 from _decimal import Decimal, ROUND_HALF_UP
+from pprint import pprint
+
 from django.db.models import Sum, F
-from django.db.models.functions import TruncWeek, Coalesce
+from django.db.models.functions import TruncWeek
 from django.utils import timezone
 
-from app.models import CarEfficiency, InvestorPayments, Investor, Vehicle, PaymentsStatus, PartnerEarnings, Fleet, \
-    Driver, Payments, DriverEfficiencyFleet
-from auto.utils import get_currency_rate, polymorphic_efficiency_create, get_efficiency_info
-from auto_bot.handlers.driver_manager.utils import get_time_for_task
+from app.models import CarEfficiency, InvestorPayments, Investor, Vehicle, PaymentsStatus, PartnerEarnings, \
+    SummaryReport, Schema, DriverEfficiency, FleetOrder, DriverEfficiencyFleet, Fleet, DriverPayments
+from app.uber_sync import UberRequest
+from auto.utils import get_currency_rate
 
 
-def run(partner_pk=1):
-    start_date = datetime(2023, 10, 20)
-    end_date = datetime(2023, 10, 31)
-    while start_date <= end_date:
-        start_time = timezone.make_aware(datetime.combine(start_date, datetime.min.time()))
-        end_time = timezone.make_aware(datetime.combine(start_date, datetime.max.time()))
-        for driver in Driver.objects.get_active(partner=1):
-            aggregators = Fleet.objects.filter(partner=partner_pk).exclude(name="Gps")
-            for aggregator in aggregators:
-                polymorphic_efficiency_create(DriverEfficiencyFleet, partner_pk, driver,
-                                              start_time, end_time, Payments, aggregator)
+def run(*args):
+    fleet = Fleet.objects.filter(partner__pk=1).exclude(name='Gps')
+    for f in fleet:
+        driver_efficiency = DriverEfficiencyFleet.objects.filter(fleet_id=f.id)
+        for driver in driver_efficiency:
+            driver_canceled_orders = FleetOrder.objects.filter(driver_id=driver,
+                                                               accepted_time__date=driver.report_from.date(),
+                                                               fleet=driver.fleet.name,
+                                                               state=FleetOrder.DRIVER_CANCEL).count()
 
-        start_date += timedelta(days=1)
+            driver.total_orders_rejected = driver_canceled_orders
+            driver.save(update_fields=['total_orders_rejected'])
+        print('Done', f.name)
+    print('Done all fleets')
+
+    driver_efficiency = DriverEfficiency.objects.all()
+    for driver in driver_efficiency:
+        driver_canceled_orders = FleetOrder.objects.filter(driver_id=driver,
+                                                           accepted_time__date=driver.report_from.date(),
+                                                           state=FleetOrder.DRIVER_CANCEL).count()
+
+        driver.total_orders_rejected = driver_canceled_orders
+        driver.save(update_fields=['total_orders_rejected'])
+
+    print('Done all drivers')
+
+    driver_payments = DriverPayments.objects.all()
+
+    for driver in driver_payments:
+        cash = driver.cash
+        earning = driver.earning
+        driver.salary = cash + earning
+        driver.save(update_fields=['salary'])
+
+    print('Done all drivers payments')

@@ -28,6 +28,8 @@ function fetchDriverEfficiencyData(period, start, end) {
 		type: 'GET',
 		dataType: 'json',
 		success: function (data) {
+			$('th[data-sort="fleet"]').hide();
+			$(".aggregator").css("display", "none");
 			$(".apply-filter-button_driver").prop("disabled", false);
 			let table = $('.info-driver table');
 			let driverBlock = $('.driver-block');
@@ -41,10 +43,10 @@ function fetchDriverEfficiencyData(period, start, end) {
 					let time = formattedTime
 
 					row.append('<td class="driver">' + item.full_name + '</td>');
-					row.append('<td class="aggregator">"-----"</td>');
 					row.append('<td class="kasa">' + Math.round(item.total_kasa) + '</td>');
 					row.append('<td class="orders">' + item.orders + '</td>');
-					row.append('<td class="accept">' + item.accept_percent + '</td>');
+					row.append('<td class="order_rejected">' + item.orders_rejected + '</td>');
+					row.append('<td class="accept">' + Math.round(item.accept_percent) + '</td>');
 					row.append('<td class="price">' + Math.round(item.average_price) + '</td>');
 					row.append('<td class="mileage">' + Math.round(item.mileage) + '</td>');
 					row.append('<td class="efficiency">' + item.efficiency + '</td>');
@@ -74,7 +76,7 @@ function fetchDriverEfficiencyData(period, start, end) {
 
 					driverInfo.append('<p>' + gettext("Каса: ") + Math.round(driver.total_kasa) + gettext(" грн") + '</p>');
 					driverInfo.append('<p>' + gettext("Кількість замовлень: ") + driver.orders + '</p>');
-					driverInfo.append('<p>' + gettext("% прийнятих замовлень: ") + driver.accept_percent + '</p>');
+					driverInfo.append('<p>' + gettext("% прийнятих замовлень: ") + Math.round(driver.accept_percent) + '</p>');
 					driverInfo.append('<p>' + gettext("Середній чек, грн: ") + Math.round(driver.average_price) + '</p>');
 					driverInfo.append('<p>' + gettext("Пробіг, км: ") + Math.round(driver.mileage) + '</p>');
 					driverInfo.append('<p>' + gettext("Ефективність, грн/км: ") + driver.efficiency + '</p>');
@@ -112,6 +114,8 @@ function fetchDriverFleetEfficiencyData(period, start, end, aggregators) {
 		type: 'GET',
 		dataType: 'json',
 		success: function (data) {
+			$('th[data-sort="fleet"]').show();
+			$(".aggregator").css("display", "block");
 			$(".apply-filter-button_driver").prop("disabled", false);
 			let table = $('.info-driver table');
 			let startDate = data[0]['start'];
@@ -135,11 +139,12 @@ function fetchDriverFleetEfficiencyData(period, start, end, aggregators) {
 							}
 
 							row.append('<td class="fleet">' + Object.keys(fleet)[0] + '</td>');
-							row.append('<td class="kasa">' + fleet[Object.keys(fleet)[0]].driver_total_kasa + '</td>');
+							row.append('<td class="kasa">' + Math.round(fleet[Object.keys(fleet)[0]].driver_total_kasa) + '</td>');
 							row.append('<td class="orders">' + fleet[Object.keys(fleet)[0]].orders + '</td>');
-							row.append('<td class="accept">' + fleet[Object.keys(fleet)[0]].driver_accept_percent + '</td>');
-							row.append('<td class="price">' + fleet[Object.keys(fleet)[0]].driver_average_price + '</td>');
-							row.append('<td class="mileage">' + fleet[Object.keys(fleet)[0]].driver_mileage + '</td>');
+							row.append('<td class="order_rejected">' + fleet[Object.keys(fleet)[0]].orders_rejected + '</td>');
+							row.append('<td class="accept">' + Math.round(fleet[Object.keys(fleet)[0]].driver_accept_percent) + '</td>');
+							row.append('<td class="price">' + Math.round(fleet[Object.keys(fleet)[0]].driver_average_price) + '</td>');
+							row.append('<td class="mileage">' + Math.round(fleet[Object.keys(fleet)[0]].driver_mileage) + '</td>');
 							row.append('<td class="efficiency">' + fleet[Object.keys(fleet)[0]].driver_efficiency + '</td>');
 							row.append('<td class="time">' + formatTime(fleet[Object.keys(fleet)[0]].driver_road_time) + '</td>');
 
@@ -195,7 +200,8 @@ function fetchDriverFleetEfficiencyData(period, start, end, aggregators) {
 								driverInfo.append('<p>' + gettext("Флот: ") + Object.keys(fleet)[0] + '</p>');
 								driverInfo.append('<p>' + gettext("Каса: ") + Math.round(fleet[Object.keys(fleet)[0]].driver_total_kasa) + gettext(" грн") + '</p>');
 								driverInfo.append('<p>' + gettext("Кількість замовлень: ") + fleet[Object.keys(fleet)[0]].orders + '</p>');
-								driverInfo.append('<p>' + gettext("% прийнятих замовлень: ") + fleet[Object.keys(fleet)[0]].driver_accept_percent + '</p>');
+								driverInfo.append('<p>' + gettext("Кількість відмов: ") + fleet[Object.keys(fleet)[0]].orders_rejected + '</p>');
+								driverInfo.append('<p>' + gettext("% прийнятих замовлень: ") + Math.round(fleet[Object.keys(fleet)[0]].driver_accept_percent) + '</p>');
 								driverInfo.append('<p>' + gettext("Середній чек, грн: ") + Math.round(fleet[Object.keys(fleet)[0]].driver_average_price) + '</p>');
 								driverInfo.append('<p>' + gettext("Пробіг, км: ") + Math.round(fleet[Object.keys(fleet)[0]].driver_mileage) + '</p>');
 								driverInfo.append('<p>' + gettext("Ефективність, грн/км: ") + fleet[Object.keys(fleet)[0]].driver_efficiency + '</p>');
@@ -367,6 +373,10 @@ function checkSelection() {
   if (selectedPeriod !== "custom" && aggregatorsString === "shared") {
 		fetchDriverEfficiencyData(selectedPeriod, startDate, endDate);
 	} else {
-		fetchDriverFleetEfficiencyData(selectedPeriod, startDate, endDate, aggregatorsString);
+		if (aggregatorsString === "shared") {
+			fetchDriverEfficiencyData(selectedPeriod, startDate, endDate);
+		} else {
+			fetchDriverFleetEfficiencyData(selectedPeriod, startDate, endDate, aggregatorsString);
+		}
 	}
 }

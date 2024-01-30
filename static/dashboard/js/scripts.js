@@ -273,12 +273,13 @@ function applyCustomDateRange(item) {
 		aggregator = $('.checkbox-container input[type="checkbox"]:checked').map(function() {
 			return $(this).val();
 		}).get();
-
 		var aggregatorsString = aggregator.join('&');
-		if (aggregatorsString === 'share') {
+
+		if (aggregatorsString === 'shared') {
 			fetchDriverEfficiencyData(selectedPeriod, startDate, endDate);
 		} else {
-			fetchDriverEfficiencyData(selectedPeriod, startDate, endDate, aggregatorsString);
+
+			fetchDriverFleetEfficiencyData(selectedPeriod, startDate, endDate, aggregatorsString);
 		}
 	}
 

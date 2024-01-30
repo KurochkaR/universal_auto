@@ -1,4 +1,5 @@
 from datetime import datetime, time, timedelta
+from time import sleep
 
 from celery.result import AsyncResult
 from django.core.exceptions import ObjectDoesNotExist
@@ -59,6 +60,7 @@ def create_payments(sender, instance, created, **kwargs):
         if isinstance(instance, DriverPayments):
             message = message_driver_report(instance.driver, instance)
             try:
+                sleep(0.5)
                 bot.send_message(chat_id=instance.driver.chat_id, text=message)
             except BadRequest as e:
                 if e.message == 'Chat not found':

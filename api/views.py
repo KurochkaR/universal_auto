@@ -150,6 +150,7 @@ def get_dynamic_fleet():
                             Value(" "),
                             F("driver__user_ptr__second_name"), output_field=CharField()),
         'orders': Sum('total_orders'),
+        'orders_rejected': Sum('total_orders_rejected'),
         'average_price': Avg('average_price'),
         'accept_percent': Avg('accept_percent'),
         'road_time': Coalesce(Sum('road_time'), timedelta()),
@@ -209,6 +210,7 @@ class DriverEfficiencyFleetListView(CombinedPermissionsMixin,
                         'driver_id': item['driver_id'],
                         'driver_total_kasa': item['total_kasa'],
                         'orders': item['orders'],
+                        'orders_rejected': item['orders_rejected'],
                         'driver_average_price': item['average_price'],
                         'driver_accept_percent': item['accept_percent'],
                         'driver_road_time': item['road_time'],
@@ -230,7 +232,7 @@ class CarsInformationListView(CombinedPermissionsMixin,
         investor_queryset = InvestorFilterMixin.get_queryset(Vehicle, self.request.user)
         if investor_queryset:
             queryset = investor_queryset
-            earning_subquery = InvestorPayments.objects.filter(report_to__range=(start, end)).values(
+            earning_subquery = InvestorPayments.objects.filter(report_to__date__range=(start, end)).values(
                 'vehicle__licence_plate').annotate(
                 vehicle_earning=Coalesce(Sum('earning'), Decimal(0)),
             )

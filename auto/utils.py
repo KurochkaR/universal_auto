@@ -173,11 +173,11 @@ def get_efficiency_info(partner_pk, driver, start, end, payments_model, aggregat
 
 def polymorphic_efficiency_create(create_model, partner_pk, driver, start, end, get_model, aggregator=None):
     efficiency_filter = {
-                        'report_from': start,
-                        'report_to': end,
-                        'driver': driver,
-                        'partner_id': partner_pk
-                         }
+        'report_from': start,
+        'report_to': end,
+        'driver': driver,
+        'partner_id': partner_pk
+    }
     total_kasa, total_orders, canceled_orders, completed_orders, fleet_orders, payments = get_efficiency_info(
         partner_pk, driver, start, end, get_model, aggregator)
     if aggregator:
@@ -190,6 +190,7 @@ def polymorphic_efficiency_create(create_model, partner_pk, driver, start, end, 
     data = {
         'total_kasa': total_kasa,
         'total_orders': total_orders,
+        'total_orders_rejected': canceled_orders,
         'accept_percent': (total_orders - canceled_orders) / total_orders * 100 if total_orders else 0,
         'average_price': total_kasa / completed_orders if completed_orders else 0,
         'mileage': mileage,
@@ -202,4 +203,3 @@ def polymorphic_efficiency_create(create_model, partner_pk, driver, start, end, 
     result, created = create_model.objects.get_or_create(**efficiency_filter)
     if created:
         result.vehicles.add(*vehicles)
-
