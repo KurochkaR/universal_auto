@@ -316,8 +316,6 @@ class UklonRequest(Fleet, Synchronizer):
                         FleetOrder.objects.filter(order_id=order['id']).exists()):
                     continue
                 vehicle = Vehicle.objects.get(licence_plate=order['vehicle']['licencePlate'])
-                if check_vehicle(driver) != vehicle:
-                    redis_instance().hset(f"wrong_vehicle_{self.partner.id}", pk, order['vehicle']['licencePlate'])
                 try:
                     finish_time = timezone.make_aware(datetime.fromtimestamp(order["completedAt"]))
                 except KeyError:

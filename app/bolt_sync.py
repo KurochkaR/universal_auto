@@ -122,7 +122,6 @@ class BoltRequest(Fleet, Synchronizer):
         return report
 
     def save_custom_report(self, start, end, driver, custom=None):
-        print(start, end)
         time.sleep(0.5)
         param = self.param()
         if not custom:
@@ -293,8 +292,6 @@ class BoltRequest(Fleet, Synchronizer):
                     FleetOrder.objects.filter(order_id=order['order_id']).update(price=price, tips=tip)
                     continue
                 vehicle = Vehicle.objects.get(licence_plate=order['car_reg_number'])
-                if check_vehicle(driver) != vehicle:
-                    redis_instance().hset(f"wrong_vehicle_{self.partner.id}", pk, order['car_reg_number'])
                 try:
                     finish = timezone.make_aware(
                         datetime.fromtimestamp(order['order_stops'][-1]['arrived_at']))

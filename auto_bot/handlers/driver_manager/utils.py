@@ -185,7 +185,7 @@ def generate_message_report(chat_id, schema_id=None, daily=None):
     if schema_id:
         schema = Schema.objects.get(pk=schema_id)
         if schema.salary_calculation == SalaryCalculation.WEEK:
-            if not timezone.localtime().weekday():
+            if timezone.localtime().weekday() == 1:
                 start = timezone.localtime() - timedelta(weeks=1)
                 end = timezone.localtime() - timedelta(days=1)
             else:
@@ -213,9 +213,6 @@ def generate_message_report(chat_id, schema_id=None, daily=None):
             else:
                 driver_message = message_driver_report(driver, payment)
                 balance += payment.kasa - payment.earning - payment.cash
-
-                if driver.chat_id:
-                    drivers_dict[driver.chat_id] = driver_message
                 message += driver_message
 
             if driver_message:
