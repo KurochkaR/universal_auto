@@ -1,12 +1,15 @@
 import time
+from datetime import timedelta
 
 import requests
 from _decimal import Decimal
 from django.db.models import Sum, DecimalField
 from django.db.models.functions import Coalesce
+from django.utils import timezone
 
 from app.models import CustomReport, ParkSettings, Vehicle, Partner, Payments, SummaryReport, DriverPayments, Penalty, \
     Bonus, FleetOrder
+from app.uagps_sync import UaGpsSynchronizer
 from auto_bot.handlers.driver_manager.utils import create_driver_payments
 from auto_bot.handlers.order.utils import check_vehicle
 from auto_bot.main import bot
@@ -144,7 +147,7 @@ def summary_report_create(start, end, driver, partner_pk):
             report.save(update_fields=fields)
 
 
-def get_efficiency_info(partner_pk, driver, start, end, payments_modals, aggregator=None):
+def get_efficiency_info(partner_pk, driver, start, end, payments_model, aggregator=None):
     filter_request = {
         'driver': driver,
         'accepted_time__range': (start, end), 'partner_id': partner_pk
@@ -152,15 +155,14 @@ def get_efficiency_info(partner_pk, driver, start, end, payments_modals, aggrega
 
     payment_request = {
         'driver': driver,
-        'report_from': start, 'partner_id': partner_pk
+        'report_from__date': start, 'partner_id': partner_pk
     }
 
     if aggregator:
         filter_request['fleet'] = aggregator.name
         payment_request['fleet'] = aggregator
-
     fleet_orders = FleetOrder.objects.filter(**filter_request)
-    payments = payments_modals.objects.filter(**payment_request)
+    payments = payments_model.objects.filter(**payment_request)
     total_kasa = payments.aggregate(kasa=Coalesce(Sum('total_amount_without_fee'), Decimal(0)))['kasa']
     total_orders = fleet_orders.count()
     canceled_orders = fleet_orders.filter(state=FleetOrder.DRIVER_CANCEL).count()
@@ -169,18 +171,35 @@ def get_efficiency_info(partner_pk, driver, start, end, payments_modals, aggrega
     return total_kasa, total_orders, canceled_orders, completed_orders, fleet_orders, payments
 
 
-def polymorphic_efficiency_create(modal, partner_pk, driver, start, end, data, aggregator=None):
+def polymorphic_efficiency_create(create_model, partner_pk, driver, start, end, get_model, aggregator=None):
     efficiency_filter = {
-        'report_from': start,
-        'report_to': end,
-        'driver': driver,
-        'partner_id': partner_pk,
-        'defaults': data
-    }
-
+                        'report_from': start,
+                        'report_to': end,
+                        'driver': driver,
+                        'partner_id': partner_pk
+                         }
+    total_kasa, total_orders, canceled_orders, completed_orders, fleet_orders, payments = get_efficiency_info(
+        partner_pk, driver, start, end, get_model, aggregator)
     if aggregator:
+        vehicles = fleet_orders.exclude(vehicle__isnull=True).values_list('vehicle', flat=True).distinct()
+        mileage = fleet_orders.aggregate(km=Coalesce(Sum('distance'), Decimal(0)))['km']
         efficiency_filter['fleet'] = aggregator
+    else:
+        mileage, vehicles = UaGpsSynchronizer.objects.get(
+            partner=partner_pk).calc_total_km(driver, start, end)
+    data = {
+        'total_kasa': total_kasa,
+        'total_orders': total_orders,
+        'accept_percent': (total_orders - canceled_orders) / total_orders * 100 if total_orders else 0,
+        'average_price': total_kasa / completed_orders if completed_orders else 0,
+        'mileage': mileage,
+        'road_time': fleet_orders.aggregate(
+            road_time=Coalesce(Sum('road_time'), timedelta()))['road_time'],
+        'efficiency': total_kasa / mileage if mileage else 0,
+        'partner_id': partner_pk
+    }
+    efficiency_filter['defaults'] = data
+    result, created = create_model.objects.get_or_create(**efficiency_filter)
+    if created:
+        result.vehicles.add(*vehicles)
 
-    result, created = modal.objects.get_or_create(**efficiency_filter)
-
-    return result, created

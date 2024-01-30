@@ -77,7 +77,7 @@ def restart_order(id_order, car_delivery_price, action):
 
 
 def get_dates(period=None):
-    current_date = timezone.make_aware(datetime.combine(timezone.localtime(), time.min))
+    current_date = datetime.combine(timezone.localtime(), time.min)
 
     if period == 'yesterday':
         previous_date = current_date - timedelta(days=1)
@@ -99,17 +99,17 @@ def get_dates(period=None):
         current_quarter = (current_month - 1) // 3 + 1
 
         if current_quarter == 1:
-            start_date = date(current_date.year, 1, 1)
-            end_date = date(current_date.year, 3, 31)
+            start_date = datetime.combine(date(current_date.year, 1, 1), time.min)
+            end_date = datetime.combine(date(current_date.year, 3, 31), time.max)
         elif current_quarter == 2:
-            start_date = date(current_date.year, 4, 1)
-            end_date = date(current_date.year, 6, 30)
+            start_date = datetime.combine(date(current_date.year, 4, 1), time.min)
+            end_date = datetime.combine(date(current_date.year, 6, 30), time.max)
         elif current_quarter == 3:
-            start_date = date(current_date.year, 7, 1)
-            end_date = date(current_date.year, 9, 30)
+            start_date = datetime.combine(date(current_date.year, 7, 1), time.min)
+            end_date = datetime.combine(date(current_date.year, 9, 30), time.max)
         else:
-            start_date = date(current_date.year, 10, 1)
-            end_date = date(current_date.year, 12, 31)
+            start_date = datetime.combine(date(current_date.year, 10, 1), time.min)
+            end_date = datetime.combine(date(current_date.year, 12, 31), time.max)
 
     elif period == 'last_week':
         start_date = current_date - timedelta(
@@ -125,17 +125,17 @@ def get_dates(period=None):
         current_month = current_date.month
         current_quarter = (current_month - 1) // 3 + 1
         if current_quarter == 1:
-            start_date = date(current_date.year - 1, 10, 1)
-            end_date = date(current_date.year - 1, 12, 31)
+            start_date = datetime.combine(date(current_date.year - 1, 10, 1), time.min)
+            end_date = datetime.combine(date(current_date.year - 1, 12, 31), time.max)
         elif current_quarter == 2:
-            start_date = date(current_date.year, 1, 1)
-            end_date = date(current_date.year, 3, 31)
+            start_date = datetime.combine(date(current_date.year, 1, 1), time.min)
+            end_date = datetime.combine(date(current_date.year, 3, 31), time.max)
         elif current_quarter == 3:
-            start_date = date(current_date.year, 4, 1)
-            end_date = date(current_date.year, 6, 30)
+            start_date = datetime.combine(date(current_date.year, 4, 1), time.min)
+            end_date = datetime.combine(date(current_date.year, 6, 30), time.max)
         else:
-            start_date = date(current_date.year, 7, 1)
-            end_date = date(current_date.year, 9, 30)
+            start_date = datetime.combine(date(current_date.year, 7, 1), time.min)
+            end_date = datetime.combine(date(current_date.year, 9, 30), time.max)
 
 
     else:
@@ -157,11 +157,11 @@ def get_start_end(period):
         format_end = end.strftime("%d.%m.%Y")
     else:
         start_str, end_str = period.split('&')
-        start = timezone.make_aware(datetime.combine(datetime.strptime(start_str, "%Y-%m-%d"), time.min))
-        end = timezone.make_aware(datetime.combine(datetime.strptime(end_str, "%Y-%m-%d"), time.max))
+        start = datetime.combine(datetime.strptime(start_str, "%Y-%m-%d"), time.min)
+        end = datetime.combine(datetime.strptime(end_str, "%Y-%m-%d"), time.max)
         format_start = ".".join(start_str.split("-")[::-1])
         format_end = ".".join(end_str.split("-")[::-1])
-    return start, end, format_start, format_end
+    return timezone.make_aware(start), timezone.make_aware(end), format_start, format_end
 
 
 def update_park_set(partner, key, value, description=None, check_value=True, park=True):

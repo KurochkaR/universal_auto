@@ -414,55 +414,19 @@ def get_driver_efficiency(self, partner_pk, schema, day=None):
     if Fleet.objects.filter(partner=partner_pk, deleted_at=None, name="Gps").exists():
         end, start = get_time_for_task(schema, day)[1:3]
         for driver in Driver.objects.get_active(partner=partner_pk, schema=schema):
-            mileage, vehicles = UaGpsSynchronizer.objects.get(
-                partner=partner_pk).calc_total_km(driver, start, end)
-            if vehicles:
-                total_kasa, total_orders, canceled_orders, completed_orders, fleet_orders, payments = get_efficiency_info(
-                    partner_pk, driver, start, end, SummaryReport)
-                data = {
-                    'total_kasa': total_kasa,
-                    'total_orders': total_orders,
-                    'accept_percent': (total_orders - canceled_orders) / total_orders * 100 if total_orders else 0,
-                    'average_price': total_kasa / completed_orders if completed_orders else 0,
-                    'mileage': mileage,
-                    'road_time': fleet_orders.aggregate(
-                        road_time=Coalesce(Sum('road_time'), timedelta()))['road_time'],
-                    'efficiency': total_kasa / mileage if mileage else 0,
-                    'partner_id': partner_pk
-                }
-
-                result, created = polymorphic_efficiency_create(DriverEfficiency, partner_pk, driver, start, end, data)
-                if created:
-                    result.vehicles.add(*vehicles)
+            polymorphic_efficiency_create(DriverEfficiency, partner_pk, driver,
+                                          start, end, SummaryReport)
 
 
 @app.task(bind=True, queue='beat_tasks')
 def get_driver_efficiency_fleet(self, partner_pk, schema, day=None):
-    if Fleet.objects.filter(partner=partner_pk, name="Gps").exists():
-        end, start = get_time_for_task(schema)[1:3]
+    if Fleet.objects.filter(partner=partner_pk, deleted_at=None, name="Gps").exists():
+        end, start = get_time_for_task(schema, day)[1:3]
         for driver in Driver.objects.get_active(partner=partner_pk, schema=schema):
             aggregators = Fleet.objects.filter(partner=partner_pk).exclude(name="Gps")
             for aggregator in aggregators:
-                total_kasa, total_orders, canceled_orders, completed_orders, fleet_orders, payments = get_efficiency_info(
-                    partner_pk, driver, start, end, Payments, aggregator)
-                vehicles = fleet_orders.values_list('vehicle', flat=True).distinct()
-                mileage = fleet_orders.aggregate(km=Coalesce(Sum('distance'), Decimal(0)))['km']
-                data = {
-                    'total_kasa': total_kasa,
-                    'total_orders': total_orders,
-                    'accept_percent': (total_orders - canceled_orders) / total_orders * 100 if total_orders else 0,
-                    'average_price': total_kasa / completed_orders if completed_orders else 0,
-                    'mileage': mileage,
-                    'road_time': fleet_orders.aggregate(
-                        road_time=Coalesce(Sum('road_time'), timedelta()))['road_time'],
-                    'efficiency': total_kasa / mileage if mileage else 0,
-                    'partner_id': partner_pk
-                }
-
-                result, created = polymorphic_efficiency_create(DriverEfficiencyFleet, partner_pk, driver, start, end,
-                                                                data, aggregator)
-                if created:
-                    result.vehicles.add(*vehicles)
+                polymorphic_efficiency_create(DriverEfficiencyFleet, partner_pk, driver,
+                                              start, end, Payments, aggregator)
 
 
 @app.task(bind=True, queue='beat_tasks')
@@ -782,7 +746,8 @@ def add_money_to_vehicle(self, partner_pk):
     end = timezone.make_aware(datetime.combine(today - timedelta(days=today.weekday() + 1), time.max))
     start = timezone.make_aware(datetime.combine(end - timedelta(days=6), time.min))
     investor_vehicles = Vehicle.objects.filter(investor_car__isnull=False, partner=partner_pk)
-    kasa = CustomReport.objects.filter(report_from__range=(start, end), vehicle__in=investor_vehicles).aggregate(
+    kasa = CustomReport.objects.filter(report_from__range=(start, end),
+                                       report_to__lte=end, vehicle__in=investor_vehicles).aggregate(
         kasa=Coalesce(Sum('total_amount_without_fee'), 0, output_field=DecimalField())
     )['kasa']
     for investor in Investor.objects.filter(investors_partner=partner_pk):

@@ -146,16 +146,14 @@ class UaGpsSynchronizer(Fleet):
         previous_finish_time = None
         for order in orders:
             end_report = order.finish_time if order.finish_time < end else end
-            if order.distance and order.road_time:
-                road_distance += order.distance
-                road_time += order.road_time
-                previous_finish_time = end_report
-                continue
             try:
                 if previous_finish_time is None or order.accepted_time >= previous_finish_time:
-                    report = self.generate_report(self.get_timestamp(timezone.localtime(order.accepted_time)),
-                                                  self.get_timestamp(timezone.localtime(end_report)),
-                                                  order.vehicle.gps.gps_id)
+                    if order.finish_time < end:
+                        report = (order.distance, order.road_time)
+                    else:
+                        report = self.generate_report(self.get_timestamp(timezone.localtime(order.accepted_time)),
+                                                      self.get_timestamp(timezone.localtime(end_report)),
+                                                      order.vehicle.gps.gps_id)
                 elif order.finish_time <= previous_finish_time:
                     continue
                 else:
@@ -168,9 +166,6 @@ class UaGpsSynchronizer(Fleet):
             previous_finish_time = end_report
             road_distance += report[0]
             road_time += report[1]
-            order.distance = report[0]
-            order.road_time = report[1]
-            order.save()
         return road_distance, road_time, previous_finish_time
 
     def get_vehicle_rent(self, start, end, schema=None):

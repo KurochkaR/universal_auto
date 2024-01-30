@@ -13,7 +13,7 @@ from polymorphic.admin import PolymorphicParentModelAdmin
 from scripts.google_calendar import GoogleCalendar
 from .filters import VehicleEfficiencyUserFilter, DriverEfficiencyUserFilter, RentInformationUserFilter, \
     TransactionInvestorUserFilter, ReportUserFilter, VehicleManagerFilter, SummaryReportUserFilter, \
-    ChildModelFilter, PartnerPaymentFilter, FleetFilter, FleetDriverFilter
+    ChildModelFilter, PartnerPaymentFilter, FleetFilter, FleetDriverFilter, FleetOrderFilter, VehicleSpendingFilter
 from .models import *
 
 
@@ -415,13 +415,17 @@ class JobApplicationAdmin(admin.ModelAdmin):
 
 @admin.register(VehicleSpending)
 class VehicleSpendingAdmin(admin.ModelAdmin):
-    list_display = ['id', 'vehicle', 'amount', 'category', 'description']
+    list_display = ['vehicle', 'amount', 'category', 'description', 'created_date']
+    list_filter = ['created_at', 'category', VehicleSpendingFilter]
 
     fieldsets = [
         (None, {'fields': ['vehicle', 'amount',
                            'category', 'description'
                            ]}),
     ]
+
+    def created_date(self, obj):
+        return obj.created_at.date()
 
     def get_queryset(self, request):
         queryset = super().get_queryset(request)
@@ -1164,7 +1168,7 @@ class OrderAdmin(admin.ModelAdmin):
 
 @admin.register(FleetOrder)
 class FleetOrderAdmin(admin.ModelAdmin):
-    list_filter = ('fleet', 'driver')
+    list_filter = ('fleet', FleetOrderFilter)
     list_per_page = 25
     raw_id_fields = ['vehicle', 'driver', 'partner']
     list_select_related = ['vehicle', 'driver', 'partner']
@@ -1331,4 +1335,20 @@ class DriverReshuffle(admin.ModelAdmin):
 @admin.register(DriverPayments)
 class DriverPaymentsAdmin(admin.ModelAdmin):
     list_display = ['driver', 'status', 'earning']
+
+
+@admin.register(DriverEfficiencyFleet)
+class DriverFleetEfficiencyAdmin(admin.ModelAdmin):
+    list_display = ['driver', 'efficiency', 'total_kasa', 'mileage', 'fleet']
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if request.user.is_partner():
+            qs = qs.filter(partner=request.user)
+        if request.user.is_manager():
+            qs = qs.filter(driver__manager=request.user)
+        return qs.select_related('fleet__partner', 'driver__partner').prefetch_related(
+            Prefetch('fleet', queryset=Fleet.objects.only('name')),
+            Prefetch('driver', queryset=Driver.objects.only('name', 'second_name')),
+                                 )
 
