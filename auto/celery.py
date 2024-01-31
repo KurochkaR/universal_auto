@@ -27,18 +27,26 @@ app.conf.update(
     redis_max_connections=50,
     broker_connection_retry_on_startup=True,
     broker_transport_options={
-                                'visibility_timeout': 1800,
-                                'health_check_interval': 10,
-                                'max_retries': 3,
-                                'max_connections': 50,
-                                'retry_on_timeout': True,
-                                'connection_retry': True,
-                                'connection_timeout': 120,
-                                'connection_max_retries': 0,
-                                'socket_keepalive': True,
-                                'socket_timeout': 10,
-                                'socket_connect_timeout': 60
-                                }
+        'retry_policy': {
+            'timeout': 5.0
+        },
+        'visibility_timeout': 1800,
+        'health_check_interval': 10,
+        'max_retries': 3,
+        'max_connections': 50,
+        'retry_on_timeout': True,
+        'connection_retry': True,
+        'connection_timeout': 120,
+        'connection_max_retries': 0,
+        'socket_keepalive': True,
+        'socket_timeout': 10,
+        'socket_connect_timeout': 60
+    },
+    result_backend_transport_options={
+        'retry_policy': {
+            'timeout': 5.0
+        },
+    }
 )
 
 app.autodiscover_tasks(['auto'])

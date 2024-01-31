@@ -43,9 +43,9 @@ def add_road_time_and_distance(sender, instance, created, **kwargs):
             instance.distance = distance
             instance.road_time = road_time
             instance.save(update_fields=["distance", "road_time"])
-        # if check_vehicle(instance.driver) != instance.vehicle:
-        #     redis_instance().hset(f"wrong_vehicle_{instance.partner}", instance.driver_id,
-        #                           instance.vehicle.licence_plate)
+        if check_vehicle(instance.driver) != instance.vehicle:
+            redis_instance().hset(f"wrong_vehicle_{instance.partner}", instance.driver_id,
+                                  instance.vehicle.licence_plate)
 
 
 @receiver(post_save, sender=DriverPayments)
