@@ -16,14 +16,14 @@ def run(*args):
     fleet = Fleet.objects.filter(partner__pk=1).exclude(name='Gps')
     for f in fleet:
         driver_efficiency = DriverEfficiencyFleet.objects.filter(fleet_id=f.id)
-        for driver in driver_efficiency:
-            driver_canceled_orders = FleetOrder.objects.filter(driver_id=driver,
-                                                               accepted_time__date=driver.report_from.date(),
-                                                               fleet=driver.fleet.name,
+        for efficiency in driver_efficiency:
+            driver_canceled_orders = FleetOrder.objects.filter(driver=efficiency.driver,
+                                                               accepted_time__date=efficiency.report_from.date(),
+                                                               fleet=f.name,
                                                                state=FleetOrder.DRIVER_CANCEL).count()
 
-            driver.total_orders_rejected = driver_canceled_orders
-            driver.save(update_fields=['total_orders_rejected'])
+            efficiency.total_orders_rejected = driver_canceled_orders
+            efficiency.save(update_fields=['total_orders_rejected'])
         print('Done', f.name)
     print('Done all fleets')
 
@@ -38,12 +38,6 @@ def run(*args):
 
     print('Done all drivers')
 
-    driver_payments = DriverPayments.objects.all()
-
-    for driver in driver_payments:
-        cash = driver.cash
-        earning = driver.earning
-        driver.salary = cash + earning
-        driver.save(update_fields=['salary'])
+    DriverPayments.objects.update(salary=F('cash') + F('earning'))
 
     print('Done all drivers payments')
