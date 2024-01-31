@@ -257,9 +257,6 @@ $(document).ready(function () {
 			csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
 		};
 
-		console.log(dataToSend);
-
-
 		$.ajax({
 			url: ajaxPostUrl,
 			type: 'POST',
