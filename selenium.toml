@@ -3,7 +3,7 @@
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = "selenium-staging"
+app = "selenium-prod"
 primary_region = "otp"
 
 [build]
@@ -11,11 +11,11 @@ primary_region = "otp"
 
 [env]
   PORT = "4444"
-  SE_NODE_SESSION_TIMEOUT = 600
+  SE_NODE_SESSION_TIMEOUT = 400
   SE_NODE_MAX_SESSIONS = 5
   SE_NODE_MAX_INSTANCES = 5
   SE_OPTS="--log-level FINE --override-max-sessions true"
-  HUB_PORT_4444_TCP_ADDR = "selenium-staging.internal"
+  HUB_PORT_4444_TCP_ADDR = "selenium-prod.internal"
 
 [experimental]
   allowed_public_ports = [4444]

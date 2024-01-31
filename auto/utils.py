@@ -162,13 +162,13 @@ def get_efficiency_info(partner_pk, driver, start, end, payments_model, aggregat
         filter_request['fleet'] = aggregator.name
         payment_request['fleet'] = aggregator
     fleet_orders = FleetOrder.objects.filter(**filter_request)
-    payments = payments_model.objects.filter(**payment_request)
-    total_kasa = payments.aggregate(kasa=Coalesce(Sum('total_amount_without_fee'), Decimal(0)))['kasa']
+    total_kasa = payments_model.objects.filter(**payment_request).aggregate(
+        kasa=Coalesce(Sum('total_amount_without_fee'), Decimal(0)))['kasa']
     total_orders = fleet_orders.count()
     canceled_orders = fleet_orders.filter(state=FleetOrder.DRIVER_CANCEL).count()
     completed_orders = fleet_orders.filter(state=FleetOrder.COMPLETED).count()
 
-    return total_kasa, total_orders, canceled_orders, completed_orders, fleet_orders, payments
+    return total_kasa, total_orders, canceled_orders, completed_orders, fleet_orders
 
 
 def polymorphic_efficiency_create(create_model, partner_pk, driver, start, end, get_model, aggregator=None):
@@ -178,11 +178,12 @@ def polymorphic_efficiency_create(create_model, partner_pk, driver, start, end, 
                         'driver': driver,
                         'partner_id': partner_pk
                          }
-    total_kasa, total_orders, canceled_orders, completed_orders, fleet_orders, payments = get_efficiency_info(
+    total_kasa, total_orders, canceled_orders, completed_orders, fleet_orders = get_efficiency_info(
         partner_pk, driver, start, end, get_model, aggregator)
     if aggregator:
         vehicles = fleet_orders.exclude(vehicle__isnull=True).values_list('vehicle', flat=True).distinct()
-        mileage = fleet_orders.aggregate(km=Coalesce(Sum('distance'), Decimal(0)))['km']
+        mileage = fleet_orders.filter(state=FleetOrder.COMPLETED).aggregate(
+            km=Coalesce(Sum('distance'), Decimal(0)))['km']
         efficiency_filter['fleet'] = aggregator
     else:
         mileage, vehicles = UaGpsSynchronizer.objects.get(
@@ -193,7 +194,7 @@ def polymorphic_efficiency_create(create_model, partner_pk, driver, start, end, 
         'accept_percent': (total_orders - canceled_orders) / total_orders * 100 if total_orders else 0,
         'average_price': total_kasa / completed_orders if completed_orders else 0,
         'mileage': mileage,
-        'road_time': fleet_orders.aggregate(
+        'road_time': fleet_orders.filter(state=FleetOrder.COMPLETED).aggregate(
             road_time=Coalesce(Sum('road_time'), timedelta()))['road_time'],
         'efficiency': total_kasa / mileage if mileage else 0,
         'partner_id': partner_pk

@@ -11,8 +11,8 @@ from auto_bot.handlers.driver_manager.utils import get_time_for_task
 
 
 def run(partner_pk=1):
-    start_date = datetime(2023, 10, 20)
-    end_date = datetime(2023, 10, 31)
+    start_date = datetime(2023, 12, 1)
+    end_date = datetime(2024, 1, 30)
     while start_date <= end_date:
         start_time = timezone.make_aware(datetime.combine(start_date, datetime.min.time()))
         end_time = timezone.make_aware(datetime.combine(start_date, datetime.max.time()))
