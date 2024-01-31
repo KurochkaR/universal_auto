@@ -48,7 +48,8 @@ class PostRequestView(View):
             "delete_all_shift": handler.handler_delete_shift,
             "update_shift": handler.handler_update_shift,
             "update_all_shift": handler.handler_update_shift,
-            "add-bonus": handler.handler_add_bonus,
+            "add-bonus": handler.handler_add_bonus_or_penalty,
+            "add-penalty": handler.handler_add_bonus_or_penalty,
             "upd-status-payment": handler.handler_upd_payment_status,
             "upd_delete_bonus_penalty": handler.handler_upd_delete_bonus_penalty,
         }

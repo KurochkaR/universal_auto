@@ -124,6 +124,35 @@
     </div>
   </div>
 
+  <div id="modal-add-penalty">
+    <div class="title-add-penalty">
+      <h2>{% trans "Додавання штрафу" %}</h2>
+      <span class="modal-payments-date"></span>
+      <span class="shift-close-btn">
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28" fill="none">
+          <path d="M26.5 2L14.25 14.25M2 26.5L14.25 14.25M14.25 14.25L2 2L26.5 26.5" stroke="white" stroke-width="3"
+                stroke-linejoin="round"/>
+        </svg>
+      </span>
+    </div>
+    <div class="penalty-content">
+      <div class="penalty-payments">
+        <div class="penalty-field">
+          <label for="penalty-amount">{% trans "Штраф" %}</label>
+          <input type="text" id="penalty-amount" name="penalty-amount">
+        </div>
+        <div class="penalty-description-field">
+          <label for="penalty-description">{% trans "Опис Штрафу" %}</label>
+          <input type="text" id="penalty-description" name="penalty-description">
+        </div>
+      </div>
+    </div>
+    <div class="penalty-btn-box">
+      <button class="add-penalty-btn">{% trans "Додати" %}</button>
+    </div>
+  </div>
+
+
   <!-- Модальне вікно для додавання бонуса або штрафа -->
   <div id="modal-upd-bonus" class="modal">
     <div class="modal-content">

@@ -1464,7 +1464,8 @@ select:focus {
 /* modal-shift */
 
 #modal-shift,
-#modal-add-bonus {
+#modal-add-bonus,
+#modal-add-penalty {
 	z-index: 10;
 	display: none;
 	position: fixed;
@@ -1480,7 +1481,8 @@ select:focus {
 }
 
 .modal-shift-title,
-.title-add-bonus {
+.title-add-bonus,
+.title-add-penalty {
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
@@ -1493,7 +1495,8 @@ select:focus {
 }
 
 .modal-shift-title h2,
-.title-add-bonus h2{
+.title-add-bonus h2,
+.title-add-penalty h2 {
 	margin-left: 15px;
 	color: #FFF;
 	font-size: 25px;
@@ -1504,16 +1507,20 @@ select:focus {
 	margin-bottom: 20px;
 }
 
-.bonus-payments, .bonus-vehicle {
+.bonus-payments,
+.bonus-vehicle,
+.penalty-payments {
 	display: grid;
 	grid-template-columns: 1fr 1fr;
-	padding-left: 15px;
-	padding-right: 15px;
+	padding-left: 45px;
+	padding-right: 45px;
 	gap: 30px;
 }
 
 .bonus-field input,
 .bonus-description-field input,
+.penalty-field input,
+.penalty-description-field input,
 .bonus-category-field select,
 .bonus-vehicle-licence-plate select {
 	width: 100%;
@@ -1828,13 +1835,15 @@ select:focus {
     margin-bottom: 5px;
 }
 
-.bonus-btn-box {
+.bonus-btn-box,
+.penalty-btn-box {
 	position: absolute;
 	bottom: 15px;
-	right: 70px;
+	right: 45px;
 }
 
-.add-bonus-btn {
+.add-bonus-btn,
+.add-penalty-btn {
 	display: block;
 	margin: 0 auto;
 	padding: 8px 16px;

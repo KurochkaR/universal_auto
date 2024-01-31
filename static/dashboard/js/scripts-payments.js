@@ -98,7 +98,7 @@ $(document).ready(function () {
 
 	$(this).on('click', '.bonus-table .edit-bonus-btn, .bonus-table .delete-bonus-btn, .bonus-table .edit-penalty-btn, .bonus-table .delete-penalty-btn', function () {
 		if ($(this).hasClass('edit-bonus-btn') || $(this).hasClass('edit-penalty-btn')) {
-			actionType = 'edit';
+			actionType = 'update';
 			itemAmount = $(this).closest('tr').find('.bonus-amount').text();
 			itemDescription = $(this).closest('tr').find('.bonus-description').text();
 		} else if ($(this).hasClass('delete-bonus-btn') || $(this).hasClass('delete-penalty-btn')) {
@@ -199,6 +199,7 @@ $(document).ready(function () {
   	e.preventDefault();
 		$('#modal-add-bonus').hide();
 		$('#modal-upd-bonus').hide();
+		$('#modal-add-penalty').hide();
 	});
 
 	$('.driver-table tbody').on('click', '.add-btn-bonus', function () {
@@ -254,6 +255,7 @@ $(document).ready(function () {
 			categoryText: bonusCategoryText,
 			vehicle: bonusVehicle,
 			action: 'add-bonus',
+			type: 'bonus',
 			csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
 		};
 
@@ -268,6 +270,49 @@ $(document).ready(function () {
 			}
 		});
 	});
+
+
+
+
+	$('.driver-table tbody').on('click', '.add-btn-penalty', function () {
+		$('#penalty-amount').val('');
+    $('#penalty-description').val('');
+		var id = $(this).closest('tr').data('id');
+		$('#modal-add-penalty').show();
+		$('#modal-add-penalty').data('id', id);
+		$(this).data('id', id);
+	});
+
+
+	$('#modal-add-penalty').on('click', '.add-penalty-btn', function () {
+		var idPayments = $('#modal-add-penalty').data('id');
+
+		var bonusAmount = $('#penalty-amount').val();
+		var bonusDescription = $('#penalty-description').val();
+
+		var dataToSend = {
+			idPayments: idPayments,
+			amount: bonusAmount,
+			description: bonusDescription,
+			action: 'add-penalty',
+			type: 'penalty',
+			csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
+		};
+
+		$.ajax({
+			url: ajaxPostUrl,
+			type: 'POST',
+			data: dataToSend,
+			dataType: 'json',
+			success: function (response) {
+				$('#modal-upd-payments').hide();
+				driverPayment(null, null, null, paymentStatus="on_inspection");
+			}
+		});
+	});
+
+
+
 
 	$('.driver-table tbody').on('click', '.apply-btn', function () {
     var id = $(this).closest('tr').data('id');
