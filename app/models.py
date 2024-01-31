@@ -439,7 +439,7 @@ class Penalty(PenaltyBonus):
 
 
 class Bonus(PenaltyBonus):
-    pass
+    vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Автомобіль')
 
 
 class InvestorPayments(Earnings):

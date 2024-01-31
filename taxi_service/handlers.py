@@ -8,7 +8,7 @@ from django.http import JsonResponse, HttpResponse
 from django.forms.models import model_to_dict
 from django.contrib.auth import logout, authenticate
 
-from app.models import SubscribeUsers, Manager, CustomUser, DriverPayments, Bonus, Penalty
+from app.models import SubscribeUsers, Manager, CustomUser, DriverPayments, Bonus, Penalty, Vehicle
 from taxi_service.forms import MainOrderForm, CommentForm
 from taxi_service.utils import (update_order_sum_or_status, restart_order,
                                 partner_logout, login_in_investor,
@@ -214,34 +214,31 @@ class PostRequestHandler:
         response = HttpResponse(json_data, content_type='application/json')
         return response
 
-    def handler_update_payments(self, request):
-        driver_payments_id = request.POST.get('id')
-        bonus_amount = request.POST.get('bonusAmount')
-        bonus_description = request.POST.get('bonusDescription')
-        penalty_amount = request.POST.get('penaltyAmount')
-        penalty_description = request.POST.get('penaltyDescription')
+    def handler_add_bonus(self, request):
+        driver_payments_id = request.POST.get('idPayments')
+        bonus_amount = request.POST.get('amount')
+        bonus_description = request.POST.get('description')
+        category = request.POST.get('category')
+        category_text = request.POST.get('categoryText')
+        vehicle_id = request.POST.get('vehicle')
 
         driver_payments = DriverPayments.objects.get(id=driver_payments_id)
+        description = bonus_description if category == 'other' else category_text
+        vehicle = Vehicle.objects.get(id=vehicle_id) if category not in ['other', 'premium'] else None
 
         if bonus_amount:
             bonus = Bonus.objects.create(
-                amount=bonus_amount, description=bonus_description,
-                driver_payments=driver_payments, driver=driver_payments.driver
+                amount=bonus_amount,
+                description=description,
+                driver_payments=driver_payments,
+                driver=driver_payments.driver,
+                vehicle=vehicle
             )
             driver_payments.earning += Decimal(bonus.amount)
 
-        if penalty_amount:
-            penalty = Penalty.objects.create(
-                amount=penalty_amount, description=penalty_description,
-                driver_payments=driver_payments, driver=driver_payments.driver
-            )
-            driver_payments.earning -= Decimal(penalty.amount)
-
         driver_payments.save()
 
-        json_data = JsonResponse({'data': 'success'}, safe=False)
-        response = HttpResponse(json_data, content_type='application/json')
-        return response
+        return JsonResponse({'data': 'success'})
 
     def handler_upd_payment_status(self, request):
         all_payments = request.POST.get('allId')

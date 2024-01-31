@@ -999,7 +999,7 @@ th {
 	padding: 10px;
 	text-align: left;
 	color: #141E17;
-	font-size: 20px;
+	font-size: 18px;
 	font-style: normal;
 	font-weight: border;
 	line-height: normal;
@@ -1021,7 +1021,7 @@ td {
   padding: 8px;
   color: #000;
 	font-family: Open Sans;
-	font-size: 20px;
+	font-size: 18px;
 	font-style: normal;
 	font-weight: 400;
 	line-height: normal;
@@ -1464,7 +1464,7 @@ select:focus {
 /* modal-shift */
 
 #modal-shift,
-#modal-upd-payments {
+#modal-add-bonus {
 	z-index: 10;
 	display: none;
 	position: fixed;
@@ -1480,7 +1480,7 @@ select:focus {
 }
 
 .modal-shift-title,
-.modal-upd-payments {
+.title-add-bonus {
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
@@ -1493,7 +1493,7 @@ select:focus {
 }
 
 .modal-shift-title h2,
-.modal-upd-payments h2{
+.title-add-bonus h2{
 	margin-left: 15px;
 	color: #FFF;
 	font-size: 25px;
@@ -1502,6 +1502,36 @@ select:focus {
 	line-height: normal;
 	text-transform: uppercase;
 	margin-bottom: 20px;
+}
+
+.bonus-payments, .bonus-vehicle {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	padding-left: 15px;
+	padding-right: 15px;
+	gap: 30px;
+}
+
+.bonus-field input,
+.bonus-description-field input,
+.bonus-category-field select,
+.bonus-vehicle-licence-plate select {
+	width: 100%;
+	padding: 5px;
+	border-radius: 62px;
+	border: 3px solid #A1E8B9;
+	background: #FFF;
+	margin-bottom: 20px;
+	box-sizing: border-box;
+}
+
+
+.bonus-vehicle-licence-plate {
+	display: none;
+}
+
+.bonus-description-field {
+	display: none;
 }
 
 .modal-shift-date {
@@ -1728,7 +1758,8 @@ select:focus {
 	cursor: pointer;
 }
 
-.driver-table tbody tr td .edit-btn,
+.driver-table tbody tr td .add-btn-bonus,
+.driver-table tbody tr td .add-btn-penalty,
 .driver-table tbody tr td .apply-btn,
 .driver-table tbody tr td .arrow-btn,
 .edit-bonus-btn, .edit-penalty-btn,
@@ -1738,7 +1769,6 @@ select:focus {
 	padding: 5px;
 	cursor: pointer;
 	font-size: 30px;
-	margin-right: 15px;
 }
 
 /* Загальні стилі для контейнера радіокнопок */
@@ -1798,35 +1828,22 @@ select:focus {
     margin-bottom: 5px;
 }
 
-
-.bonus-field input,
-.bonus-description-field textarea,
-.penalty-field input,
-.penalty-description-field textarea {
-    width: 100%;
-    padding: 8px;
-    box-sizing: border-box;
-    margin: 10px;
+.bonus-btn-box {
+	position: absolute;
+	bottom: 15px;
+	right: 70px;
 }
 
-
-.payments-content {
-    display: flex;
-    max-width: 400px;
-    margin: 0 auto;
-    gap: 20px;
-}
-
-.upd-payments-btn {
-		display: block;
-		margin: 0 auto;
-		padding: 8px 16px;
-		font-size: 16px;
-		background-color: #EC6323;
-		color: white;
-		border: none;
-		border-radius: 10px;
-		cursor: pointer;
+.add-bonus-btn {
+	display: block;
+	margin: 0 auto;
+	padding: 8px 16px;
+	font-size: 16px;
+	background-color: #EC6323;
+	color: white;
+	border: none;
+	border-radius: 10px;
+	cursor: pointer;
 }
 
 .box-btn-upd {

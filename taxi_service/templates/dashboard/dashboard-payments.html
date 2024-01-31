@@ -54,7 +54,9 @@
         <th class="sortable" data-sort="earning">{% trans 'Виплата' %}</th>
         <th class="sortable" data-sort="salary">{% trans 'Зарплата' %}</th>
         <th class="sortable" data-sort="status">{% trans 'Статус виплати' %}</th>
-        <th class="sortable" data-sort="button"><button class="send-all-button">{% trans 'Відправити усім' %}</button></th>
+        <th class="sortable" data-sort="button">
+          <button class="send-all-button">{% trans 'Відправити усім' %}</button>
+        </th>
       </tr>
       </thead>
       <tr>
@@ -73,45 +75,56 @@
     </table>
   </div>
 
-  <div id="modal-upd-payments">
-    <div class="modal-upd-payments">
-      <h2>{% trans "Редагування виплати" %}</h2>
+  <div id="modal-add-bonus">
+    <div class="title-add-bonus">
+      <h2>{% trans "Додавання бонуса" %}</h2>
       <span class="modal-payments-date"></span>
       <span class="shift-close-btn">
-        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28" fill="none">
-          <path d="M26.5 2L14.25 14.25M2 26.5L14.25 14.25M14.25 14.25L2 2L26.5 26.5" stroke="white" stroke-width="3"
-                stroke-linejoin="round"/>
-        </svg>
-      </span>
+      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28" fill="none">
+        <path d="M26.5 2L14.25 14.25M2 26.5L14.25 14.25M14.25 14.25L2 2L26.5 26.5" stroke="white" stroke-width="3"
+              stroke-linejoin="round"/>
+      </svg>
+    </span>
     </div>
-    <div class="payments-content">
+    <div class="bonus-content">
       <div class="bonus-payments">
         <div class="bonus-field">
           <label for="bonus-amount">{% trans "Бонус" %}</label>
           <input type="text" id="bonus-amount" name="bonus-amount">
         </div>
-        <div class="bonus-description-field">
-          <label for="bonus-description">{% trans "Опис бонусу" %}</label>
-          <textarea id="bonus-description" name="bonus-description"></textarea>
+        <div class="bonus-category-field">
+          <label for="bonus-category">{% trans "Категорія бонусу" %}</label>
+          <select id="bonus-category" name="bonus-category">
+            <option value="premium">Премія</option>
+            <option value="fuel-compensation">Компенсація пального</option>
+            <option value="sink-compensation">Компенсація мийки</option>
+            <option value="service-compensation">Компенсація ТО</option>
+            <option value="other">Інше</option>
+          </select>
         </div>
       </div>
-      <div class="penalty-payments">
-        <div class="penalty-field">
-          <label for="penalty-amount">{% trans "Штраф" %}</label>
-          <input type="text" id="penalty-amount" name="penalty-amount">
+      <div class="bonus-vehicle">
+        <div class="bonus-vehicle-licence-plate">
+          <label for="bonus-vehicle">{% trans "Автомобіль" %}</label>
+          <select id="bonus-vehicle">
+            <option value="none">---------</option>
+            {% for vehicle in get_all_vehicle %}
+            <option value="{{ vehicle.id }}">{{ vehicle }}</option>
+            {% endfor %}
+          </select>
         </div>
-        <div class="penalty-description-field">
-          <label for="penalty-description">{% trans "Опис штрафу" %}</label>
-          <textarea id="penalty-description" name="penalty-description"></textarea>
+        <div class="bonus-description-field">
+          <label for="bonus-description">{% trans "Опис бонусу" %}</label>
+          <input type="text" id="bonus-description" name="bonus-description">
         </div>
       </div>
     </div>
-    <div class="payments-btn-box">
-        <button class="upd-payments-btn">{% trans "Додати" %}</button>
+    <div class="bonus-btn-box">
+      <button class="add-bonus-btn">{% trans "Додати" %}</button>
     </div>
   </div>
 
-  <!-- Модальне вікно для редагування бонуса або штрафа -->
+  <!-- Модальне вікно для додавання бонуса або штрафа -->
   <div id="modal-upd-bonus" class="modal">
     <div class="modal-content">
       <span class="shift-close-btn">
