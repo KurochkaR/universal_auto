@@ -289,7 +289,9 @@ class BoltRequest(Fleet, Synchronizer):
                 price = order.get('total_price', 0)
                 tip = order.get("tip", 0)
                 if FleetOrder.objects.filter(order_id=order['order_id']).exists():
-                    FleetOrder.objects.filter(order_id=order['order_id']).update(price=price, tips=tip)
+                    vehicle = check_vehicle(driver, date_time=timezone.make_aware(
+                        datetime.fromtimestamp(order['accepted_time'])))
+                    FleetOrder.objects.filter(order_id=order['order_id']).update(price=price, tips=tip, vehicle=vehicle)
                     continue
                 vehicle = Vehicle.objects.get(licence_plate=order['car_reg_number'])
                 try:
