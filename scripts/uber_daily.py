@@ -13,7 +13,7 @@ from auto.utils import get_currency_rate
 
 
 def run(*args):
-    fleet = Fleet.objects.filter(partner__pk=1).exclude(name='Gps')
+    fleet = Fleet.objects.filter(partner=1).exclude(name='Gps')
     for f in fleet:
         driver_efficiency = DriverEfficiencyFleet.objects.filter(fleet_id=f.id)
         for efficiency in driver_efficiency:
@@ -28,13 +28,13 @@ def run(*args):
     print('Done all fleets')
 
     driver_efficiency = DriverEfficiency.objects.all()
-    for driver in driver_efficiency:
-        driver_canceled_orders = FleetOrder.objects.filter(driver_id=driver,
-                                                           accepted_time__date=driver.report_from.date(),
+    for efficiency in driver_efficiency:
+        driver_canceled_orders = FleetOrder.objects.filter(driver=efficiency.driver,
+                                                           accepted_time__date=efficiency.report_from.date(),
                                                            state=FleetOrder.DRIVER_CANCEL).count()
 
-        driver.total_orders_rejected = driver_canceled_orders
-        driver.save(update_fields=['total_orders_rejected'])
+        efficiency.total_orders_rejected = driver_canceled_orders
+        efficiency.save(update_fields=['total_orders_rejected'])
 
     print('Done all drivers')
 
