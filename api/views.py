@@ -299,9 +299,9 @@ class DriverReshuffleListView(CombinedPermissionsMixin, generics.ListAPIView):
             licence_plate=F('swap_vehicle__licence_plate'),
             vehicle_id=F('swap_vehicle__pk'),
             driver_name=Concat(
-                F("driver_start__user_ptr__name"),
+                F("driver_start__user_ptr__second_name"),
                 Value(" "),
-                F("driver_start__user_ptr__second_name")),
+                F("driver_start__user_ptr__name")),
             driver_id=F('driver_start__pk'),
             driver_photo=F('driver_start__photo'),
             start_shift=F('swap_time__time'),

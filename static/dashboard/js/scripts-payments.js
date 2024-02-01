@@ -156,6 +156,7 @@ $(document).ready(function () {
     } else {
       driverPayment(null, null, null, paymentStatus=$(this).val());
       $('.filter-driver-payments').hide();
+      $('#datePickerDriver').hide();
     }
   });
 
