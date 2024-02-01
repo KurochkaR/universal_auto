@@ -292,10 +292,11 @@ class DriverReshuffleListView(CombinedPermissionsMixin, generics.ListAPIView):
 
     def get_queryset(self):
         vehicles = ManagerFilterMixin.get_queryset(Vehicle, self.request.user)
+        start, end, format_start, format_end = get_start_end(self.kwargs['period'])
         qs = DriverReshuffle.objects.filter(
             swap_vehicle__in=vehicles,
-            swap_time__range=(self.kwargs['start_date'], self.kwargs['end_date'])
-        ).annotate(
+            swap_time__range=(start, end)
+        ).select_related('driver_start', 'swap_vehicle').annotate(
             licence_plate=F('swap_vehicle__licence_plate'),
             vehicle_id=F('swap_vehicle__pk'),
             driver_name=Concat(

@@ -22,7 +22,7 @@ from app.models import (RawGPS, Vehicle, Order, Driver, JobApplication, ParkSett
                         VehicleGPS, PartnerEarnings, Investor, Bonus, Penalty, PaymentsStatus,
                         FleetsDriversVehiclesRate,
                         SalaryCalculation, DriverEfficiencyFleet)
-from django.db.models import Sum, IntegerField, FloatField, Value, DecimalField
+from django.db.models import Sum, IntegerField, FloatField, Value, DecimalField, Q
 from django.db.models.functions import Cast, Coalesce
 from app.utils import get_schedule, create_task
 from auto.utils import payment_24hours_create, summary_report_create, compare_reports, get_corrections, \
@@ -209,26 +209,36 @@ def get_today_orders(self, partner_pk):
 @app.task(bind=True, queue='beat_tasks', retry_backoff=30, max_retries=4)
 def check_card_cash_value(self, partner_pk):
     try:
+        fleets = Fleet.objects.filter(partner=partner_pk).exclude(name="Gps")
         today = timezone.localtime()
+        yesterday = timezone.make_aware(datetime.combine(today, time.min)) - timedelta(days=1)
         start_week = timezone.make_aware(datetime.combine(today, time.min)) - timedelta(days=today.weekday())
         for driver in Driver.objects.get_active(partner=partner_pk, schema__isnull=False):
-            if driver.schema.is_weekly():
-                orders = FleetOrder.objects.filter(accepted_time__gt=start_week,
-                                                   state=FleetOrder.COMPLETED,
-                                                   driver=driver)
-                rent = calculate_rent(start_week, today, driver)
-            else:
-                start = get_time_for_task(driver.schema_id)[2]
-                yesterday = today - timedelta(days=1)
-                orders = FleetOrder.objects.filter(accepted_time__gt=start,
-                                                   state=FleetOrder.COMPLETED,
-                                                   driver=driver)
-                rent = calculate_rent(yesterday, today, driver)
-            kasa = orders.aggregate(kasa=Coalesce(Sum('price'), Value(1)))['kasa']
+            start = start_week if driver.schema.is_weekly() else get_time_for_task(driver.schema_id)[2]
+            rent = calculate_rent(start_week, today, driver) if driver.schema.is_weekly() else (
+                calculate_rent(yesterday, today, driver))
             rent_payment = rent * driver.schema.rent_price
-            if kasa > int(ParkSettings.get_value("START_CHECK_CASH", partner=partner_pk)):
-                card = orders.filter(payment=PaymentTypes.CARD,
-                                     driver=driver).aggregate(card_kasa=Coalesce(Sum('price'), Value(0)))['card_kasa']
+            kasa = 0
+            card = 0
+            for fleet in fleets:
+                if isinstance(fleet, BoltRequest):
+                    orders = FleetOrder.objects.filter(accepted_time__gt=start,
+                                                       fleet=fleet.name,
+                                                       state=FleetOrder.COMPLETED,
+                                                       driver=driver)
+                    bolt_kasa = (1 - fleet.fees) * orders.aggregate(kasa=Coalesce(Sum('price'), Value(0)))['kasa']
+                    cash = orders.filter(payment=PaymentTypes.CASH).aggregate(
+                        cash_kasa=Coalesce(Sum('price'), Value(0)))['cash_kasa']
+                    card += (bolt_kasa - cash)
+                    kasa += bolt_kasa
+                else:
+                    if driver.schema.is_weekly():
+                        fleet_kasa, fleet_cash = fleet.get_earnings_per_driver(driver, start_week, today)
+                    else:
+                        fleet_kasa, fleet_cash = fleet.get_earnings_per_driver(driver, start, today)
+                    card += fleet_kasa - fleet_cash
+                    kasa += fleet_kasa
+            if kasa > driver.schema.cash:
                 ratio = (card - rent_payment) / kasa
                 if driver.schema.is_rent():
                     rate = float(ParkSettings.get_value("RENT_CASH_RATE", partner=partner_pk))
@@ -385,7 +395,10 @@ def get_car_efficiency(self, partner_pk):
                                                  swap_vehicle=vehicle,
                                                  partner=partner_pk).values_list('driver_start', flat=True)
         total_kasa = 0
-        total_km = UaGpsSynchronizer.objects.get(partner=partner_pk).total_per_day(vehicle.gps.gps_id, start, end)
+        try:
+            total_km = UaGpsSynchronizer.objects.get(partner=partner_pk).total_per_day(vehicle.gps.gps_id, start, end)
+        except ObjectDoesNotExist:
+            return
         if total_km:
             for driver in drivers:
                 reports = CustomReport.objects.filter(
@@ -501,12 +514,11 @@ def schedule_for_detaching_uklon(self, partner_pk):
     today = timezone.localtime()
     desired_time = today + timedelta(hours=1)
     for vehicle in Vehicle.objects.filter(partner=partner_pk):
-        reshuffle = DriverReshuffle.objects.filter(
-            swap_time__date=today.date(),
-            swap_vehicle=vehicle,
-            end_time__range=(today, desired_time),
-            partner=partner_pk
-        ).first()
+        reshuffle = DriverReshuffle.objects.filter(~Q(end_time__time=time(23, 59, 59)),
+                                                   swap_time__date=today.date(),
+                                                   swap_vehicle=vehicle,
+                                                   end_time__range=(today, desired_time),
+                                                   partner=partner_pk).first()
         if reshuffle:
             eta = timezone.localtime(reshuffle.end_time)
             detaching_the_driver_from_the_car.apply_async((partner_pk, reshuffle.swap_vehicle.licence_plate, eta),

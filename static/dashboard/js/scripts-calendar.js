@@ -304,7 +304,7 @@ $(document).ready(function () {
 
 				renderCalendar(carDate);
 
-				apiUrl = `/api/reshuffle/${formattedStartDate}/${formattedEndDate}/`;
+				apiUrl = `/api/reshuffle/${formattedStartDate}&${formattedEndDate}/`;
 
 				$.ajax({
 					url: apiUrl,
@@ -472,12 +472,12 @@ $(document).ready(function () {
 							csrfmiddlewaretoken: csrfTokenInput.val()
 						},
 						success: function (response) {
+						    fetchCalendarData(formattedStartDate, formattedEndDate);
 							if (response.data[0] === true) {
-								fetchCalendarData(formattedStartDate, formattedEndDate);
 								filterCheck();
 								showShiftMessage(response.data[0], response.data[1]);
 							} else {
-								showShiftMessage(response.data[0], response.data[1], response.data[1]['conflicting_time'], response.data[1]['licence_plate']);
+								    showConflictMessage(response.data[0], response.data[1], response.data[1]);
 							}
 						},
 					});
@@ -564,7 +564,7 @@ $(document).ready(function () {
 //		showCalendars(currentPage);
 	}
 	function fetchCalendarData(formattedStartDate, formattedEndDate) {
-		apiUrl = `/api/reshuffle/${formattedStartDate}/${formattedEndDate}/`;
+		apiUrl = `/api/reshuffle/${formattedStartDate}&${formattedEndDate}/`;
 		$.ajax({
 			url: apiUrl,
 			type: 'GET',
@@ -581,7 +581,7 @@ $(document).ready(function () {
 	function fetchDataAndHandle(filterProperty, reshuffleProperty) {
 		var selectedValue = $(this).val();
 		var selectedText = $(this).find("option:selected").text();
-		apiUrl = `/api/reshuffle/${formattedStartDate}/${formattedEndDate}/`;
+		apiUrl = `/api/reshuffle/${formattedStartDate}&${formattedEndDate}/`;
 
 		return $.ajax({
 			url: apiUrl,
@@ -720,7 +720,25 @@ function showShiftMessage(success, showText, time, vehicle) {
 		}
 		setTimeout(function () {
 			$(".shift-success-message").hide();
-		}, 8000);
+		}, 5000);
+	}
+}
+function showConflictMessage(success, showText, messageList) {
+	if (success) {
+		$(".shift-success-message").show();
+		$(".shift-success-message h2").text(showText);
+
+		setTimeout(function () {
+			$(".shift-success-message").hide();
+		}, 5000);
+	} else {
+		$(".shift-success-message").show();
+            const messages = messageList.map(conflict => `${conflict.licence_plate} - ${conflict.conflicting_time}`);
+            const resultMessage = messages.join('<br>');
+			$(".shift-success-message h2").html("Помилка, конфлікт змін:<br>" + resultMessage);
+		setTimeout(function () {
+			$(".shift-success-message").hide();
+		}, 5000);
 	}
 }
 

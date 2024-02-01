@@ -175,7 +175,7 @@ class SchemaForm(forms.ModelForm):
 
     class Meta:
         model = Schema
-        fields = ('title', 'salary_calculation', 'schema', 'shift_time', 'plan', 'rate',
+        fields = ('title', 'salary_calculation', 'schema', 'shift_time', 'plan', 'cash', 'rate',
                   'rental', 'rent_price', 'limit_distance', 'drivers')
 
 

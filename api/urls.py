@@ -13,7 +13,7 @@ urlpatterns = [
     path("investor_info/<str:period>/", InvestorCarsEarningsView.as_view()),
     path("drivers_info/<str:period>/<str:aggregators>/", DriverEfficiencyFleetListView.as_view()),
     path("drivers_info/<str:period>/", DriverEfficiencyListView.as_view()),
-    path("reshuffle/<str:start_date>/<str:end_date>/", DriverReshuffleListView.as_view()),
+    path("reshuffle/<str:period>/", DriverReshuffleListView.as_view()),
     path("driver_payments/", DriverPaymentsListView.as_view()),
     path("driver_payments/<str:period>/", DriverPaymentsListView.as_view()),
 ]

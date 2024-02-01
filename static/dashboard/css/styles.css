@@ -1648,7 +1648,7 @@ select:focus {
 	padding: 20px;
 	text-align: center;
 	position: fixed;
-	top: 8%;
+	top: 30%;
 	left: 50%;
 	transform: translate(-50%, -50%);
 	border-radius: 62px;

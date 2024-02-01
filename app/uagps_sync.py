@@ -148,7 +148,7 @@ class UaGpsSynchronizer(Fleet):
             end_report = order.finish_time if order.finish_time < end else end
             try:
                 if previous_finish_time is None or order.accepted_time >= previous_finish_time:
-                    if order.finish_time < end:
+                    if order.finish_time < end and order.distance:
                         report = (order.distance, order.road_time)
                     else:
                         report = self.generate_report(self.get_timestamp(timezone.localtime(order.accepted_time)),

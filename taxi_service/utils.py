@@ -305,6 +305,8 @@ def is_conflict(driver, vehicle, start_time, end_time, reshuffle_id_to_exclude=N
 
 
 def add_shift(licence_plate, shift_date, start_time, end_time, driver_id, recurrence, partner):
+    instances = []
+    messages = []
     vehicle = Vehicle.objects.filter(licence_plate=licence_plate).first()
     driver = Driver.objects.get(id=driver_id)
 
@@ -320,34 +322,40 @@ def add_shift(licence_plate, shift_date, start_time, end_time, driver_id, recurr
         return False, f"Авто {licence_plate} не може мати більше 4 змін на день"
 
     interval = range(1)
-
+    calendar_range = ParkSettings.get_value("CALENDAR_RANGE", 10, partner=partner)
+    reshuffle_ranges = calendar_range if calendar_range <= 30 else 10
     if recurrence == 'daily':
-        interval = range(0, 7)
+        interval = range(0, reshuffle_ranges)
     elif recurrence == 'everyOtherDay':
-        interval = range(0, 7, 2)
+        interval = range(0, reshuffle_ranges, 2)
     elif recurrence == 'every2Days':
-        interval = range(0, 7, 4)
+        interval = range(0, reshuffle_ranges, 4)
     elif recurrence == 'every3Days':
-        interval = range(0, 7, 6)
+        interval = range(0, reshuffle_ranges, 6)
 
     for day_offset in interval:
         current_date = start_datetime + timedelta(days=day_offset)
 
-        current_swap_time = current_date.replace(hour=start_datetime.hour, minute=start_datetime.minute)
-        current_end_time = current_date.replace(hour=end_datetime.hour, minute=end_datetime.minute)
-
+        current_swap_time = timezone.make_aware(current_date.replace(
+            hour=start_datetime.hour, minute=start_datetime.minute))
+        current_end_time = timezone.make_aware(current_date.replace(
+            hour=end_datetime.hour, minute=end_datetime.minute))
         status, conflicting_vehicle = is_conflict(driver, vehicle, current_swap_time, current_end_time)
         if not status:
-            return False, conflicting_vehicle
+            messages.append(conflicting_vehicle)
+            continue
 
-        reshuffle = DriverReshuffle.objects.create(
+        reshuffle = DriverReshuffle(
             swap_vehicle=vehicle,
             driver_start=driver,
             swap_time=current_swap_time,
             end_time=current_end_time,
             partner_id=partner.pk
         )
-        reshuffle.save()
+        instances.append(reshuffle)
+    DriverReshuffle.objects.bulk_create(instances)
+    if messages:
+        return False, messages
     return True, "Зміна успішно додана"
 
 
@@ -358,16 +366,13 @@ def delete_shift(action, reshuffle_id):
             reshuffle.delete()
             text = "Зміна успішно видалена"
         else:
-            reshuffle_del = DriverReshuffle.objects.filter(
-
+            reshuffle_count, _ = DriverReshuffle.objects.filter(
                 swap_time__gte=timezone.localtime(reshuffle.swap_time),
                 swap_time__time=timezone.localtime(reshuffle.swap_time).time(),
                 end_time__time=timezone.localtime(reshuffle.end_time).time(),
                 driver_start=reshuffle.driver_start,
                 swap_vehicle=reshuffle.swap_vehicle
-            )
-            reshuffle_count = reshuffle_del.count()
-            reshuffle_del.delete()
+            ).delete()
             text = f"Видалено {reshuffle_count} змін"
     except ObjectDoesNotExist:
         text = "Виникла помилка, спробуйте ще раз"

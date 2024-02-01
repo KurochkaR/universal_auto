@@ -3,6 +3,8 @@ from datetime import timedelta
 
 import requests
 from _decimal import Decimal
+
+from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Sum, DecimalField, Q
 from django.db.models.functions import Coalesce
 from django.utils import timezone
@@ -182,9 +184,12 @@ def polymorphic_efficiency_create(create_model, partner_pk, driver, start, end, 
             km=Coalesce(Sum('distance'), Decimal(0)))['km']
         efficiency_filter['fleet'] = aggregator
     else:
-        mileage, vehicles = UaGpsSynchronizer.objects.get(
-            partner=partner_pk).calc_total_km(driver, start, end)
-        if not mileage:
+        try:
+            mileage, vehicles = UaGpsSynchronizer.objects.get(
+                partner=partner_pk).calc_total_km(driver, start, end)
+            if not mileage:
+                return
+        except ObjectDoesNotExist:
             return
     data = {
         'total_kasa': total_kasa,

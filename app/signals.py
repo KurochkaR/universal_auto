@@ -36,13 +36,16 @@ def calculate_fired_driver(sender, instance, **kwargs):
 def add_road_time_and_distance(sender, instance, created, **kwargs):
     if created:
         if instance.finish_time and instance.vehicle.gps:
-            distance, road_time = UaGpsSynchronizer.objects.get(
-                partner=instance.partner).generate_report(int(instance.accepted_time.timestamp()),
+            try:
+                gps = UaGpsSynchronizer.objects.get(partner=instance.partner)
+                distance, road_time = gps.generate_report(int(instance.accepted_time.timestamp()),
                                                           int(instance.finish_time.timestamp()),
                                                           instance.vehicle.gps.gps_id)
-            instance.distance = distance
-            instance.road_time = road_time
-            instance.save(update_fields=["distance", "road_time"])
+                instance.distance = distance
+                instance.road_time = road_time
+                instance.save(update_fields=["distance", "road_time"])
+            except ObjectDoesNotExist:
+                pass
         if check_vehicle(instance.driver) != instance.vehicle:
             redis_instance().hset(f"wrong_vehicle_{instance.partner}", instance.driver_id,
                                   instance.vehicle.licence_plate)
