@@ -130,7 +130,7 @@ class Schema(models.Model):
     schema = models.CharField(max_length=25, default=SCHEMA_CHOICES[1],
                               choices=SCHEMA_CHOICES, verbose_name='Шаблон схеми')
     plan = models.IntegerField(default=12000, verbose_name='План водія')
-    cash = models.IntegerField(default=500, verbose_name='Готівка водія')
+    cash = models.IntegerField(default=500, verbose_name='Контроль готівки водія з, грн')
     rental = models.IntegerField(default=6000, verbose_name='Вартість прокату')
     rate = models.DecimalField(decimal_places=2, max_digits=3, default=0.5, verbose_name='Відсоток водія')
     rent_price = models.IntegerField(default=6, verbose_name='Вартість холостого пробігу')
@@ -300,12 +300,14 @@ class VehicleSpending(models.Model):
         WASHING = 'WASHING', 'Мийка'
         OTHER = 'OTHER', 'Інше'
 
-    vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE, null=True, verbose_name='Автомобіль')
     amount = models.DecimalField(decimal_places=2, max_digits=10, verbose_name='Сума')
     category = models.CharField(max_length=255, choices=Category.choices, verbose_name='Категорія витрат')
     description = models.TextField(blank=True, null=True, verbose_name='Опис')
     photo = models.ImageField(upload_to='spending/', blank=True, null=True, verbose_name='Фото')
     created_at = models.DateTimeField(editable=False, auto_now_add=True, verbose_name='Створено')
+
+    vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE, null=True, verbose_name='Автомобіль')
+    partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, verbose_name='Партнер')
 
     class Meta:
         verbose_name = 'Витрату'
@@ -839,6 +841,7 @@ class FleetOrder(models.Model):
     payment = models.CharField(max_length=25, choices=PaymentTypes.choices, null=True, verbose_name="Тип оплати")
     price = models.IntegerField(null=True, verbose_name="Вартість")
     tips = models.IntegerField(null=True, verbose_name="Чайові")
+    date_order = models.DateField(null=True, verbose_name='Дата замовлення')
     created_at = models.DateTimeField(editable=False, auto_now_add=True, verbose_name='Cтворено')
 
     driver = models.ForeignKey(Driver, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Водій')

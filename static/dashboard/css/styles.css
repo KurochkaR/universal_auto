@@ -1779,6 +1779,11 @@ select:focus {
 	font-size: 30px;
 }
 
+.driver-table tbody tr td .add-btn-bonus,
+.driver-table tbody tr td .add-btn-penalty {
+	font-size: 16px;
+}
+
 /* Загальні стилі для контейнера радіокнопок */
 .radio-btn-box {
   display: flex;

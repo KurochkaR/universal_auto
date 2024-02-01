@@ -311,7 +311,8 @@ class BoltRequest(Fleet, Synchronizer):
                         "vehicle": vehicle,
                         "price": price,
                         "tips": tip,
-                        "partner": self.partner
+                        "partner": self.partner,
+                        "date_order": start.date()
                         }
                 FleetOrder.objects.create(**data)
 

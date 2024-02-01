@@ -18,7 +18,7 @@ def run(*args):
         driver_efficiency = DriverEfficiencyFleet.objects.filter(fleet_id=f.id)
         for efficiency in driver_efficiency:
             driver_canceled_orders = FleetOrder.objects.filter(driver=efficiency.driver,
-                                                               accepted_time__date=efficiency.report_from.date(),
+                                                               date_order__date=efficiency.report_from.date(),
                                                                fleet=f.name,
                                                                state=FleetOrder.DRIVER_CANCEL).count()
 
@@ -30,7 +30,7 @@ def run(*args):
     driver_efficiency = DriverEfficiency.objects.all()
     for efficiency in driver_efficiency:
         driver_canceled_orders = FleetOrder.objects.filter(driver=efficiency.driver,
-                                                           accepted_time__date=efficiency.report_from.date(),
+                                                           date_order__date=efficiency.report_from.date(),
                                                            state=FleetOrder.DRIVER_CANCEL).count()
 
         efficiency.total_orders_rejected = driver_canceled_orders
