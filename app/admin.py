@@ -1339,7 +1339,7 @@ class DriverPaymentsAdmin(admin.ModelAdmin):
 
 @admin.register(DriverEfficiencyFleet)
 class DriverFleetEfficiencyAdmin(admin.ModelAdmin):
-    list_display = ['driver', 'efficiency', 'total_kasa', 'mileage', 'fleet']
+    list_display = ['driver', 'efficiency', 'total_kasa', 'total_orders', 'mileage', 'fleet']
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)

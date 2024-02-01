@@ -46,7 +46,7 @@ class BoltRequest(Fleet, Synchronizer):
 
     @staticmethod
     def param():
-        return {"language": "uk-ua", "version": "FO.3.03"}
+        return {"language": "uk-ua", "version": "FO.3.03", "brand": "bolt"}
 
     def get_access_token(self):
         token = redis_instance().get(f"{self.partner.id}_{self.name}_refresh")
@@ -126,7 +126,7 @@ class BoltRequest(Fleet, Synchronizer):
         param = self.param()
         if not custom:
             param.update({"period": "ongoing_day",
-                          "search": str(driver),
+                          "search": f"{driver.name} {driver.second_name}",
                           "offset": 0,
                           "limit": 50})
             reports = self.get_target_url(f'{self.base_url}getDriverEarnings/recent', param)
@@ -135,7 +135,7 @@ class BoltRequest(Fleet, Synchronizer):
             format_end = end.strftime("%Y-%m-%d")
             param.update({"start_date": format_start,
                           "end_date": format_end,
-                          "search": str(driver),
+                          "search": f"{driver.name} {driver.second_name}",
                           "offset": 0,
                           "limit": 50})
             reports = self.get_target_url(f'{self.base_url}getDriverEarnings/dateRange', param)
@@ -171,7 +171,7 @@ class BoltRequest(Fleet, Synchronizer):
         week_number = start.strftime('%GW%V')
         param = self.param()
         param.update({"week": week_number,
-                      "search": str(driver),
+                      "search": f"{driver.name} {driver.second_name}",
                       "offset": 0,
                       "limit": 50})
         reports = self.get_target_url(f'{self.base_url}getDriverEarnings/week', param)
@@ -195,7 +195,7 @@ class BoltRequest(Fleet, Synchronizer):
         param = self.param()
         param.update({"start_date": format_start,
                       "end_date": format_end,
-                      "search": str(driver),
+                      "search": f"{driver.name} {driver.second_name}",
                       "offset": 0,
                       "limit": 50})
         reports = self.get_target_url(f'{self.base_url}getDriverEarnings/dateRange', param)
@@ -222,7 +222,7 @@ class BoltRequest(Fleet, Synchronizer):
         param.update({"start_date": format_start,
                       "end_date": format_end,
                       "offset": 0,
-                      "search": str(driver),
+                      "search": f"{driver.name} {driver.second_name}",
                       "limit": 50})
         reports = self.get_target_url(f'{self.base_url}getDriverEarnings/dateRange', param)
         if reports['data']['drivers']:
@@ -289,7 +289,9 @@ class BoltRequest(Fleet, Synchronizer):
                 price = order.get('total_price', 0)
                 tip = order.get("tip", 0)
                 if FleetOrder.objects.filter(order_id=order['order_id']).exists():
-                    FleetOrder.objects.filter(order_id=order['order_id']).update(price=price, tips=tip)
+                    vehicle = check_vehicle(driver, date_time=timezone.make_aware(
+                        datetime.fromtimestamp(order['accepted_time'])))
+                    FleetOrder.objects.filter(order_id=order['order_id']).update(price=price, tips=tip, vehicle=vehicle)
                     continue
                 vehicle = Vehicle.objects.get(licence_plate=order['car_reg_number'])
                 try:
