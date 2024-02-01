@@ -17,19 +17,31 @@ function formatTime(time) {
 }
 
 function applyDateRange() {
-	$(".apply-filter-button").prop("disabled", true);
-
 	let startDate = $("#start_report").val();
 	let endDate = $("#end_report").val();
+
+	const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+
+	if (!startDate.match(dateRegex) || !endDate.match(dateRegex)) {
+			$("#error_message").text("Дата повинна бути у форматі YYYY-MM-DD").show();
+			return;
+	}
+
+	if (startDate > endDate) {
+			$("#error_message").text("Кінцева дата повинна бути більшою або рівною початковій даті").show();
+			return;
+	}
+
+	$("#error_message").hide();
 	const firstVehicle = $(".custom-dropdown .dropdown-options li:first");
 	const vehicleId = firstVehicle.data('value');
 	const vehicle_lc = firstVehicle.text();
-
-	const selectedPeriod = 'custom'
-
+	const selectedPeriod = 'custom';
+	$(".apply-filter-button").prop("disabled", true);
 	fetchSummaryReportData(selectedPeriod, startDate, endDate);
 	fetchCarEfficiencyData(selectedPeriod, vehicleId, vehicle_lc, startDate, endDate);
 }
+
 
 // ---------- CHARTS ---------- //
 
