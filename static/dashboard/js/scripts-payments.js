@@ -21,7 +21,9 @@ function driverPayment(period = null, start = null, end = null, paymentStatus = 
 					(paymentStatus === 'not_closed' && response[i].status === 'Очікується') ||
 					(paymentStatus === 'closed' && (response[i].status === 'Виплачений' || response[i].status === 'Не сплачений'))) {
 
-					var editButton = '<button class="edit-btn" title="Редагувати"><i class="fa fa-pencil-alt"></i></button>';
+					var addButtonBonus = '<button class="add-btn-bonus" title="Додати бонус"><i class="fa fa-plus"></i></button>';
+					var addButtonPenalty = '<button class="add-btn-penalty" title="Додати штраф"><i class="fa fa-plus"></i></button>';
+
 					var confirmButton = '<button class="apply-btn" title="Відправити водію"><i class="fa fa-mobile"></i></button>';
 					var arrowBtn = '<button class="arrow-btn"><i class="fa fa-arrow-left"></i></button>';
 					var payByn = '<button class="pay-btn">Отримано</button>';
@@ -52,12 +54,12 @@ function driverPayment(period = null, start = null, end = null, paymentStatus = 
 					var row = $('<tr>');
 					row.attr('data-id', response[i].id);
 					row.append('<td>' + response[i].report_from + ' - ' + response[i].report_to + '</td>');
-					row.append('<td class="driver-name cell-with-triangle">' + response[i].full_name + ' <i class="fa fa-caret-down"></i></td>');
+					row.append('<td class="driver-name cell-with-triangle" title="Розкрити для розширеного огляду Бонусів та штрафів">' + response[i].full_name + ' <i class="fa fa-caret-down"></i></td>');
 					row.append('<td>' + response[i].kasa + '</td>');
 					row.append('<td>' + response[i].cash + '</td>');
 					row.append('<td>' + response[i].rent + '</td>');
-					row.append('<td>' + response[i].bonuses + '</td>');
-					row.append('<td>' + response[i].penalties + '</td>');
+					row.append('<td>' + '<div style="display: flex;justify-content: space-evenly; align-items: center;">' + response[i].bonuses  + addButtonBonus + '</div>' + '</td>');
+					row.append('<td>' + '<div style="display: flex;justify-content: space-evenly; align-items: center;">' + response[i].penalties + addButtonPenalty + '</div>' + '</td>');
 					row.append('<td>' + response[i].earning + '</td>');
 					row.append('<td>' + response[i].salary + '</td>');
 					row.append('<td>' + response[i].status + '</td>');
@@ -72,7 +74,7 @@ function driverPayment(period = null, start = null, end = null, paymentStatus = 
 					}
 					if (response[i].status === 'Перевіряється') {
 					  showAllButton.show(0);
-						row.append('<td>' + editButton + confirmButton +'</td>');
+						row.append('<td>' + confirmButton +'</td>');
 					}
 
 					tableBody.append(row);
@@ -96,7 +98,7 @@ $(document).ready(function () {
 
 	$(this).on('click', '.bonus-table .edit-bonus-btn, .bonus-table .delete-bonus-btn, .bonus-table .edit-penalty-btn, .bonus-table .delete-penalty-btn', function () {
 		if ($(this).hasClass('edit-bonus-btn') || $(this).hasClass('edit-penalty-btn')) {
-			actionType = 'edit';
+			actionType = 'update';
 			itemAmount = $(this).closest('tr').find('.bonus-amount').text();
 			itemDescription = $(this).closest('tr').find('.bonus-description').text();
 		} else if ($(this).hasClass('delete-bonus-btn') || $(this).hasClass('delete-penalty-btn')) {
@@ -154,6 +156,7 @@ $(document).ready(function () {
     } else {
       driverPayment(null, null, null, paymentStatus=$(this).val());
       $('.filter-driver-payments').hide();
+      $('#datePickerDriver').hide();
     }
   });
 
@@ -195,36 +198,65 @@ $(document).ready(function () {
 
 	$('.shift-close-btn').off('click').on('click', function (e) {
   	e.preventDefault();
-		$('#modal-upd-payments').hide();
+		$('#modal-add-bonus').hide();
 		$('#modal-upd-bonus').hide();
+		$('#modal-add-penalty').hide();
 	});
 
-	$('.driver-table tbody').on('click', '.edit-btn', function () {
+	$('.driver-table tbody').on('click', '.add-btn-bonus', function () {
 		$('#bonus-amount').val('');
     $('#bonus-description').val('');
-    $('#penalty-amount').val('');
-    $('#penalty-description').val('');
 		var id = $(this).closest('tr').data('id');
-		$('#modal-upd-payments').show();
-		$('#modal-upd-payments').data('id', id);
+		$('#modal-add-bonus').show();
+		$('#modal-add-bonus').data('id', id);
 		$(this).data('id', id);
 	});
 
-	$('#modal-upd-payments').on('click', '.upd-payments-btn', function () {
-		var id = $('#modal-upd-payments').data('id');
+	$('#bonus-category').change(function() {
+		var selectedOption = $(this).val();
+		$('#bonus-description').val('');
+
+		if (selectedOption === 'premium') {
+			$('.bonus-vehicle-licence-plate, .bonus-description-field').hide();
+			$('#bonus-vehicle').val('none');
+		} else {
+			if (selectedOption === 'fuel-compensation' || selectedOption === 'sink-compensation' || selectedOption === 'service-compensation') {
+				$('.bonus-vehicle-licence-plate').show();
+				$('.bonus-description-field').hide();
+			} else {
+				$('.bonus-vehicle-licence-plate').hide();
+				$('.bonus-description-field').show();
+			}
+			$('#bonus-vehicle').val('none');
+		}
+	});
+
+	$('#modal-add-bonus').on('click', '.add-bonus-btn', function () {
+		var idPayments = $('#modal-add-bonus').data('id');
+
+		var bonusValues = {
+			'premium': 'Премія',
+			'fuel-compensation': 'Компенсація пального',
+			'sink-compensation': 'Компенсація мийки',
+			'service-compensation': 'Компенсація ТО',
+			'other': 'Інше'
+		};
 
 		var bonusAmount = $('#bonus-amount').val();
+		var bonusCategory = $('#bonus-category').val();
+		var bonusCategoryText = bonusValues[bonusCategory];
+		var bonusVehicle = $('#bonus-vehicle').val();
 		var bonusDescription = $('#bonus-description').val();
-		var penaltyAmount = $('#penalty-amount').val();
-		var penaltyDescription = $('#penalty-description').val();
 
 		var dataToSend = {
-			id: id,
-			bonusAmount: bonusAmount,
-			bonusDescription: bonusDescription,
-			penaltyAmount: penaltyAmount,
-			penaltyDescription: penaltyDescription,
-			action: 'upd-payments',
+			idPayments: idPayments,
+			amount: bonusAmount,
+			description: bonusDescription,
+			category: bonusCategory,
+			categoryText: bonusCategoryText,
+			vehicle: bonusVehicle,
+			action: 'add-bonus',
+			type: 'bonus',
 			csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
 		};
 
@@ -239,6 +271,49 @@ $(document).ready(function () {
 			}
 		});
 	});
+
+
+
+
+	$('.driver-table tbody').on('click', '.add-btn-penalty', function () {
+		$('#penalty-amount').val('');
+    $('#penalty-description').val('');
+		var id = $(this).closest('tr').data('id');
+		$('#modal-add-penalty').show();
+		$('#modal-add-penalty').data('id', id);
+		$(this).data('id', id);
+	});
+
+
+	$('#modal-add-penalty').on('click', '.add-penalty-btn', function () {
+		var idPayments = $('#modal-add-penalty').data('id');
+
+		var bonusAmount = $('#penalty-amount').val();
+		var bonusDescription = $('#penalty-description').val();
+
+		var dataToSend = {
+			idPayments: idPayments,
+			amount: bonusAmount,
+			description: bonusDescription,
+			action: 'add-penalty',
+			type: 'penalty',
+			csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
+		};
+
+		$.ajax({
+			url: ajaxPostUrl,
+			type: 'POST',
+			data: dataToSend,
+			dataType: 'json',
+			success: function (response) {
+				$('#modal-upd-payments').hide();
+				driverPayment(null, null, null, paymentStatus="on_inspection");
+			}
+		});
+	});
+
+
+
 
 	$('.driver-table tbody').on('click', '.apply-btn', function () {
     var id = $(this).closest('tr').data('id');

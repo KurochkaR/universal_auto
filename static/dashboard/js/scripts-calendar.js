@@ -39,6 +39,16 @@ $(document).ready(function () {
 	fetchCalendarData(formattedStartDate, formattedEndDate);
 
 	function reshuffleHandler (data) {
+
+		data.sort((a, b) => {
+			if (a.swap_licence < b.swap_licence) {
+				return -1;
+			}
+			if (a.swap_licence > b.swap_licence) {
+				return 1;
+			}
+			return 0;
+    });
 		$('.driver-calendar').empty();
 
 		const calendarHTML = data.map(function (carData) {
@@ -77,33 +87,33 @@ $(document).ready(function () {
 		}).join('');
 		$('.driver-calendar').append(calendarHTML);
 
-		const totalPages = Math.ceil(data.length / 5);
-		let currentPage = 1;
+//		const totalPages = Math.ceil(data.length / 5);
+//		let currentPage = 1;
 
-		const paginationContainer = `
-			<div class="pagination">
-				<button id="prevPageBtn">
-					<svg version="1.0" xmlns="http://www.w3.org/2000/svg" width="50px" height="50px" viewBox="0 0 1280.000000 1280.000000" preserveAspectRatio="xMidYMid meet">
-						<metadata>Created by potrace 1.15, written by Peter Selinger 2001-2017</metadata>
-						<g transform="translate(1280.000000,0.000000) scale(-0.100000,0.100000)" fill="#EC6323" stroke="none">
-							<path d="M1422 12134 c3 -10 416 -1279 917 -2819 l912 -2801 -916 -2813 c-504 -1547 -914 -2815 -912 -2817 3 -4 10215 5612 10230 5625 4 4 -907 511 -2025 1126 -3792 2086 -5300 2916 -6748 3712 -795 438 -1449 798 -1454 801 -5 3 -7 -3 -4 -14z"/>
-						</g>
-				</svg>
-				</button>
-				<span id="pageInfo">Сторінка ${currentPage} з ${totalPages}</span>
-				<button id="nextPageBtn">
-					<svg version="1.0" xmlns="http://www.w3.org/2000/svg" width="50px" height="50px" viewBox="0 0 1280.000000 1280.000000" preserveAspectRatio="xMidYMid meet">
-						<metadata>Created by potrace 1.15, written by Peter Selinger 2001-2017</metadata>
-						<g transform="translate(0.000000,1280.000000) scale(0.100000,-0.100000)" fill="#EC6323" stroke="none">
-							<path d="M1422 12134 c3 -10 416 -1279 917 -2819 l912 -2801 -916 -2813 c-504 -1547 -914 -2815 -912 -2817 3 -4 10215 5612 10230 5625 4 4 -907 511 -2025 1126 -3792 2086 -5300 2916 -6748 3712 -795 438 -1449 798 -1454 801 -5 3 -7 -3 -4 -14z"/>
-						</g>
-					</svg>
-				</button>
-			</div>
-		`;
-
-
-		$('.driver-calendar').append(paginationContainer);
+//		const paginationContainer = `
+//			<div class="pagination">
+//				<button id="prevPageBtn">
+//					<svg version="1.0" xmlns="http://www.w3.org/2000/svg" width="50px" height="50px" viewBox="0 0 1280.000000 1280.000000" preserveAspectRatio="xMidYMid meet">
+//						<metadata>Created by potrace 1.15, written by Peter Selinger 2001-2017</metadata>
+//						<g transform="translate(1280.000000,0.000000) scale(-0.100000,0.100000)" fill="#EC6323" stroke="none">
+//							<path d="M1422 12134 c3 -10 416 -1279 917 -2819 l912 -2801 -916 -2813 c-504 -1547 -914 -2815 -912 -2817 3 -4 10215 5612 10230 5625 4 4 -907 511 -2025 1126 -3792 2086 -5300 2916 -6748 3712 -795 438 -1449 798 -1454 801 -5 3 -7 -3 -4 -14z"/>
+//						</g>
+//				</svg>
+//				</button>
+//				<span id="pageInfo">Сторінка ${currentPage} з ${totalPages}</span>
+//				<button id="nextPageBtn">
+//					<svg version="1.0" xmlns="http://www.w3.org/2000/svg" width="50px" height="50px" viewBox="0 0 1280.000000 1280.000000" preserveAspectRatio="xMidYMid meet">
+//						<metadata>Created by potrace 1.15, written by Peter Selinger 2001-2017</metadata>
+//						<g transform="translate(0.000000,1280.000000) scale(0.100000,-0.100000)" fill="#EC6323" stroke="none">
+//							<path d="M1422 12134 c3 -10 416 -1279 917 -2819 l912 -2801 -916 -2813 c-504 -1547 -914 -2815 -912 -2817 3 -4 10215 5612 10230 5625 4 4 -907 511 -2025 1126 -3792 2086 -5300 2916 -6748 3712 -795 438 -1449 798 -1454 801 -5 3 -7 -3 -4 -14z"/>
+//						</g>
+//					</svg>
+//				</button>
+//			</div>
+//		`;
+//
+//
+//		$('.driver-calendar').append(paginationContainer);
 
 
 		$('.calendar-container').each(function () {
@@ -517,41 +527,41 @@ $(document).ready(function () {
 			});
 		});
 
-		function showCalendars(page) {
-			$('.calendar-container').hide();
+//		function showCalendars(page) {
+//			$('.calendar-container').hide();
+//
+//			const startIndex = (page - 1) * 4;
+//			const endIndex = Math.min(startIndex + 3, data.length - 1);
+//
+//			const calendarsToShow = $('.calendar-container').filter(function (index) {
+//					return index >= startIndex && index <= endIndex;
+//			});
+//
+//			if (calendarsToShow.length > 0) {
+//					calendarsToShow.show();
+//			} else {
+//					$('.driver-calendar').html('<p>Немає календарів для відображення.</p>');
+//			}
+//
+//			$('#pageInfo').text(`Сторінка ${page} з ${totalPages}`);
+//		}
+//
+//
+//		$('#prevPageBtn').on('click', function () {
+//			if (currentPage > 1) {
+//				currentPage--;
+//				showCalendars(currentPage);
+//			}
+//		});
+//
+//		$('#nextPageBtn').on('click', function () {
+//			if (currentPage < totalPages) {
+//				currentPage++;
+//				showCalendars(currentPage);
+//			}
+//		});
 
-			const startIndex = (page - 1) * 4;
-			const endIndex = Math.min(startIndex + 3, data.length - 1);
-
-			const calendarsToShow = $('.calendar-container').filter(function (index) {
-					return index >= startIndex && index <= endIndex;
-			});
-
-			if (calendarsToShow.length > 0) {
-					calendarsToShow.show();
-			} else {
-					$('.driver-calendar').html('<p>Немає календарів для відображення.</p>');
-			}
-
-			$('#pageInfo').text(`Сторінка ${page} з ${totalPages}`);
-		}
-
-
-		$('#prevPageBtn').on('click', function () {
-			if (currentPage > 1) {
-				currentPage--;
-				showCalendars(currentPage);
-			}
-		});
-
-		$('#nextPageBtn').on('click', function () {
-			if (currentPage < totalPages) {
-				currentPage++;
-				showCalendars(currentPage);
-			}
-		});
-
-		showCalendars(currentPage);
+//		showCalendars(currentPage);
 	}
 	function fetchCalendarData(formattedStartDate, formattedEndDate) {
 		apiUrl = `/api/reshuffle/${formattedStartDate}/${formattedEndDate}/`;
@@ -627,6 +637,7 @@ $(document).ready(function () {
 		$('#modal-shift').hide();
 	});
 });
+
 
 
 function compareTimes(time1, time2) {

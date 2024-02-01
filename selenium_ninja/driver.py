@@ -369,7 +369,8 @@ class SeleniumTools:
                                 "finish_time": finish,
                                 "state": states.get(row[12]),
                                 "vehicle": vehicle,
-                                "partner_id": self.partner}
+                                "partner_id": self.partner,
+                                "date_order": start.date()}
                         FleetOrder.objects.create(**data)
                 os.remove(file_path)
 

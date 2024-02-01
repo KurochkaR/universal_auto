@@ -4,11 +4,12 @@ from decimal import Decimal
 from celery.result import AsyncResult
 from django.core.exceptions import PermissionDenied
 from django.core.serializers.json import DjangoJSONEncoder
+from django.db.models import F
 from django.http import JsonResponse, HttpResponse
 from django.forms.models import model_to_dict
 from django.contrib.auth import logout, authenticate
 
-from app.models import SubscribeUsers, Manager, CustomUser, DriverPayments, Bonus, Penalty
+from app.models import SubscribeUsers, Manager, CustomUser, DriverPayments, Bonus, Penalty, Vehicle
 from taxi_service.forms import MainOrderForm, CommentForm
 from taxi_service.utils import (update_order_sum_or_status, restart_order,
                                 partner_logout, login_in_investor,
@@ -176,7 +177,8 @@ class PostRequestHandler:
         response = HttpResponse(json_data, content_type='application/json')
         return response
 
-    def handler_add_shift(self, request):
+    @staticmethod
+    def handler_add_shift(request):
         user = request.user
         partner = Manager.objects.get(pk=user.pk).managers_partner if user.is_manager() else user
         licence_plate = request.POST.get('vehicle_licence')
@@ -191,7 +193,8 @@ class PostRequestHandler:
         response = HttpResponse(json_data, content_type='application/json')
         return response
 
-    def handler_delete_shift(self, request):
+    @staticmethod
+    def handler_delete_shift(request):
         action = request.POST.get('action')
         reshuffle_id = request.POST.get('reshuffle_id')
 
@@ -200,7 +203,8 @@ class PostRequestHandler:
         response = HttpResponse(json_data, content_type='application/json')
         return response
 
-    def handler_update_shift(self, request):
+    @staticmethod
+    def handler_update_shift(request):
         action = request.POST.get('action')
         licence_id = request.POST.get('vehicle_licence')
         date = request.POST.get('date')
@@ -214,36 +218,55 @@ class PostRequestHandler:
         response = HttpResponse(json_data, content_type='application/json')
         return response
 
-    def handler_update_payments(self, request):
-        driver_payments_id = request.POST.get('id')
-        bonus_amount = request.POST.get('bonusAmount')
-        bonus_description = request.POST.get('bonusDescription')
-        penalty_amount = request.POST.get('penaltyAmount')
-        penalty_description = request.POST.get('penaltyDescription')
-
+    @staticmethod
+    def handler_add_bonus_or_penalty(request):
+        data = request.POST
+        operation_type = data.get('type')
+        driver_payments_id = data.get('idPayments')
         driver_payments = DriverPayments.objects.get(id=driver_payments_id)
 
-        if bonus_amount:
-            bonus = Bonus.objects.create(
-                amount=bonus_amount, description=bonus_description,
-                driver_payments=driver_payments, driver=driver_payments.driver
+        model_map = {
+            'bonus': Bonus,
+            'penalty': Penalty
+        }
+
+        Model = model_map.get(operation_type)
+        if Model is None:
+            return JsonResponse({'error': 'Invalid operation type'}, status=400)
+
+        amount = data.get('amount')
+        description = data.get('description')
+
+        if amount:
+            model_instance = Model.objects.create(
+                amount=amount,
+                description=description,
+                driver_payments=driver_payments,
+                driver=driver_payments.driver,
             )
-            driver_payments.earning += Decimal(bonus.amount)
 
-        if penalty_amount:
-            penalty = Penalty.objects.create(
-                amount=penalty_amount, description=penalty_description,
-                driver_payments=driver_payments, driver=driver_payments.driver
-            )
-            driver_payments.earning -= Decimal(penalty.amount)
+            if operation_type == 'bonus':
+                category = data.get('category')
+                category_text = data.get('categoryText')
+                vehicle_id = data.get('vehicle')
 
-        driver_payments.save()
+                description = description if category == 'other' else category_text
+                vehicle = Vehicle.objects.get(id=vehicle_id) if category not in ['other', 'premium'] else None
 
-        json_data = JsonResponse({'data': 'success'}, safe=False)
-        response = HttpResponse(json_data, content_type='application/json')
-        return response
+                model_instance.description = description
+                model_instance.vehicle = vehicle
+                model_instance.save()
 
-    def handler_upd_payment_status(self, request):
+                driver_payments.earning += Decimal(amount)
+            else:
+                driver_payments.earning -= Decimal(amount)
+
+            driver_payments.save()
+
+        return JsonResponse({'data': 'success'})
+
+    @staticmethod
+    def handler_upd_payment_status(request):
         all_payments = request.POST.get('allId')
         driver_payments_id = request.POST.get('id')
         status = request.POST.get('status')
@@ -266,45 +289,57 @@ class PostRequestHandler:
         response = HttpResponse(json_data, content_type='application/json')
         return response
 
-    def handler_upd_delete_bonus_penalty(self, request):
+    @staticmethod
+    def handler_upd_delete_bonus_penalty(request):
         action_type = request.POST.get('action_type')
         id_bonus_penalty = request.POST.get('id')
         type_bonus_penalty = request.POST.get('type')
         amount = request.POST.get('amount')
         description = request.POST.get('description')
 
+        model_map = {
+            'bonus': Bonus,
+            'penalty': Penalty
+        }
+
+        action_map = {
+            'delete': lambda model_instance: model_instance.delete(),
+            'update': lambda model_instance:
+            (old_amount := model_instance.amount, setattr(model_instance, 'amount', amount) or setattr(
+                model_instance, 'description', description) or model_instance.save(), old_amount)[2]
+        }
+
+        Model = model_map.get(type_bonus_penalty)
+        if Model is None:
+            return JsonResponse({'error': 'Invalid operation type'}, status=400)
+
+        model_instance = Model.objects.get(id=id_bonus_penalty)
+        action = action_map.get(action_type)
+        if action is None:
+            return JsonResponse({'error': 'Invalid action type'}, status=400)
+
+        old_amount = action(model_instance)
+
+        driver_payments = model_instance.driver_payments
         if action_type == 'delete':
             if type_bonus_penalty == 'bonus':
-                bonus = Bonus.objects.get(id=id_bonus_penalty)
-                bonus.driver_payments.earning -= Decimal(bonus.amount)
-                bonus.driver_payments.save()
-                bonus.delete()
+                driver_payments.earning -= Decimal(model_instance.amount)
             else:
-                penalty = Penalty.objects.get(id=id_bonus_penalty)
-                penalty.driver_payments.earning += Decimal(penalty.amount)
-                penalty.driver_payments.save()
-                penalty.delete()
-        else:
+                driver_payments.earning += Decimal(model_instance.amount)
+        elif action_type == 'update':
             if type_bonus_penalty == 'bonus':
-                bonus = Bonus.objects.get(id=id_bonus_penalty)
-                bonus.driver_payments.earning -= Decimal(bonus.amount)
-                bonus.driver_payments.save()
-                bonus.amount = amount
-                bonus.description = description
-                bonus.save()
-                bonus.driver_payments.earning += Decimal(bonus.amount)
-                bonus.driver_payments.save()
+                driver_payments.earning -= Decimal(old_amount)
+                driver_payments.earning += Decimal(amount)
             else:
-                penalty = Penalty.objects.get(id=id_bonus_penalty)
-                penalty.driver_payments.earning += Decimal(penalty.amount)
-                penalty.driver_payments.save()
-                penalty.amount = amount
-                penalty.description = description
-                penalty.save()
-                penalty.driver_payments.earning -= Decimal(penalty.amount)
-                penalty.driver_payments.save()
+                driver_payments.earning += Decimal(old_amount)
+                driver_payments.earning -= Decimal(amount)
+        driver_payments.save()
 
         return JsonResponse({'data': 'success'})
+
+    @staticmethod
+    def handle_unknown_action():
+        return JsonResponse({}, status=400)
 
 
 class GetRequestHandler:

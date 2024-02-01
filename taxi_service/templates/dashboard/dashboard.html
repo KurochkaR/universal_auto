@@ -32,6 +32,7 @@
       <input type="date" id="end_report" name="end_date">
       <input class="apply-filter-button" type="button" onclick="applyDateRange()"
              value="{% trans 'Фільтрувати' %}">
+      <div id="error_message" style="display: none; color: red;"></div>
     </div>
     <div class="main-cards">
       {% if investor_group %}
