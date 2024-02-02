@@ -57,7 +57,7 @@ function driverPayment(period = null, start = null, end = null, paymentStatus = 
 					var row = $('<tr class="tr-driver-payments">');
 					row.attr('data-id', response[i].id);
 					row.append('<td>' + response[i].report_from + ' - ' + response[i].report_to + '</td>');
-					row.append('<td class="driver-name cell-with-triangle" title="Розкрити для розширеного огляду Бонусів та штрафів">' + response[i].full_name + ' <i class="fa fa-caret-down"></i></td>');
+					row.append('<td class="driver-name cell-with-triangle" title="Натиснути для огляду бонусів та штрафів">' + response[i].full_name + ' <i class="fa fa-caret-down"></i></td>');
 					row.append('<td>' + response[i].kasa + '</td>');
 					row.append('<td>' + response[i].cash + '</td>');
 					row.append('<td>' + response[i].rent + '</td>');

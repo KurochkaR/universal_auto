@@ -1015,7 +1015,7 @@ tr:nth-child(odd) {
 }
 
 tr {
-  border-bottom: 5px solid #EC6323;
+  border-bottom: 3px solid #EC6323;
 }
 
 .tr-aggregators,
