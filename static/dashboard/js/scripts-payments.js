@@ -29,13 +29,13 @@ function driverPayment(period = null, start = null, end = null, paymentStatus = 
 					var payByn = '<button class="pay-btn">Отримано</button>';
 					var notPayByn = '<button class="not-pay-btn">Не отримано</button>';
 
-					var rowBonus = '<tr><td colspan="11" class="bonus-table"><table><tr><th>Тип</th><th>Сума</th><th>Опис</th>' + (response[i].status === 'Перевіряється' ? '<th>Дії</th>' : '') + '</tr>';
+					var rowBonus = '<tr class="tr-driver-payments"><td colspan="11" class="bonus-table"><table class="bonus-penalty-table"><tr class="title-bonus-penalty"><th class="edit-bonus-penalty">Тип</th><th class="edit-bonus-penalty">Сума</th><th class="edit-bonus-penalty">Опис</th>' + (response[i].status === 'Перевіряється' ? '<th class="edit-bonus-penalty">Дії</th>' : '') + '</tr>';
 
 					function generateRow(items, type, editClass, deleteClass) {
 						var rowBon = '';
 						for (var j = 0; j < items.length; j++) {
 							var item = items[j];
-							rowBon += '<tr>';
+							rowBon += '<tr class="description-bonus-penalty">';
 							rowBon += '<td class="' + type + '-type" data-' + type + '-id="' + item.id + '">' + (type === 'bonus' ? 'Бонус' : 'Штраф') + '</td>';
 							rowBon += '<td class="' + type +'-amount">' + item.amount + '</td>';
 							rowBon += '<td class="' + type +'-description">' + item.description + '</td>';
@@ -50,18 +50,26 @@ function driverPayment(period = null, start = null, end = null, paymentStatus = 
 					rowBonus += generateRow(response[i].bonuses_list, 'bonus', 'edit-bonus-btn', 'delete-bonus-btn');
 					rowBonus += generateRow(response[i].penalties_list, 'penalty', 'edit-penalty-btn', 'delete-penalty-btn');
 					rowBonus += '</table></td></tr>';
-
-					var row = $('<tr>');
+					var salary = response[i].salary;
+					if (response[i].salary <= 0) {
+						salary = "0.00";
+					}
+					var row = $('<tr class="tr-driver-payments">');
 					row.attr('data-id', response[i].id);
 					row.append('<td>' + response[i].report_from + ' - ' + response[i].report_to + '</td>');
 					row.append('<td class="driver-name cell-with-triangle" title="Розкрити для розширеного огляду Бонусів та штрафів">' + response[i].full_name + ' <i class="fa fa-caret-down"></i></td>');
 					row.append('<td>' + response[i].kasa + '</td>');
 					row.append('<td>' + response[i].cash + '</td>');
 					row.append('<td>' + response[i].rent + '</td>');
-					row.append('<td>' + '<div style="display: flex;justify-content: space-evenly; align-items: center;">' + response[i].bonuses  + addButtonBonus + '</div>' + '</td>');
-					row.append('<td>' + '<div style="display: flex;justify-content: space-evenly; align-items: center;">' + response[i].penalties + addButtonPenalty + '</div>' + '</td>');
+					if (response[i].status === 'Перевіряється') {
+						row.append('<td>' + '<div style="display: flex;justify-content: space-evenly; align-items: center;">' + response[i].bonuses  + addButtonBonus + '</div>' + '</td>');
+						row.append('<td>' + '<div style="display: flex;justify-content: space-evenly; align-items: center;">' + response[i].penalties + addButtonPenalty + '</div>' + '</td>');
+					} else {
+						row.append('<td>' + '<div style="display: flex;justify-content: space-evenly; align-items: center;">' + response[i].bonuses + '</div>' + '</td>');
+						row.append('<td>' + '<div style="display: flex;justify-content: space-evenly; align-items: center;">' + response[i].penalties + '</div>' + '</td>');
+					}
 					row.append('<td>' + response[i].earning + '</td>');
-					row.append('<td>' + response[i].salary + '</td>');
+					row.append('<td>' + salary + '</td>');
 					row.append('<td>' + response[i].status + '</td>');
 					var showAllButton = $('.send-all-button');
 					showAllButton.hide(0);
@@ -266,7 +274,7 @@ $(document).ready(function () {
 			data: dataToSend,
 			dataType: 'json',
 			success: function (response) {
-				$('#modal-upd-payments').hide();
+				$('#modal-add-bonus').hide();
 				driverPayment(null, null, null, paymentStatus="on_inspection");
 			}
 		});
@@ -306,7 +314,7 @@ $(document).ready(function () {
 			data: dataToSend,
 			dataType: 'json',
 			success: function (response) {
-				$('#modal-upd-payments').hide();
+				$('#modal-add-penalty').hide();
 				driverPayment(null, null, null, paymentStatus="on_inspection");
 			}
 		});

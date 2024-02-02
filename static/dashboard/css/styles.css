@@ -1015,7 +1015,17 @@ tr:nth-child(odd) {
 }
 
 tr {
-  border-bottom: 3px solid #A1E8B9;
+  border-bottom: 5px solid #EC6323;
+}
+
+.tr-aggregators,
+.description-bonus-penalty {
+	border-bottom: 3px solid #A1E8B9;
+}
+
+.tr-driver-title,
+.tr-driver-payments {
+	border-bottom: 3px solid #A1E8B9;
 }
 
 td {
@@ -1769,9 +1779,7 @@ select:focus {
 .driver-table tbody tr td .add-btn-bonus,
 .driver-table tbody tr td .add-btn-penalty,
 .driver-table tbody tr td .apply-btn,
-.driver-table tbody tr td .arrow-btn,
-.edit-bonus-btn, .edit-penalty-btn,
-.delete-bonus-btn, .delete-penalty-btn {
+.driver-table tbody tr td .arrow-btn {
 	background: none;
 	border: none;
 	padding: 5px;
@@ -1779,9 +1787,44 @@ select:focus {
 	font-size: 30px;
 }
 
+.edit-bonus-penalty {
+    background-color: #EC6323;
+    padding: 0px;
+    text-align: center;
+    color: #FFF;
+    font-size: 18px;
+    font-style: normal;
+    line-height: normal;
+}
+
+.bonus-penalty-table {
+    width: 100%;
+}
+
+.title-bonus-penalty th {
+    width: 25%;
+}
+
+.description-bonus-penalty td {
+		width: 25%;
+    padding: 0px;
+    color: #000;
+    font-size: 16px;
+}
+
+.edit-bonus-btn, .edit-penalty-btn,
+.delete-bonus-btn, .delete-penalty-btn {
+	background: none;
+	border: none;
+	padding: 5px;
+	cursor: pointer;
+	font-size: 20px;
+}
+
 .driver-table tbody tr td .add-btn-bonus,
 .driver-table tbody tr td .add-btn-penalty {
 	font-size: 16px;
+	color: #EC6323;
 }
 
 /* Загальні стилі для контейнера радіокнопок */

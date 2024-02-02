@@ -445,6 +445,8 @@ $(document).ready(function () {
 			const endTimeInput = $('#endTime');
 			const shiftDriver = $('#shift-driver');
 			const csrfTokenInput = $('input[name="csrfmiddlewaretoken"]');
+			$("#startTime").val("");
+			$("#endTime").val("");
 
 			modalShiftTitle.text("Створення зміни");
 			modalShiftDate.text(formatDateString(clickedDayId));
