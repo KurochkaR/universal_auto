@@ -415,14 +415,38 @@ class JobApplicationAdmin(admin.ModelAdmin):
 
 @admin.register(VehicleSpending)
 class VehicleSpendingAdmin(admin.ModelAdmin):
-    list_display = ['vehicle', 'amount', 'category', 'description', 'created_date']
-    list_filter = ['created_at', 'category', VehicleSpendingFilter]
+    list_display = ['vehicle', 'amount', 'category', 'description', 'display_photo', 'created_date']
+    list_filter = (VehicleSpendingFilter, 'category', 'created_at')
+    readonly_fields = ('display_photo',)
 
-    fieldsets = [
-        (None, {'fields': ['vehicle', 'amount',
-                           'category', 'description'
-                           ]}),
-    ]
+    class Media:
+        css = {
+            'all': ('https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.3/css/lightbox.min.css',)
+        }
+        js = (
+            'https://code.jquery.com/jquery-3.6.4.min.js',
+            'https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.3/js/lightbox.min.js',
+        )
+
+    def get_fieldsets(self, request, obj=None):
+
+        if obj:
+            fieldsets = [
+                ('Інформація про витрату', {'fields': ['amount', 'description']}),
+                ('Фото', {'fields': ['photo', 'display_photo']})
+            ]
+        else:
+            fieldsets = [
+                ('Інформація про витрату', {'fields': [ 'vehicle', 'category','amount', 'description']}),
+                ('Фото', {'fields': ['photo', 'display_photo']})
+            ]
+
+        return fieldsets
+
+    def display_photo(self, obj):
+        if obj.photo:
+            url = obj.photo.url
+            return mark_safe(f'<a href="{url}" data-lightbox="image"><img src="{url}" width="200" height="150"></a>')
 
     def created_date(self, obj):
         return obj.created_at.date()
@@ -436,7 +460,7 @@ class VehicleSpendingAdmin(admin.ModelAdmin):
         elif user.is_manager():
             filter_condition = Q(vehicle__manager=user)
         elif user.is_partner():
-            filter_condition = Q(vehicle__partner=user)
+            filter_condition = Q(partner=user)
         else:
             filter_condition = Q()
 
@@ -454,6 +478,9 @@ class VehicleSpendingAdmin(admin.ModelAdmin):
                 if user.is_manager():
                     kwargs['queryset'] = db_field.related_model.objects.filter(manager=request.user)
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
+
+    display_photo.short_description = 'Попередній перегляд'
+    created_date.short_description = 'Дата створення'
 
 
 @admin.register(InvestorPayments)

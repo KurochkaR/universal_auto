@@ -359,6 +359,8 @@ class SeleniumTools:
                         finish = None
                     driver = FleetsDriversVehiclesRate.objects.filter(driver_external_id=row[1]).first()
                     if driver:
+                        if row[5] == "AA3410YA":
+                            row[5] = "AA4314YA"
                         vehicle = Vehicle.objects.get(licence_plate=row[5])
                         data = {"order_id": row[0],
                                 "driver": driver.driver,

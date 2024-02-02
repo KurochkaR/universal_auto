@@ -47,7 +47,7 @@ def add_road_time_and_distance(sender, instance, created, **kwargs):
             except ObjectDoesNotExist:
                 pass
         if check_vehicle(instance.driver) != instance.vehicle:
-            redis_instance().hset(f"wrong_vehicle_{instance.partner}", instance.driver_id,
+            redis_instance().hset(f"wrong_vehicle_{instance.partner.pk}", instance.driver_id,
                                   instance.vehicle.licence_plate)
 
 

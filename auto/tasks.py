@@ -236,8 +236,8 @@ def check_card_cash_value(self, partner_pk):
                         fleet_kasa, fleet_cash = fleet.get_earnings_per_driver(driver, start_week, today)
                     else:
                         fleet_kasa, fleet_cash = fleet.get_earnings_per_driver(driver, start, today)
-                    card += fleet_kasa - fleet_cash
-                    kasa += fleet_kasa
+                    card += Decimal(fleet_kasa - fleet_cash)
+                    kasa += Decimal(fleet_kasa)
             if kasa > driver.schema.cash:
                 ratio = (card - rent_payment) / kasa
                 if driver.schema.is_rent():

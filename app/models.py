@@ -314,7 +314,7 @@ class VehicleSpending(models.Model):
         verbose_name_plural = 'Витрати'
 
     def __str__(self) -> str:
-        return f'{self.vehicle} {self.amount} {self.category}'
+        return f'{self.vehicle} {self.get_category_display()}'
 
 
 class Driver(User):
