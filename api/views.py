@@ -1,5 +1,5 @@
 from collections import defaultdict
-from datetime import timedelta
+from datetime import timedelta, date
 
 from _decimal import Decimal
 from itertools import groupby
@@ -228,11 +228,21 @@ class CarsInformationListView(CombinedPermissionsMixin,
     serializer_class = CarDetailSerializer
 
     def get_queryset(self):
+        period = self.kwargs['period']
         start, end, format_start, format_end = get_start_end(self.kwargs['period'])
+
         investor_queryset = InvestorFilterMixin.get_queryset(Vehicle, self.request.user)
         if investor_queryset:
             queryset = investor_queryset
-            earning_subquery = InvestorPayments.objects.filter(report_to__date__range=(start, end)).values(
+
+            earnings_query_all = InvestorPayments.objects.all()
+            if period == 'all_period':
+                start = earnings_query_all.first().report_to
+                end = earnings_query_all.last().report_to
+                format_start = start.strftime("%d.%m.%Y")
+                format_end = end.strftime("%d.%m.%Y")
+
+            earning_subquery = earnings_query_all.filter(report_to__date__range=(start, end)).values(
                 'vehicle__licence_plate').annotate(
                 vehicle_earning=Coalesce(Sum('earning'), Decimal(0)),
             )
@@ -258,7 +268,15 @@ class CarsInformationListView(CombinedPermissionsMixin,
             )
         else:
             queryset = ManagerFilterMixin.get_queryset(Vehicle, self.request.user)
-            earning_subquery = PartnerEarnings.objects.filter(
+
+            earnings_query_all = PartnerEarnings.objects.all()
+            if period == 'all_period':
+                start = earnings_query_all.first().report_to
+                end = earnings_query_all.last().report_to
+                format_start = start.strftime("%d.%m.%Y")
+                format_end = end.strftime("%d.%m.%Y")
+
+            earning_subquery = earnings_query_all.filter(
                 report_to__range=(start, end), vehicle__licence_plate=OuterRef('licence_plate')
             ).values('vehicle__licence_plate').annotate(
                 vehicle_earning=Coalesce(Sum('earning'), Value(0), output_field=DecimalField())

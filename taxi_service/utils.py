@@ -157,12 +157,14 @@ def get_start_end(period):
         start, end = get_dates(period)
         format_start = start.strftime("%d.%m.%Y")
         format_end = end.strftime("%d.%m.%Y")
-    else:
+    elif period != 'all_period':
         start_str, end_str = period.split('&')
         start = datetime.combine(datetime.strptime(start_str, "%Y-%m-%d"), time.min)
         end = datetime.combine(datetime.strptime(end_str, "%Y-%m-%d"), time.max)
         format_start = ".".join(start_str.split("-")[::-1])
         format_end = ".".join(end_str.split("-")[::-1])
+    else:
+        return None, None, None, None
     return timezone.make_aware(start), timezone.make_aware(end), format_start, format_end
 
 
