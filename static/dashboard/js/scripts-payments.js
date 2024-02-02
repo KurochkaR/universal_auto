@@ -29,13 +29,13 @@ function driverPayment(period = null, start = null, end = null, paymentStatus = 
 					var payByn = '<button class="pay-btn">Отримано</button>';
 					var notPayByn = '<button class="not-pay-btn">Не отримано</button>';
 
-					var rowBonus = '<tr><td colspan="11" class="bonus-table"><table><tr><th>Тип</th><th>Сума</th><th>Опис</th>' + (response[i].status === 'Перевіряється' ? '<th>Дії</th>' : '') + '</tr>';
+					var rowBonus = '<tr><td colspan="11" class="bonus-table"><table class="bonus-penalty-table"><tr class="title-bonus-penalty"><th class="edit-bonus-penalty">Тип</th><th class="edit-bonus-penalty">Сума</th><th class="edit-bonus-penalty">Опис</th>' + (response[i].status === 'Перевіряється' ? '<th class="edit-bonus-penalty">Дії</th>' : '') + '</tr>';
 
 					function generateRow(items, type, editClass, deleteClass) {
 						var rowBon = '';
 						for (var j = 0; j < items.length; j++) {
 							var item = items[j];
-							rowBon += '<tr>';
+							rowBon += '<tr class="description-bonus-penalty">';
 							rowBon += '<td class="' + type + '-type" data-' + type + '-id="' + item.id + '">' + (type === 'bonus' ? 'Бонус' : 'Штраф') + '</td>';
 							rowBon += '<td class="' + type +'-amount">' + item.amount + '</td>';
 							rowBon += '<td class="' + type +'-description">' + item.description + '</td>';
@@ -266,7 +266,7 @@ $(document).ready(function () {
 			data: dataToSend,
 			dataType: 'json',
 			success: function (response) {
-				$('#modal-upd-payments').hide();
+				$('#modal-add-bonus').hide();
 				driverPayment(null, null, null, paymentStatus="on_inspection");
 			}
 		});
@@ -306,7 +306,7 @@ $(document).ready(function () {
 			data: dataToSend,
 			dataType: 'json',
 			success: function (response) {
-				$('#modal-upd-payments').hide();
+				$('#modal-add-penalty').hide();
 				driverPayment(null, null, null, paymentStatus="on_inspection");
 			}
 		});

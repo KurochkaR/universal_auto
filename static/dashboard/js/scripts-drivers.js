@@ -132,7 +132,9 @@ function fetchDriverFleetEfficiencyData(period, start, end, aggregators) {
 
 						fleets.forEach(function (fleet, fleetIndex) {
 							let row = $('<tr></tr>');
-
+							if (fleetIndex !== fleets.length - 1) {
+									row.addClass('tr-aggregators'); // Додати клас тільки до рядків, крім останнього
+							}
 							if (fleetIndex === 0) {
 								// Add the driver's name for the first line of the fleet only
 								row.append('<td class="driver" rowspan="' + fleets.length + '">' + items.full_name + '</td>');
