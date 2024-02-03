@@ -20,9 +20,7 @@ from django.urls import path, include
 from app.views import *
 from auto import settings
 from django.views.decorators.csrf import csrf_exempt
-
-if settings.DEBUG:
-    import debug_toolbar
+import debug_toolbar
 
 admin.site.site_header = "Ninja Admin"
 admin.site.site_title = "Ninja Admin Portal"
