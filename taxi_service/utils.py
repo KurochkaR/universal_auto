@@ -324,7 +324,7 @@ def add_shift(licence_plate, shift_date, start_time, end_time, driver_id, recurr
         return False, f"Авто {licence_plate} не може мати більше 4 змін на день"
 
     interval = range(1)
-    calendar_range = ParkSettings.get_value("CALENDAR_RANGE", 10, partner=partner)
+    calendar_range = int(ParkSettings.get_value("CALENDAR_RANGE", 10, partner=partner))
     reshuffle_ranges = calendar_range if calendar_range <= 30 else 10
     if recurrence == 'daily':
         interval = range(0, reshuffle_ranges)

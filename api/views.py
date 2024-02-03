@@ -360,13 +360,12 @@ class DriverPaymentsListView(CombinedPermissionsMixin, generics.ListAPIView):
         period = self.kwargs.get('period')
 
         if not period:
-            queryset = qs.filter(
-                status__in=[PaymentsStatus.CHECKING, PaymentsStatus.PENDING], ).order_by('report_to', 'driver')
+            queryset = qs.filter(status__in=[PaymentsStatus.CHECKING, PaymentsStatus.PENDING])
         else:
             start, end, format_start, format_end = get_start_end(period)
             queryset = qs.filter(report_to__range=(start, end),
                                  status__in=[PaymentsStatus.COMPLETED, PaymentsStatus.FAILED],
-                                 ).order_by('report_to', 'driver')
+                                 )
         queryset = queryset.select_related('driver__user_ptr').prefetch_related(
             Prefetch('penaltybonus_set', queryset=PenaltyBonus.objects.all(),
                      to_attr='prefetched_penaltybonuses')).annotate(
@@ -376,5 +375,5 @@ class DriverPaymentsListView(CombinedPermissionsMixin, generics.ListAPIView):
                 F("driver__user_ptr__second_name")),
             bonuses=Coalesce(Sum('penaltybonus__amount', filter=Q(penaltybonus__bonus__isnull=False)), Decimal(0)),
             penalties=Coalesce(Sum('penaltybonus__amount', filter=Q(penaltybonus__penalty__isnull=False)), Decimal(0)),
-        )
+        ).order_by('-report_to', 'driver')
         return queryset

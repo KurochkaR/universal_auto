@@ -37,7 +37,7 @@ class SoftDeleteAdmin(admin.ModelAdmin):
     def get_actions(self, request):
         actions = super().get_actions(request)
         actions['delete_selected'] = (
-            self.delete_selected, 'delete_selected', _(f"Видалити обрані {self.model._meta.verbose_name_plural}"))
+            self.delete_selected, 'delete_selected', _(f"Звільнити {self.model._meta.verbose_name_plural}в"))
         return actions
 
     def get_queryset(self, request):
@@ -464,9 +464,16 @@ class VehicleSpendingAdmin(admin.ModelAdmin):
         else:
             filter_condition = Q()
 
-        queryset = queryset.filter(filter_condition)
+        queryset = queryset.filter(filter_condition).select_related('vehicle', 'partner', 'vehicle__manager')
 
         return queryset
+
+    def save_model(self, request, obj, form, change):
+        if request.user.is_partner():
+            obj.partner_id = request.user.pk
+        if request.user.is_manager():
+            obj.partner = request.user.manager.managers_partner
+        super().save_model(request, obj, form, change)
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         user = request.user
@@ -994,6 +1001,7 @@ class DriverAdmin(SoftDeleteAdmin):
 
 @admin.register(FiredDriver)
 class FiredDriverAdmin(admin.ModelAdmin):
+    readonly_fields = ('name', 'second_name')
 
     def get_list_display(self, request):
         if request.user.is_superuser:
@@ -1011,8 +1019,15 @@ class FiredDriverAdmin(admin.ModelAdmin):
     def get_model_perms(self, request):
         perms = super().get_model_perms(request)
         if request.user.is_partner():
-            perms.update(view=True, change=False, add=False, delete=True)
+            perms.update(view=True, change=False, add=False, delete=False)
         return perms
+
+    def get_fieldsets(self, request, obj=None):
+        fieldsets = (
+            ('Інформація про водія', {'fields': ['name', 'second_name',
+                                                  ]}),
+        )
+        return fieldsets
 
     def get_queryset(self, request):
         qs = super().get_queryset(request).filter(deleted_at__isnull=False)
@@ -1049,7 +1064,7 @@ class VehicleAdmin(admin.ModelAdmin):
     list_display_links = ('licence_plate',)
     list_per_page = 10
     list_filter = (VehicleManagerFilter,)
-    readonly_fields = ('licence_plate',)
+    readonly_fields = ('licence_plate', 'name')
 
     def get_list_display(self, request):
         if request.user.is_superuser:
@@ -1299,8 +1314,25 @@ class CommentAdmin(admin.ModelAdmin):
         return fieldsets
 
 
+class ParkSettingsForm(forms.ModelForm):
+    class Meta:
+        model = ParkSettings
+        fields = ('value', 'description')
+
+    def clean_value(self):
+        value = self.cleaned_data.get('value')
+
+        try:
+            int_value = int(value)
+        except (ValueError, TypeError):
+            raise forms.ValidationError("Введіть, будь ласка, ціле число")
+
+        return int_value
+
+
 @admin.register(ParkSettings)
 class ParkSettingsAdmin(admin.ModelAdmin):
+    form = ParkSettingsForm
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
@@ -1312,17 +1344,6 @@ class ParkSettingsAdmin(admin.ModelAdmin):
         if request.user.is_partner():
             return ['description', 'value']
         return [f.name for f in self.model._meta.fields]
-
-    def get_fieldsets(self, request, obj=None):
-        if request.user.is_partner():
-            fieldsets = [
-                ('Деталі',                      {'fields': ['description', 'value',
-                                                            ]}),
-
-            ]
-
-            return fieldsets
-        return super().get_fieldsets(request)
 
 
 @admin.register(TaskScheduler)

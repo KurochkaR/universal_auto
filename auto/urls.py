@@ -21,6 +21,9 @@ from app.views import *
 from auto import settings
 from django.views.decorators.csrf import csrf_exempt
 
+if settings.DEBUG:
+    import debug_toolbar
+
 admin.site.site_header = "Ninja Admin"
 admin.site.site_title = "Ninja Admin Portal"
 admin.site.index_title = "Welcome to Ninja Taxi"
@@ -34,6 +37,7 @@ urlpatterns = [
     path('fake_uklon/', include('fake_uklon.urls')),
     path('cars/', gps_cars, name='map'),
     path('', include('taxi_service.urls')),
+    path('__debug__/', include(debug_toolbar.urls)),
     path('webhook/', csrf_exempt(TelegramBotWebhookView.as_view())),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
