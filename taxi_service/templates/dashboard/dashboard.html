@@ -56,12 +56,19 @@
       </div>
       {% else %}
       <div class="card">
+        {% if partner_group %}
         <h2>{% trans 'Загальний дохід' %}</h2>
         <span class="weekly-income-amount"></span>
         <h2>{% trans 'Чистий дохід' %}</h2>
         <span class="weekly-clean-amount"></span>
         <h2>{% trans 'Період' %}</h2>
         <span class="weekly-income-dates"></span>
+        {% else %}
+        <h2>{% trans 'Загальний дохід' %}</h2>
+        <span class="weekly-income-amount"></span>
+        <h2>{% trans 'Період' %}</h2>
+        <span class="weekly-income-dates"></span>
+        {% endif %}
       </div>
       <div class="card">
         <h2>{% trans 'Холостий пробіг' %}</h2>
