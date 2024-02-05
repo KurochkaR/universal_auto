@@ -260,13 +260,11 @@ class Vehicle(models.Model):
     purchase_date = models.DateField(null=True, verbose_name='Дата початку роботи')
     vin_code = models.CharField(validators=[MaxLengthValidator(17)], max_length=17, blank=True)
     chat_id = models.CharField(max_length=15, blank=True, null=True, verbose_name="Група автомобіля телеграм")
-    gps = models.ForeignKey(GPSNumber, on_delete=models.CASCADE, null=True, blank=True, verbose_name="Назва авто в Gps")
     gps_imei = models.CharField(validators=[MaxLengthValidator(50)], max_length=50, blank=True, default='')
     coord_time = models.DateTimeField(null=True, verbose_name="Час отримання координат")
     lat = models.DecimalField(null=True, decimal_places=6, max_digits=10, default=0, verbose_name="Широта")
     lon = models.DecimalField(null=True, decimal_places=6, max_digits=10, default=0, verbose_name="Довгота")
     car_status = models.CharField(max_length=18, null=False, default="Serviceable", verbose_name='Статус автомобіля')
-    manager = models.ForeignKey(Manager, on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Менеджер авто')
     purchase_price = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name="Вартість автомобіля")
     currency = models.CharField(max_length=4, default=Currency.UAH, choices=Currency.choices,
                                 verbose_name='Валюта покупки')
@@ -275,14 +273,17 @@ class Vehicle(models.Model):
     car_earnings = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name="Заробіток авто")
     currency_back = models.CharField(max_length=4, default=Currency.USD, choices=Currency.choices,
                                      verbose_name='Валюта повернення коштів')
-    investor_car = models.ForeignKey(Investor, blank=True, null=True, on_delete=models.SET_NULL,
-                                     verbose_name='Машина інвестора')
     investor_percentage = models.DecimalField(decimal_places=2, max_digits=10, default=0.35,
                                               verbose_name="Відсоток інвестора")
-    partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
     created_at = models.DateTimeField(editable=False, auto_now_add=True, verbose_name='Додано автомобіль')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='Оновлено')
     deleted_at = models.DateTimeField(null=True, blank=True, verbose_name='Видалено')
+
+    gps = models.ForeignKey(GPSNumber, on_delete=models.CASCADE, null=True, blank=True, verbose_name="Назва авто в Gps")
+    manager = models.ForeignKey(Manager, on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Менеджер авто')
+    investor_car = models.ForeignKey(Investor, blank=True, null=True, on_delete=models.SET_NULL,
+                                     verbose_name='Машина інвестора')
+    partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
 
     class Meta:
         verbose_name = 'Автомобіль'

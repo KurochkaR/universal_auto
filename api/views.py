@@ -18,7 +18,7 @@ from api.serializers import SummaryReportSerializer, CarEfficiencySerializer, Ca
     DriverEfficiencyFleetRentSerializer
 from app.models import SummaryReport, CarEfficiency, Vehicle, DriverEfficiency, RentInformation, DriverReshuffle, \
     PartnerEarnings, InvestorPayments, DriverPayments, PaymentsStatus, PenaltyBonus, Penalty, Bonus, \
-    DriverEfficiencyFleet
+    DriverEfficiencyFleet, VehicleSpending
 from taxi_service.utils import get_start_end
 
 
@@ -281,6 +281,14 @@ class CarsInformationListView(CombinedPermissionsMixin,
             ).values('vehicle__licence_plate').annotate(
                 vehicle_earning=Coalesce(Sum('earning'), Value(0), output_field=DecimalField())
             )
+
+            spending_subquery = VehicleSpending.objects.filter(
+                vehicle__licence_plate=OuterRef('licence_plate'),
+                created_at__date__range=(start, end)
+            ).values('vehicle__licence_plate').annotate(
+                total_spending=Coalesce(Sum('amount'), Decimal(0)),
+            )
+
             earning_subquery_exists = Exists(earning_subquery.filter(vehicle__licence_plate=OuterRef('licence_plate')))
             queryset = queryset.values('licence_plate').annotate(
                 price=F('purchase_price'),
@@ -288,7 +296,13 @@ class CarsInformationListView(CombinedPermissionsMixin,
                           default=Value(0),
                           output_field=DecimalField()
                           ),
-                spending=Coalesce(Sum('vehiclespending__amount'), Decimal(0))
+                spending=Coalesce(
+                    Subquery(spending_subquery.filter(
+                        vehicle__licence_plate=OuterRef('licence_plate')).values('total_spending'),
+                             output_field=DecimalField()
+                             ),
+                    Decimal(0)
+                )
             ).annotate(
                 start_date=Value(format_start),
                 end_date=Value(format_end),
