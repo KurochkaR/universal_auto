@@ -223,14 +223,14 @@ class DriverEfficiencyFleetListView(CombinedPermissionsMixin,
         return [{'start': format_start, 'end': format_end, 'drivers_efficiency': grouped_qs}]
 
 
-class CarsInformationListView(CombinedPermissionsMixin,
-                              generics.ListAPIView):
+class CarsInformationListView(CombinedPermissionsMixin, generics.ListAPIView):
     serializer_class = CarDetailSerializer
 
     def get_queryset(self):
         period = self.kwargs['period']
         start, end, format_start, format_end = get_start_end(self.kwargs['period'])
 
+        # Отримати queryset для інвестора або партнера
         investor_queryset = InvestorFilterMixin.get_queryset(Vehicle, self.request.user)
         if investor_queryset:
             queryset = investor_queryset
@@ -247,19 +247,31 @@ class CarsInformationListView(CombinedPermissionsMixin,
                 vehicle_earning=Coalesce(Sum('earning'), Decimal(0)),
             )
 
+            spending_subquery = VehicleSpending.objects.filter(
+                vehicle__licence_plate=OuterRef('licence_plate'),
+                created_at__date__range=(start, end)
+            ).values('vehicle__licence_plate').annotate(
+                total_spending=Coalesce(Sum('amount'), Decimal(0)),
+            )
+
             queryset = queryset.values('licence_plate').annotate(
                 price=F('purchase_price'),
-                kasa=Subquery(earning_subquery.filter(
-                    vehicle__licence_plate=OuterRef('licence_plate')).values('vehicle_earning'),
-                              output_field=DecimalField()
-                              ),
-                spending=Coalesce(Sum('vehiclespending__amount'), Decimal(0))
+                kasa=Coalesce(Subquery(
+                    earning_subquery.filter(vehicle__licence_plate=OuterRef('licence_plate')).values('vehicle_earning'),
+                    output_field=DecimalField()), Decimal(0)),
+                spending=Coalesce(
+                    Subquery(spending_subquery.filter(
+                        vehicle__licence_plate=OuterRef('licence_plate')).values('total_spending'),
+                             output_field=DecimalField()
+                             ),
+                    Decimal(0)
+                )
             ).annotate(
                 start_date=Value(format_start),
                 end_date=Value(format_end),
                 progress_percentage=ExpressionWrapper(
                     Case(
-                        When(purchase_price__gt=0, then=Round((F('kasa') / F('purchase_price')) * 100)),
+                        When(purchase_price__gt=0, then=Round((F('kasa') - F('spending')) / F('purchase_price') * 100)),
                         default=Value(0),
                         output_field=DecimalField(max_digits=5, decimal_places=2)
                     ),
@@ -308,8 +320,7 @@ class CarsInformationListView(CombinedPermissionsMixin,
                 end_date=Value(format_end),
                 progress_percentage=ExpressionWrapper(
                     Case(
-                        When(purchase_price__gt=0,
-                             then=Round(((F('kasa') - F('spending')) / F('purchase_price')) * 100)),
+                        When(purchase_price__gt=0, then=Round((F('kasa') - F('spending')) / F('purchase_price') * 100)),
                         default=Value(0),
                         output_field=DecimalField(max_digits=4, decimal_places=1)
                     ),
