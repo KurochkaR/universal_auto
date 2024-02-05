@@ -228,105 +228,61 @@ class CarsInformationListView(CombinedPermissionsMixin, generics.ListAPIView):
 
     def get_queryset(self):
         period = self.kwargs['period']
-        start, end, format_start, format_end = get_start_end(self.kwargs['period'])
+        start, end, format_start, format_end = get_start_end(period)
 
-        # Отримати queryset для інвестора або партнера
-        investor_queryset = InvestorFilterMixin.get_queryset(Vehicle, self.request.user)
-        if investor_queryset:
-            queryset = investor_queryset
-
+        if InvestorFilterMixin.get_queryset(Vehicle, self.request.user):
+            queryset = InvestorFilterMixin.get_queryset(Vehicle, self.request.user)
             earnings_query_all = InvestorPayments.objects.all()
-            if period == 'all_period':
-                start = earnings_query_all.first().report_to
-                end = earnings_query_all.last().report_to
-                format_start = start.strftime("%d.%m.%Y")
-                format_end = end.strftime("%d.%m.%Y")
-
-            earning_subquery = earnings_query_all.filter(report_to__date__range=(start, end)).values(
-                'vehicle__licence_plate').annotate(
-                vehicle_earning=Coalesce(Sum('earning'), Decimal(0)),
-            )
-
-            spending_subquery = VehicleSpending.objects.filter(
-                vehicle__licence_plate=OuterRef('licence_plate'),
-                created_at__date__range=(start, end)
-            ).values('vehicle__licence_plate').annotate(
-                total_spending=Coalesce(Sum('amount'), Decimal(0)),
-            )
-
-            queryset = queryset.values('licence_plate').annotate(
-                price=F('purchase_price'),
-                kasa=Coalesce(Subquery(
-                    earning_subquery.filter(vehicle__licence_plate=OuterRef('licence_plate')).values('vehicle_earning'),
-                    output_field=DecimalField()), Decimal(0)),
-                spending=Coalesce(
-                    Subquery(spending_subquery.filter(
-                        vehicle__licence_plate=OuterRef('licence_plate')).values('total_spending'),
-                             output_field=DecimalField()
-                             ),
-                    Decimal(0)
-                )
-            ).annotate(
-                start_date=Value(format_start),
-                end_date=Value(format_end),
-                progress_percentage=ExpressionWrapper(
-                    Case(
-                        When(purchase_price__gt=0, then=Round((F('kasa') - F('spending')) / F('purchase_price') * 100)),
-                        default=Value(0),
-                        output_field=DecimalField(max_digits=5, decimal_places=2)
-                    ),
-                    output_field=DecimalField(max_digits=5, decimal_places=2)
-                )
-            )
         else:
             queryset = ManagerFilterMixin.get_queryset(Vehicle, self.request.user)
-
             earnings_query_all = PartnerEarnings.objects.all()
-            if period == 'all_period':
-                start = earnings_query_all.first().report_to
-                end = earnings_query_all.last().report_to
-                format_start = start.strftime("%d.%m.%Y")
-                format_end = end.strftime("%d.%m.%Y")
 
-            earning_subquery = earnings_query_all.filter(
-                report_to__range=(start, end), vehicle__licence_plate=OuterRef('licence_plate')
-            ).values('vehicle__licence_plate').annotate(
-                vehicle_earning=Coalesce(Sum('earning'), Value(0), output_field=DecimalField())
+        if period == 'all_period':
+            start = earnings_query_all.first().report_to
+            end = earnings_query_all.last().report_to
+            format_start = start.strftime("%d.%m.%Y")
+            format_end = end.strftime("%d.%m.%Y")
+
+        earning_subquery = earnings_query_all.filter(
+            report_to__range=(start, end),
+            vehicle__licence_plate=OuterRef('licence_plate')
+        ).values('vehicle__licence_plate').annotate(
+            vehicle_earning=Coalesce(Sum('earning'), Decimal(0), output_field=DecimalField())
+        )
+
+        spending_subquery = VehicleSpending.objects.filter(
+            vehicle__licence_plate=OuterRef('licence_plate'),
+            created_at__date__range=(start, end)
+        ).values('vehicle__licence_plate').annotate(
+            total_spending=Coalesce(Sum('amount'), Decimal(0), output_field=DecimalField())
+        )
+
+        earning_subquery_exists = Exists(earning_subquery.filter(vehicle__licence_plate=OuterRef('licence_plate')))
+        queryset = queryset.values('licence_plate').annotate(
+            price=F('purchase_price'),
+            kasa=Case(When(earning_subquery_exists, then=Subquery(earning_subquery.values('vehicle_earning'))),
+                      default=Value(0),
+                      output_field=DecimalField()),
+            spending=Coalesce(
+                Subquery(spending_subquery.filter(
+                    vehicle__licence_plate=OuterRef('licence_plate')).values('total_spending'),
+                         output_field=DecimalField()
+                         ),
+                Decimal(0)
             )
-
-            spending_subquery = VehicleSpending.objects.filter(
-                vehicle__licence_plate=OuterRef('licence_plate'),
-                created_at__date__range=(start, end)
-            ).values('vehicle__licence_plate').annotate(
-                total_spending=Coalesce(Sum('amount'), Decimal(0)),
-            )
-
-            earning_subquery_exists = Exists(earning_subquery.filter(vehicle__licence_plate=OuterRef('licence_plate')))
-            queryset = queryset.values('licence_plate').annotate(
-                price=F('purchase_price'),
-                kasa=Case(When(earning_subquery_exists, then=Subquery(earning_subquery.values('vehicle_earning'))),
-                          default=Value(0),
-                          output_field=DecimalField()
-                          ),
-                spending=Coalesce(
-                    Subquery(spending_subquery.filter(
-                        vehicle__licence_plate=OuterRef('licence_plate')).values('total_spending'),
-                             output_field=DecimalField()
-                             ),
-                    Decimal(0)
-                )
-            ).annotate(
-                start_date=Value(format_start),
-                end_date=Value(format_end),
-                progress_percentage=ExpressionWrapper(
-                    Case(
-                        When(purchase_price__gt=0, then=Round((F('kasa') - F('spending')) / F('purchase_price') * 100)),
-                        default=Value(0),
-                        output_field=DecimalField(max_digits=4, decimal_places=1)
-                    ),
+        ).annotate(
+            start_date=Value(format_start),
+            end_date=Value(format_end),
+            progress_percentage=ExpressionWrapper(
+                Case(
+                    When(purchase_price__gt=0, then=Round((F('kasa') - F('spending')) / F('purchase_price') * 100)),
+                    default=Value(0),
                     output_field=DecimalField(max_digits=4, decimal_places=1)
-                )
+                ),
+                output_field=DecimalField(max_digits=4, decimal_places=1)
             )
+        )
+
         return queryset
 
 
