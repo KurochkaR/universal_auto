@@ -17,7 +17,7 @@ from api.views import CarsInformationListView
 from taxi_service.forms import SubscriberForm, MainOrderForm
 from taxi_service.handlers import PostRequestHandler, GetRequestHandler
 from taxi_service.seo_keywords import *
-from app.models import Driver, Vehicle, CustomUser
+from app.models import Driver, Vehicle, CustomUser, BonusCategory, PenaltyCategory
 from auto_bot.main import bot
 
 
@@ -171,6 +171,19 @@ class DashboardView(BaseDashboardView):
 
 class DashboardPaymentView(BaseDashboardView):
     template_name = "dashboard/dashboard-payments.html"
+
+    def get_context_data(self, **kwargs):
+        user = self.request.user
+        context = super().get_context_data(**kwargs)
+        if user.is_manager():
+            context["bonus_category"] = BonusCategory.objects.filter(Q(partner=user.manager.managers_partner) |
+                                                                     Q(partner__isnull=True))
+            context["penalty_category"] = PenaltyCategory.objects.filter(Q(partner=user.manager.managers_partner) |
+                                                                         Q(partner__isnull=True))
+        elif user.is_partner():
+            context["bonus_category"] = BonusCategory.objects.filter(Q(partner=user) | Q(partner__isnull=True))
+            context["penalty_category"] = PenaltyCategory.objects.filter(Q(partner=user) | Q(partner__isnull=True))
+        return context
 
 
 class DashboardVehicleView(BaseDashboardView):

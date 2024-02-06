@@ -1132,7 +1132,7 @@ def calculate_vehicle_earnings(self, payment_pk):
     driver = payment.driver
     start = timezone.localtime(payment.report_from)
     end = timezone.localtime(payment.report_to)
-    driver_value = payment.earning + payment.cash + payment.rent
+    driver_value = payment.earning + payment.cash + payment.rent - payment.get_bonuses() + payment.get_penalties()
     if payment.kasa:
         spending_rate = 1 - round(driver_value / payment.kasa, 6) if driver_value > 0 else 1
         if payment.is_weekly():

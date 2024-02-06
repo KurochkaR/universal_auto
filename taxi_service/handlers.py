@@ -223,7 +223,7 @@ class PostRequestHandler:
         data = request.POST
         operation_type = data.get('type')
         driver_payments_id = data.get('idPayments')
-        driver_payments = DriverPayments.objects.get(id=driver_payments_id)
+        driver_payments = DriverPayments.objects.filter(id=driver_payments_id)
 
         model_map = {
             'bonus': Bonus,
@@ -238,30 +238,19 @@ class PostRequestHandler:
         description = data.get('description')
 
         if amount:
-            model_instance = Model.objects.create(
+            vehicle_id = data.get('vehicle')
+
+            Model.objects.create(
                 amount=amount,
                 description=description,
                 driver_payments=driver_payments,
                 driver=driver_payments.driver,
+                vehicle_id=vehicle_id,
             )
-
             if operation_type == 'bonus':
-                category = data.get('category')
-                category_text = data.get('categoryText')
-                vehicle_id = data.get('vehicle')
-
-                description = description if category == 'other' else category_text
-                vehicle = Vehicle.objects.get(id=vehicle_id) if category not in ['other', 'premium'] else None
-
-                model_instance.description = description
-                model_instance.vehicle = vehicle
-                model_instance.save()
-
-                driver_payments.earning += Decimal(amount)
+                driver_payments.update(earning=F('earning') + Decimal(amount))
             else:
-                driver_payments.earning -= Decimal(amount)
-
-            driver_payments.save()
+                driver_payments.update(earning=F('earning') - Decimal(amount))
 
         return JsonResponse({'data': 'success'})
 
