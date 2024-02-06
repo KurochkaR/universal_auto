@@ -237,19 +237,20 @@ class UklonRequest(Fleet, Synchronizer):
         return self.save_report(start, end, driver, DailyReport)
 
     def get_earnings_per_driver(self, driver, start, end):
-        driver_id = driver.get_driver_external_id(self)
         total_amount_without_fee = total_amount_cash = 0
-        param = {'dateFrom': int(start.timestamp()),
-                 'dateTo': int(end.timestamp()),
-                 'limit': '50', 'offset': '0',
-                 'driverId': driver_id
-                 }
-        url = f"{Service.get_value('UKLON_3')}{self.uklon_id()}"
-        url += Service.get_value('UKLON_4')
-        data = self.response_data(url=url, params=param)
-        if data.get("items"):
-            total_amount_cash = self.find_value(data["items"][0], *('profit', 'order', 'cash', 'amount'))
-            total_amount_without_fee = self.find_value(data["items"][0], *('profit', 'total', 'amount'))
+        driver_id = driver.get_driver_external_id(self)
+        if driver_id:
+            param = {'dateFrom': int(start.timestamp()),
+                     'dateTo': int(end.timestamp()),
+                     'limit': '50', 'offset': '0',
+                     'driverId': driver_id
+                     }
+            url = f"{Service.get_value('UKLON_3')}{self.uklon_id()}"
+            url += Service.get_value('UKLON_4')
+            data = self.response_data(url=url, params=param)
+            if data.get("items"):
+                total_amount_cash = self.find_value(data["items"][0], *('profit', 'order', 'cash', 'amount'))
+                total_amount_without_fee = self.find_value(data["items"][0], *('profit', 'total', 'amount'))
         return total_amount_without_fee, total_amount_cash
 
     def get_drivers_status(self):

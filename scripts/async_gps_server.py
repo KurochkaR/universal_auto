@@ -48,11 +48,6 @@ class PackageHandler:
                             VALUES ($1, $2, $3, $4, $5)
                         """
                 await db_conn.execute(query, imei, client_ip, client_port, data, created_at)
-                obj_id = await db_conn.fetchval("SELECT lastval();")
-                obj_id = int(obj_id)
-                await db_conn.close()
-                raw_gps_handler.delay(obj_id)
-
                 return self.answer_data
             except (Exception, asyncpg.PostgresError) as error:
                 print("Error inserting GPS data:", error)

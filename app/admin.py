@@ -259,15 +259,15 @@ class DriverRateLevelsAdmin(admin.ModelAdmin):
 
 @admin.register(RawGPS)
 class RawGPSAdmin(admin.ModelAdmin):
-    list_display = ('imei', 'client_ip', 'client_port', 'data_', 'created_at', 'vehiclegps')
-    list_display_links = ('imei', 'client_ip', 'client_port', 'data_')
-    search_fields = ('imei',)
-    list_filter = ('imei', 'client_ip', 'created_at')
-    ordering = ('-created_at', 'imei')
-    list_per_page = 25
+    list_display = ('id', 'vehiclegps')
+    list_display_links = ('id',)
 
-    def data_(self, instance):
-        return f'{instance.data[:100]}...'
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+
+        queryset = queryset.select_related('vehiclegps').only('id', 'vehiclegps')
+
+        return queryset
 
 
 @admin.register(VehicleGPS)
@@ -908,7 +908,7 @@ class DriverAdmin(SoftDeleteAdmin):
     search_fields = ('name', 'second_name')
     ordering = ('name', 'second_name')
     list_display_links = ('name', 'second_name')
-    list_per_page = 10
+    list_per_page = 20
     readonly_fields = ('name', 'second_name', 'email', 'phone_number', 'driver_status')
 
     def get_queryset(self, request):

@@ -680,6 +680,9 @@ class RawGPS(models.Model):
     class Meta:
         verbose_name = 'GPS Raw'
         verbose_name_plural = 'GPS Raw'
+        indexes = [
+            models.Index(fields=['created_at']),
+        ]
 
     def __str__(self):
         return f'{self.data}'
@@ -707,6 +710,10 @@ class VehicleGPS(GPS):
     class Meta:
         verbose_name = 'GPS Vehicle'
         verbose_name_plural = 'GPS Vehicle'
+        indexes = [
+            models.Index(fields=['raw_data']),
+            models.Index(fields=['raw_data'], name='raw_data_null', condition=models.Q(raw_data__isnull=True)),
+        ]
 
 
 class RepairReport(models.Model):
