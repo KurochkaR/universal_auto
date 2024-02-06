@@ -187,8 +187,8 @@ def generate_message_report(chat_id, schema_id=None, daily=None):
         schema = Schema.objects.get(pk=schema_id)
         if schema.salary_calculation == SalaryCalculation.WEEK:
             if timezone.localtime().weekday() == 1:
-                start = timezone.localtime() - timedelta(weeks=1)
-                end = timezone.localtime() - timedelta(days=1)
+                end = timezone.localtime() - timedelta(days=timezone.localtime().weekday() + 1)
+                start = end - timedelta(days=6)
             else:
                 return
         else:
