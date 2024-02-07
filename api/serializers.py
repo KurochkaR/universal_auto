@@ -19,9 +19,13 @@ class CarDetailSerializer(serializers.Serializer):
     kasa = serializers.DecimalField(max_digits=10, decimal_places=2)
     spending = serializers.DecimalField(max_digits=10, decimal_places=2)
     progress_percentage = serializers.DecimalField(max_digits=10, decimal_places=2)
+    total_progress_percentage = serializers.DecimalField(max_digits=10, decimal_places=2)
 
     class Meta:
-        fields = ("licence_plate", "price", "kasa", "spending", "progress_percentage", "start_date", "end_date")
+        fields = (
+            "licence_plate", "price", "kasa", "spending", "progress_percentage", "total_progress_percentage",
+            "start_date", "end_date"
+        )
 
 
 class DriverEfficiencySerializer(serializers.Serializer):
