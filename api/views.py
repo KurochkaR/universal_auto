@@ -1,5 +1,5 @@
 from collections import defaultdict
-from datetime import timedelta, date
+from datetime import timedelta
 
 from _decimal import Decimal
 from itertools import groupby

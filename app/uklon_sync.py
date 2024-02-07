@@ -281,7 +281,6 @@ class UklonRequest(Fleet, Synchronizer):
                  'offset': '0'}
         url = f"{Service.get_value('UKLON_1')}{self.uklon_id()}"
         url_1 = url + Service.get_value('UKLON_6')
-        url_2 = url + Service.get_value('UKLON_2')
         all_drivers = self.response_data(url=url_1, params=param)
         for driver in all_drivers['items']:
             email = self.response_data(url=f"{url_1}/{driver['id']}")

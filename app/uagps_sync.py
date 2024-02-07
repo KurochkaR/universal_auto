@@ -3,8 +3,9 @@ from datetime import datetime, timedelta, time
 import requests
 from _decimal import Decimal
 from django.utils import timezone
-from app.models import Driver, GPSNumber, RentInformation, FleetOrder, \
-    DriverEfficiency, CredentialPartner, ParkSettings, Fleet, Partner, VehicleRent
+from app.models import (Driver, GPSNumber, RentInformation, FleetOrder, CredentialPartner, ParkSettings, Fleet,
+                        Partner, VehicleRent)
+from auto_bot.handlers.driver_manager.utils import get_today_statistic
 from auto_bot.handlers.order.utils import check_reshuffle
 from auto_bot.main import bot
 from scripts.redis_conn import redis_instance, get_logger
@@ -263,7 +264,18 @@ class UaGpsSynchronizer(Fleet):
                     get_logger().error(e)
                     continue
             rent_distance = total_km - distance
-            if rent_distance > driver.schema.limit_distance:
-                time_now = timezone.localtime(end_time).strftime("%H:%M")
+            kasa, card, mileage, orders = get_today_statistic(self.partner, start, end_time, driver)
+            time_now = timezone.localtime(end_time).strftime("%H:%M")
+            if kasa and mileage:
+                text = f"Поточна статистика на {time_now}:"
+                f"Водій: {driver}"
+                f"Каса: {kasa}"
+                f"Кількість замовлень: {orders}"
+                f"Пробіг під замовленням: {mileage}"
+                f"Ефективність: {round(kasa / mileage, 2)}"
+                f"Холостий пробіг: {rent_distance}"
+            else:
+                text = f"Водій {driver} ще не виконав замовлень"
+            if timezone.localtime(end_time) > time(7, 0):
                 bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"),
-                                 text=f"Орендовано на {time_now} {driver} - {rent_distance}")
+                                 text=text)
