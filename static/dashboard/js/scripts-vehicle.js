@@ -25,17 +25,19 @@ function fetchVehicleEarningsData(period, start, end) {
 					"</div>");
 
 				carItem.append("<div class='car-details'>" +
-					"<p>Заробіток:<br><span class='vehicle-earning'>₴ " + vehicle.kasa + "</span></p>" +
-					"<p>Витрати:<br><span class='vehicle-expenses'>₴ " + vehicle.spending + "</span></p>" +
-					"<div class='progress-bar'>" +
-					"<div class='progress' style='width: " + vehicle.progress_percentage + "%; max-width: 100%'>" +
-					"<div class='progress-label' style='color: #0a0a0a'>" + vehicle.progress_percentage + "%</div>" +
-					"</div>" +
-					"</div>" +
-					"<p>Вартість авто:<br><span class='vehicle-price'>₴ " + vehicle.price + "</span></p>" +
-					"</div>");
+						"<p>Заробіток:<br><span class='vehicle-earning'>₴ " + vehicle.kasa + "</span></p>" +
+						"<p>Витрати:<br><span class='vehicle-expenses'>₴ " + vehicle.spending + "</span></p>" +
+						"<div class='progress-bar'>" +
+						"<div class='progress' style='width: " + vehicle.total_progress_percentage + "%; max-width: 100%'>" +
+						"<div class='progress-label' style='color: #0a0a0a'>" + vehicle.total_progress_percentage + "%</div>" +
+						"<div class='progress-period' style='left: " + vehicle.progress_percentage + "%;'>" +
+						"</div>" +
+						"</div>" +
+						"</div>" +
+						"<p>Вартість авто:<br><span class='vehicle-price'>₴ " + vehicle.price + "</span></p>");
 
 				paybackCarContainer.append(carItem);
+
 			});
 		}
 	});
