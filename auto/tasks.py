@@ -95,7 +95,6 @@ def raw_gps_handler():
             continue
         vehicle = Vehicle.objects.filter(gps_imei=raw.imei)
         kwa = {
-            'polymorphic_ctype_id': 29,
             'date_time': date_time,
             'lat': lat,
             'vehicle': vehicle.first(),
@@ -224,11 +223,11 @@ def get_today_orders(self, partner_pk):
 @app.task(bind=True, queue='beat_tasks', retry_backoff=30, max_retries=4)
 def check_card_cash_value(self, partner_pk):
     try:
-        fleets = Fleet.objects.filter(partner=partner_pk).exclude(name="Gps")
+        fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name="Gps")
         today = timezone.localtime()
         yesterday = timezone.make_aware(datetime.combine(today, time.min)) - timedelta(days=1)
         start_week = timezone.make_aware(datetime.combine(today, time.min)) - timedelta(days=today.weekday())
-        for driver in Driver.objects.get_active(partner=partner_pk, schema=1):
+        for driver in Driver.objects.get_active(partner=partner_pk, schema__isnull=False):
             start = start_week if driver.schema.is_weekly() else get_time_for_task(driver.schema_id)[2]
             rent = calculate_rent(start_week, today, driver) if driver.schema.is_weekly() else (
                 calculate_rent(yesterday, today, driver))
@@ -449,7 +448,7 @@ def get_driver_efficiency_fleet(self, partner_pk, schema, day=None):
     if Fleet.objects.filter(partner=partner_pk, deleted_at=None, name="Gps").exists():
         end, start = get_time_for_task(schema, day)[1:3]
         for driver in Driver.objects.get_active(partner=partner_pk, schema=schema):
-            aggregators = Fleet.objects.filter(partner=partner_pk).exclude(name="Gps")
+            aggregators = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name="Gps")
             for aggregator in aggregators:
                 polymorphic_efficiency_create(DriverEfficiencyFleet, partner_pk, driver,
                                               start, end, Payments, aggregator)
@@ -582,7 +581,7 @@ def get_today_rent(self, partner_pk):
         raise self.retry(exc=e, countdown=retry_delay)
 
 
-@app.task(bind=True, queue='bot_tasks', retry_backoff=30, max_retries=4)
+@app.task(bind=True, queue='beat_tasks', retry_backoff=30, max_retries=4)
 def fleets_cash_trips(self, partner_pk, pk, enable):
     try:
         driver = Driver.objects.get(pk=pk)
