@@ -21,8 +21,8 @@ from app.models import (RawGPS, Vehicle, Order, Driver, JobApplication, ParkSett
                         PaymentTypes, TaskScheduler, DriverEffVehicleKasa, Schema, CustomReport, Fleet,
                         VehicleGPS, PartnerEarnings, Investor, Bonus, Penalty, PaymentsStatus,
                         FleetsDriversVehiclesRate,
-                        SalaryCalculation, DriverEfficiencyFleet)
-from django.db.models import Sum, IntegerField, FloatField, Value, DecimalField
+                        SalaryCalculation, DriverEfficiencyFleet, GPS)
+from django.db.models import Sum, IntegerField, FloatField, Value, DecimalField, Q
 from django.db.models.functions import Cast, Coalesce
 from app.utils import get_schedule, create_task
 from auto.utils import payment_24hours_create, summary_report_create, compare_reports, get_corrections, \
@@ -62,7 +62,7 @@ def retry_logic(exc, retries):
 @contextmanager
 def memcache_lock(lock_id, task_args, oid, lock_time, finish_lock_time=10):
     timeout_at = tm.monotonic() + lock_time - 3
-    lock_key = f'task_lock:{lock_id}:{hash(tuple(task_args))}'
+    lock_key = f'task_lock:{lock_id}:{hash(tuple(task_args)[0])}'
     status = cache.add(lock_key, oid, lock_time)
     try:
         yield status
@@ -78,39 +78,41 @@ def memcache_lock(lock_id, task_args, oid, lock_time, finish_lock_time=10):
 
 
 @app.task(queue='bot_tasks')
-def raw_gps_handler(pk):
-    try:
-        raw = RawGPS.objects.get(id=pk)
+def raw_gps_handler():
+    raw_list = RawGPS.objects.filter(vehiclegps__isnull=True).order_by('?')[:1000]
+    count = 0
+    for raw in raw_list:
+        data = raw.data.split(';')
+        try:
+            lat, lon = convertion(data[2]), convertion(data[4])
+        except ValueError:
+            lat, lon = 0, 0
+        try:
+            date_time = timezone.datetime.strptime(data[0] + data[1], '%d%m%y%H%M%S')
+            date_time = timezone.make_aware(date_time)
+        except ValueError as err:
+            logger.error(f'Error converting date and time: {err}')
+            continue
         vehicle = Vehicle.objects.filter(gps_imei=raw.imei)
-    except ObjectDoesNotExist:
-        return f'{ObjectDoesNotExist}: id={pk}'
-    data = raw.data.split(';')
-    try:
-        lat, lon = convertion(data[2]), convertion(data[4])
-    except ValueError:
-        lat, lon = 0, 0
-    try:
-        date_time = timezone.datetime.strptime(data[0] + data[1], '%d%m%y%H%M%S')
-        date_time = timezone.make_aware(date_time)
-    except ValueError as err:
-        return f'Error converting date and time: {err}'
-    try:
         kwa = {
             'date_time': date_time,
-            'vehicle': vehicle.first(),
             'lat': lat,
+            'vehicle': vehicle.first(),
             'lat_zone': data[3],
             'lon': lon,
             'lon_zone': data[5],
             'speed': float(data[6]),
             'course': float(data[7]),
             'height': float(data[8]),
-            'raw_data': raw,
+            'raw_data': raw
         }
-    except ValueError as err:
-        return f'{ValueError} {err}'
-    VehicleGPS.objects.create(**kwa)
-    vehicle.update(lat=lat, lon=lon, coord_time=date_time)
+        try:
+            VehicleGPS.objects.create(**kwa)
+            count += 1
+        except IntegrityError as e:
+            logger.error(e)
+        # vehicle.update(lat=lat, lon=lon, coord_time=date_time)
+    logger.warning(f"GPS created {count}")
 
 
 @app.task(bind=True, queue='bot_tasks')
@@ -163,24 +165,36 @@ def remove_gps_partner(self, partner_pk):
 @app.task(bind=True, queue='beat_tasks', retry_backoff=30, max_retries=4)
 def get_orders_from_fleets(self, partner_pk, schema=None, day=None):
     try:
-        fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name='Gps')
+        fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name__in=['Gps', 'Uber'])
         end, start = get_time_for_task(schema, day)[1:3]
         drivers = Driver.objects.get_active(partner=partner_pk)
         for fleet in fleets:
-            if isinstance(fleet, UberRequest):
-                try:
-                    fleet.get_fleet_orders(start, end)
-                except Exception as e:
-                    logger.error(e)
-            else:
-                for driver in drivers:
-                    driver_id = driver.get_driver_external_id(fleet)
-                    if driver_id:
-                        fleet.get_fleet_orders(start, end, driver.pk, driver_id)
+            for driver in drivers:
+                driver_id = driver.get_driver_external_id(fleet)
+                if driver_id:
+                    fleet.get_fleet_orders(start, end, driver.pk, driver_id)
     except Exception as e:
         logger.error(e)
         retry_delay = retry_logic(e, self.request.retries + 1)
         raise self.retry(exc=e, countdown=retry_delay)
+
+
+@app.task(bind=True, queue='beat_tasks', retry_backoff=30, max_retries=4)
+def get_uber_orders(self, partner_pk, schema):
+    with memcache_lock(self.name, self.request.args, self.app.oid, 600) as acquired:
+        if acquired:
+            if Fleet.objects.filter(name="Uber", partner=partner_pk).exists():
+                try:
+                    today = timezone.localtime()
+                    start = timezone.make_aware(datetime.combine(today - timedelta(days=1), time.min))
+                    end = timezone.make_aware(datetime.combine(start, time.max))
+                    UberRequest.objects.get(partner=partner_pk).get_fleet_orders(start, end)
+                except Exception as e:
+                    logger.error(e)
+                    retry_delay = retry_logic(e, self.request.retries + 1)
+                    raise self.retry(exc=e, countdown=retry_delay)
+        else:
+            logger.info(f'{self.name}: passed')
 
 
 @app.task(bind=True, queue='beat_tasks', retry_backoff=30, max_retries=4)
@@ -209,26 +223,34 @@ def get_today_orders(self, partner_pk):
 @app.task(bind=True, queue='beat_tasks', retry_backoff=30, max_retries=4)
 def check_card_cash_value(self, partner_pk):
     try:
+        fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name="Gps")
         today = timezone.localtime()
+        yesterday = timezone.make_aware(datetime.combine(today, time.min)) - timedelta(days=1)
         start_week = timezone.make_aware(datetime.combine(today, time.min)) - timedelta(days=today.weekday())
         for driver in Driver.objects.get_active(partner=partner_pk, schema__isnull=False):
-            if driver.schema.is_weekly():
-                orders = FleetOrder.objects.filter(accepted_time__gt=start_week,
-                                                   state=FleetOrder.COMPLETED,
-                                                   driver=driver)
-                rent = calculate_rent(start_week, today, driver)
-            else:
-                start = get_time_for_task(driver.schema_id)[2]
-                yesterday = today - timedelta(days=1)
-                orders = FleetOrder.objects.filter(accepted_time__gt=start,
-                                                   state=FleetOrder.COMPLETED,
-                                                   driver=driver)
-                rent = calculate_rent(yesterday, today, driver)
-            kasa = orders.aggregate(kasa=Coalesce(Sum('price'), Value(1)))['kasa']
+            start = start_week if driver.schema.is_weekly() else get_time_for_task(driver.schema_id)[2]
+            rent = calculate_rent(start_week, today, driver) if driver.schema.is_weekly() else (
+                calculate_rent(yesterday, today, driver))
             rent_payment = rent * driver.schema.rent_price
-            if kasa > int(ParkSettings.get_value("START_CHECK_CASH", partner=partner_pk)):
-                card = orders.filter(payment=PaymentTypes.CARD,
-                                     driver=driver).aggregate(card_kasa=Coalesce(Sum('price'), Value(0)))['card_kasa']
+            kasa = 0
+            card = 0
+            for fleet in fleets:
+                if isinstance(fleet, BoltRequest):
+                    orders = FleetOrder.objects.filter(accepted_time__gt=start,
+                                                       fleet=fleet.name,
+                                                       state=FleetOrder.COMPLETED,
+                                                       driver=driver)
+                    fleet_cash = orders.filter(payment=PaymentTypes.CASH).aggregate(
+                        cash_kasa=Coalesce(Sum('price'), Value(0)))['cash_kasa']
+                    fleet_kasa = (1 - fleet.fees) * orders.aggregate(kasa=Coalesce(Sum('price'), Value(0)))['kasa']
+                else:
+                    if driver.schema.is_weekly():
+                        fleet_kasa, fleet_cash = fleet.get_earnings_per_driver(driver, start_week, today)
+                    else:
+                        fleet_kasa, fleet_cash = fleet.get_earnings_per_driver(driver, start, today)
+                card += Decimal(fleet_kasa - fleet_cash)
+                kasa += Decimal(fleet_kasa)
+            if kasa > driver.schema.cash:
                 ratio = (card - rent_payment) / kasa
                 if driver.schema.is_rent():
                     rate = float(ParkSettings.get_value("RENT_CASH_RATE", partner=partner_pk))
@@ -385,7 +407,10 @@ def get_car_efficiency(self, partner_pk):
                                                  swap_vehicle=vehicle,
                                                  partner=partner_pk).values_list('driver_start', flat=True)
         total_kasa = 0
-        total_km = UaGpsSynchronizer.objects.get(partner=partner_pk).total_per_day(vehicle.gps.gps_id, start, end)
+        try:
+            total_km = UaGpsSynchronizer.objects.get(partner=partner_pk).total_per_day(vehicle.gps.gps_id, start, end)
+        except ObjectDoesNotExist:
+            return
         if total_km:
             for driver in drivers:
                 reports = CustomReport.objects.filter(
@@ -423,7 +448,7 @@ def get_driver_efficiency_fleet(self, partner_pk, schema, day=None):
     if Fleet.objects.filter(partner=partner_pk, deleted_at=None, name="Gps").exists():
         end, start = get_time_for_task(schema, day)[1:3]
         for driver in Driver.objects.get_active(partner=partner_pk, schema=schema):
-            aggregators = Fleet.objects.filter(partner=partner_pk).exclude(name="Gps")
+            aggregators = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name="Gps")
             for aggregator in aggregators:
                 polymorphic_efficiency_create(DriverEfficiencyFleet, partner_pk, driver,
                                               start, end, Payments, aggregator)
@@ -501,12 +526,11 @@ def schedule_for_detaching_uklon(self, partner_pk):
     today = timezone.localtime()
     desired_time = today + timedelta(hours=1)
     for vehicle in Vehicle.objects.filter(partner=partner_pk):
-        reshuffle = DriverReshuffle.objects.filter(
-            swap_time__date=today.date(),
-            swap_vehicle=vehicle,
-            end_time__range=(today, desired_time),
-            partner=partner_pk
-        ).first()
+        reshuffle = DriverReshuffle.objects.filter(~Q(end_time__time=time(23, 59, 00)),
+                                                   swap_time__date=today.date(),
+                                                   swap_vehicle=vehicle,
+                                                   end_time__range=(today, desired_time),
+                                                   partner=partner_pk).first()
         if reshuffle:
             eta = timezone.localtime(reshuffle.end_time)
             detaching_the_driver_from_the_car.apply_async((partner_pk, reshuffle.swap_vehicle.licence_plate, eta),
@@ -557,7 +581,7 @@ def get_today_rent(self, partner_pk):
         raise self.retry(exc=e, countdown=retry_delay)
 
 
-@app.task(bind=True, queue='bot_tasks', retry_backoff=30, max_retries=4)
+@app.task(bind=True, queue='beat_tasks', retry_backoff=30, max_retries=4)
 def fleets_cash_trips(self, partner_pk, pk, enable):
     try:
         driver = Driver.objects.get(pk=pk)
@@ -1244,26 +1268,21 @@ def update_schedule(self):
                 )
         else:
             day = '1' if db_task.weekly else '*'
-            hours = db_task.task_time.strftime('%H')
-            minutes = db_task.task_time.strftime('%M')
-            if db_task.periodic:
-                if hours == "00":
-                    minutes = f"*/{minutes}"
-                    hours = "*"
-                else:
-                    hours = f"*/{hours}"
-            schedule = get_schedule(hours, minutes, day)
+            schedule = get_schedule(db_task.task_time, day, periodic=db_task.periodic)
             for partner in partners:
                 create_task(db_task.name, partner.pk, schedule, db_task.arguments)
     for schema in work_schemas:
-        night_schedule = get_schedule("04", "30")
+        night_schedule = get_schedule(time(4, 30))
         create_task('download_nightly_report', schema.partner.pk, night_schedule, schema.pk)
         if schema.shift_time != time.min:
-            schedule = get_schedule(schema.shift_time.hour, schema.shift_time.minute)
+            schedule = get_schedule(schema.shift_time)
+            create_task('get_uber_orders', schema.partner.pk, schedule, schema.pk)
         else:
-            schedule = get_schedule("09", "00")
-            efficiency_schedule = get_schedule("09", "59")
+            schedule = get_schedule(time(9, 00))
+            efficiency_schedule = get_schedule(time(9, 59))
+            uber_schedule = get_schedule(time(5, 10))
             create_task('send_driver_efficiency', schema.partner.pk, efficiency_schedule, schema.pk)
+            create_task('get_uber_orders', schema.partner.pk, uber_schedule, schema.pk)
         create_task('get_information_from_fleets', schema.partner.pk, schedule, schema.pk)
 
 
@@ -1271,6 +1290,7 @@ def update_schedule(self):
 def run_periodic_tasks(sender, **kwargs):
     # sender.add_periodic_task(crontab(minute="*/2"), send_time_order.s())
     sender.add_periodic_task(crontab(minute='*/15'), auto_send_task_bot.s())
+    sender.add_periodic_task(crontab(minute='*/10'), raw_gps_handler.s())
     # sender.add_periodic_task(crontab(minute="*/2"), order_not_accepted.s())
     # sender.add_periodic_task(crontab(minute="*/4"), check_personal_orders.s())
     sender.add_periodic_task(crontab(minute="0", hour="*/1"), update_schedule.s())

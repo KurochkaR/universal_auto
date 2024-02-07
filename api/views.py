@@ -1,5 +1,5 @@
 from collections import defaultdict
-from datetime import timedelta
+from datetime import timedelta, date
 
 from _decimal import Decimal
 from itertools import groupby
@@ -18,7 +18,7 @@ from api.serializers import SummaryReportSerializer, CarEfficiencySerializer, Ca
     DriverEfficiencyFleetRentSerializer
 from app.models import SummaryReport, CarEfficiency, Vehicle, DriverEfficiency, RentInformation, DriverReshuffle, \
     PartnerEarnings, InvestorPayments, DriverPayments, PaymentsStatus, PenaltyBonus, Penalty, Bonus, \
-    DriverEfficiencyFleet
+    DriverEfficiencyFleet, VehicleSpending
 from taxi_service.utils import get_start_end
 
 
@@ -150,6 +150,7 @@ def get_dynamic_fleet():
                             Value(" "),
                             F("driver__user_ptr__second_name"), output_field=CharField()),
         'orders': Sum('total_orders'),
+        'orders_rejected': Sum('total_orders_rejected'),
         'average_price': Avg('average_price'),
         'accept_percent': Avg('accept_percent'),
         'road_time': Coalesce(Sum('road_time'), timedelta()),
@@ -209,6 +210,7 @@ class DriverEfficiencyFleetListView(CombinedPermissionsMixin,
                         'driver_id': item['driver_id'],
                         'driver_total_kasa': item['total_kasa'],
                         'orders': item['orders'],
+                        'orders_rejected': item['orders_rejected'],
                         'driver_average_price': item['average_price'],
                         'driver_accept_percent': item['accept_percent'],
                         'driver_road_time': item['road_time'],
@@ -221,60 +223,66 @@ class DriverEfficiencyFleetListView(CombinedPermissionsMixin,
         return [{'start': format_start, 'end': format_end, 'drivers_efficiency': grouped_qs}]
 
 
-class CarsInformationListView(CombinedPermissionsMixin,
-                              generics.ListAPIView):
+class CarsInformationListView(CombinedPermissionsMixin, generics.ListAPIView):
     serializer_class = CarDetailSerializer
 
     def get_queryset(self):
-        investor_queryset = InvestorFilterMixin.get_queryset(Vehicle, self.request.user)
-        if investor_queryset:
-            queryset = investor_queryset
-            earning_subquery = InvestorPayments.objects.all().values('vehicle__licence_plate').annotate(
-                vehicle_earning=Coalesce(Sum('earning'), Decimal(0)),
-            )
-            queryset = queryset.values('licence_plate').annotate(
-                price=F('purchase_price'),
-                kasa=Subquery(earning_subquery.filter(
-                    vehicle__licence_plate=OuterRef('licence_plate')).values('vehicle_earning'),
-                              output_field=DecimalField()
-                              ),
-                spending=Coalesce(Sum('vehiclespending__amount'), Decimal(0))
-            ).annotate(
-                progress_percentage=ExpressionWrapper(
-                    Case(
-                        When(purchase_price__gt=0, then=Round((F('kasa') / F('purchase_price')) * 100)),
-                        default=Value(0),
-                        output_field=DecimalField(max_digits=5, decimal_places=2)
-                    ),
-                    output_field=DecimalField(max_digits=5, decimal_places=2)
-                )
-            )
+        period = self.kwargs['period']
+        start, end, format_start, format_end = get_start_end(period)
+
+        if InvestorFilterMixin.get_queryset(Vehicle, self.request.user):
+            queryset = InvestorFilterMixin.get_queryset(Vehicle, self.request.user)
+            earnings_query_all = InvestorPayments.objects.all()
         else:
             queryset = ManagerFilterMixin.get_queryset(Vehicle, self.request.user)
-            earning_subquery = PartnerEarnings.objects.filter(
-                vehicle__licence_plate=OuterRef('licence_plate')
-            ).values('vehicle__licence_plate').annotate(
-                vehicle_earning=Coalesce(Sum('earning'), Value(0), output_field=DecimalField())
+            earnings_query_all = PartnerEarnings.objects.all()
+
+        if period == 'all_period':
+            start = earnings_query_all.first().report_to
+            end = earnings_query_all.last().report_to
+            format_start = start.strftime("%d.%m.%Y")
+            format_end = end.strftime("%d.%m.%Y")
+
+        earning_subquery = earnings_query_all.filter(
+            report_to__range=(start, end),
+            vehicle__licence_plate=OuterRef('licence_plate')
+        ).values('vehicle__licence_plate').annotate(
+            vehicle_earning=Coalesce(Sum('earning'), Decimal(0), output_field=DecimalField())
+        )
+
+        spending_subquery = VehicleSpending.objects.filter(
+            vehicle__licence_plate=OuterRef('licence_plate'),
+            created_at__date__range=(start, end)
+        ).values('vehicle__licence_plate').annotate(
+            total_spending=Coalesce(Sum('amount'), Decimal(0), output_field=DecimalField())
+        )
+
+        earning_subquery_exists = Exists(earning_subquery.filter(vehicle__licence_plate=OuterRef('licence_plate')))
+        queryset = queryset.values('licence_plate').annotate(
+            price=F('purchase_price'),
+            kasa=Case(When(earning_subquery_exists, then=Subquery(earning_subquery.values('vehicle_earning'))),
+                      default=Value(0),
+                      output_field=DecimalField()),
+            spending=Coalesce(
+                Subquery(spending_subquery.filter(
+                    vehicle__licence_plate=OuterRef('licence_plate')).values('total_spending'),
+                         output_field=DecimalField()
+                         ),
+                Decimal(0)
             )
-            earning_subquery_exists = Exists(earning_subquery.filter(vehicle__licence_plate=OuterRef('licence_plate')))
-            queryset = queryset.values('licence_plate').annotate(
-                price=F('purchase_price'),
-                kasa=Case(When(earning_subquery_exists, then=Subquery(earning_subquery.values('vehicle_earning'))),
-                          default=Value(0),
-                          output_field=DecimalField()
-                          ),
-                spending=Coalesce(Sum('vehiclespending__amount'), Decimal(0))
-            ).annotate(
-                progress_percentage=ExpressionWrapper(
-                    Case(
-                        When(purchase_price__gt=0,
-                             then=Round(((F('kasa') - F('spending')) / F('purchase_price')) * 100)),
-                        default=Value(0),
-                        output_field=DecimalField(max_digits=4, decimal_places=1)
-                    ),
+        ).annotate(
+            start_date=Value(format_start),
+            end_date=Value(format_end),
+            progress_percentage=ExpressionWrapper(
+                Case(
+                    When(purchase_price__gt=0, then=Round((F('kasa') - F('spending')) / F('purchase_price') * 100)),
+                    default=Value(0),
                     output_field=DecimalField(max_digits=4, decimal_places=1)
-                )
+                ),
+                output_field=DecimalField(max_digits=4, decimal_places=1)
             )
+        )
+
         return queryset
 
 
@@ -283,16 +291,17 @@ class DriverReshuffleListView(CombinedPermissionsMixin, generics.ListAPIView):
 
     def get_queryset(self):
         vehicles = ManagerFilterMixin.get_queryset(Vehicle, self.request.user)
+        start, end, format_start, format_end = get_start_end(self.kwargs['period'])
         qs = DriverReshuffle.objects.filter(
             swap_vehicle__in=vehicles,
-            swap_time__range=(self.kwargs['start_date'], self.kwargs['end_date'])
-        ).annotate(
+            swap_time__range=(start, end)
+        ).select_related('driver_start', 'swap_vehicle').annotate(
             licence_plate=F('swap_vehicle__licence_plate'),
             vehicle_id=F('swap_vehicle__pk'),
             driver_name=Concat(
-                F("driver_start__user_ptr__name"),
+                F("driver_start__user_ptr__second_name"),
                 Value(" "),
-                F("driver_start__user_ptr__second_name")),
+                F("driver_start__user_ptr__name")),
             driver_id=F('driver_start__pk'),
             driver_photo=F('driver_start__photo'),
             start_shift=F('swap_time__time'),
@@ -336,7 +345,7 @@ class DriverPaymentsListView(CombinedPermissionsMixin, generics.ListAPIView):
         else:
             start, end, format_start, format_end = get_start_end(period)
             queryset = qs.filter(report_to__range=(start, end),
-                                 status__in=[PaymentsStatus.COMPLETED, PaymentsStatus.FAILED]
+                                 status__in=[PaymentsStatus.COMPLETED, PaymentsStatus.FAILED],
                                  )
         queryset = queryset.select_related('driver__user_ptr').prefetch_related(
             Prefetch('penaltybonus_set', queryset=PenaltyBonus.objects.all(),

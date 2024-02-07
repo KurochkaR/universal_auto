@@ -496,8 +496,17 @@ input[type="button"] {
 		font-size: 22px !important;
 	}
 
+	.filter {
+		flex-direction: column;
+		align-items: flex-start !important;
+	}
+
 	.filter label {
 		font-size: 18px;
+	}
+
+	.checkbox-container {
+		margin-left: 0 !important;
 	}
 
 	.custom-select-drivers {
@@ -991,7 +1000,7 @@ th {
 	padding: 10px;
 	text-align: left;
 	color: #141E17;
-	font-size: 20px;
+	font-size: 18px;
 	font-style: normal;
 	font-weight: border;
 	line-height: normal;
@@ -1006,14 +1015,24 @@ tr:nth-child(odd) {
 }
 
 tr {
-  border-bottom: 3px solid #A1E8B9;
+  border-bottom: 3px solid #EC6323;
+}
+
+.tr-aggregators,
+.description-bonus-penalty {
+	border-bottom: 3px solid #A1E8B9;
+}
+
+.tr-driver-title,
+.tr-driver-payments {
+	border-bottom: 3px solid #A1E8B9;
 }
 
 td {
   padding: 8px;
   color: #000;
 	font-family: Open Sans;
-	font-size: 20px;
+	font-size: 18px;
 	font-style: normal;
 	font-weight: 400;
 	line-height: normal;
@@ -1024,6 +1043,7 @@ h2, table {
 }
 
 th, td {
+	text-align: center;
   border-bottom: 1px solid #ddd;
 }
 
@@ -1052,7 +1072,7 @@ th, td {
   transition: transform 0.2s;
 }
 
-.driver-info {
+.driver-info-container {
   display: none;
   margin-top: 10px;
 }
@@ -1454,8 +1474,20 @@ select:focus {
 
 /* modal-shift */
 
+.modal-overlay {
+	display: none;
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	background-color: rgba(0, 0, 0, 0.5);
+	z-index: 9;
+}
+
 #modal-shift,
-#modal-upd-payments {
+#modal-add-bonus,
+#modal-add-penalty {
 	z-index: 10;
 	display: none;
 	position: fixed;
@@ -1471,7 +1503,8 @@ select:focus {
 }
 
 .modal-shift-title,
-.modal-upd-payments {
+.title-add-bonus,
+.title-add-penalty {
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
@@ -1484,7 +1517,8 @@ select:focus {
 }
 
 .modal-shift-title h2,
-.modal-upd-payments h2{
+.title-add-bonus h2,
+.title-add-penalty h2 {
 	margin-left: 15px;
 	color: #FFF;
 	font-size: 25px;
@@ -1493,6 +1527,40 @@ select:focus {
 	line-height: normal;
 	text-transform: uppercase;
 	margin-bottom: 20px;
+}
+
+.bonus-payments,
+.bonus-vehicle,
+.penalty-payments {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	padding-left: 45px;
+	padding-right: 45px;
+	gap: 30px;
+}
+
+.bonus-field input,
+.bonus-description-field input,
+.penalty-field input,
+.penalty-description-field input,
+.bonus-category-field select,
+.bonus-vehicle-licence-plate select {
+	width: 100%;
+	padding: 5px;
+	border-radius: 62px;
+	border: 3px solid #A1E8B9;
+	background: #FFF;
+	margin-bottom: 20px;
+	box-sizing: border-box;
+}
+
+
+.bonus-vehicle-licence-plate {
+	display: none;
+}
+
+.bonus-description-field {
+	display: none;
 }
 
 .modal-shift-date {
@@ -1601,7 +1669,7 @@ select:focus {
 	padding: 20px;
 	text-align: center;
 	position: fixed;
-	top: 8%;
+	top: 30%;
 	left: 50%;
 	transform: translate(-50%, -50%);
 	border-radius: 62px;
@@ -1719,17 +1787,55 @@ select:focus {
 	cursor: pointer;
 }
 
-.driver-table tbody tr td .edit-btn,
+.driver-table tbody tr td .add-btn-bonus,
+.driver-table tbody tr td .add-btn-penalty,
 .driver-table tbody tr td .apply-btn,
-.driver-table tbody tr td .arrow-btn,
+.driver-table tbody tr td .arrow-btn {
+	background: none;
+	border: none;
+	padding: 5px;
+	cursor: pointer;
+	font-size: 30px;
+}
+
+.edit-bonus-penalty {
+    background-color: #EC6323;
+    padding: 0px;
+    text-align: center;
+    color: #FFF;
+    font-size: 18px;
+    font-style: normal;
+    line-height: normal;
+}
+
+.bonus-penalty-table {
+    width: 100%;
+}
+
+.title-bonus-penalty th {
+    width: 25%;
+}
+
+.description-bonus-penalty td {
+		width: 25%;
+    padding: 0px;
+    color: #000;
+    font-size: 16px;
+}
+
 .edit-bonus-btn, .edit-penalty-btn,
 .delete-bonus-btn, .delete-penalty-btn {
 	background: none;
 	border: none;
 	padding: 5px;
 	cursor: pointer;
-	font-size: 30px;
-	margin-right: 15px;
+	font-size: 20px;
+}
+
+.driver-table tbody tr td .add-btn-bonus,
+.driver-table tbody tr td .add-btn-penalty {
+	font-size: 16px;
+	color: #EC6323;
 }
 
 /* Загальні стилі для контейнера радіокнопок */
@@ -1789,35 +1895,24 @@ select:focus {
     margin-bottom: 5px;
 }
 
-
-.bonus-field input,
-.bonus-description-field textarea,
-.penalty-field input,
-.penalty-description-field textarea {
-    width: 100%;
-    padding: 8px;
-    box-sizing: border-box;
-    margin: 10px;
+.bonus-btn-box,
+.penalty-btn-box {
+	position: absolute;
+	bottom: 15px;
+	right: 45px;
 }
 
-
-.payments-content {
-    display: flex;
-    max-width: 400px;
-    margin: 0 auto;
-    gap: 20px;
-}
-
-.upd-payments-btn {
-		display: block;
-		margin: 0 auto;
-		padding: 8px 16px;
-		font-size: 16px;
-		background-color: #EC6323;
-		color: white;
-		border: none;
-		border-radius: 10px;
-		cursor: pointer;
+.add-bonus-btn,
+.add-penalty-btn {
+	display: block;
+	margin: 0 auto;
+	padding: 8px 16px;
+	font-size: 16px;
+	background-color: #EC6323;
+	color: white;
+	border: none;
+	border-radius: 10px;
+	cursor: pointer;
 }
 
 .box-btn-upd {

@@ -39,6 +39,16 @@ $(document).ready(function () {
 	fetchCalendarData(formattedStartDate, formattedEndDate);
 
 	function reshuffleHandler (data) {
+
+		data.sort((a, b) => {
+			if (a.swap_licence < b.swap_licence) {
+				return -1;
+			}
+			if (a.swap_licence > b.swap_licence) {
+				return 1;
+			}
+			return 0;
+    });
 		$('.driver-calendar').empty();
 
 		const calendarHTML = data.map(function (carData) {
@@ -77,33 +87,33 @@ $(document).ready(function () {
 		}).join('');
 		$('.driver-calendar').append(calendarHTML);
 
-		const totalPages = Math.ceil(data.length / 5);
-		let currentPage = 1;
+//		const totalPages = Math.ceil(data.length / 5);
+//		let currentPage = 1;
 
-		const paginationContainer = `
-			<div class="pagination">
-				<button id="prevPageBtn">
-					<svg version="1.0" xmlns="http://www.w3.org/2000/svg" width="50px" height="50px" viewBox="0 0 1280.000000 1280.000000" preserveAspectRatio="xMidYMid meet">
-						<metadata>Created by potrace 1.15, written by Peter Selinger 2001-2017</metadata>
-						<g transform="translate(1280.000000,0.000000) scale(-0.100000,0.100000)" fill="#EC6323" stroke="none">
-							<path d="M1422 12134 c3 -10 416 -1279 917 -2819 l912 -2801 -916 -2813 c-504 -1547 -914 -2815 -912 -2817 3 -4 10215 5612 10230 5625 4 4 -907 511 -2025 1126 -3792 2086 -5300 2916 -6748 3712 -795 438 -1449 798 -1454 801 -5 3 -7 -3 -4 -14z"/>
-						</g>
-				</svg>
-				</button>
-				<span id="pageInfo">Сторінка ${currentPage} з ${totalPages}</span>
-				<button id="nextPageBtn">
-					<svg version="1.0" xmlns="http://www.w3.org/2000/svg" width="50px" height="50px" viewBox="0 0 1280.000000 1280.000000" preserveAspectRatio="xMidYMid meet">
-						<metadata>Created by potrace 1.15, written by Peter Selinger 2001-2017</metadata>
-						<g transform="translate(0.000000,1280.000000) scale(0.100000,-0.100000)" fill="#EC6323" stroke="none">
-							<path d="M1422 12134 c3 -10 416 -1279 917 -2819 l912 -2801 -916 -2813 c-504 -1547 -914 -2815 -912 -2817 3 -4 10215 5612 10230 5625 4 4 -907 511 -2025 1126 -3792 2086 -5300 2916 -6748 3712 -795 438 -1449 798 -1454 801 -5 3 -7 -3 -4 -14z"/>
-						</g>
-					</svg>
-				</button>
-			</div>
-		`;
-
-
-		$('.driver-calendar').append(paginationContainer);
+//		const paginationContainer = `
+//			<div class="pagination">
+//				<button id="prevPageBtn">
+//					<svg version="1.0" xmlns="http://www.w3.org/2000/svg" width="50px" height="50px" viewBox="0 0 1280.000000 1280.000000" preserveAspectRatio="xMidYMid meet">
+//						<metadata>Created by potrace 1.15, written by Peter Selinger 2001-2017</metadata>
+//						<g transform="translate(1280.000000,0.000000) scale(-0.100000,0.100000)" fill="#EC6323" stroke="none">
+//							<path d="M1422 12134 c3 -10 416 -1279 917 -2819 l912 -2801 -916 -2813 c-504 -1547 -914 -2815 -912 -2817 3 -4 10215 5612 10230 5625 4 4 -907 511 -2025 1126 -3792 2086 -5300 2916 -6748 3712 -795 438 -1449 798 -1454 801 -5 3 -7 -3 -4 -14z"/>
+//						</g>
+//				</svg>
+//				</button>
+//				<span id="pageInfo">Сторінка ${currentPage} з ${totalPages}</span>
+//				<button id="nextPageBtn">
+//					<svg version="1.0" xmlns="http://www.w3.org/2000/svg" width="50px" height="50px" viewBox="0 0 1280.000000 1280.000000" preserveAspectRatio="xMidYMid meet">
+//						<metadata>Created by potrace 1.15, written by Peter Selinger 2001-2017</metadata>
+//						<g transform="translate(0.000000,1280.000000) scale(0.100000,-0.100000)" fill="#EC6323" stroke="none">
+//							<path d="M1422 12134 c3 -10 416 -1279 917 -2819 l912 -2801 -916 -2813 c-504 -1547 -914 -2815 -912 -2817 3 -4 10215 5612 10230 5625 4 4 -907 511 -2025 1126 -3792 2086 -5300 2916 -6748 3712 -795 438 -1449 798 -1454 801 -5 3 -7 -3 -4 -14z"/>
+//						</g>
+//					</svg>
+//				</button>
+//			</div>
+//		`;
+//
+//
+//		$('.driver-calendar').append(paginationContainer);
 
 
 		$('.calendar-container').each(function () {
@@ -294,7 +304,7 @@ $(document).ready(function () {
 
 				renderCalendar(carDate);
 
-				apiUrl = `/api/reshuffle/${formattedStartDate}/${formattedEndDate}/`;
+				apiUrl = `/api/reshuffle/${formattedStartDate}&${formattedEndDate}/`;
 
 				$.ajax({
 					url: apiUrl,
@@ -342,6 +352,7 @@ $(document).ready(function () {
 			startTimeInput.val(startTime);
 			endTimeInput.val(endTime);
 			shiftVehicleInput.val(vehicleId);
+			$('.modal-overlay').show();
 
 			const shiftBtn = $('.shift-btn').hide();
 			const recurrence = $('.recurrence').hide();
@@ -370,11 +381,13 @@ $(document).ready(function () {
 
 			deleteBtn.off('click').on('click', function (e) {
 				e.preventDefault();
+				$('.modal-overlay').hide();
 				handleDelete('delete_shift');
 			});
 
 			deleteAllBtn.off('click').on('click', function (e) {
 				e.preventDefault();
+				$('.modal-overlay').hide();
 				handleDelete('delete_all_shift');
 			});
 
@@ -411,11 +424,13 @@ $(document).ready(function () {
 
 			updBtn.off('click').on('click', function (e) {
 				e.preventDefault();
+				$('.modal-overlay').hide();
 				handleUpdate('update_shift');
 			});
 
 			updAllBtn.off('click').on('click', function (e) {
 				e.preventDefault();
+				$('.modal-overlay').hide();
 				handleUpdate('update_all_shift');
 			});
 		}
@@ -435,7 +450,9 @@ $(document).ready(function () {
 			const endTimeInput = $('#endTime');
 			const shiftDriver = $('#shift-driver');
 			const csrfTokenInput = $('input[name="csrfmiddlewaretoken"]');
-
+			$("#startTime").val("");
+			$("#endTime").val("");
+			$('.modal-overlay').show();
 			modalShiftTitle.text("Створення зміни");
 			modalShiftDate.text(formatDateString(clickedDayId));
 			shiftForm.show();
@@ -462,12 +479,13 @@ $(document).ready(function () {
 							csrfmiddlewaretoken: csrfTokenInput.val()
 						},
 						success: function (response) {
+								$('.modal-overlay').hide();
+						    fetchCalendarData(formattedStartDate, formattedEndDate);
 							if (response.data[0] === true) {
-								fetchCalendarData(formattedStartDate, formattedEndDate);
 								filterCheck();
 								showShiftMessage(response.data[0], response.data[1]);
 							} else {
-								showShiftMessage(response.data[0], response.data[1], response.data[1]['conflicting_time'], response.data[1]['licence_plate']);
+								    showConflictMessage(response.data[0], response.data[1], response.data[1]);
 							}
 						},
 					});
@@ -517,44 +535,44 @@ $(document).ready(function () {
 			});
 		});
 
-		function showCalendars(page) {
-			$('.calendar-container').hide();
+//		function showCalendars(page) {
+//			$('.calendar-container').hide();
+//
+//			const startIndex = (page - 1) * 4;
+//			const endIndex = Math.min(startIndex + 3, data.length - 1);
+//
+//			const calendarsToShow = $('.calendar-container').filter(function (index) {
+//					return index >= startIndex && index <= endIndex;
+//			});
+//
+//			if (calendarsToShow.length > 0) {
+//					calendarsToShow.show();
+//			} else {
+//					$('.driver-calendar').html('<p>Немає календарів для відображення.</p>');
+//			}
+//
+//			$('#pageInfo').text(`Сторінка ${page} з ${totalPages}`);
+//		}
+//
+//
+//		$('#prevPageBtn').on('click', function () {
+//			if (currentPage > 1) {
+//				currentPage--;
+//				showCalendars(currentPage);
+//			}
+//		});
+//
+//		$('#nextPageBtn').on('click', function () {
+//			if (currentPage < totalPages) {
+//				currentPage++;
+//				showCalendars(currentPage);
+//			}
+//		});
 
-			const startIndex = (page - 1) * 4;
-			const endIndex = Math.min(startIndex + 3, data.length - 1);
-
-			const calendarsToShow = $('.calendar-container').filter(function (index) {
-					return index >= startIndex && index <= endIndex;
-			});
-
-			if (calendarsToShow.length > 0) {
-					calendarsToShow.show();
-			} else {
-					$('.driver-calendar').html('<p>Немає календарів для відображення.</p>');
-			}
-
-			$('#pageInfo').text(`Сторінка ${page} з ${totalPages}`);
-		}
-
-
-		$('#prevPageBtn').on('click', function () {
-			if (currentPage > 1) {
-				currentPage--;
-				showCalendars(currentPage);
-			}
-		});
-
-		$('#nextPageBtn').on('click', function () {
-			if (currentPage < totalPages) {
-				currentPage++;
-				showCalendars(currentPage);
-			}
-		});
-
-		showCalendars(currentPage);
+//		showCalendars(currentPage);
 	}
 	function fetchCalendarData(formattedStartDate, formattedEndDate) {
-		apiUrl = `/api/reshuffle/${formattedStartDate}/${formattedEndDate}/`;
+		apiUrl = `/api/reshuffle/${formattedStartDate}&${formattedEndDate}/`;
 		$.ajax({
 			url: apiUrl,
 			type: 'GET',
@@ -571,7 +589,7 @@ $(document).ready(function () {
 	function fetchDataAndHandle(filterProperty, reshuffleProperty) {
 		var selectedValue = $(this).val();
 		var selectedText = $(this).find("option:selected").text();
-		apiUrl = `/api/reshuffle/${formattedStartDate}/${formattedEndDate}/`;
+		apiUrl = `/api/reshuffle/${formattedStartDate}&${formattedEndDate}/`;
 
 		return $.ajax({
 			url: apiUrl,
@@ -627,6 +645,7 @@ $(document).ready(function () {
 		$('#modal-shift').hide();
 	});
 });
+
 
 
 function compareTimes(time1, time2) {
@@ -709,7 +728,25 @@ function showShiftMessage(success, showText, time, vehicle) {
 		}
 		setTimeout(function () {
 			$(".shift-success-message").hide();
-		}, 8000);
+		}, 5000);
+	}
+}
+function showConflictMessage(success, showText, messageList) {
+	if (success) {
+		$(".shift-success-message").show();
+		$(".shift-success-message h2").text(showText);
+
+		setTimeout(function () {
+			$(".shift-success-message").hide();
+		}, 5000);
+	} else {
+		$(".shift-success-message").show();
+            const messages = messageList.map(conflict => `${conflict.licence_plate} - ${conflict.conflicting_time}`);
+            const resultMessage = messages.join('<br>');
+			$(".shift-success-message h2").html("Помилка, конфлікт змін:<br>" + resultMessage);
+		setTimeout(function () {
+			$(".shift-success-message").hide();
+		}, 5000);
 	}
 }
 
@@ -725,3 +762,20 @@ function filterCheck() {
 		$("#search-shift-driver").change();
 	}
 }
+
+
+function openModal() {
+    document.getElementById('modal-shift').style.display = 'block';
+    document.querySelector('.modal-overlay').style.display = 'block';
+    document.body.style.overflow = 'hidden'; // Блокує прокрутку сторінки
+}
+
+// Закриття модального вікна та видалення затемнення фону
+function closeModal() {
+    document.getElementById('modal-shift').style.display = 'none';
+    document.querySelector('.modal-overlay').style.display = 'none';
+    document.body.style.overflow = ''; // Відновлює прокрутку сторінки
+}
+
+// Додати обробник кліків для кнопки закриття модального вікна
+document.querySelector('.shift-close-btn').addEventListener('click', closeModal);

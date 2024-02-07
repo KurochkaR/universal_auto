@@ -182,12 +182,13 @@ def get_daily_report(manager_id, schema_obj=None):
 
 def generate_message_report(chat_id, schema_id=None, daily=None):
     drivers, user = get_drivers_vehicles_list(chat_id, Driver)
+    drivers = drivers.filter(schema__isnull=False)
     if schema_id:
         schema = Schema.objects.get(pk=schema_id)
         if schema.salary_calculation == SalaryCalculation.WEEK:
             if timezone.localtime().weekday() == 1:
-                start = timezone.localtime() - timedelta(weeks=1)
-                end = timezone.localtime() - timedelta(days=1)
+                end = timezone.localtime() - timedelta(days=timezone.localtime().weekday() + 1)
+                start = end - timedelta(days=6)
             else:
                 return
         else:
@@ -479,7 +480,6 @@ def calculate_income_partner(driver, start, end, spending_rate, rent, driver_ren
         uber_uklon_income = 0
         start_period, end_period = find_reshuffle_period(reshuffle, start, end)
         vehicle = reshuffle.swap_vehicle
-        print(start_period)
         bolt_income = FleetOrder.objects.filter(
             fleet="Bolt",
             accepted_time__range=(start_period, end_period),
@@ -494,21 +494,21 @@ def calculate_income_partner(driver, start, end, spending_rate, rent, driver_ren
             vehicle=vehicle, driver=driver, report_from__range=(start_period, end_period),
             report_to__range=(start_period, end_period)).aggregate(
             vehicle_distance=Coalesce(Sum('rent_distance'), Decimal(0)))['vehicle_distance']
-        print(rent_vehicle)
+
         if driver_rent and rent_vehicle:
             total_rent = rent_vehicle / driver_rent * rent
         else:
             total_rent = 0
-        print(f"rent {total_rent}")
+
         fleets = Fleet.objects.filter(partner=driver.partner, name__in=("Uklon", "Uber"))
         for fleet in fleets:
             uber_uklon_income += Decimal(fleet.get_earnings_per_driver(driver, start_period, end_period)[0])
-            print(uber_uklon_income)
+
         total_bolt_income = Decimal(bolt_income['total_price'] * 0.75004 +
                                     bolt_income['total_tips'] + compensations + bonuses)
         total_kasa = Decimal((total_bolt_income + uber_uklon_income)) * spending_rate
         total_income = total_kasa + total_rent
-        print(f"total{total_income}")
+
         if not vehicle_income.get(vehicle):
             vehicle_income[vehicle] = total_income
         else:
@@ -531,7 +531,7 @@ def get_failed_income(payment):
         orders_total_cash = 0
         bonuses = 0
         compensations = 0
-        print(start_report, end_report)
+
         reshuffles = check_reshuffle(payment.driver, start_report, end_report)
         checked = False
         quantity_reshuffles = reshuffles.count()
@@ -540,7 +540,7 @@ def get_failed_income(payment):
             uber_uklon_cash = 0
             start_period, end_period = find_reshuffle_period(reshuffle, start_report, end_report)
             vehicle = reshuffle.swap_vehicle
-            print(start_period, end_period)
+
             bolt_orders = FleetOrder.objects.filter(
                 fleet="Bolt",
                 accepted_time__range=(start_period, end_period),
@@ -560,13 +560,13 @@ def get_failed_income(payment):
                 kasa, cash = fleet.get_earnings_per_driver(payment.driver, start_period, end_period)
                 uber_uklon_income += Decimal(kasa)
                 uber_uklon_cash += Decimal(cash)
-                print(f"uber_uklon {kasa} {cash}")
+
             total_bolt_income = Decimal(bolt_kasa['total_price'] * 0.75004 +
                                         bolt_kasa['total_tips'] + compensations + bonuses)
             bolt_cash = Decimal(bolt_cash['total_price'] * 0.75004 + bolt_kasa['total_tips'])
             orders_total_cash += bolt_cash
             total_income = total_bolt_income + uber_uklon_income - uber_uklon_cash - bolt_cash
-            print(total_income)
+
             if not vehicle_income.get(vehicle):
                 vehicle_income[vehicle] = total_income
             else:
@@ -577,6 +577,6 @@ def get_failed_income(payment):
             updated_income = {key: value + vehicle_card_bonus for key, value in vehicle_income.items()}
         else:
             updated_income = vehicle_income
-        print(f"upd {updated_income}")
+
         start += timedelta(days=1)
     return updated_income

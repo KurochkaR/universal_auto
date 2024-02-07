@@ -40,5 +40,6 @@ backports.zoneinfo
 pyjwt==2.8.0
 cryptography
 django_celery_beat
+django-debug-toolbar
 sentry-sdk[django]
 sentry-sdk[celery]

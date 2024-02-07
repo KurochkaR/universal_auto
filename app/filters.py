@@ -15,13 +15,11 @@ class VehicleRelatedFilter(admin.SimpleListFilter):
         queryset = self.model_class.objects.all()
         vehicle_choices = []
         if user.is_manager():
-            vehicles = Vehicle.objects.filter(manager=user)
-            queryset = queryset.filter(vehicle__in=vehicles)
+            queryset = queryset.filter(vehicle__manager=user.pk)
         elif user.is_partner():
             queryset = queryset.filter(partner=user)
         elif user.is_investor():
-            vehicles = Vehicle.objects.filter(investor_car=user)
-            queryset = queryset.filter(vehicle__in=vehicles)
+            queryset = queryset.filter(vehicle__investor_car=user.pk)
         vehicle_choices.extend(queryset.values_list('vehicle_id', 'vehicle__licence_plate'))
         return sorted(set(vehicle_choices), key=lambda x: x[1])
 

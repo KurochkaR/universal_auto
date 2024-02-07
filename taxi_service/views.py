@@ -48,7 +48,8 @@ class PostRequestView(View):
             "delete_all_shift": handler.handler_delete_shift,
             "update_shift": handler.handler_update_shift,
             "update_all_shift": handler.handler_update_shift,
-            "upd-payments": handler.handler_update_payments,
+            "add-bonus": handler.handler_add_bonus_or_penalty,
+            "add-penalty": handler.handler_add_bonus_or_penalty,
             "upd-status-payment": handler.handler_upd_payment_status,
             "upd_delete_bonus_penalty": handler.handler_upd_delete_bonus_penalty,
         }
@@ -133,6 +134,9 @@ class DriversView(TemplateView):
         return context
 
 
+# DASHBOARD VIEWS ->
+
+
 class BaseDashboardView(LoginRequiredMixin, TemplateView):
     login_url = "index"
 
@@ -174,7 +178,6 @@ class DashboardVehicleView(BaseDashboardView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["car_piggy_bank"] = CarsInformationListView.get_queryset(self)
         return context
 
 
@@ -185,6 +188,8 @@ class DashboardDriversView(BaseDashboardView):
 class DashboardCalendarView(BaseDashboardView):
     template_name = "dashboard/dashboard-calendar.html"
 
+
+# OTHER PAGES VIEWS ->
 
 class GoogleAuthView(View):
     @method_decorator(csrf_exempt)

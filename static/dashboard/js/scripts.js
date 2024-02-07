@@ -261,29 +261,45 @@ $(document).ready(function() {
 });
 
 function applyCustomDateRange(item) {
-	$(".apply-filter-button_driver").prop("disabled", true);
 
+    let startDate = $("#start_report_driver").val();
+    let endDate = $("#end_report_driver").val();
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
 
-	let startDate = $("#start_report_driver").val();
-	let endDate = $("#end_report_driver").val();
+    if (!startDate.match(dateRegex) || !endDate.match(dateRegex)) {
+        $("#error_message").text("Дата повинна бути у форматі YYYY-MM-DD").show();
+        return;
+    }
 
-	const selectedPeriod = 'custom'
+    if (startDate > endDate) {
+        $("#error_message").text("Кінцева дата повинна бути більшою або рівною початковій даті").show();
+        return;
+    }
 
-	if (item === 'driver') {
-		aggregator = $('.checkbox-container input[type="checkbox"]:checked').map(function() {
-			return $(this).val();
-		}).get();
+		$("#error_message").hide();
+    const selectedPeriod = 'custom';
 
-		var aggregatorsString = aggregator.join('&');
-		if (aggregatorsString === 'share') {
-			fetchDriverEfficiencyData(selectedPeriod, startDate, endDate);
-		} else {
-			fetchDriverEfficiencyData(selectedPeriod, startDate, endDate, aggregatorsString);
-		}
-	}
+    if (item === 'driver') {
+    		$(".apply-filter-button_driver").prop("disabled", true);
+        aggregator = $('.checkbox-container input[type="checkbox"]:checked').map(function() {
+            return $(this).val();
+        }).get();
+        var aggregatorsString = aggregator.join('&');
 
-	if (item === 'payments') {
-		driverPayment(selectedPeriod, startDate, endDate, paymentStatus="closed");
-	}
+        if (aggregatorsString === 'shared') {
+            fetchDriverEfficiencyData(selectedPeriod, startDate, endDate);
+        } else {
+            fetchDriverFleetEfficiencyData(selectedPeriod, startDate, endDate, aggregatorsString);
+        }
+    }
 
+    if (item === 'vehicle') {
+    		$(".apply-filter-button_vehicle").prop("disabled", true);
+        fetchVehicleEarningsData(selectedPeriod, startDate, endDate);
+    }
+
+    if (item === 'payments') {
+    		$(".apply-filter-button_driver").prop("disabled", true);
+        driverPayment(selectedPeriod, startDate, endDate, paymentStatus="closed");
+    }
 }

@@ -37,7 +37,7 @@ class SoftDeleteAdmin(admin.ModelAdmin):
     def get_actions(self, request):
         actions = super().get_actions(request)
         actions['delete_selected'] = (
-            self.delete_selected, 'delete_selected', _(f"Видалити обрані {self.model._meta.verbose_name_plural}"))
+            self.delete_selected, 'delete_selected', _(f"Звільнити {self.model._meta.verbose_name_plural}в"))
         return actions
 
     def get_queryset(self, request):
@@ -175,7 +175,7 @@ class SchemaForm(forms.ModelForm):
 
     class Meta:
         model = Schema
-        fields = ('title', 'salary_calculation', 'schema', 'shift_time', 'plan', 'rate',
+        fields = ('title', 'salary_calculation', 'schema', 'shift_time', 'plan', 'cash', 'rate',
                   'rental', 'rent_price', 'limit_distance', 'drivers')
 
 
@@ -221,8 +221,6 @@ class SchemaAdmin(admin.ModelAdmin):
         if 'drivers' in form.cleaned_data:
             form.instance.driver_set.set(form.cleaned_data['drivers'])
 
-
-
     def get_queryset(self, request):
         queryset = super().get_queryset(request)
         if request.user.is_partner():
@@ -259,15 +257,15 @@ class DriverRateLevelsAdmin(admin.ModelAdmin):
 
 @admin.register(RawGPS)
 class RawGPSAdmin(admin.ModelAdmin):
-    list_display = ('imei', 'client_ip', 'client_port', 'data_', 'created_at', 'vehiclegps')
-    list_display_links = ('imei', 'client_ip', 'client_port', 'data_')
-    search_fields = ('imei',)
-    list_filter = ('imei', 'client_ip', 'created_at')
-    ordering = ('-created_at', 'imei')
-    list_per_page = 25
+    list_display = ('id', 'vehiclegps')
+    list_display_links = ('id',)
 
-    def data_(self, instance):
-        return f'{instance.data[:100]}...'
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+
+        queryset = queryset.select_related('vehiclegps').only('id', 'vehiclegps')
+
+        return queryset
 
 
 @admin.register(VehicleGPS)
@@ -415,14 +413,38 @@ class JobApplicationAdmin(admin.ModelAdmin):
 
 @admin.register(VehicleSpending)
 class VehicleSpendingAdmin(admin.ModelAdmin):
-    list_display = ['vehicle', 'amount', 'category', 'description', 'created_date']
-    list_filter = ['created_at', 'category', VehicleSpendingFilter]
+    list_display = ['vehicle', 'amount', 'category', 'description', 'display_photo', 'created_date']
+    list_filter = (VehicleSpendingFilter, 'category', 'created_at')
+    readonly_fields = ('display_photo',)
 
-    fieldsets = [
-        (None, {'fields': ['vehicle', 'amount',
-                           'category', 'description'
-                           ]}),
-    ]
+    class Media:
+        css = {
+            'all': ('https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.3/css/lightbox.min.css',)
+        }
+        js = (
+            'https://code.jquery.com/jquery-3.6.4.min.js',
+            'https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.3/js/lightbox.min.js',
+        )
+
+    def get_fieldsets(self, request, obj=None):
+
+        if obj:
+            fieldsets = [
+                ('Інформація про витрату', {'fields': ['amount', 'description']}),
+                ('Фото', {'fields': ['photo', 'display_photo']})
+            ]
+        else:
+            fieldsets = [
+                ('Інформація про витрату', {'fields': ['vehicle', 'category', 'amount', 'description']}),
+                ('Фото', {'fields': ['photo', 'display_photo']})
+            ]
+
+        return fieldsets
+
+    def display_photo(self, obj):
+        if obj.photo:
+            url = obj.photo.url
+            return mark_safe(f'<a href="{url}" data-lightbox="image"><img src="{url}" width="200" height="150"></a>')
 
     def created_date(self, obj):
         return obj.created_at.date()
@@ -436,13 +458,20 @@ class VehicleSpendingAdmin(admin.ModelAdmin):
         elif user.is_manager():
             filter_condition = Q(vehicle__manager=user)
         elif user.is_partner():
-            filter_condition = Q(vehicle__partner=user)
+            filter_condition = Q(partner=user)
         else:
             filter_condition = Q()
 
-        queryset = queryset.filter(filter_condition)
+        queryset = queryset.filter(filter_condition).select_related('vehicle', 'partner', 'vehicle__manager')
 
         return queryset
+
+    def save_model(self, request, obj, form, change):
+        if request.user.is_partner():
+            obj.partner_id = request.user.pk
+        if request.user.is_manager():
+            obj.partner = request.user.manager.managers_partner
+        super().save_model(request, obj, form, change)
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         user = request.user
@@ -455,10 +484,13 @@ class VehicleSpendingAdmin(admin.ModelAdmin):
                     kwargs['queryset'] = db_field.related_model.objects.filter(manager=request.user)
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
+    display_photo.short_description = 'Попередній перегляд'
+    created_date.short_description = 'Дата створення'
+
 
 @admin.register(InvestorPayments)
 class TransactionsConversationAdmin(admin.ModelAdmin):
-    list_filter = (TransactionInvestorUserFilter, )
+    list_filter = (TransactionInvestorUserFilter,)
 
     def get_list_display(self, request):
         display = ['report_from', 'report_to', 'vehicle', 'earning',
@@ -467,9 +499,10 @@ class TransactionsConversationAdmin(admin.ModelAdmin):
             display.append('partner')
         return display
 
+
 @admin.register(PartnerEarnings)
 class PartnerEarningsAdmin(admin.ModelAdmin):
-    list_filter = (PartnerPaymentFilter, )
+    list_filter = (PartnerPaymentFilter,)
 
     def get_list_display(self, request):
         display = ['report_from', 'report_to', 'vehicle', 'earning',
@@ -481,7 +514,7 @@ class PartnerEarningsAdmin(admin.ModelAdmin):
 
 @admin.register(CarEfficiency)
 class CarEfficiencyAdmin(admin.ModelAdmin):
-    list_filter = (VehicleEfficiencyUserFilter, )
+    list_filter = (VehicleEfficiencyUserFilter,)
     list_per_page = 25
     raw_id_fields = ['vehicle']
     list_select_related = ['vehicle']
@@ -495,9 +528,9 @@ class CarEfficiencyAdmin(admin.ModelAdmin):
 
     def get_fieldsets(self, request, obj=None):
         fieldsets = [
-            ('Інформація по авто',          {'fields': ['report_from', 'vehicle', 'total_kasa',
-                                                        'total_spending', 'efficiency',
-                                                        'mileage']}),
+            ('Інформація по авто', {'fields': ['report_from', 'vehicle', 'total_kasa',
+                                               'total_spending', 'efficiency',
+                                               'mileage']}),
         ]
 
         return fieldsets
@@ -528,12 +561,12 @@ class DriverEfficiencyAdmin(admin.ModelAdmin):
 
     def get_fieldsets(self, request, obj=None):
         fieldsets = [
-            ('Водій',                       {'fields': ['report_from', 'driver',
-                                                        ]}),
-            ('Інформація по водію',          {'fields': ['total_kasa', 'average_price', 'efficiency',
-                                                         'mileage']}),
-            ('Додатково',                   {'fields': ['total_orders', 'accept_percent', 'road_time'
-                                                        ]}),
+            ('Водій', {'fields': ['report_from', 'driver',
+                                  ]}),
+            ('Інформація по водію', {'fields': ['total_kasa', 'average_price', 'efficiency',
+                                                'mileage']}),
+            ('Додатково', {'fields': ['total_orders', 'accept_percent', 'road_time'
+                                      ]}),
         ]
 
         return fieldsets
@@ -572,20 +605,20 @@ class RentInformationAdmin(admin.ModelAdmin):
     def get_fieldsets(self, request, obj=None):
         if request.user.is_superuser:
             fieldsets = [
-                ('Водій',                       {'fields': ['driver',
-                                                            ]}),
-                ('Інформація про оренду',       {'fields': ['report_from', 'rent_distance',
-                                                            ]}),
-                ('Додатково',                   {'fields': ['partner',
-                                                            ]}),
+                ('Водій', {'fields': ['driver',
+                                      ]}),
+                ('Інформація про оренду', {'fields': ['report_from', 'rent_distance',
+                                                      ]}),
+                ('Додатково', {'fields': ['partner',
+                                          ]}),
             ]
 
         else:
             fieldsets = [
-                ('Водій',                       {'fields': ['driver',
-                                                            ]}),
-                ('Інформація про оренду',       {'fields': ['report_from', 'rent_distance',
-                                                            ]}),
+                ('Водій', {'fields': ['driver',
+                                      ]}),
+                ('Інформація про оренду', {'fields': ['report_from', 'rent_distance',
+                                                      ]}),
             ]
 
         return fieldsets
@@ -655,10 +688,10 @@ class PaymentsOrderAdmin(BaseReportAdmin):
             manager_drivers = Driver.objects.filter(manager=request.user)
             qs = qs.filter(driver__in=manager_drivers)
         return qs.select_related(
-                'fleet__partner', 'partner', 'driver__partner').prefetch_related(
-                Prefetch('fleet', queryset=Fleet.objects.only('name')),
-                Prefetch('driver', queryset=Driver.objects.only('name', 'second_name')),
-            )
+            'fleet__partner', 'partner', 'driver__partner').prefetch_related(
+            Prefetch('fleet', queryset=Fleet.objects.only('name')),
+            Prefetch('driver', queryset=Driver.objects.only('name', 'second_name')),
+        )
 
 
 @admin.register(SummaryReport)
@@ -730,7 +763,6 @@ class InvestorForm(forms.ModelForm):
 
 
 class InvestorAddForm(forms.ModelForm):
-
     class Meta:
         model = Investor
         fields = ('email', 'last_name', 'first_name', 'password', 'investors_partner')
@@ -874,7 +906,7 @@ class DriverAdmin(SoftDeleteAdmin):
     search_fields = ('name', 'second_name')
     ordering = ('name', 'second_name')
     list_display_links = ('name', 'second_name')
-    list_per_page = 10
+    list_per_page = 20
     readonly_fields = ('name', 'second_name', 'email', 'phone_number', 'driver_status')
 
     def get_queryset(self, request):
@@ -906,34 +938,34 @@ class DriverAdmin(SoftDeleteAdmin):
     def get_fieldsets(self, request, obj=None):
         if request.user.is_superuser:
             fieldsets = (
-                ('Інформація про водія',        {'fields': ['name', 'second_name', 'email',
-                                                            'phone_number',   'chat_id',
-                                                            ]}),
-                ('Тарифний план',               {'fields': ('schema',
-                                                            )}),
-                ('Додатково',                   {'fields': ['partner', 'manager', 'driver_status'
-                                                            ]}),
+                ('Інформація про водія', {'fields': ['name', 'second_name', 'email',
+                                                     'phone_number', 'chat_id',
+                                                     ]}),
+                ('Тарифний план', {'fields': ('schema',
+                                              )}),
+                ('Додатково', {'fields': ['partner', 'manager', 'driver_status'
+                                          ]}),
             )
 
         elif request.user.is_partner():
             fieldsets = (
-                ('Інформація про водія',        {'fields': ['name', 'second_name', 'email',
-                                                            'phone_number', 'chat_id',
-                                                            ]}),
-                ('Тарифний план',               {'fields': ('schema',
-                                                            )}),
-                ('Додатково',                   {'fields': ['driver_status', 'manager',
-                                                            ]}),
+                ('Інформація про водія', {'fields': ['name', 'second_name', 'email',
+                                                     'phone_number', 'chat_id',
+                                                     ]}),
+                ('Тарифний план', {'fields': ('schema',
+                                              )}),
+                ('Додатково', {'fields': ['driver_status', 'manager',
+                                          ]}),
             )
         else:
             fieldsets = (
-                ('Інформація про водія',        {'fields': ['name', 'second_name', 'email',
-                                                            'phone_number', 'chat_id',
-                                                            ]}),
-                ('Тарифний план',               {'fields': ('schema',
-                                                            )}),
-                ('Додатково',                   {'fields': ['driver_status',
-                                                            ]}),
+                ('Інформація про водія', {'fields': ['name', 'second_name', 'email',
+                                                     'phone_number', 'chat_id',
+                                                     ]}),
+                ('Тарифний план', {'fields': ('schema',
+                                              )}),
+                ('Додатково', {'fields': ['driver_status',
+                                          ]}),
             )
         return fieldsets
 
@@ -958,8 +990,8 @@ class DriverAdmin(SoftDeleteAdmin):
             FleetsDriversVehiclesRate.objects.get_or_create(fleet=fleet,
                                                             driver_external_id=chat_id,
                                                             defaults={
-                                                                      'driver': obj,
-                                                                      'partner': obj.partner}
+                                                                'driver': obj,
+                                                                'partner': obj.partner}
                                                             )
 
         super().save_model(request, obj, form, change)
@@ -967,6 +999,7 @@ class DriverAdmin(SoftDeleteAdmin):
 
 @admin.register(FiredDriver)
 class FiredDriverAdmin(admin.ModelAdmin):
+    readonly_fields = ('name', 'second_name')
 
     def get_list_display(self, request):
         if request.user.is_superuser:
@@ -984,8 +1017,15 @@ class FiredDriverAdmin(admin.ModelAdmin):
     def get_model_perms(self, request):
         perms = super().get_model_perms(request)
         if request.user.is_partner():
-            perms.update(view=True, change=False, add=False, delete=True)
+            perms.update(view=True, change=False, add=False, delete=False)
         return perms
+
+    def get_fieldsets(self, request, obj=None):
+        fieldsets = (
+            ('Інформація про водія', {'fields': ['name', 'second_name',
+                                                 ]}),
+        )
+        return fieldsets
 
     def get_queryset(self, request):
         qs = super().get_queryset(request).filter(deleted_at__isnull=False)
@@ -1022,7 +1062,7 @@ class VehicleAdmin(admin.ModelAdmin):
     list_display_links = ('licence_plate',)
     list_per_page = 10
     list_filter = (VehicleManagerFilter,)
-    readonly_fields = ('licence_plate',)
+    readonly_fields = ('licence_plate', 'name')
 
     def get_list_display(self, request):
         if request.user.is_superuser:
@@ -1052,42 +1092,42 @@ class VehicleAdmin(admin.ModelAdmin):
     def get_fieldsets(self, request, obj=None):
         if request.user.is_superuser:
             fieldsets = [
-                ('Номер автомобіля',            {'fields': ['licence_plate',
-                                                            ]}),
-                ('Інформація про машину',       {'fields': ['name', 'purchase_price',
-                                                            'currency', 'investor_car', 'investor_percentage',
-                                                            'currency_rate', 'currency_back',
-                                                            ]}),
-                ('Особисті дані авто',          {'fields': ['vin_code', 'gps_imei', 'lat', 'lon',
-                                                            'car_status', 'gps',
-                                                            ]}),
-                ('Додатково',                   {'fields': ['chat_id', 'partner', 'manager',
-                                                            ]}),
+                ('Номер автомобіля', {'fields': ['licence_plate',
+                                                 ]}),
+                ('Інформація про машину', {'fields': ['name', 'purchase_price',
+                                                      'currency', 'investor_car', 'investor_percentage',
+                                                      'currency_rate', 'currency_back',
+                                                      ]}),
+                ('Особисті дані авто', {'fields': ['vin_code', 'gps_imei', 'lat', 'lon',
+                                                   'car_status', 'gps',
+                                                   ]}),
+                ('Додатково', {'fields': ['chat_id', 'partner', 'manager',
+                                          ]}),
             ]
 
         elif request.user.is_partner():
             fieldsets = (
-                ('Номер автомобіля',            {'fields': ['licence_plate',
-                                                            ]}),
-                ('Інформація про машину',       {'fields': ['name', 'purchase_price', 'gps_imei', 'gps',
-                                                            'investor_car', 'investor_percentage'
-                                                            ]}),
-                ('Додатково',                   {'fields': ['manager',
-                                                            ]}),
+                ('Номер автомобіля', {'fields': ['licence_plate',
+                                                 ]}),
+                ('Інформація про машину', {'fields': ['name', 'purchase_price', 'gps_imei', 'gps',
+                                                      'investor_car', 'investor_percentage'
+                                                      ]}),
+                ('Додатково', {'fields': ['manager',
+                                          ]}),
             )
         elif request.user.is_manager():
             fieldsets = (
-                ('Номер автомобіля',            {'fields': ['licence_plate',
-                                                            ]}),
-                ('Інформація про машину',       {'fields': ['name', 'gps_imei', 'gps',
-                                                            ]}),
+                ('Номер автомобіля', {'fields': ['licence_plate',
+                                                 ]}),
+                ('Інформація про машину', {'fields': ['name', 'gps_imei', 'gps',
+                                                      ]}),
             )
         else:
             fieldsets = (
-                ('Номер автомобіля',            {'fields': ['licence_plate', 'gps_imei',
-                                                            ]}),
-                ('Інформація про машину',       {'fields': ['name', 'purchase_price',
-                                                            ]}),
+                ('Номер автомобіля', {'fields': ['licence_plate', 'gps_imei',
+                                                 ]}),
+                ('Інформація про машину', {'fields': ['name', 'purchase_price',
+                                                      ]}),
             )
         return fieldsets
 
@@ -1106,7 +1146,8 @@ class VehicleAdmin(admin.ModelAdmin):
         elif request.user.is_manager():
             if db_field.name == 'gps':
                 manager = Manager.objects.get(pk=request.user.pk)
-                kwargs['queryset'] = db_field.related_model.objects.filter(partner=manager.managers_partner.pk).only('name')
+                kwargs['queryset'] = db_field.related_model.objects.filter(partner=manager.managers_partner.pk).only(
+                    'name')
 
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
@@ -1138,29 +1179,29 @@ class OrderAdmin(admin.ModelAdmin):
     def get_fieldsets(self, request, obj=None):
         if request.user.is_superuser:
             fieldsets = [
-                ('Адреси',                      {'fields': ['from_address', 'to_the_address',
-                                                            ]}),
-                ('Контакти',                    {'fields': ['phone_number', 'chat_id_client',
-                                                            ]}),
-                ('Ціни',                        {'fields': ['car_delivery_price', 'sum',
-                                                            ]}),
-                ('Деталі',                      {'fields': ['payment_method', 'order_time',
-                                                            'status_order', 'distance_gps',
-                                                            'distance_google', 'driver',
-                                                            ]}),
+                ('Адреси', {'fields': ['from_address', 'to_the_address',
+                                       ]}),
+                ('Контакти', {'fields': ['phone_number', 'chat_id_client',
+                                         ]}),
+                ('Ціни', {'fields': ['car_delivery_price', 'sum',
+                                     ]}),
+                ('Деталі', {'fields': ['payment_method', 'order_time',
+                                       'status_order', 'distance_gps',
+                                       'distance_google', 'driver',
+                                       ]}),
             ]
         else:
             fieldsets = [
-                ('Адреси',                      {'fields': ['from_address', 'to_the_address',
-                                                            ]}),
-                ('Контакти',                    {'fields': ['phone_number',
-                                                            ]}),
-                ('Ціни',                        {'fields': ['car_delivery_price', 'sum',
-                                                            ]}),
-                ('Деталі',                      {'fields': ['payment_method', 'order_time',
-                                                            'status_order', 'distance_gps',
-                                                            'distance_google', 'driver',
-                                                            ]}),
+                ('Адреси', {'fields': ['from_address', 'to_the_address',
+                                       ]}),
+                ('Контакти', {'fields': ['phone_number',
+                                         ]}),
+                ('Ціни', {'fields': ['car_delivery_price', 'sum',
+                                     ]}),
+                ('Деталі', {'fields': ['payment_method', 'order_time',
+                                       'status_order', 'distance_gps',
+                                       'distance_google', 'driver',
+                                       ]}),
             ]
 
         return fieldsets
@@ -1179,19 +1220,15 @@ class FleetOrderAdmin(admin.ModelAdmin):
         else:
             return ['order_id', 'fleet', 'driver', 'from_address', 'destination',
                     'accepted_time', 'finish_time',
-                    'state', 'payment', 'price', 'vehicle_id'
+                    'state', 'payment', 'price', 'vehicle_id', 'date_order'
                     ]
 
     def get_fieldsets(self, request, obj=None):
         fieldsets = [
-            ('Адреси',                      {'fields': ['from_address', 'destination',
-                                                        ]}),
-            ('Інформація',                    {'fields': ['driver', 'fleet', 'state'
-                                                          ]}),
-            ('Час',                        {'fields': ['accepted_time', 'finish_time',
-                                                       ]}),
-            ('Ціна',                        {'fields': ['price', 'payment', 'tips',
-                                ]}),
+            ('Адреси', {'fields': ['from_address', 'destination', ]}),
+            ('Інформація', {'fields': ['driver', 'fleet', 'state']}),
+            ('Час', {'fields': ['accepted_time', 'finish_time', 'date_order']}),
+            ('Ціна', {'fields': ['price', 'payment', 'tips', ]}),
         ]
 
         return fieldsets
@@ -1210,9 +1247,9 @@ class FleetsDriversVehiclesRateAdmin(admin.ModelAdmin):
     def get_fieldsets(self, request, obj=None):
         if request.user.is_partner() or request.user.is_manager():
             fieldsets = [
-                ('Деталі',                      {'fields': ['fleet', 'driver',
-                                                            'driver_external_id',
-                                                            ]}),
+                ('Деталі', {'fields': ['fleet', 'driver',
+                                       'driver_external_id',
+                                       ]}),
             ]
             return fieldsets
         return super().get_fieldsets(request)
@@ -1241,7 +1278,7 @@ class FleetsDriversVehiclesRateAdmin(admin.ModelAdmin):
         return qs.select_related('fleet__partner', 'driver__partner').prefetch_related(
             Prefetch('fleet', queryset=Fleet.objects.only('name')),
             Prefetch('driver', queryset=Driver.objects.only('name', 'second_name')),
-                                 )
+        )
 
 
 @admin.register(Comment)
@@ -1257,23 +1294,40 @@ class CommentAdmin(admin.ModelAdmin):
     def get_fieldsets(self, request, obj=None):
         if request.user.is_superuser:
             fieldsets = [
-                ('Деталі',                      {'fields': ['comment', 'chat_id',
-                                                            'processed', 'partner',
-                                                            ]}),
+                ('Деталі', {'fields': ['comment', 'chat_id',
+                                       'processed', 'partner',
+                                       ]}),
             ]
         else:
             fieldsets = [
-                ('Деталі',                      {'fields': ['comment', 'chat_id',
-                                                            'processed', 'partner',
-                                                            ]}),
+                ('Деталі', {'fields': ['comment', 'chat_id',
+                                       'processed', 'partner',
+                                       ]}),
 
             ]
 
         return fieldsets
 
 
+class ParkSettingsForm(forms.ModelForm):
+    class Meta:
+        model = ParkSettings
+        fields = ('value', 'description')
+
+    def clean_value(self):
+        value = self.cleaned_data.get('value')
+
+        try:
+            int_value = int(value)
+        except (ValueError, TypeError):
+            raise forms.ValidationError("Введіть, будь ласка, ціле число")
+
+        return int_value
+
+
 @admin.register(ParkSettings)
 class ParkSettingsAdmin(admin.ModelAdmin):
+    form = ParkSettingsForm
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
@@ -1286,17 +1340,6 @@ class ParkSettingsAdmin(admin.ModelAdmin):
             return ['description', 'value']
         return [f.name for f in self.model._meta.fields]
 
-    def get_fieldsets(self, request, obj=None):
-        if request.user.is_partner():
-            fieldsets = [
-                ('Деталі',                      {'fields': ['description', 'value',
-                                                            ]}),
-
-            ]
-
-            return fieldsets
-        return super().get_fieldsets(request)
-
 
 @admin.register(TaskScheduler)
 class TaskSchedulerAdmin(admin.ModelAdmin):
@@ -1304,7 +1347,6 @@ class TaskSchedulerAdmin(admin.ModelAdmin):
     list_editable = ['task_time', 'periodic']
 
     def get_fieldsets(self, request, obj=None):
-
         fieldsets = [
             ('Деталі', {'fields': ['name', 'task_time', 'periodic', 'weekly', 'interval', 'arguments'
                                    ]}),
@@ -1319,7 +1361,7 @@ class DriverReshuffle(admin.ModelAdmin):
     list_display = ['driver_start', 'swap_vehicle', 'swap_time', 'end_time']
     fieldsets = [
         ('Інформація', {'fields': ['driver_start', 'swap_vehicle', 'swap_time', 'end_time'
-                               ]}),
+                                   ]}),
     ]
 
     def get_queryset(self, request):
@@ -1350,5 +1392,4 @@ class DriverFleetEfficiencyAdmin(admin.ModelAdmin):
         return qs.select_related('fleet__partner', 'driver__partner').prefetch_related(
             Prefetch('fleet', queryset=Fleet.objects.only('name')),
             Prefetch('driver', queryset=Driver.objects.only('name', 'second_name')),
-                                 )
-
+        )

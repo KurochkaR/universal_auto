@@ -193,16 +193,20 @@ class UklonRequest(Fleet, Synchronizer):
                         report.update({
                             "total_rides": driver_report.get('total_orders_count', 0) - uklon_custom.total_rides,
                             "total_distance": self.to_float(distance, div=1000) - uklon_custom.total_distance,
-                            "total_amount_cash": (self.find_value(driver_report, *('profit', 'order', 'cash', 'amount')) -
-                                                  uklon_custom.total_amount_cash),
-                            "total_amount_on_card": (self.find_value(driver_report, *('profit', 'order', 'wallet', 'amount')) -
-                                                     uklon_custom.total_amount_on_card),
+                            "total_amount_cash": (
+                                        self.find_value(driver_report, *('profit', 'order', 'cash', 'amount')) -
+                                        uklon_custom.total_amount_cash),
+                            "total_amount_on_card": (
+                                        self.find_value(driver_report, *('profit', 'order', 'wallet', 'amount')) -
+                                        uklon_custom.total_amount_on_card),
                             "total_amount": (self.find_value(driver_report, *('profit', 'order', 'total', 'amount')) -
                                              uklon_custom.total_amount),
                             "tips": self.find_value(driver_report, *('profit', 'tips', 'amount')) - uklon_custom.tips,
-                            "fee": self.find_value(driver_report, *('loss', 'order', 'wallet', 'amount')) - uklon_custom.fee,
-                            "total_amount_without_fee": (self.find_value(driver_report, *('profit', 'total', 'amount')) -
-                                                         uklon_custom.total_amount_without_fee),
+                            "fee": self.find_value(driver_report,
+                                                   *('loss', 'order', 'wallet', 'amount')) - uklon_custom.fee,
+                            "total_amount_without_fee": (
+                                        self.find_value(driver_report, *('profit', 'total', 'amount')) -
+                                        uklon_custom.total_amount_without_fee),
                         })
                 db_report = CustomReport.objects.filter(report_from=start,
                                                         driver=driver,
@@ -233,26 +237,27 @@ class UklonRequest(Fleet, Synchronizer):
         return self.save_report(start, end, driver, DailyReport)
 
     def get_earnings_per_driver(self, driver, start, end):
-        driver_id = driver.get_driver_external_id(self)
         total_amount_without_fee = total_amount_cash = 0
-        param = {'dateFrom': int(start.timestamp()),
-                 'dateTo': int(end.timestamp()),
-                 'limit': '50', 'offset': '0',
-                 'driverId': driver_id
-                 }
-        url = f"{Service.get_value('UKLON_3')}{self.uklon_id()}"
-        url += Service.get_value('UKLON_4')
-        data = self.response_data(url=url, params=param)
-        if data.get("items"):
-            total_amount_cash = self.find_value(data["items"][0], *('profit', 'order', 'cash', 'amount'))
-            total_amount_without_fee = self.find_value(data["items"][0], *('profit', 'total', 'amount'))
+        driver_id = driver.get_driver_external_id(self)
+        if driver_id:
+            param = {'dateFrom': int(start.timestamp()),
+                     'dateTo': int(end.timestamp()),
+                     'limit': '50', 'offset': '0',
+                     'driverId': driver_id
+                     }
+            url = f"{Service.get_value('UKLON_3')}{self.uklon_id()}"
+            url += Service.get_value('UKLON_4')
+            data = self.response_data(url=url, params=param)
+            if data.get("items"):
+                total_amount_cash = self.find_value(data["items"][0], *('profit', 'order', 'cash', 'amount'))
+                total_amount_without_fee = self.find_value(data["items"][0], *('profit', 'total', 'amount'))
         return total_amount_without_fee, total_amount_cash
 
     def get_drivers_status(self):
         drivers = {
-                'with_client': [],
-                'wait': [],
-            }
+            'with_client': [],
+            'wait': [],
+        }
         url = f"{Service.get_value('UKLON_5')}{self.uklon_id()}"
         url += Service.get_value('UKLON_6')
         data = self.response_data(url, params={'limit': '50', 'offset': '0'})
@@ -339,7 +344,8 @@ class UklonRequest(Fleet, Synchronizer):
                         "vehicle": vehicle,
                         "payment": PaymentTypes.map_payments(order['payment']['paymentType']),
                         "price": order['payment']['cost'],
-                        "partner": self.partner
+                        "partner": self.partner,
+                        "date_order": start.date()
                         }
                 FleetOrder.objects.create(**data)
         except KeyError:
@@ -369,7 +375,7 @@ class UklonRequest(Fleet, Synchronizer):
         headers.update({"Content-Type": "application/json"})
         resp = self.response_data(url, headers=headers)
         for driver in resp['items']:
-            balance[driver['driver_id']] = driver['wallet']['balance']['amount'] -\
+            balance[driver['driver_id']] = driver['wallet']['balance']['amount'] - \
                                            int(ParkSettings.get_value('WITHDRAW_UKLON',
                                                                       partner=self.partner)) * 100
         for key, value in balance.items():

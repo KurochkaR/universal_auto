@@ -3,6 +3,8 @@ from datetime import timedelta
 
 import requests
 from _decimal import Decimal
+
+from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Sum, DecimalField, Q
 from django.db.models.functions import Coalesce
 from django.utils import timezone
@@ -148,7 +150,7 @@ def summary_report_create(start, end, driver, partner_pk):
 
 
 def get_efficiency_info(partner_pk, driver, start, end, payments_model, aggregator=None):
-    filter_request = Q(driver=driver, accepted_time__range=(start, end), partner_id=partner_pk)
+    filter_request = Q(driver=driver, date_order__range=(start, end), partner_id=partner_pk)
 
     payment_request = Q(driver=driver, report_from__date=start, partner_id=partner_pk)
 
@@ -182,13 +184,17 @@ def polymorphic_efficiency_create(create_model, partner_pk, driver, start, end, 
             km=Coalesce(Sum('distance'), Decimal(0)))['km']
         efficiency_filter['fleet'] = aggregator
     else:
-        mileage, vehicles = UaGpsSynchronizer.objects.get(
-            partner=partner_pk).calc_total_km(driver, start, end)
-        if not mileage:
+        try:
+            mileage, vehicles = UaGpsSynchronizer.objects.get(
+                partner=partner_pk).calc_total_km(driver, start, end)
+            if not mileage:
+                return
+        except ObjectDoesNotExist:
             return
     data = {
         'total_kasa': total_kasa,
         'total_orders': total_orders,
+        'total_orders_rejected': canceled_orders,
         'accept_percent': (total_orders - canceled_orders) / total_orders * 100 if total_orders else 0,
         'average_price': total_kasa / completed_orders if completed_orders else 0,
         'mileage': mileage,
@@ -201,4 +207,3 @@ def polymorphic_efficiency_create(create_model, partner_pk, driver, start, end, 
     result, created = create_model.objects.get_or_create(**efficiency_filter)
     if created:
         result.vehicles.add(*vehicles)
-

@@ -2,8 +2,14 @@ from django.core.exceptions import ObjectDoesNotExist
 from django_celery_beat.models import CrontabSchedule, PeriodicTask
 
 
-def get_schedule(hours, minutes, day='*'):
-
+def get_schedule(schema_time, day='*', periodic=None):
+    hours, minutes = schema_time.hour, schema_time.minute
+    if periodic:
+        if not hours:
+            minutes = f"*/{minutes}"
+            hours = "*"
+        else:
+            hours = f"*/{hours}"
     schedule, _ = CrontabSchedule.objects.get_or_create(
         minute=minutes,
         hour=hours,
