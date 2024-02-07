@@ -462,7 +462,7 @@ $(document).ready(function () {
 				e.preventDefault();
 				const selectedDriverId = shiftDriver.val();
 				const recurrence = $('#recurrence').val();
-				if (startTimeInput.val() === "" && endTimeInput.val() === "") {
+				if (startTimeInput.val() === "" || endTimeInput.val() === "") {
 					$('#startTime').css('background-color', '#fba');
 					$('#endTime').css('background-color', '#fba');
 					return;

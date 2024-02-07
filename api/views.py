@@ -16,8 +16,6 @@ from api.mixins import CombinedPermissionsMixin, ManagerFilterMixin, InvestorFil
 from api.serializers import SummaryReportSerializer, CarEfficiencySerializer, CarDetailSerializer, \
     DriverEfficiencyRentSerializer, InvestorCarsSerializer, ReshuffleSerializer, DriverPaymentsSerializer, \
     DriverEfficiencyFleetRentSerializer
-from api.utils import get_earning_subquery, get_total_earning_subquery, get_total_spending_subquery, \
-    get_spending_subquery, get_dynamic_fleet
 from app.models import SummaryReport, CarEfficiency, Vehicle, DriverEfficiency, RentInformation, DriverReshuffle, \
     PartnerEarnings, InvestorPayments, DriverPayments, PaymentsStatus, PenaltyBonus, Penalty, Bonus, \
     DriverEfficiencyFleet, VehicleSpending
@@ -145,6 +143,31 @@ class CarEfficiencyListView(CombinedPermissionsMixin,
         return Response(response_data)
 
 
+def get_dynamic_fleet():
+    dynamic_fleet = {
+        'total_kasa': Sum('total_kasa'),
+        'full_name': Concat(F("driver__user_ptr__name"),
+                            Value(" "),
+                            F("driver__user_ptr__second_name"), output_field=CharField()),
+        'orders': Sum('total_orders'),
+        'orders_rejected': Sum('total_orders_rejected'),
+        'average_price': Avg('average_price'),
+        'accept_percent': Avg('accept_percent'),
+        'road_time': Coalesce(Sum('road_time'), timedelta()),
+        'mileage': Sum('mileage'),
+        'efficiency': ExpressionWrapper(
+            Case(
+                When(mileage__gt=0, then=F('total_kasa') / F('mileage')),
+                default=Value(0),
+                output_field=FloatField()
+            ),
+            output_field=FloatField()
+        )
+    }
+
+    return dynamic_fleet
+
+
 class DriverEfficiencyListView(CombinedPermissionsMixin,
                                generics.ListAPIView):
     serializer_class = DriverEfficiencyRentSerializer
@@ -208,11 +231,19 @@ class CarsInformationListView(CombinedPermissionsMixin, generics.ListAPIView):
         start, end, format_start, format_end = get_start_end(period)
 
         if InvestorFilterMixin.get_queryset(Vehicle, self.request.user):
-            queryset = InvestorFilterMixin.get_queryset(Vehicle, self.request.user)
+            queryset = InvestorFilterMixin.get_queryset(Vehicle, self.request.user).only('licence_plate',
+                                                                                         'purchase_price')
             earnings_query_all = InvestorPayments.objects.all()
         else:
-            queryset = ManagerFilterMixin.get_queryset(Vehicle, self.request.user)
+            queryset = ManagerFilterMixin.get_queryset(Vehicle, self.request.user).only('licence_plate',
+                                                                                        'purchase_price')
             earnings_query_all = PartnerEarnings.objects.all()
+
+        filter_request = Q(vehicle__licence_plate=OuterRef('licence_plate'))
+        earning_annotate = {'vehicle_earning': Coalesce(Sum('earning'), Decimal(0), output_field=DecimalField())}
+        spending_annotate = {'total_spending': Coalesce(Sum('amount'), Decimal(0), output_field=DecimalField())}
+        if period != 'all_period':
+            filter_request &= Q(report_to__range=(start, end))
 
         if period == 'all_period':
             start = earnings_query_all.first().report_to
@@ -220,10 +251,17 @@ class CarsInformationListView(CombinedPermissionsMixin, generics.ListAPIView):
             format_start = start.strftime("%d.%m.%Y")
             format_end = end.strftime("%d.%m.%Y")
 
-        earning_subquery = get_earning_subquery(earnings_query_all, start, end)
-        total_earning_subquery = get_total_earning_subquery(earnings_query_all)
-        spending_subquery = get_spending_subquery(start, end)
-        total_spending_subquery = get_total_spending_subquery()
+        earning_subquery = earnings_query_all.filter(
+            filter_request).values('vehicle__licence_plate').annotate(**earning_annotate)
+
+        total_earning_subquery = earnings_query_all.filter(
+            filter_request).values('vehicle__licence_plate').annotate(**earning_annotate)
+
+        spending_subquery = VehicleSpending.objects.filter(
+            filter_request).values('vehicle__licence_plate').annotate(**spending_annotate)
+
+        total_spending_subquery = VehicleSpending.objects.filter(
+            filter_request).values('vehicle__licence_plate').annotate(**spending_annotate)
 
         earning_subquery_exists = Exists(earning_subquery.filter(vehicle__licence_plate=OuterRef('licence_plate')))
         queryset = queryset.values('licence_plate').annotate(
