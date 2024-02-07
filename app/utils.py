@@ -5,7 +5,7 @@ from django_celery_beat.models import CrontabSchedule, PeriodicTask
 def get_schedule(schema_time, day='*', periodic=None):
     hours, minutes = schema_time.hour, schema_time.minute
     if periodic:
-        if hours == "00":
+        if not hours:
             minutes = f"*/{minutes}"
             hours = "*"
         else:
