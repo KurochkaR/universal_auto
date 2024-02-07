@@ -139,6 +139,7 @@ class Schema(models.Model):
                                           default=SalaryCalculation.WEEK, verbose_name='Період розрахунку зарплати')
     shift_time = models.TimeField(default=time.min, verbose_name="Час проведення розрахунку")
     shift_period = models.CharField(max_length=25, null=True, choices=ShiftTypes.choices)
+
     partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
 
     def __str__(self):
@@ -164,6 +165,7 @@ class UberTrips(models.Model):
     license_plate = models.CharField(max_length=10)
     start_trip = models.DateTimeField(null=True, blank=True)
     end_trip = models.DateTimeField(null=True, blank=True)
+
     partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -240,6 +242,7 @@ class Investor(CustomUser):
 class GPSNumber(models.Model):
     name = models.CharField(max_length=255, verbose_name='Назва')
     gps_id = models.IntegerField(default=0)
+
     partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
 
     def __str__(self) -> str:
@@ -260,13 +263,11 @@ class Vehicle(models.Model):
     purchase_date = models.DateField(null=True, verbose_name='Дата початку роботи')
     vin_code = models.CharField(validators=[MaxLengthValidator(17)], max_length=17, blank=True)
     chat_id = models.CharField(max_length=15, blank=True, null=True, verbose_name="Група автомобіля телеграм")
-    gps = models.ForeignKey(GPSNumber, on_delete=models.CASCADE, null=True, blank=True, verbose_name="Назва авто в Gps")
     gps_imei = models.CharField(validators=[MaxLengthValidator(50)], max_length=50, blank=True, default='')
     coord_time = models.DateTimeField(null=True, verbose_name="Час отримання координат")
     lat = models.DecimalField(null=True, decimal_places=6, max_digits=10, default=0, verbose_name="Широта")
     lon = models.DecimalField(null=True, decimal_places=6, max_digits=10, default=0, verbose_name="Довгота")
     car_status = models.CharField(max_length=18, null=False, default="Serviceable", verbose_name='Статус автомобіля')
-    manager = models.ForeignKey(Manager, on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Менеджер авто')
     purchase_price = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name="Вартість автомобіля")
     currency = models.CharField(max_length=4, default=Currency.UAH, choices=Currency.choices,
                                 verbose_name='Валюта покупки')
@@ -275,11 +276,15 @@ class Vehicle(models.Model):
     car_earnings = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name="Заробіток авто")
     currency_back = models.CharField(max_length=4, default=Currency.USD, choices=Currency.choices,
                                      verbose_name='Валюта повернення коштів')
-    investor_car = models.ForeignKey(Investor, blank=True, null=True, on_delete=models.SET_NULL,
-                                     verbose_name='Машина інвестора')
     investor_percentage = models.DecimalField(decimal_places=2, max_digits=10, default=0.35,
                                               verbose_name="Відсоток інвестора")
+
+    manager = models.ForeignKey(Manager, on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Менеджер авто')
+    gps = models.ForeignKey(GPSNumber, on_delete=models.CASCADE, null=True, blank=True, verbose_name="Назва авто в Gps")
+    investor_car = models.ForeignKey(Investor, blank=True, null=True, on_delete=models.SET_NULL,
+                                     verbose_name='Машина інвестора')
     partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
+
     created_at = models.DateTimeField(editable=False, auto_now_add=True, verbose_name='Додано автомобіль')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='Оновлено')
     deleted_at = models.DateTimeField(null=True, blank=True, verbose_name='Видалено')
@@ -383,7 +388,6 @@ class Earnings(PolymorphicModel):
 
 
 class DriverPayments(Earnings):
-    driver = models.ForeignKey(Driver, on_delete=models.CASCADE, verbose_name="Водій")
     kasa = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Заробіток за період')
     cash = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Готівка')
     payment_type = models.CharField(max_length=20, default=SalaryCalculation.WEEK, choices=SalaryCalculation.choices,
@@ -391,6 +395,8 @@ class DriverPayments(Earnings):
     rent_distance = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Орендована дистанція')
     rent_price = models.IntegerField(default=6, verbose_name='Ціна оренди')
     rent = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Оренда авто')
+
+    driver = models.ForeignKey(Driver, on_delete=models.CASCADE, verbose_name="Водій")
 
     class Meta:
         verbose_name = 'Виплати водію'
@@ -425,6 +431,7 @@ class DriverPayments(Earnings):
 
 class Category(PolymorphicModel):
     title = models.CharField(max_length=255, null=True, verbose_name='Назва категорії')
+
     partner = models.ForeignKey(Partner, null=True, on_delete=models.CASCADE, verbose_name='Партнер')
 
     def __str__(self):
@@ -764,6 +771,7 @@ class RepairReport(models.Model):
     start_of_repair = models.DateTimeField(blank=True, null=False, verbose_name='Початок ремонту')
     end_of_repair = models.DateTimeField(blank=True, null=False, verbose_name='Закінчення ремонту')
     status_of_payment_repair = models.BooleanField(default=False, verbose_name='Статус оплати')  # Paid, Unpaid
+
     driver = models.ForeignKey(Driver, null=True, blank=True, on_delete=models.CASCADE, verbose_name='Водій')
 
     class Meta:
@@ -839,12 +847,13 @@ class Order(models.Model):
     status_order = models.CharField(max_length=70, verbose_name='Статус замовлення')
     distance_gps = models.CharField(max_length=10, blank=True, null=True, verbose_name='Дистанція по GPS')
     distance_google = models.CharField(max_length=10, verbose_name='Дистанція Google')
-    driver = models.ForeignKey(Driver, null=True, on_delete=models.RESTRICT, verbose_name='Виконувач')
     accepted_time = models.DateTimeField(blank=True, null=True, verbose_name='Час прийняття замовлення')
     finish_time = models.DateTimeField(blank=True, null=True, verbose_name='Час завершення замовлення')
     created_at = models.DateTimeField(editable=False, auto_now_add=True, verbose_name='Cтворено')
     comment = models.OneToOneField(Comment, null=True, on_delete=models.SET_NULL, verbose_name='Відгук')
     checked = models.BooleanField(default=False, verbose_name='Перевірено')
+
+    driver = models.ForeignKey(Driver, null=True, on_delete=models.RESTRICT, verbose_name='Виконувач')
     partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
 
     class Meta:
@@ -856,14 +865,14 @@ class Order(models.Model):
 
 
 class ReportTelegramPayments(models.Model):
-    order = models.ForeignKey(Order, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Замовлення')
-
     provider_payment_charge_id = models.CharField(max_length=50,
                                                   verbose_name='Ідентифікатор оплати в провайдері')
     telegram_payment_charge_id = models.CharField(max_length=50,
                                                   verbose_name='Ідентифікатор оплати в телеграмі')
     currency = models.CharField(max_length=24, verbose_name='Валюта')
     total_amount = models.PositiveIntegerField(verbose_name='Сума оплати')
+
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Замовлення')
 
     class Meta:
         verbose_name = 'Звіт про оплату в телеграмі'

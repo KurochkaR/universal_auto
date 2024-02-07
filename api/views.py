@@ -8,7 +8,7 @@ from operator import itemgetter
 from django.contrib.postgres.aggregates import ArrayAgg
 from django.db.models import Sum, F, OuterRef, Subquery, DecimalField, Avg, Value, CharField, ExpressionWrapper, Case, \
     When, Func, FloatField, Exists, Prefetch, Q
-from django.db.models.functions import Concat, Round, Coalesce, TruncTime
+from django.db.models.functions import Concat, Round, Coalesce
 from rest_framework import generics
 from rest_framework.response import Response
 
