@@ -352,6 +352,7 @@ $(document).ready(function () {
 			startTimeInput.val(startTime);
 			endTimeInput.val(endTime);
 			shiftVehicleInput.val(vehicleId);
+			$('.modal-overlay').show();
 
 			const shiftBtn = $('.shift-btn').hide();
 			const recurrence = $('.recurrence').hide();
@@ -380,11 +381,13 @@ $(document).ready(function () {
 
 			deleteBtn.off('click').on('click', function (e) {
 				e.preventDefault();
+				$('.modal-overlay').hide();
 				handleDelete('delete_shift');
 			});
 
 			deleteAllBtn.off('click').on('click', function (e) {
 				e.preventDefault();
+				$('.modal-overlay').hide();
 				handleDelete('delete_all_shift');
 			});
 
@@ -421,11 +424,13 @@ $(document).ready(function () {
 
 			updBtn.off('click').on('click', function (e) {
 				e.preventDefault();
+				$('.modal-overlay').hide();
 				handleUpdate('update_shift');
 			});
 
 			updAllBtn.off('click').on('click', function (e) {
 				e.preventDefault();
+				$('.modal-overlay').hide();
 				handleUpdate('update_all_shift');
 			});
 		}
@@ -447,7 +452,7 @@ $(document).ready(function () {
 			const csrfTokenInput = $('input[name="csrfmiddlewaretoken"]');
 			$("#startTime").val("");
 			$("#endTime").val("");
-
+			$('.modal-overlay').show();
 			modalShiftTitle.text("Створення зміни");
 			modalShiftDate.text(formatDateString(clickedDayId));
 			shiftForm.show();
@@ -474,6 +479,7 @@ $(document).ready(function () {
 							csrfmiddlewaretoken: csrfTokenInput.val()
 						},
 						success: function (response) {
+								$('.modal-overlay').hide();
 						    fetchCalendarData(formattedStartDate, formattedEndDate);
 							if (response.data[0] === true) {
 								filterCheck();
@@ -756,3 +762,20 @@ function filterCheck() {
 		$("#search-shift-driver").change();
 	}
 }
+
+
+function openModal() {
+    document.getElementById('modal-shift').style.display = 'block';
+    document.querySelector('.modal-overlay').style.display = 'block';
+    document.body.style.overflow = 'hidden'; // Блокує прокрутку сторінки
+}
+
+// Закриття модального вікна та видалення затемнення фону
+function closeModal() {
+    document.getElementById('modal-shift').style.display = 'none';
+    document.querySelector('.modal-overlay').style.display = 'none';
+    document.body.style.overflow = ''; // Відновлює прокрутку сторінки
+}
+
+// Додати обробник кліків для кнопки закриття модального вікна
+document.querySelector('.shift-close-btn').addEventListener('click', closeModal);

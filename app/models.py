@@ -293,8 +293,8 @@ class Vehicle(models.Model):
         verbose_name = 'Автомобіль'
         verbose_name_plural = 'Автомобілі'
 
-    def __str__(self):
-        return self.licence_plate
+    def __str__(self) -> str:
+        return f'{self.licence_plate}'
 
 
 class VehicleSpending(models.Model):

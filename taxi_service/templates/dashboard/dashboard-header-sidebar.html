@@ -94,11 +94,13 @@
       <li class="sidebar-list-item" onclick="window.location='{% url 'dashboard' %}'">
         <i class="fas fa-home"></i><span>{% trans 'Інформаційна панель' %}</span>
       </li>
+      {% if partner_group or investor_group %}
       <div id="VehicleBtnContainer">
         <li class="sidebar-list-item" onclick="window.location='{% url 'dashboard_vehicle' %}'">
           <i class="fas fa-car-side"></i><span>{% trans 'Автомобілі' %}</span>
         </li>
       </div>
+      {% endif %}
       {% if partner_group or manager_group %}
       <div id="DriverBtnContainer">
         <li class="sidebar-list-item" onclick="window.location='{% url 'dashboard_driver' %}'">
