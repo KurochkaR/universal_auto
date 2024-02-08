@@ -465,7 +465,7 @@ $(document).ready(function () {
 				const recurrence = $('#recurrence').val();
 				let error = false;
 
-				if (startTimeInput.val() === "" || startTimeInput.val() === ":") {
+				if (startTimeInput.val() === "" || startTimeInput.val() === ":" || startTimeInput.val().length !== 5) {
 						$('#startTime').css('background-color', '#fba');
 						$('.shift-startTime-error').text('Введіть час').show();
 						error = true;
@@ -474,7 +474,7 @@ $(document).ready(function () {
 						$('.shift-startTime-error').text('').hide();
 				}
 
-				if (endTimeInput.val() === "" || endTimeInput.val() === ":") {
+				if (endTimeInput.val() === "" || endTimeInput.val() === ":" || endTimeInput.val().length !== 5) {
 						$('#endTime').css('background-color', '#fba');
 						$('.shift-endTime-error').text('Введіть час').show();
 						error = true;
@@ -695,6 +695,7 @@ function validateInputTime(input, field) {
 
     if (isValid) {
       input.style.backgroundColor = '#bfa';
+      $('.shift-'+ field +'-error').text('').hide();
       blockBtn(false);
 
       if (field === 'endTime') {
@@ -705,11 +706,13 @@ function validateInputTime(input, field) {
 
         if (compareTimes(startTimeInput, input.value) > 0) {
           input.style.backgroundColor = '#fba';
+          $('.shift-'+ field +'-error').text('Введіть коректний час').show();
           blockBtn(true);
         }
       }
     } else {
       input.style.backgroundColor = '#fba';
+      $('.shift-'+ field +'-error').text('Введіть час').show();
       blockBtn(true);
     }
   });
