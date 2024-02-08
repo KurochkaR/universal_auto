@@ -459,13 +459,32 @@ $(document).ready(function () {
 			validateInputTime(startTimeInput[0], 'startTime');
 			validateInputTime(endTimeInput[0], 'endTime');
 			shiftBtn.off('click').on('click', function (e) {
+				$('.shift-time-error').hide();
 				e.preventDefault();
 				const selectedDriverId = shiftDriver.val();
 				const recurrence = $('#recurrence').val();
-				if (startTimeInput.val() === "" || endTimeInput.val() === "") {
-					$('#startTime').css('background-color', '#fba');
-					$('#endTime').css('background-color', '#fba');
-					return;
+				let error = false;
+
+				if (startTimeInput.val() === "") {
+						$('#startTime').css('background-color', '#fba');
+						$('.shift-startTime-error').text('Введіть час').show();
+						error = true;
+				} else {
+						$('#startTime').css('background-color', '');
+						$('.shift-startTime-error').text('').hide();
+				}
+
+				if (endTimeInput.val() === "") {
+						$('#endTime').css('background-color', '#fba');
+						$('.shift-endTime-error').text('Введіть час').show();
+						error = true;
+				} else {
+						$('#endTime').css('background-color', '');
+						$('.shift-endTime-error').text('').hide();
+				}
+
+				if (error) {
+						return;
 				}
 				$.ajax({
 					url: ajaxPostUrl,

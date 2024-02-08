@@ -239,11 +239,8 @@ class CarsInformationListView(CombinedPermissionsMixin, generics.ListAPIView):
                                                                                         'purchase_price')
             earnings_query_all = PartnerEarnings.objects.all()
 
-        filter_request = Q(vehicle__licence_plate=OuterRef('licence_plate'))
         earning_annotate = {'vehicle_earning': Coalesce(Sum('earning'), Decimal(0), output_field=DecimalField())}
         spending_annotate = {'total_spending': Coalesce(Sum('amount'), Decimal(0), output_field=DecimalField())}
-        if period != 'all_period':
-            filter_request &= Q(report_to__range=(start, end))
 
         if period == 'all_period':
             start = earnings_query_all.first().report_to
@@ -252,16 +249,20 @@ class CarsInformationListView(CombinedPermissionsMixin, generics.ListAPIView):
             format_end = end.strftime("%d.%m.%Y")
 
         earning_subquery = earnings_query_all.filter(
-            filter_request).values('vehicle__licence_plate').annotate(**earning_annotate)
+            report_to__range=(start, end), vehicle__licence_plate=OuterRef('licence_plate')
+        ).values('vehicle__licence_plate').annotate(**earning_annotate)
 
         total_earning_subquery = earnings_query_all.filter(
-            filter_request).values('vehicle__licence_plate').annotate(**earning_annotate)
+            vehicle__licence_plate=OuterRef('licence_plate')
+        ).values('vehicle__licence_plate').annotate(**earning_annotate)
 
         spending_subquery = VehicleSpending.objects.filter(
-            filter_request).values('vehicle__licence_plate').annotate(**spending_annotate)
+            created_at__range=(start, end), vehicle__licence_plate=OuterRef('licence_plate')
+        ).values('vehicle__licence_plate').annotate(**spending_annotate)
 
         total_spending_subquery = VehicleSpending.objects.filter(
-            filter_request).values('vehicle__licence_plate').annotate(**spending_annotate)
+            vehicle__licence_plate=OuterRef('licence_plate')
+        ).values('vehicle__licence_plate').annotate(**spending_annotate)
 
         earning_subquery_exists = Exists(earning_subquery.filter(vehicle__licence_plate=OuterRef('licence_plate')))
         queryset = queryset.values('licence_plate').annotate(
