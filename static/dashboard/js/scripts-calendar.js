@@ -465,7 +465,7 @@ $(document).ready(function () {
 				const recurrence = $('#recurrence').val();
 				let error = false;
 
-				if (startTimeInput.val() === "") {
+				if (startTimeInput.val() === "" || startTimeInput.val() === ":") {
 						$('#startTime').css('background-color', '#fba');
 						$('.shift-startTime-error').text('Введіть час').show();
 						error = true;
@@ -474,7 +474,7 @@ $(document).ready(function () {
 						$('.shift-startTime-error').text('').hide();
 				}
 
-				if (endTimeInput.val() === "") {
+				if (endTimeInput.val() === "" || endTimeInput.val() === ":") {
 						$('#endTime').css('background-color', '#fba');
 						$('.shift-endTime-error').text('Введіть час').show();
 						error = true;
