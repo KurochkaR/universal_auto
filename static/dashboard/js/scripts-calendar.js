@@ -459,13 +459,32 @@ $(document).ready(function () {
 			validateInputTime(startTimeInput[0], 'startTime');
 			validateInputTime(endTimeInput[0], 'endTime');
 			shiftBtn.off('click').on('click', function (e) {
+				$('.shift-time-error').hide();
 				e.preventDefault();
 				const selectedDriverId = shiftDriver.val();
 				const recurrence = $('#recurrence').val();
-				if (startTimeInput.val() === "" && endTimeInput.val() === "") {
-					$('#startTime').css('background-color', '#fba');
-					$('#endTime').css('background-color', '#fba');
-					return;
+				let error = false;
+
+				if (startTimeInput.val() === "" || startTimeInput.val() === ":" || startTimeInput.val().length !== 5) {
+						$('#startTime').css('background-color', '#fba');
+						$('.shift-startTime-error').text('Введіть час').show();
+						error = true;
+				} else {
+						$('#startTime').css('background-color', '');
+						$('.shift-startTime-error').text('').hide();
+				}
+
+				if (endTimeInput.val() === "" || endTimeInput.val() === ":" || endTimeInput.val().length !== 5) {
+						$('#endTime').css('background-color', '#fba');
+						$('.shift-endTime-error').text('Введіть час').show();
+						error = true;
+				} else {
+						$('#endTime').css('background-color', '');
+						$('.shift-endTime-error').text('').hide();
+				}
+
+				if (error) {
+						return;
 				}
 				$.ajax({
 					url: ajaxPostUrl,
@@ -676,6 +695,7 @@ function validateInputTime(input, field) {
 
     if (isValid) {
       input.style.backgroundColor = '#bfa';
+      $('.shift-'+ field +'-error').text('').hide();
       blockBtn(false);
 
       if (field === 'endTime') {
@@ -686,11 +706,13 @@ function validateInputTime(input, field) {
 
         if (compareTimes(startTimeInput, input.value) > 0) {
           input.style.backgroundColor = '#fba';
+          $('.shift-'+ field +'-error').text('Введіть коректний час').show();
           blockBtn(true);
         }
       }
     } else {
       input.style.backgroundColor = '#fba';
+      $('.shift-'+ field +'-error').text('Введіть час').show();
       blockBtn(true);
     }
   });
