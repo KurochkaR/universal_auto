@@ -9,18 +9,19 @@ from django.contrib.postgres.aggregates import ArrayAgg
 from django.db.models import Sum, F, OuterRef, Subquery, DecimalField, Avg, Value, CharField, ExpressionWrapper, Case, \
     When, Func, FloatField, Exists, Prefetch, Q
 from django.db.models.functions import Concat, Round, Coalesce, TruncTime
+from django.utils import timezone
 from rest_framework import generics
 from rest_framework.response import Response
 
 from api.mixins import CombinedPermissionsMixin, ManagerFilterMixin, InvestorFilterMixin
 from api.serializers import SummaryReportSerializer, CarEfficiencySerializer, CarDetailSerializer, \
     DriverEfficiencyRentSerializer, InvestorCarsSerializer, ReshuffleSerializer, DriverPaymentsSerializer, \
-    DriverEfficiencyFleetRentSerializer
+    DriverEfficiencyFleetRentSerializer, DriverInformationSerializer
 from api.utils import get_earning_subquery, get_total_earning_subquery, get_total_spending_subquery, \
     get_spending_subquery, get_dynamic_fleet
 from app.models import SummaryReport, CarEfficiency, Vehicle, DriverEfficiency, RentInformation, DriverReshuffle, \
     PartnerEarnings, InvestorPayments, DriverPayments, PaymentsStatus, PenaltyBonus, Penalty, Bonus, \
-    DriverEfficiencyFleet, VehicleSpending
+    DriverEfficiencyFleet, VehicleSpending, Driver
 from taxi_service.utils import get_start_end
 
 
@@ -342,4 +343,23 @@ class DriverPaymentsListView(CombinedPermissionsMixin, generics.ListAPIView):
             bonuses=Coalesce(Sum('penaltybonus__amount', filter=Q(penaltybonus__bonus__isnull=False)), Decimal(0)),
             penalties=Coalesce(Sum('penaltybonus__amount', filter=Q(penaltybonus__penalty__isnull=False)), Decimal(0)),
         ).order_by('-report_to', 'driver')
+        return queryset
+
+
+class DriverInformationListView(CombinedPermissionsMixin, generics.ListAPIView):
+    serializer_class = DriverInformationSerializer
+
+    def get_queryset(self):
+        driver = ManagerFilterMixin.get_queryset(Driver, self.request.user).filter(deleted_at=None)
+        driver_reshuffle = DriverReshuffle.objects.filter(
+            swap_time__lte=timezone.localtime(), end_time__gt=timezone.localtime(),
+            driver_start=OuterRef('pk')).values_list(
+            'swap_vehicle__licence_plate', flat=True)
+        queryset = driver.annotate(
+            full_name=Concat(
+                F("user_ptr__name"),
+                Value(" "),
+                F("user_ptr__second_name")),
+            vehicle=Coalesce(Subquery(driver_reshuffle[:1]), Value(""), output_field=CharField())
+        )
         return queryset

@@ -19,9 +19,9 @@ function formatTime(time) {
 function fetchDriverEfficiencyData(period, start, end) {
 	let apiUrl;
 	if (period === 'custom') {
-		apiUrl = `/api/drivers_info/${start}&${end}/`;
+		apiUrl = `/api/drivers_efficiency/${start}&${end}/`;
 	} else {
-		apiUrl = `/api/drivers_info/${period}/`;
+		apiUrl = `/api/drivers_efficiency/${period}/`;
 	};
 	$.ajax({
 		url: apiUrl,
@@ -105,9 +105,9 @@ function fetchDriverEfficiencyData(period, start, end) {
 function fetchDriverFleetEfficiencyData(period, start, end, aggregators) {
 	let apiUrl;
 	if (period === 'custom') {
-		apiUrl = `/api/drivers_info/${start}&${end}/${aggregators}/`;
+		apiUrl = `/api/drivers_efficiency/${start}&${end}/${aggregators}/`;
 	} else {
-		apiUrl = `/api/drivers_info/${period}/${aggregators}/`;
+		apiUrl = `/api/drivers_efficiency/${period}/${aggregators}/`;
 	};
 	$.ajax({
 		url: apiUrl,
