@@ -119,21 +119,6 @@ class InvestmentView(BaseContextView, TemplateView):
         return context
 
 
-class DriversView(TemplateView):
-    template_name = "drivers.html"
-    paginate_by = 8
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        drivers = Driver.objects.all()
-        paginator = Paginator(drivers, self.paginate_by)
-        page_number = self.request.GET.get("page")
-        page_obj = paginator.get_page(page_number)
-        context["subscribe_form"] = SubscriberForm()
-        context["page_obj"] = page_obj
-        return context
-
-
 # DASHBOARD VIEWS ->
 
 
@@ -187,6 +172,10 @@ class DashboardDriversView(BaseDashboardView):
 
 class DashboardCalendarView(BaseDashboardView):
     template_name = "dashboard/dashboard-calendar.html"
+
+
+class DriversView(BaseDashboardView):
+    template_name = "dashboard/drivers.html"
 
 
 # OTHER PAGES VIEWS ->
