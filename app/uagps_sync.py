@@ -4,7 +4,7 @@ import requests
 from _decimal import Decimal
 from django.utils import timezone
 from app.models import (Driver, GPSNumber, RentInformation, FleetOrder, CredentialPartner, ParkSettings, Fleet,
-                        Partner, VehicleRent)
+                        Partner, VehicleRent, DriverReshuffle)
 from auto_bot.handlers.driver_manager.utils import get_today_statistic
 from auto_bot.handlers.order.utils import check_reshuffle
 from auto_bot.main import bot
@@ -103,7 +103,8 @@ class UaGpsSynchronizer(Fleet):
     def get_road_distance(self, start, end, schema=None):
         road_dict = {}
         drivers = Driver.objects.get_active(partner=self.partner, schema=schema) if schema \
-            else Driver.objects.get_active(partner=self.partner, schema__isnull=False)
+            else DriverReshuffle.objects.filter(partner=1, swap_time__date=timezone.localtime()
+                                                ).values_list('driver_start', flat=True)
         for driver in drivers:
             if RentInformation.objects.filter(report_to=end, driver=driver):
                 continue
@@ -264,18 +265,19 @@ class UaGpsSynchronizer(Fleet):
                     get_logger().error(e)
                     continue
             rent_distance = total_km - distance
-            kasa, card, mileage, orders = get_today_statistic(self.partner, start, end_time, driver)
+            driver_obj = Driver.objects.get(id=driver)
+            kasa, card, mileage, orders = get_today_statistic(self.partner, start, end_time, driver_obj)
             time_now = timezone.localtime(end_time).strftime("%H:%M")
             if kasa and mileage:
-                text = f"Поточна статистика на {time_now}:"
-                f"Водій: {driver}"
-                f"Каса: {kasa}"
-                f"Кількість замовлень: {orders}"
-                f"Пробіг під замовленням: {mileage}"
-                f"Ефективність: {round(kasa / mileage, 2)}"
-                f"Холостий пробіг: {rent_distance}"
+                text = f"Поточна статистика на {time_now}:\n" \
+                       f"Водій: {driver_obj}\n"\
+                       f"Каса: {kasa}\n"\
+                       f"Кількість замовлень: {orders}\n"\
+                       f"Пробіг під замовленням: {mileage}\n"\
+                       f"Ефективність: {round(kasa / mileage, 2)}\n"\
+                       f"Холостий пробіг: {rent_distance}\n"
             else:
-                text = f"Водій {driver} ще не виконав замовлень"
-            if timezone.localtime(end_time) > time(7, 0):
+                text = f"Водій {driver_obj} ще не виконав замовлень"
+            if timezone.localtime(end_time).time() > time(7, 0):
                 bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"),
                                  text=text)

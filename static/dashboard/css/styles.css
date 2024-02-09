@@ -1555,12 +1555,16 @@ select:focus {
 }
 
 
-.bonus-vehicle-licence-plate {
+span#amount-bonus-error,
+span#category-bonus-error,
+span#vehicle-bonus-error,
+span.error-name {
 	display: none;
-}
-
-.bonus-description-field {
-	display: none;
+	color: red;
+	font-size: 15px;
+	float: left;
+	margin-left: 7px;
+	margin-top: -17px;
 }
 
 .modal-shift-date {
@@ -1824,7 +1828,7 @@ select:focus {
 }
 
 .edit-bonus-btn, .edit-penalty-btn,
-.delete-bonus-btn, .delete-penalty-btn {
+.delete-bonus-penalty-btn {
 	background: none;
 	border: none;
 	padding: 5px;
@@ -1902,8 +1906,8 @@ select:focus {
 	right: 45px;
 }
 
-.add-bonus-btn,
-.add-penalty-btn {
+#add-bonus-btn,
+#add-penalty-btn {
 	display: block;
 	margin: 0 auto;
 	padding: 8px 16px;

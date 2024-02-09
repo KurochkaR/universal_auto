@@ -14,7 +14,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 
 from api.views import CarsInformationListView
-from taxi_service.forms import SubscriberForm, MainOrderForm
+from taxi_service.forms import SubscriberForm, MainOrderForm, BonusForm
 from taxi_service.handlers import PostRequestHandler, GetRequestHandler
 from taxi_service.seo_keywords import *
 from app.models import Driver, Vehicle, CustomUser, BonusCategory, PenaltyCategory
@@ -52,6 +52,7 @@ class PostRequestView(View):
             "add-penalty": handler.handler_add_bonus_or_penalty,
             "upd-status-payment": handler.handler_upd_payment_status,
             "upd_delete_bonus_penalty": handler.handler_upd_delete_bonus_penalty,
+            "delete_bonus_penalty": handler.handler_delete_bonus_penalty,
         }
 
         if action in method:
@@ -64,12 +65,12 @@ class GetRequestView(View):
     def get(self, request):
         handler = GetRequestHandler()
         action = request.GET.get("action")
-
         method = {
             "active_vehicles_locations": handler.handle_active_vehicles_locations,
             "order_confirm": handler.handle_order_confirm,
             "aggregators": handler.handle_check_aggregators,
             "check_task": handler.handle_check_task,
+            "render_bonus": handler.handle_render_bonus_form
         }
 
         if action in method:
@@ -172,26 +173,9 @@ class DashboardView(BaseDashboardView):
 class DashboardPaymentView(BaseDashboardView):
     template_name = "dashboard/dashboard-payments.html"
 
-    def get_context_data(self, **kwargs):
-        user = self.request.user
-        context = super().get_context_data(**kwargs)
-        if user.is_manager():
-            context["bonus_category"] = BonusCategory.objects.filter(Q(partner=user.manager.managers_partner) |
-                                                                     Q(partner__isnull=True))
-            context["penalty_category"] = PenaltyCategory.objects.filter(Q(partner=user.manager.managers_partner) |
-                                                                         Q(partner__isnull=True))
-        elif user.is_partner():
-            context["bonus_category"] = BonusCategory.objects.filter(Q(partner=user) | Q(partner__isnull=True))
-            context["penalty_category"] = PenaltyCategory.objects.filter(Q(partner=user) | Q(partner__isnull=True))
-        return context
-
 
 class DashboardVehicleView(BaseDashboardView):
     template_name = "dashboard/dashboard-vehicle.html"
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        return context
 
 
 class DashboardDriversView(BaseDashboardView):

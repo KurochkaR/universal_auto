@@ -1,6 +1,11 @@
 from django import forms
+from django.core.validators import MinValueValidator, RegexValidator
+from django.db.models import Q
 from django.forms import ModelForm
-from app.models import Order, SubscribeUsers, User, Comment
+from django.utils.html import format_html
+
+from app.models import Order, SubscribeUsers, User, Comment, Bonus, BonusCategory, Vehicle, Category, DriverPayments, \
+    DriverReshuffle
 from django.utils.translation import gettext_lazy as _
 
 
@@ -17,8 +22,8 @@ class PhoneInput(forms.NumberInput):
     def build_attrs(self, attrs, extra_attrs=None, **kwargs):
         attrs = super().build_attrs(attrs, extra_attrs, **kwargs)
         attrs['pattern'] = r'^[\d+]*$'
-        attrs['onkeypress'] = 'return event.charCode >= 48 && event.charCode <= 57 || event.charCode == 43;'
-        attrs['oninput'] = r"this.value = this.value.replace(/[^0-9+]/g, '');".replace("'", r'"')
+        attrs['onkeypress'] = 'return event.charCode >= 48 && event.charCode <= 57 || event.charCode == 46'
+        attrs['oninput'] = r"this.value = this.value.replace(/[^0-9.]/g, '');".replace("'", r'"')
         return attrs
 
 
@@ -77,3 +82,57 @@ class SubscriberForm(ModelForm):
             raise forms.ValidationError(_("Ви вже підписались"))
         else:
             return email
+
+
+class BonusForm(ModelForm):
+    class Meta:
+        model = Bonus
+        fields = ('amount', 'description', 'category', 'vehicle')
+
+        widgets = {
+            'description': forms.TextInput(attrs={
+                'id': 'bonus-description', 'placeholder': _('Опис'),
+                'style': 'font-size: medium'}),
+            'category': forms.Select(attrs={
+                'id': 'bonus-category', 'name': "bonus-category",  'placeholder': _('Категорія'),
+                'style': 'font-size: medium'}),
+            'vehicle': forms.Select(attrs={
+                'id': 'bonus-vehicle',
+                'placeholder': _('Автомобіль'), 'style': 'font-size: medium'}),
+        }
+
+        labels = {
+            'description': _('Опис'),
+            'category': _('Категорія'),
+            'vehicle': _('Автомобіль'),
+        }
+    amount = forms.DecimalField(widget=PhoneInput(attrs={'placeholder': _('Введіть суму')}),
+                                label=_('Сума'),
+                                required=True,
+                                validators=[
+                                    MinValueValidator(1, message=_('Сума повинна бути не менше 1')),
+                                ],
+                                error_messages={'required': _('Введіть суму, будь ласка'),
+                                                'invalid': _('Сума повинна бути числом')}
+                                )
+
+    def __init__(self, user, category=None, payment_id=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        filter_partner = user.manager.managers_partner if user.is_manager() else user
+        if payment_id:
+            payment = DriverPayments.objects.get(id=payment_id)
+            driver_vehicle_ids = DriverReshuffle.objects.filter(
+                Q(driver_start=payment.driver),
+                Q(swap_time__range=(payment.report_from, payment.report_to)) |
+                Q(end_time__range=(payment.report_from, payment.report_to))
+            ).values_list('swap_vehicle', flat=True)
+            self.fields['vehicle'].queryset = Vehicle.objects.filter(id__in=driver_vehicle_ids)
+        else:
+            self.fields['vehicle'].queryset = Vehicle.objects.filter(partner=filter_partner)
+        filter_category = Q(bonuscategory__isnull=False) if category == 'bonus' else Q(bonuscategory__isnull=True)
+        self.fields['category'].queryset = Category.objects.filter(Q(partner=filter_partner) |
+                                                                   Q(partner__isnull=True),
+                                                                   filter_category)
+        self.fields['description'].required = False
+        self.fields['vehicle'].required = True
+
