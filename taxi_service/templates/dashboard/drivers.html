@@ -7,7 +7,7 @@
 
   <div class="driver-header">
     <div class="driver-radio-buttons">
-      <input type="radio" id="driver-list-radio" name="driver-info" value="driver-list" checked>
+      <input type="radio" id="driver-list-radio" name="driver-info" value="driver-list">
       <label for="driver-list-radio">{% trans "Список водіїв" %}</label>
 
       <input type="radio" id="driver-efficiency-radio" name="driver-info" value="driver-efficiency">
@@ -17,7 +17,7 @@
       <label for="driver-payments-radio">{% trans "Виплати водіїв" %}</label>
     </div>
   </div>
-
+  {% block content %}
   <div class="search-filter-block">
     <div class="search-inputs">
       <div class="search-input">
@@ -61,37 +61,44 @@
           <h3>Автомобіль</h3>
       </div>
 
-      <div class="driver-info">
-        <div class="driver-name-info">
-          <p>Іванов Іван</p>
-        </div>
-        <div class="driver-phone">
-          <p>+1234567890</p>
-        </div>
-        <div class="driver-chat-id">
-          <p>123456</p>
-        </div>
-        <div class="driver-schedule">
-          <p>6/1</p>
-        </div>
-        <div class="driver-status">
-          <p>Активний</p>
-        </div>
-        <div class="driver-car">
-          <p>Toyota Camry</p>
-        </div>
-      </div>
+<!--      <div class="driver-info">-->
+<!--        <div class="driver-name-info">-->
+<!--          <p>Іванов Іван</p>-->
+<!--        </div>-->
+<!--        <div class="driver-phone">-->
+<!--          <p>+1234567890</p>-->
+<!--        </div>-->
+<!--        <div class="driver-chat-id">-->
+<!--          <p>123456</p>-->
+<!--        </div>-->
+<!--        <div class="driver-schedule">-->
+<!--          <p>6/1</p>-->
+<!--        </div>-->
+<!--        <div class="driver-status">-->
+<!--          <p>Активний</p>-->
+<!--        </div>-->
+<!--        <div class="driver-car">-->
+<!--          <p>Toyota Camry</p>-->
+<!--        </div>-->
+<!--      </div>-->
     </div>
   </div>
-
-
-
+  {% endblock %}
 </main>
-
 </div>
+
+<script>
+  const VehicleImg = "{% static 'app/images/index-one-block-2.webp' %}";
+  const logoImageUrl = "{% static 'app/images/logo-2.svg' %}";
+  let ajaxPostUrl = "{% url 'post_request' %}";
+  let ajaxGetUrl = "{% url 'get_request' %}";
+</script>
 
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.3/dist/jquery.min.js" defer></script>
 <script src="{% static 'dashboard/js/header-sidebar.js' %}" defer></script>
+<script src="{% static 'dashboard/js/drivers.js' %}" defer></script>
+<script src="{% static 'dashboard/js/scripts-drivers.js' %}" defer></script>
+<script src="{% static 'dashboard/js/scripts-payments.js' %}" defer></script>
 <script src="{% static 'dashboard/js/scripts.js' %}" defer></script>
 
 </body>

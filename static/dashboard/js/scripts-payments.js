@@ -168,7 +168,7 @@ $(document).ready(function () {
     }
   });
 
-  function initializeCustomSelect(customSelect, selectedOption, optionsList, iconDown, datePicker) {
+  function initializeCustomSelectPayments(customSelect, selectedOption, optionsList, iconDown, datePicker) {
 		iconDown.click(function() {
 			customSelect.toggleClass("active");
 		});
@@ -177,7 +177,7 @@ $(document).ready(function () {
 			customSelect.toggleClass("active");
 		});
 
-		optionsList.on("click", "li", function() {
+		optionsList.find("li").click(function() {
 			const clickedValue = $(this).data("value");
 			selectedOption.text($(this).text());
 			customSelect.removeClass("active");
@@ -196,13 +196,13 @@ $(document).ready(function () {
 		});
 	}
 
-	const customSelectDriver = $(".custom-select-drivers");
-	const selectedOptionDriver = customSelectDriver.find(".selected-option-drivers");
-	const optionsListDriver = customSelectDriver.find(".options-drivers");
+	const customSelectDriver = $(".custom-select-payments");
+	const selectedOptionDriver = customSelectDriver.find(".selected-option-payments");
+	const optionsListDriver = customSelectDriver.find(".options-payments");
 	const iconDownDriver = customSelectDriver.find(".fas.fa-angle-down");
-	const datePickerDriver = $("#datePickerDriver");
+	const datePickerDriver = $("#datePickerPayments");
 
-	initializeCustomSelect(customSelectDriver, selectedOptionDriver, optionsListDriver, iconDownDriver, datePickerDriver);
+	initializeCustomSelectPayments(customSelectDriver, selectedOptionDriver, optionsListDriver, iconDownDriver, datePickerDriver);
 
 	$('.shift-close-btn').off('click').on('click', function (e) {
   	e.preventDefault();

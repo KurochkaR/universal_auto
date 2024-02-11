@@ -184,9 +184,10 @@ class DriverInformationSerializer(serializers.ModelSerializer):
     photo = serializers.CharField()
     full_name = serializers.CharField()
     vehicle = serializers.CharField()
+    driver_schema = serializers.CharField()
 
     class Meta:
         model = Driver
         fields = (
-            "photo", "full_name", "phone_number", "chat_id", "schema", "driver_status", "vehicle"
+            "photo", "full_name", "phone_number", "chat_id", "driver_schema", "driver_status", "vehicle"
         )

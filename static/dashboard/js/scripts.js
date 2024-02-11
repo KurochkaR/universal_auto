@@ -258,6 +258,19 @@ $(document).ready(function() {
 			}
 		});
 	}
+
+	if (sessionStorage.getItem('selectedOption')) {
+		var selectedOption = sessionStorage.getItem('selectedOption');
+		if (selectedOption !== 'driver-list') {
+			sessionStorage.setItem('selectedOption', 'driver-list');
+		}
+	} else {
+		sessionStorage.setItem('selectedOption', 'driver-list');
+	}
+	$('#DriverBtnContainers').on('click', function() {
+		$('input[name="driver-info"][value="driver-list"]').prop('checked', true);
+		sessionStorage.setItem('selectedOption', 'driver-list');
+	});
 });
 
 function applyCustomDateRange(item) {

@@ -172,19 +172,22 @@ label {
 }
 
 .custom-select,
-.custom-select-drivers{
+.custom-select-drivers,
+.custom-select-payments {
   position: relative;
   display: inline-block;
   width: 215px;
   top: 35px;
 }
 
-.custom-select-drivers {
+.custom-select-drivers,
+.custom-select-payments{
 	top: 15px;
 }
 
 .selected-option,
-.selected-option-drivers {
+.selected-option-drivers,
+.selected-option-payments {
 	color: #53785E;
 	font-size: 20px;
 	font-style: normal;
@@ -200,7 +203,8 @@ label {
 }
 
 .options,
-.options-drivers {
+.options-drivers,
+.options-payments {
 	width: 200px;
 	position: absolute;
 	top: 60%;
@@ -217,7 +221,8 @@ label {
 }
 
 .options li,
-.options-drivers li {
+.options-drivers li,
+.options-payments li {
 	color: #53785E;
 	font-size: 20px;
 	font-style: normal;
@@ -228,7 +233,8 @@ label {
 }
 
 .custom-select.active .options,
-.custom-select-drivers.active .options-drivers {
+.custom-select-drivers.active .options-drivers,
+.custom-select-payments.active .options-payments {
   display: block;
 }
 
@@ -245,7 +251,8 @@ i.fas.fa-angle-down {
 }
 
 #datePicker,
-#datePickerDriver {
+#datePickerDriver,
+#datePickerPayments {
   display: none;
   margin-top: 20px;
 }

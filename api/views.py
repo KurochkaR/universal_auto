@@ -360,6 +360,7 @@ class DriverInformationListView(CombinedPermissionsMixin, generics.ListAPIView):
                 F("user_ptr__name"),
                 Value(" "),
                 F("user_ptr__second_name")),
+            driver_schema=F('schema__title'),
             vehicle=Coalesce(Subquery(driver_reshuffle[:1]), Value(""), output_field=CharField())
         )
         return queryset
