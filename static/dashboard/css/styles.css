@@ -2159,7 +2159,7 @@ select:focus {
 .driver-header,
 .driver-info {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-start;
     align-items: center;
     border-bottom: 3px solid #A1E8B9;
 }
@@ -2175,7 +2175,7 @@ select:focus {
     font-style: normal;
     font-weight: 700;
     line-height: normal;
-    text-align: center; /* Додаємо вирівнювання тексту по центру */
+    text-align: center;
 }
 
 .driver-info p {
@@ -2184,5 +2184,115 @@ select:focus {
     font-style: normal;
     font-weight: 700;
     line-height: normal;
-    text-align: center; /* Додаємо вирівнювання тексту по центру */
+    text-align: center;
+}
+
+/* Стилі для детальної інформації про водія */
+
+.driver-header {
+  padding: 10px;
+}
+
+.driver-header h1 {
+	margin:0 0 0 10px;
+	font-size: 26px;
+	font-weight: 700;
+}
+
+.back-page {
+  display: flex;
+  align-items: center;
+  background-color: #EC6323;
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: 5px;ansition: background-color 0.3s ease;
+}
+
+.back-page svg {
+  margin-right: 5px;
+  width: 20px;
+  height: 20px;
+}
+
+.detail-driver-block {
+  display: grid;
+  grid-template-columns: 550px 100%;
+}
+
+.detail-driver-info {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	margin: 20px;
+	box-shadow: 0 0 10px rgba(0, 0, 0, 0.4);
+	border-radius: 5px;
+	padding: 20px;
+
+}
+
+.detail-driver-info .driver-photo {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	padding: 20px;
+}
+
+.driver-photo img {
+	width: 100px;
+	height: 100px;
+	border-radius: 50%;
+	box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.driver-photo span {
+	margin-top: 10px;
+	font-size: 20px;
+	font-weight: bold;
+}
+
+.driver-data,
+.driver-vehicle {
+	margin-top: 30px;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	width: 100%;
+	border-bottom: groove;
+	padding-bottom: 15px;
+}
+
+.driver-flex {
+  display: grid;
+	align-items: center;
+	grid-template-columns: 1fr 1fr;
+	width: 100%;
+}
+
+.driver-flex h3 {
+	color: #acacb2;
+	font-size: 20px;
+	font-weight: 400;
+	margin: 15px 0 0 0;
+}
+
+.driver-flex p {
+	color: #141E17;
+	font-size: 18px;
+	font-weight: 700;
+	margin: 15px 0 0 0;
+}
+
+.driver-flex .driver-car-name {
+	grid-column: 2;
+}
+
+.driver-vehicle-info img {
+	position: relative;
+	top: 25px;
+	margin-right: 10px;
+	width: 100px;
+	height: auto;
 }

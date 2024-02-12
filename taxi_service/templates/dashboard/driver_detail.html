@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+{% load static %}
+{% load i18n %}
+{% include 'dashboard/dashboard-header-sidebar.html' %}
+
+<main class="main-container">
+  <div class="driver-header">
+    <button class="back-page"><svg width="100%" height="100%" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" fit="" preserveAspectRatio="xMidYMid meet" focusable="false">
+      <path d="M15.8335 9.16683H6.16682L10.5835 4.75016C10.9168 4.41683 10.9168 3.91683 10.5835 3.5835C10.2502 3.25016 9.75016 3.25016 9.41683 3.5835L3.5835 9.41683C3.25017 9.75016 3.25017 10.2502 3.5835 10.5835L9.41683 16.4168C9.5835 16.5835 9.8335 16.6668 10.0002 16.6668C10.1668 16.6668 10.4168 16.5835 10.5835 16.4168C10.9168 16.0835 10.9168 15.5835 10.5835 15.2502L6.16682 10.8335H15.8335C16.3335 10.8335 16.6668 10.5002 16.6668 10.0002C16.6668 9.50016 16.3335 9.16683 15.8335 9.16683Z" fill="currentColor"></path>
+      </svg>Назад
+    </button>
+    <h1>Сторінка водія {{ object.second_name }} {{ object.name }}</h1>
+  </div>
+
+  <div class="detail-driver-block">
+    <div class="detail-driver-info">
+      <div class="driver-photo">
+        <img src="https://storage.googleapis.com/jobdriver-bucket/{{ object.photo }}" alt="driver-photo">
+        <span>{{ object.second_name }} {{ object.name }}</span>
+      </div>
+      <div class="driver-data">
+        <h2 class="driver-data-item">Дані водія</h2>
+        <div class="driver-flex">
+          <h3 class="driver-phone-number">Номер телефону: </h3>
+          <p>{{ object.phone_number }}</p>
+        </div>
+        <div class="driver-flex">
+          <h3 class="driver-email">Електронна пошта: </h3>
+          <p>{{ object.email }}</p>
+        </div>
+        <div class="driver-flex">
+          <h3 class="driver-schema">Схема роботи: </h3>
+          <p>{{ object.schema }}</p>
+        </div>
+        <div class="driver-flex">
+          <h3 class="driver-create">Дата додавання: </h3>
+          <p>{{ object.created_at }}</p>
+        </div>
+      </div>
+      <div class="driver-vehicle">
+        <h2 class="driver-vehicle-item">Поточне авто</h2>
+        <div class="driver-vehicle-info driver-flex">
+          <img src="{% static 'app/images/index-one-block-2.webp' %}" alt="car">
+          <h3 class="driver-car">{{ vehicle.number }}</h3>
+          <h3 class="driver-car-name">{{ vehicle.name }}</h3>
+        </div>
+      </div>
+
+    </div>
+    <div class="driver-statistics">
+
+    </div>
+  </div>
+
+</main>
+
+</body>
+</html>

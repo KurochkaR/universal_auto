@@ -7,7 +7,7 @@ $(document).ready(function () {
 
 			data.forEach(function(driver) {
 				var driverItem = $('<div class="driver-item"></div>');
-				var driverInfo = $('<div class="driver-info"></div>');
+        var driverInfo = $('<div class="driver-info" data-id="' + driver.id + '"></div>');
 
 				driverInfo.append('<div class="driver-name-info"><p>' + driver.full_name + '</p></div>');
 				driverInfo.append('<div class="driver-phone"><p>' + driver.phone_number + '</p></div>');
@@ -21,6 +21,11 @@ $(document).ready(function () {
 				$('.drivers-list').append(driverItem);
 			});
 		}
+	});
+
+	$(this).on('click', '.driver-name-info', function() {
+		var driverId = $(this).parent().data('id');
+		window.location.href = "/dashboard/driver/" + driverId;
 	});
 
 	var selectedOption = sessionStorage.getItem('selectedOption');

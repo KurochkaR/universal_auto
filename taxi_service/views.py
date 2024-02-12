@@ -2,14 +2,16 @@ import os
 
 import jwt
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import Q
+from django.db.models import Q, OuterRef, Subquery, Value, CharField
+from django.db.models.functions import Coalesce
 
 from django.urls import reverse
 from django.shortcuts import render, redirect
 from django.contrib.auth import login, logout
 from django.core.paginator import Paginator
 from django.http import HttpResponseRedirect
-from django.views.generic import View, TemplateView
+from django.utils import timezone
+from django.views.generic import View, TemplateView, DetailView
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 
@@ -17,7 +19,7 @@ from api.views import CarsInformationListView
 from taxi_service.forms import SubscriberForm, MainOrderForm
 from taxi_service.handlers import PostRequestHandler, GetRequestHandler
 from taxi_service.seo_keywords import *
-from app.models import Driver, Vehicle, CustomUser
+from app.models import Driver, Vehicle, CustomUser, DriverReshuffle
 from auto_bot.main import bot
 
 
@@ -57,7 +59,7 @@ class PostRequestView(View):
         if action in method:
             return method[action](request)
         else:
-            return handler.handler_unknown_action(request)
+            return handler.handle_unknown_action()
 
 
 class GetRequestView(View):
@@ -75,7 +77,7 @@ class GetRequestView(View):
         if action in method:
             return method[action](request)
         else:
-            return handler.handle_unknown_action(request)
+            return handler.handle_unknown_action()
 
 
 class BaseContextView(TemplateView):
@@ -176,6 +178,27 @@ class DashboardCalendarView(BaseDashboardView):
 
 class DriversView(BaseDashboardView):
     template_name = "dashboard/drivers.html"
+
+
+class DriverDetailView(DetailView):
+    model = Driver
+    template_name = 'dashboard/driver_detail.html'
+
+    def get_context_data(self, **kwargs):
+        driver_id = self.kwargs['pk']
+        driver_reshuffle = DriverReshuffle.objects.filter(
+            swap_time__lte=timezone.localtime(), end_time__gt=timezone.localtime(),
+            driver_start=driver_id).first()
+
+        context = super().get_context_data(**kwargs)
+        context["investor_group"] = self.request.user.is_investor()
+        context["partner_group"] = self.request.user.is_partner()
+        context["manager_group"] = self.request.user.is_manager()
+        context["vehicle"] = {
+            "number": driver_reshuffle.swap_vehicle.licence_plate,
+            "name": driver_reshuffle.swap_vehicle.name
+        }
+        return context
 
 
 # OTHER PAGES VIEWS ->

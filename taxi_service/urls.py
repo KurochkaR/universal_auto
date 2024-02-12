@@ -10,6 +10,7 @@ urlpatterns = [
     path('investment/', InvestmentView.as_view(), name='investment'),
     path('dashboard/', DashboardView.as_view(), name='dashboard'),
     path('dashboard/drivers/', DriversView.as_view(), name='drivers'),
+    path('dashboard/driver/<int:pk>/', DriverDetailView.as_view(), name='driver_detail'),
     path('dashboard/vehicle/', DashboardVehicleView.as_view(), name='dashboard_vehicle'),
     path('dashboard/drivers-efficiency/', DashboardDriversView.as_view(), name='dashboard_efficiency'),
     path('dashboard/drivers-payment/', DashboardPaymentView.as_view(), name='dashboard_payment'),
