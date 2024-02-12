@@ -589,6 +589,9 @@ def get_today_statistic(partner_pk, start, end, driver):
     orders = FleetOrder.objects.filter(accepted_time__gt=start,
                                        state=FleetOrder.COMPLETED,
                                        driver=driver).order_by('-finish_time')
+    canceled_orders = FleetOrder.objects.filter(accepted_time__gt=start,
+                                                state=FleetOrder.DRIVER_CANCEL,
+                                                driver=driver).count()
     for fleet in fleets:
         if isinstance(fleet, BoltRequest):
             bolt_orders = orders.filter(fleet=fleet.name)
@@ -601,4 +604,4 @@ def get_today_statistic(partner_pk, start, end, driver):
         kasa += Decimal(fleet_kasa)
     mileage = orders.aggregate(order_mileage=Coalesce(Sum('distance'), Decimal(0)))['order_mileage']
 
-    return kasa, card, mileage, orders.count()
+    return kasa, card, mileage, orders.count(), canceled_orders

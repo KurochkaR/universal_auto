@@ -21,6 +21,8 @@ from app.models import FleetOrder, Vehicle, FleetsDriversVehiclesRate, UberServi
     UaGpsService, NewUklonService
 from app.uklon_sync import UklonRequest
 from auto import settings
+from auto_bot.handlers.order.utils import check_vehicle
+from auto_bot.main import bot
 from scripts.redis_conn import get_logger, redis_instance
 from selenium_ninja.synchronizer import AuthenticationError, InfinityTokenError
 
@@ -374,6 +376,11 @@ class SeleniumTools:
                                 "partner_id": self.partner,
                                 "date_order": start.date()}
                         FleetOrder.objects.create(**data)
+                        if check_vehicle(driver) != vehicle:
+                            bot.send_message(chat_id=515224934,
+                                             text=f"{check_vehicle(driver.driver)}!= {vehicle} order {row[0]}")
+                            redis_instance().hset(f"wrong_vehicle_{driver.partner.pk}", driver.driver_id,
+                                                  vehicle.licence_plate)
                 os.remove(file_path)
 
     def add_driver(self, job_application):

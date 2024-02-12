@@ -266,18 +266,20 @@ class UaGpsSynchronizer(Fleet):
                     continue
             rent_distance = total_km - distance
             driver_obj = Driver.objects.get(id=driver)
-            kasa, card, mileage, orders = get_today_statistic(self.partner, start, end_time, driver_obj)
+            kasa, card, mileage, orders, canceled_orders = get_today_statistic(self.partner, start, end_time, driver_obj)
             time_now = timezone.localtime(end_time).strftime("%H:%M")
             if kasa and mileage:
                 text = f"Поточна статистика на {time_now}:\n" \
                        f"Водій: {driver_obj}\n"\
                        f"Каса: {kasa}\n"\
-                       f"Кількість замовлень: {orders}\n"\
+                       f"Виконано замовлень: {orders}\n"\
+                       f"Скасовано замовлень: {canceled_orders}"\
                        f"Пробіг під замовленням: {mileage}\n"\
                        f"Ефективність: {round(kasa / mileage, 2)}\n"\
                        f"Холостий пробіг: {rent_distance}\n"
             else:
-                text = f"Водій {driver_obj} ще не виконав замовлень"
+                text = f"Водій {driver_obj} ще не виконав замовлень\n" \
+                       f"Холостий пробіг: {rent_distance}\n"
             if timezone.localtime(end_time).time() > time(7, 0):
                 bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"),
                                  text=text)

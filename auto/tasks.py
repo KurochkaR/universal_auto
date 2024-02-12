@@ -334,6 +334,7 @@ def check_daily_report(self, partner_pk, start=None, end=None):
 @app.task(bind=True, queue='beat_tasks', retry_backoff=30, max_retries=4)
 def download_nightly_report(self, partner_pk, schema, day=None):
     try:
+        # for schema in schemas check uber orders
         start, end = get_time_for_task(schema, day)[2:]
         fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name='Gps')
         for fleet in fleets:

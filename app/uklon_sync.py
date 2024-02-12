@@ -347,6 +347,11 @@ class UklonRequest(Fleet, Synchronizer):
                         "date_order": start.date()
                         }
                 FleetOrder.objects.create(**data)
+                if check_vehicle(driver) != vehicle:
+                    bot.send_message(chat_id=515224934,
+                                     text=f"{check_vehicle(driver)}!= {vehicle} order {order['id']}")
+                    redis_instance().hset(f"wrong_vehicle_{driver.partner.pk}", driver_id,
+                                          vehicle.licence_plate)
         except KeyError:
             bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"), text=f"{orders}")
 
