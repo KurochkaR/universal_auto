@@ -3,6 +3,8 @@ from datetime import datetime, timedelta, time
 import requests
 from _decimal import Decimal
 from django.utils import timezone
+from telegram import ParseMode
+
 from app.models import (Driver, GPSNumber, RentInformation, FleetOrder, CredentialPartner, ParkSettings, Fleet,
                         Partner, VehicleRent, DriverReshuffle)
 from auto_bot.handlers.driver_manager.utils import get_today_statistic
@@ -267,13 +269,14 @@ class UaGpsSynchronizer(Fleet):
             rent_distance = total_km - distance
             driver_obj = Driver.objects.get(id=driver)
             kasa, card, mileage, orders, canceled_orders = get_today_statistic(self.partner, start, end_time, driver_obj)
-            time_now = timezone.localtime(end_time).strftime("%H:%M")
+            time_now = timezone.localtime(end_time)
             if kasa and mileage:
-                text = f"Поточна статистика на {time_now}:\n" \
+                kasa_text = f'<font color="red">{kasa}</font>' if kasa/time_now.hour < 10 else kasa
+                text = f"Поточна статистика на {time_now.strftime('%H:%M')}:\n" \
                        f"Водій: {driver_obj}\n"\
-                       f"Каса: {kasa}\n"\
+                       f"Каса: {kasa_text}\n"\
                        f"Виконано замовлень: {orders}\n"\
-                       f"Скасовано замовлень: {canceled_orders}"\
+                       f"Скасовано замовлень: {canceled_orders}\n"\
                        f"Пробіг під замовленням: {mileage}\n"\
                        f"Ефективність: {round(kasa / mileage, 2)}\n"\
                        f"Холостий пробіг: {rent_distance}\n"
@@ -282,4 +285,4 @@ class UaGpsSynchronizer(Fleet):
                        f"Холостий пробіг: {rent_distance}\n"
             if timezone.localtime(end_time).time() > time(7, 0):
                 bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"),
-                                 text=text)
+                                 text=text, parse_mode=ParseMode.HTML)

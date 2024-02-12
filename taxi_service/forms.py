@@ -1,5 +1,5 @@
 from django import forms
-from django.core.validators import MinValueValidator, RegexValidator
+from django.core.validators import MinValueValidator, RegexValidator, MinLengthValidator
 from django.db.models import Q
 from django.forms import ModelForm
 from django.utils.html import format_html
@@ -115,6 +115,15 @@ class BonusForm(ModelForm):
                                 error_messages={'required': _('Введіть суму, будь ласка'),
                                                 'invalid': _('Сума повинна бути числом')}
                                 )
+    new_category = forms.CharField(
+        required=False,
+        label=_("Нова категорія"),
+        widget=forms.TextInput(attrs={'id': 'new-category', 'style': 'font-size: medium',
+                                      'placeholder': _('Введіть назву категорії')}),
+        validators=[
+            MinLengthValidator(5, message=_('Назва повинна мати не менше 5 символів')),
+        ],
+    )
 
     def __init__(self, user, category=None, payment_id=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -130,9 +139,13 @@ class BonusForm(ModelForm):
         else:
             self.fields['vehicle'].queryset = Vehicle.objects.filter(partner=filter_partner)
         filter_category = Q(bonuscategory__isnull=False) if category == 'bonus' else Q(bonuscategory__isnull=True)
-        self.fields['category'].queryset = Category.objects.filter(Q(partner=filter_partner) |
-                                                                   Q(partner__isnull=True),
-                                                                   filter_category)
+        category_queryset = Category.objects.filter(Q(partner=filter_partner) |
+                                                    Q(partner__isnull=True),
+                                                    filter_category)
+        category_choices = list(category_queryset.values_list('id', 'title'))
+        category_choices.append(('add_new_category', _('Додати нову категорію')))
+        self.fields['category'].choices = category_choices
         self.fields['description'].required = False
         self.fields['vehicle'].required = True
-
+        if self.fields['vehicle'].queryset.count() == 1:
+            self.fields['vehicle'].initial = self.fields['vehicle'].queryset.first()

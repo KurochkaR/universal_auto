@@ -456,7 +456,7 @@ class BonusCategory(Category):
 
 class PenaltyBonus(PolymorphicModel):
     amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Сума')
-    description = models.CharField(max_length=255, null=True, blank=True, verbose_name='Опис')
+    description = models.CharField(max_length=255, null=True, verbose_name='Опис')
 
     category = models.ForeignKey(Category, null=True, on_delete=models.CASCADE, verbose_name='Категорія')
     vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Автомобіль')

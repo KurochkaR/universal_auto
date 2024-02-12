@@ -11,7 +11,8 @@ from django.contrib.auth import logout, authenticate
 from django.shortcuts import render
 from django.template.loader import render_to_string
 
-from app.models import SubscribeUsers, Manager, CustomUser, DriverPayments, Bonus, Penalty, Vehicle, PenaltyBonus
+from app.models import SubscribeUsers, Manager, CustomUser, DriverPayments, Bonus, Penalty, Vehicle, PenaltyBonus, \
+    BonusCategory, PenaltyCategory
 from taxi_service.forms import MainOrderForm, CommentForm, BonusForm
 from taxi_service.utils import (update_order_sum_or_status, restart_order,
                                 partner_logout, login_in_investor,
@@ -246,23 +247,34 @@ class PostRequestHandler:
 
     @staticmethod
     def handler_add_bonus_or_penalty(request):
-        data = request.POST
+        data = request.POST.copy()
         operation_type = data.get('action')
-
+        new_category = data.get('new_category', None)
         model_map = {
             'add-bonus': Bonus,
             'add-penalty': Penalty
         }
+
         model_instance = model_map.get(operation_type)
         if model_instance is None:
             return JsonResponse({'error': 'Invalid operation type'}, status=400)
+        if new_category:
+            partner = request.user.manager.managers_partner if request.user.is_manager() else request.user.pk
+            if operation_type == 'add-bonus':
+                new_category, _ = BonusCategory.objects.get_or_create(title=data.get('new_category', None),
+                                                                      partner_id=partner)
+            else:
+                new_category, _ = PenaltyCategory.objects.get_or_create(title=data.get('new_category', None),
+                                                                        partner_id=partner)
+        data.setlist('category', [str(new_category.pk)])
+
         payment_id = data.get('idPayments', None)
         form = BonusForm(request.user, payment_id=payment_id, category=data.get('category_type', None), data=data)
         if form.is_valid():
             bonus_data = {"amount": form.cleaned_data['amount'],
                           "description": form.cleaned_data['description'],
                           "vehicle": form.cleaned_data['vehicle'],
-                          "category": form.cleaned_data['category']}
+                          "category": new_category if new_category else form.cleaned_data['category']}
             if DriverPayments.objects.filter(id=payment_id).exists():
                 driver_payments = DriverPayments.objects.filter(id=payment_id)
                 bonus_data["driver_payments"] = driver_payments.first()
@@ -280,9 +292,20 @@ class PostRequestHandler:
 
     @staticmethod
     def handler_upd_delete_bonus_penalty(request):
-        data = request.POST
+        data = request.POST.copy()
         bonus_id = data.get('bonus_id', None)
-        form = BonusForm(request.user, category=data.get('category_type', None), data=data)
+        new_category = data.get('new_category', None)
+        type_bonus_penalty = data.get('category_type', None)
+        if new_category:
+            partner = request.user.manager.managers_partner if request.user.is_manager() else request.user.pk
+            if type_bonus_penalty == 'bonus':
+                new_category, _ = BonusCategory.objects.get_or_create(title=data.get('new_category', None),
+                                                                      partner_id=partner)
+            else:
+                new_category, _ = PenaltyCategory.objects.get_or_create(title=data.get('new_category', None),
+                                                                        partner_id=partner)
+        data.setlist('category', [str(new_category.pk)])
+        form = BonusForm(request.user, category=type_bonus_penalty, data=data)
         if form.is_valid():
             instance = PenaltyBonus.objects.filter(id=bonus_id).first()
 

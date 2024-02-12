@@ -26,6 +26,13 @@
     </div>
   </div>
 
+    <div class="new-category">
+        <div class="new-category-field">
+            {{ bonus_form.new_category.label_tag }}
+            {{ bonus_form.new_category }}
+            <span class="text-danger small pl-4" id="new-category-bonus-error"></span>
+        </div>
+    </div>
   <div class="bonus-vehicle">
     <div class="bonus-vehicle-licence-plate">
       {{ bonus_form.vehicle.label_tag }}
