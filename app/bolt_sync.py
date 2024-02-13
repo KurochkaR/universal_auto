@@ -11,7 +11,7 @@ from app.models import BoltService, Driver, FleetsDriversVehiclesRate, FleetOrde
     CredentialPartner, Vehicle, PaymentTypes, Fleet, CustomReport, WeeklyReport, DailyReport
 from auto import settings
 from auto_bot.handlers.order.utils import check_vehicle
-from scripts.redis_conn import redis_instance
+from scripts.redis_conn import redis_instance, get_logger
 from selenium_ninja.synchronizer import Synchronizer, AuthenticationError
 
 
@@ -234,19 +234,32 @@ class BoltRequest(Fleet, Synchronizer):
     def get_drivers_table(self):
         driver_list = []
         start = end = datetime.now().strftime('%Y-%m-%d')
-        params = {"start_date": start,
-                  "end_date": end,
-                  "offset": 0,
-                  "limit": 25}
-        params.update(self.param())
-        report = self.get_target_url(f'{self.base_url}getDriverEngagementData/dateRange', params)
-        drivers = report['data']['rows']
-        for driver in drivers:
-            driver_params = self.param().copy()
-            driver_params['id'] = driver['id']
-            driver_info = self.get_target_url(f'{self.base_url}getDriver', driver_params)
-            time.sleep(0.5)
-            if driver_info['message'] == 'OK':
+        params = {"start_date": start, "end_date": end, "limit": 25}
+        offset = 0
+        limit = params["limit"]
+
+        while True:
+            params["offset"] = offset
+            params.update(self.param())
+            report = self.get_target_url(f'{self.base_url}getDriverEngagementData/dateRange', params)
+            if offset > report['data']['total_rows']:
+                break
+            drivers = report['data']['rows']
+            for driver in drivers:
+                driver_params = self.param().copy()
+                driver_params['id'] = driver['id']
+                driver_info = self.get_target_url(f'{self.base_url}getDriver', driver_params)
+                time.sleep(0.5)
+                if driver_info['message'] != 'OK':
+                    time.sleep(3)
+                    try:
+                        driver_info = self.get_target_url(f'{self.base_url}getDriver', driver_params)
+                        driver_name = driver_info['data']['first_name']
+                        print(driver_name)
+                    except Exception as e:
+                        get_logger().error(e)
+                else:
+                    pass
                 driver_list.append({
                     'fleet_name': self.name,
                     'name': driver_info['data']['first_name'],
@@ -255,6 +268,7 @@ class BoltRequest(Fleet, Synchronizer):
                     'phone_number': driver_info['data']['phone'],
                     'driver_external_id': driver_info['data']['id'],
                 })
+            offset += limit
         return driver_list
 
     def get_fleet_orders(self, start, end, pk, driver_id):
@@ -441,17 +455,26 @@ class BoltRequest(Fleet, Synchronizer):
     def get_vehicles(self):
         vehicles_list = []
         start = end = datetime.now().strftime('%Y-%m-%d')
-        params = {"start_date": start,
-                  "end_date": end,
-                  "offset": 0,
-                  "limit": 25}
-        params.update(self.param())
-        response = self.get_target_url(f'{self.base_url}getCarsPaginated', params=params)
-        vehicles = response['data']['rows']
-        for vehicle in vehicles:
-            vehicles_list.append({
-                'licence_plate': vehicle['reg_number'],
-                'vehicle_name': vehicle['model'],
-                'vin_code': ''
-            })
+        params = {"start_date": start, "end_date": end, "limit": 25}
+        offset = 0
+        limit = params["limit"]
+
+        while True:
+            params["offset"] = offset
+
+            params.update(self.param())
+            response = self.get_target_url(f'{self.base_url}getCarsPaginated', params=params)
+            print(response['data']['total_rows'])
+            if offset > response['data']['total_rows']:
+                print(f"vehicle_break {offset}")
+                break
+            vehicles = response['data']['rows']
+            time.sleep(0.5)
+            for vehicle in vehicles:
+                vehicles_list.append({
+                    'licence_plate': vehicle['reg_number'],
+                    'vehicle_name': vehicle['model'],
+                    'vin_code': ''
+                })
+            offset += limit
         return vehicles_list

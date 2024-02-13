@@ -4,7 +4,7 @@ import random
 from datetime import datetime, date, time
 from decimal import Decimal
 
-from django.core.exceptions import ObjectDoesNotExist
+from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.core.validators import MaxLengthValidator, EmailValidator, RegexValidator
 from django.db.models import Sum, F
 from django.db.models.signals import post_delete
@@ -343,6 +343,9 @@ class Driver(User):
                                                          partner=self.partner,
                                                          deleted_at=None).driver_external_id
         except ObjectDoesNotExist:
+            return
+        except MultipleObjectsReturned:
+            print(self)
             return
 
     def __str__(self) -> str:

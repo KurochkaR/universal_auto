@@ -5,6 +5,7 @@ import os
 import time
 from datetime import datetime
 import re
+from urllib.parse import urlparse
 
 import redis
 from selenium.webdriver.support import expected_conditions as ec
@@ -252,6 +253,8 @@ class SeleniumTools:
         for cookie in cookies:
             if cookie.get('name') == 'sessions':
                 session = cookie.get('value')
+            else:
+                session = "5150a0c1025fda8440f78839971d5b73"
         self.quit()
         if session:
             params = {
@@ -259,7 +262,8 @@ class SeleniumTools:
                 'svc': 'token/list',
                 'params': json.dumps({})
             }
-            response = requests.get(f"{url}wialon/ajax.html", params=params)
+            wialon_url = "https://hst-api.wialon.eu/" if url == "https://gps.antenor.online/" else url
+            response = requests.get(f"{wialon_url}wialon/ajax.html", params=params)
             tokens_list = response.json()
             for token in tokens_list:
                 if not token.get('dur'):
