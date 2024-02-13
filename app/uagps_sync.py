@@ -3,8 +3,11 @@ from datetime import datetime, timedelta, time
 import requests
 from _decimal import Decimal
 from django.utils import timezone
-from app.models import Driver, GPSNumber, RentInformation, FleetOrder, \
-    DriverEfficiency, CredentialPartner, ParkSettings, Fleet, Partner, VehicleRent
+from telegram import ParseMode
+
+from app.models import (Driver, GPSNumber, RentInformation, FleetOrder, CredentialPartner, ParkSettings, Fleet,
+                        Partner, VehicleRent, DriverReshuffle)
+from auto_bot.handlers.driver_manager.utils import get_today_statistic
 from auto_bot.handlers.order.utils import check_reshuffle
 from auto_bot.main import bot
 from scripts.redis_conn import redis_instance, get_logger
@@ -102,7 +105,8 @@ class UaGpsSynchronizer(Fleet):
     def get_road_distance(self, start, end, schema=None):
         road_dict = {}
         drivers = Driver.objects.get_active(partner=self.partner, schema=schema) if schema \
-            else Driver.objects.get_active(partner=self.partner, schema__isnull=False)
+            else DriverReshuffle.objects.filter(partner=1, swap_time__date=timezone.localtime()
+                                                ).values_list('driver_start', flat=True)
         for driver in drivers:
             if RentInformation.objects.filter(report_to=end, driver=driver):
                 continue
@@ -263,7 +267,22 @@ class UaGpsSynchronizer(Fleet):
                     get_logger().error(e)
                     continue
             rent_distance = total_km - distance
-            if rent_distance > driver.schema.limit_distance:
-                time_now = timezone.localtime(end_time).strftime("%H:%M")
+            driver_obj = Driver.objects.get(id=driver)
+            kasa, card, mileage, orders, canceled_orders = get_today_statistic(self.partner, start, end_time, driver_obj)
+            time_now = timezone.localtime(end_time)
+            if kasa and mileage:
+                kasa_text = f'<font color="red">{kasa}</font>' if kasa/time_now.hour < 10 else kasa
+                text = f"Поточна статистика на {time_now.strftime('%H:%M')}:\n" \
+                       f"Водій: {driver_obj}\n"\
+                       f"Каса: {kasa_text}\n"\
+                       f"Виконано замовлень: {orders}\n"\
+                       f"Скасовано замовлень: {canceled_orders}\n"\
+                       f"Пробіг під замовленням: {mileage}\n"\
+                       f"Ефективність: {round(kasa / mileage, 2)}\n"\
+                       f"Холостий пробіг: {rent_distance}\n"
+            else:
+                text = f"Водій {driver_obj} ще не виконав замовлень\n" \
+                       f"Холостий пробіг: {rent_distance}\n"
+            if timezone.localtime(end_time).time() > time(7, 0):
                 bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"),
-                                 text=f"Орендовано на {time_now} {driver} - {rent_distance}")
+                                 text=text, parse_mode=ParseMode.HTML)

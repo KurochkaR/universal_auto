@@ -1,5 +1,5 @@
 from collections import defaultdict
-from datetime import timedelta, date
+from datetime import timedelta
 
 from _decimal import Decimal
 from itertools import groupby
@@ -8,7 +8,7 @@ from operator import itemgetter
 from django.contrib.postgres.aggregates import ArrayAgg
 from django.db.models import Sum, F, OuterRef, Subquery, DecimalField, Avg, Value, CharField, ExpressionWrapper, Case, \
     When, Func, FloatField, Exists, Prefetch, Q
-from django.db.models.functions import Concat, Round, Coalesce, TruncTime
+from django.db.models.functions import Concat, Round, Coalesce
 from rest_framework import generics
 from rest_framework.response import Response
 
@@ -371,6 +371,11 @@ class DriverPaymentsListView(CombinedPermissionsMixin, generics.ListAPIView):
             queryset = qs.filter(report_to__range=(start, end),
                                  status__in=[PaymentsStatus.COMPLETED, PaymentsStatus.FAILED],
                                  )
+        driver_vehicle_ids = DriverReshuffle.objects.filter(
+                Q(driver_start=OuterRef('driver')) &
+                Q(swap_time__gte=OuterRef('report_from')) &
+                Q(swap_time__lte=OuterRef('report_to'))
+            ).values('swap_vehicle').annotate(vehicles=ArrayAgg('swap_vehicle', distinct=True)).values('vehicles')[:1]
         queryset = queryset.select_related('driver__user_ptr').prefetch_related(
             Prefetch('penaltybonus_set', queryset=PenaltyBonus.objects.all(),
                      to_attr='prefetched_penaltybonuses')).annotate(
@@ -378,6 +383,7 @@ class DriverPaymentsListView(CombinedPermissionsMixin, generics.ListAPIView):
                 F("driver__user_ptr__name"),
                 Value(" "),
                 F("driver__user_ptr__second_name")),
+            driver_vehicles=Subquery(driver_vehicle_ids),
             bonuses=Coalesce(Sum('penaltybonus__amount', filter=Q(penaltybonus__bonus__isnull=False)), Decimal(0)),
             penalties=Coalesce(Sum('penaltybonus__amount', filter=Q(penaltybonus__penalty__isnull=False)), Decimal(0)),
         ).order_by('-report_to', 'driver')

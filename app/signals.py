@@ -46,10 +46,6 @@ def add_road_time_and_distance(sender, instance, created, **kwargs):
                 instance.save(update_fields=["distance", "road_time"])
             except ObjectDoesNotExist:
                 pass
-        if check_vehicle(instance.driver) != instance.vehicle:
-            bot.send_message(chat_id=515224934, text=f"{check_vehicle(instance.driver)}!= {instance.vehicle} order {instance.order_id}")
-            redis_instance().hset(f"wrong_vehicle_{instance.partner.pk}", instance.driver_id,
-                                  instance.vehicle.licence_plate)
 
 
 @receiver(post_save, sender=DriverPayments)

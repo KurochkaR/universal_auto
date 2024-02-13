@@ -11,6 +11,7 @@ from app.models import BoltService, Driver, FleetsDriversVehiclesRate, FleetOrde
     CredentialPartner, Vehicle, PaymentTypes, Fleet, CustomReport, WeeklyReport, DailyReport
 from auto import settings
 from auto_bot.handlers.order.utils import check_vehicle
+from auto_bot.main import bot
 from scripts.redis_conn import redis_instance
 from selenium_ninja.synchronizer import Synchronizer, AuthenticationError
 
@@ -315,6 +316,11 @@ class BoltRequest(Fleet, Synchronizer):
                         "date_order": start.date()
                         }
                 FleetOrder.objects.create(**data)
+                if check_vehicle(driver) != vehicle:
+                    bot.send_message(chat_id=515224934,
+                                     text=f"{check_vehicle(driver)}!= {vehicle} order {order['order_id']}")
+                    redis_instance().hset(f"wrong_vehicle_{driver.partner.pk}", driver_id,
+                                          vehicle.licence_plate)
 
     def get_drivers_status(self):
         with_client = []

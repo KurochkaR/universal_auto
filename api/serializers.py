@@ -1,3 +1,5 @@
+import ast
+
 from django.db.models import Sum
 from rest_framework import serializers
 
@@ -155,6 +157,7 @@ class PenaltySerializer(serializers.ModelSerializer):
 
 class DriverPaymentsSerializer(serializers.ModelSerializer):
     full_name = serializers.CharField()
+    driver_vehicles = serializers.ListField(child=serializers.IntegerField())
     status = serializers.SerializerMethodField()
     report_from = serializers.DateTimeField(format='%d.%m.%Y %H:%M')
     report_to = serializers.DateTimeField(format='%d.%m.%Y %H:%M')
@@ -176,5 +179,5 @@ class DriverPaymentsSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = DriverPayments
-        fields = ('full_name', 'kasa', 'cash', 'rent', 'earning', 'salary', 'status', 'report_from',
+        fields = ('full_name', 'driver_vehicles', 'kasa', 'cash', 'rent', 'earning', 'salary', 'status', 'report_from',
                   'report_to', 'id', 'bonuses', 'penalties', 'bonuses_list', 'penalties_list')

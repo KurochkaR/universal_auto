@@ -742,7 +742,7 @@ function showShiftMessage(success, showText, time, vehicle) {
 
 		setTimeout(function () {
 			$(".shift-success-message").hide();
-		}, 5000);
+		}, 3000);
 	} else {
 		$(".shift-success-message").show();
 		if (time === undefined || time === null || time === "") {
