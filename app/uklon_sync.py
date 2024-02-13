@@ -241,7 +241,7 @@ class UklonRequest(Fleet, Synchronizer):
         driver_id = driver.get_driver_external_id(self)
         if driver_id:
             param = {'dateFrom': int(start.timestamp()),
-                     'dateTo': int(end.timestamp()),
+                     'dateTo': int(end.timestamp()) + 60,
                      'limit': '50', 'offset': '0',
                      'driverId': driver_id
                      }
@@ -281,7 +281,6 @@ class UklonRequest(Fleet, Synchronizer):
                  'offset': '0'}
         url = f"{Service.get_value('UKLON_1')}{self.uklon_id()}"
         url_1 = url + Service.get_value('UKLON_6')
-        url_2 = url + Service.get_value('UKLON_2')
         all_drivers = self.response_data(url=url_1, params=param)
         for driver in all_drivers['items']:
             email = self.response_data(url=f"{url_1}/{driver['id']}")
@@ -348,6 +347,11 @@ class UklonRequest(Fleet, Synchronizer):
                         "date_order": start.date()
                         }
                 FleetOrder.objects.create(**data)
+                if check_vehicle(driver) != vehicle:
+                    bot.send_message(chat_id=515224934,
+                                     text=f"{check_vehicle(driver)}!= {vehicle} order {order['id']}")
+                    redis_instance().hset(f"wrong_vehicle_{driver.partner.pk}", driver_id,
+                                          vehicle.licence_plate)
         except KeyError:
             bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"), text=f"{orders}")
 

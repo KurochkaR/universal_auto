@@ -20,16 +20,15 @@ from app.models import (RawGPS, Vehicle, Order, Driver, JobApplication, ParkSett
                         InvestorPayments, VehicleSpending, DriverReshuffle, DriverPayments,
                         PaymentTypes, TaskScheduler, DriverEffVehicleKasa, Schema, CustomReport, Fleet,
                         VehicleGPS, PartnerEarnings, Investor, Bonus, Penalty, PaymentsStatus,
-                        FleetsDriversVehiclesRate,
-                        SalaryCalculation, DriverEfficiencyFleet, GPS)
-from django.db.models import Sum, IntegerField, FloatField, Value, DecimalField, Q
+                        FleetsDriversVehiclesRate, DriverEfficiencyFleet)
+from django.db.models import Sum, IntegerField, FloatField, DecimalField, Q
 from django.db.models.functions import Cast, Coalesce
 from app.utils import get_schedule, create_task
 from auto.utils import payment_24hours_create, summary_report_create, compare_reports, get_corrections, \
-    get_currency_rate, polymorphic_efficiency_create, get_efficiency_info
+    get_currency_rate, polymorphic_efficiency_create
 from auto_bot.handlers.driver_manager.utils import get_daily_report, get_efficiency, generate_message_report, \
     get_driver_efficiency_report, calculate_rent, get_vehicle_income, get_time_for_task, \
-    create_driver_payments, calculate_income_partner, get_failed_income, find_reshuffle_period
+    create_driver_payments, calculate_income_partner, get_failed_income, find_reshuffle_period, get_today_statistic
 from auto_bot.handlers.order.keyboards import inline_markup_accept, inline_search_kb, inline_client_spot, \
     inline_spot_keyboard, inline_second_payment_kb, inline_reject_order, personal_order_end_kb, \
     personal_driver_end_kb
@@ -208,12 +207,9 @@ def get_today_orders(self, partner_pk):
             if isinstance(fleet, UklonRequest) and end <= start:
                 continue
             for driver in drivers:
-                last_order = FleetOrder.objects.filter(fleet=fleet.name, driver=driver,
-                                                       accepted_time__gt=start).order_by("-accepted_time").first()
-                start_check = last_order.accepted_time if last_order else start
                 driver_id = driver.get_driver_external_id(fleet)
                 if driver_id:
-                    fleet.get_fleet_orders(start_check, end, driver.pk, driver_id)
+                    fleet.get_fleet_orders(start, end, driver.pk, driver_id)
     except Exception as e:
         logger.error(e)
         retry_delay = retry_logic(e, self.request.retries + 1)
@@ -223,7 +219,6 @@ def get_today_orders(self, partner_pk):
 @app.task(bind=True, queue='beat_tasks', retry_backoff=30, max_retries=4)
 def check_card_cash_value(self, partner_pk):
     try:
-        fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name="Gps")
         today = timezone.localtime()
         yesterday = timezone.make_aware(datetime.combine(today, time.min)) - timedelta(days=1)
         start_week = timezone.make_aware(datetime.combine(today, time.min)) - timedelta(days=today.weekday())
@@ -232,24 +227,7 @@ def check_card_cash_value(self, partner_pk):
             rent = calculate_rent(start_week, today, driver) if driver.schema.is_weekly() else (
                 calculate_rent(yesterday, today, driver))
             rent_payment = rent * driver.schema.rent_price
-            kasa = 0
-            card = 0
-            for fleet in fleets:
-                if isinstance(fleet, BoltRequest):
-                    orders = FleetOrder.objects.filter(accepted_time__gt=start,
-                                                       fleet=fleet.name,
-                                                       state=FleetOrder.COMPLETED,
-                                                       driver=driver)
-                    fleet_cash = orders.filter(payment=PaymentTypes.CASH).aggregate(
-                        cash_kasa=Coalesce(Sum('price'), Value(0)))['cash_kasa']
-                    fleet_kasa = (1 - fleet.fees) * orders.aggregate(kasa=Coalesce(Sum('price'), Value(0)))['kasa']
-                else:
-                    if driver.schema.is_weekly():
-                        fleet_kasa, fleet_cash = fleet.get_earnings_per_driver(driver, start_week, today)
-                    else:
-                        fleet_kasa, fleet_cash = fleet.get_earnings_per_driver(driver, start, today)
-                card += Decimal(fleet_kasa - fleet_cash)
-                kasa += Decimal(fleet_kasa)
+            kasa, card = get_today_statistic(partner_pk, start, today, driver)[:2]
             if kasa > driver.schema.cash:
                 ratio = (card - rent_payment) / kasa
                 if driver.schema.is_rent():
@@ -356,6 +334,7 @@ def check_daily_report(self, partner_pk, start=None, end=None):
 @app.task(bind=True, queue='beat_tasks', retry_backoff=30, max_retries=4)
 def download_nightly_report(self, partner_pk, schema, day=None):
     try:
+        # for schema in schemas check uber orders
         start, end = get_time_for_task(schema, day)[2:]
         fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name='Gps')
         for fleet in fleets:
