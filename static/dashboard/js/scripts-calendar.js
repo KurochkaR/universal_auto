@@ -337,8 +337,8 @@ $(document).ready(function () {
 			const shiftForm = $('#modal-shift');
 			const modalShiftDate = $('.modal-shift-date');
 			const shiftDriver = $('#shift-driver');
-			const startTimeInput = $('#startTime');
-			const endTimeInput = $('#endTime');
+			const startTimeInput = $('#startTime').css('background-color', '#fff');
+			const endTimeInput = $('#endTime').css('background-color', '#fff');
 			const shiftVehicleInput = $('#shift-vehicle');
 			const csrfTokenInput = $('input[name="csrfmiddlewaretoken"]');
 			const ajaxData = {
@@ -450,8 +450,8 @@ $(document).ready(function () {
 			const endTimeInput = $('#endTime');
 			const shiftDriver = $('#shift-driver');
 			const csrfTokenInput = $('input[name="csrfmiddlewaretoken"]');
-			$("#startTime").val("");
-			$("#endTime").val("");
+			$("#startTime").val("").css('background-color', '#fff')
+			$("#endTime").val("").css('background-color', '#fff')
 			$('.modal-overlay').show();
 			modalShiftTitle.text("Створення зміни");
 			modalShiftDate.text(formatDateString(clickedDayId));
@@ -459,37 +459,58 @@ $(document).ready(function () {
 			validateInputTime(startTimeInput[0], 'startTime');
 			validateInputTime(endTimeInput[0], 'endTime');
 			shiftBtn.off('click').on('click', function (e) {
+				$('.shift-time-error').hide();
 				e.preventDefault();
-				const startTime = startTimeInput.val();
-				const endTime = endTimeInput.val();
 				const selectedDriverId = shiftDriver.val();
 				const recurrence = $('#recurrence').val();
+				let error = false;
 
-					$.ajax({
-						url: ajaxPostUrl,
-						type: 'POST',
-						data: {
-							action: 'add_shift',
-							vehicle_licence: calendarId,
-							date: clickedDayId,
-							start_time: startTime,
-							end_time: endTime,
-							driver_id: selectedDriverId,
-							recurrence,
-							csrfmiddlewaretoken: csrfTokenInput.val()
-						},
-						success: function (response) {
-								$('.modal-overlay').hide();
-						    fetchCalendarData(formattedStartDate, formattedEndDate);
-							if (response.data[0] === true) {
-								filterCheck();
-								showShiftMessage(response.data[0], response.data[1]);
-							} else {
-								    showConflictMessage(response.data[0], response.data[1], response.data[1]);
-							}
-						},
-					});
-					shiftForm.hide();
+				if (startTimeInput.val() === "" || startTimeInput.val() === ":" || startTimeInput.val().length !== 5) {
+						$('#startTime').css('background-color', '#fba');
+						$('.shift-startTime-error').text('Введіть час').show();
+						error = true;
+				} else {
+						$('#startTime').css('background-color', '');
+						$('.shift-startTime-error').text('').hide();
+				}
+
+				if (endTimeInput.val() === "" || endTimeInput.val() === ":" || endTimeInput.val().length !== 5) {
+						$('#endTime').css('background-color', '#fba');
+						$('.shift-endTime-error').text('Введіть час').show();
+						error = true;
+				} else {
+						$('#endTime').css('background-color', '');
+						$('.shift-endTime-error').text('').hide();
+				}
+
+				if (error) {
+						return;
+				}
+				$.ajax({
+					url: ajaxPostUrl,
+					type: 'POST',
+					data: {
+						action: 'add_shift',
+						vehicle_licence: calendarId,
+						date: clickedDayId,
+						start_time: startTimeInput.val(),
+						end_time: endTimeInput.val(),
+						driver_id: selectedDriverId,
+						recurrence,
+						csrfmiddlewaretoken: csrfTokenInput.val()
+					},
+					success: function (response) {
+						$('.modal-overlay').hide();
+						fetchCalendarData(formattedStartDate, formattedEndDate);
+						if (response.data[0] === true) {
+							filterCheck();
+							showShiftMessage(response.data[0], response.data[1]);
+						} else {
+							showConflictMessage(response.data[0], response.data[1], response.data[1]);
+						}
+					},
+				});
+				shiftForm.hide();
 			});
 		}
 
@@ -674,6 +695,7 @@ function validateInputTime(input, field) {
 
     if (isValid) {
       input.style.backgroundColor = '#bfa';
+      $('.shift-'+ field +'-error').text('').hide();
       blockBtn(false);
 
       if (field === 'endTime') {
@@ -684,11 +706,13 @@ function validateInputTime(input, field) {
 
         if (compareTimes(startTimeInput, input.value) > 0) {
           input.style.backgroundColor = '#fba';
+          $('.shift-'+ field +'-error').text('Введіть коректний час').show();
           blockBtn(true);
         }
       }
     } else {
       input.style.backgroundColor = '#fba';
+      $('.shift-'+ field +'-error').text('Введіть час').show();
       blockBtn(true);
     }
   });
@@ -767,15 +791,13 @@ function filterCheck() {
 function openModal() {
     document.getElementById('modal-shift').style.display = 'block';
     document.querySelector('.modal-overlay').style.display = 'block';
-    document.body.style.overflow = 'hidden'; // Блокує прокрутку сторінки
+    document.body.style.overflow = 'hidden';
 }
 
-// Закриття модального вікна та видалення затемнення фону
 function closeModal() {
     document.getElementById('modal-shift').style.display = 'none';
     document.querySelector('.modal-overlay').style.display = 'none';
-    document.body.style.overflow = ''; // Відновлює прокрутку сторінки
+    document.body.style.overflow = '';
 }
 
-// Додати обробник кліків для кнопки закриття модального вікна
 document.querySelector('.shift-close-btn').addEventListener('click', closeModal);
