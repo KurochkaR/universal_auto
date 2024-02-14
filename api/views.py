@@ -8,7 +8,7 @@ from operator import itemgetter
 from django.contrib.postgres.aggregates import ArrayAgg
 from django.db.models import Sum, F, OuterRef, Subquery, DecimalField, Avg, Value, CharField, ExpressionWrapper, Case, \
     When, Func, FloatField, Exists, Prefetch, Q
-from django.db.models.functions import Concat, Round, Coalesce, TruncTime
+from django.db.models.functions import Concat, Round, Coalesce
 from django.utils import timezone
 from rest_framework import generics
 from rest_framework.response import Response
@@ -17,8 +17,6 @@ from api.mixins import CombinedPermissionsMixin, ManagerFilterMixin, InvestorFil
 from api.serializers import SummaryReportSerializer, CarEfficiencySerializer, CarDetailSerializer, \
     DriverEfficiencyRentSerializer, InvestorCarsSerializer, ReshuffleSerializer, DriverPaymentsSerializer, \
     DriverEfficiencyFleetRentSerializer, DriverInformationSerializer
-from api.utils import get_earning_subquery, get_total_earning_subquery, get_total_spending_subquery, \
-    get_spending_subquery, get_dynamic_fleet
 from app.models import SummaryReport, CarEfficiency, Vehicle, DriverEfficiency, RentInformation, DriverReshuffle, \
     PartnerEarnings, InvestorPayments, DriverPayments, PaymentsStatus, PenaltyBonus, Penalty, Bonus, \
     DriverEfficiencyFleet, VehicleSpending, Driver
@@ -375,10 +373,10 @@ class DriverPaymentsListView(CombinedPermissionsMixin, generics.ListAPIView):
                                  status__in=[PaymentsStatus.COMPLETED, PaymentsStatus.FAILED],
                                  )
         driver_vehicle_ids = DriverReshuffle.objects.filter(
-                Q(driver_start=OuterRef('driver')) &
-                Q(swap_time__gte=OuterRef('report_from')) &
-                Q(swap_time__lte=OuterRef('report_to'))
-            ).values('swap_vehicle').annotate(vehicles=ArrayAgg('swap_vehicle', distinct=True)).values('vehicles')[:1]
+            Q(driver_start=OuterRef('driver')) &
+            Q(swap_time__gte=OuterRef('report_from')) &
+            Q(swap_time__lte=OuterRef('report_to'))
+        ).values('swap_vehicle').annotate(vehicles=ArrayAgg('swap_vehicle', distinct=True)).values('vehicles')[:1]
         queryset = queryset.select_related('driver__user_ptr').prefetch_related(
             Prefetch('penaltybonus_set', queryset=PenaltyBonus.objects.all(),
                      to_attr='prefetched_penaltybonuses')).annotate(
@@ -404,10 +402,10 @@ class DriverInformationListView(CombinedPermissionsMixin, generics.ListAPIView):
             'swap_vehicle__licence_plate', flat=True)
         queryset = driver.annotate(
             full_name=Concat(
-                F("user_ptr__name"),
+                F("user_ptr__second_name"),
                 Value(" "),
-                F("user_ptr__second_name")),
+                F("user_ptr__name")),
             driver_schema=F('schema__title'),
             vehicle=Coalesce(Subquery(driver_reshuffle[:1]), Value(""), output_field=CharField())
-        )
+        ).distinct().order_by('full_name')
         return queryset

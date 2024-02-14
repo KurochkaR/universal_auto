@@ -28,7 +28,6 @@ class PhoneInput(forms.NumberInput):
 
 
 class MainOrderForm(ModelForm):
-
     class Meta:
         model = Order
         fields = (
@@ -39,13 +38,17 @@ class MainOrderForm(ModelForm):
 
         widgets = {
             'from_address': forms.TextInput(attrs={
-                'id': 'address', 'class': 'form-control', 'placeholder': _('Звідки вас забрати?'), 'style': 'font-size: medium'}),
+                'id': 'address', 'class': 'form-control', 'placeholder': _('Звідки вас забрати?'),
+                'style': 'font-size: medium'}),
             'to_the_address': forms.TextInput(attrs={
-                'id': 'to_address', 'class': 'form-control', 'placeholder': _('Куди їдемо?'), 'style': 'font-size: medium'}),
+                'id': 'to_address', 'class': 'form-control', 'placeholder': _('Куди їдемо?'),
+                'style': 'font-size: medium'}),
             'phone_number': PhoneInput(attrs={
-                'id': 'phone', 'class': 'form-control', 'placeholder': _('Номер телефону'), 'style': 'font-size: medium'}),
+                'id': 'phone', 'class': 'form-control', 'placeholder': _('Номер телефону'),
+                'style': 'font-size: medium'}),
             'order_time': forms.TextInput(attrs={
-                'id': 'delivery_time', 'class': 'form-control', 'placeholder': _('На яку годину? формат HH:MM(напр. 18:45)'), 'style': 'font-size: medium'}),
+                'id': 'delivery_time', 'class': 'form-control',
+                'placeholder': _('На яку годину? формат HH:MM(напр. 18:45)'), 'style': 'font-size: medium'}),
         }
 
     def save(self, payment=None, on_time=None):
@@ -61,11 +64,11 @@ class MainOrderForm(ModelForm):
 
 class SubscriberForm(ModelForm):
     email = forms.EmailField(widget=forms.EmailInput(attrs={
-            'class': 'form-control',
-            'placeholder': _('Введіть пошту'),
-            'style': 'font-size: medium',
-            'id': 'sub_email'
-        }),
+        'class': 'form-control',
+        'placeholder': _('Введіть пошту'),
+        'style': 'font-size: medium',
+        'id': 'sub_email'
+    }),
         error_messages={'required': _('Введіть ел.пошту, будь ласка'),
                         'invalid': _('Введіть коректну ел.пошту')}
     )
@@ -94,7 +97,7 @@ class BonusForm(ModelForm):
                 'id': 'bonus-description', 'placeholder': _('Опис'),
                 'style': 'font-size: medium'}),
             'category': forms.Select(attrs={
-                'id': 'bonus-category', 'name': "bonus-category",  'placeholder': _('Категорія'),
+                'id': 'bonus-category', 'name': "bonus-category", 'placeholder': _('Категорія'),
                 'style': 'font-size: medium'}),
             'vehicle': forms.Select(attrs={
                 'id': 'bonus-vehicle',
@@ -106,6 +109,7 @@ class BonusForm(ModelForm):
             'category': _('Категорія'),
             'vehicle': _('Автомобіль'),
         }
+
     amount = forms.DecimalField(widget=PhoneInput(attrs={'placeholder': _('Введіть суму')}),
                                 label=_('Сума'),
                                 required=True,
@@ -123,10 +127,13 @@ class BonusForm(ModelForm):
         validators=[
             MinLengthValidator(5, message=_('Назва повинна мати не менше 5 символів')),
         ],
+        error_messages={'required': _('Введіть суму, будь ласка'),
+                        'invalid': _('Сума повинна бути числом')}
     )
 
     def __init__(self, user, category=None, payment_id=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
         filter_partner = user.manager.managers_partner if user.is_manager() else user
         if payment_id:
             payment = DriverPayments.objects.get(id=payment_id)
@@ -149,3 +156,19 @@ class BonusForm(ModelForm):
         self.fields['vehicle'].required = True
         if self.fields['vehicle'].queryset.count() == 1:
             self.fields['vehicle'].initial = self.fields['vehicle'].queryset.first()
+
+    def is_valid(self):
+        valid = super().is_valid()
+        category = self.cleaned_data.get('category')
+        new_category = self.cleaned_data.get('new_category')
+        if not category and not new_category:
+            self.add_error('new_category', _('Виберіть або введіть категорію'))
+            del self.errors['category']
+            valid = False
+        if not category and new_category:
+            del self.errors['category']
+            if self.errors:
+                valid = False
+            else:
+                valid = True
+        return valid

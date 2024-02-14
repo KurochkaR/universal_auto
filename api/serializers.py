@@ -1,9 +1,6 @@
-import ast
-
-from django.db.models import Sum
 from rest_framework import serializers
 
-from app.models import DriverPayments, Bonus, Penalty, DriverEfficiencyFleet, Driver
+from app.models import DriverPayments, Bonus, Penalty, Driver
 
 
 class AggregateReportSerializer(serializers.Serializer):
