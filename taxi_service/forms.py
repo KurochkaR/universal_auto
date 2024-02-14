@@ -2,6 +2,7 @@ from django import forms
 from django.core.validators import MinValueValidator, RegexValidator, MinLengthValidator
 from django.db.models import Q
 from django.forms import ModelForm
+from django.utils import timezone
 from django.utils.html import format_html
 
 from app.models import Order, SubscribeUsers, User, Comment, Bonus, BonusCategory, Vehicle, Category, DriverPayments, \
@@ -131,7 +132,7 @@ class BonusForm(ModelForm):
                         'invalid': _('Сума повинна бути числом')}
     )
 
-    def __init__(self, user, category=None, payment_id=None, *args, **kwargs):
+    def __init__(self, user, category=None, payment_id=None, driver_id=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         filter_partner = user.manager.managers_partner if user.is_manager() else user
@@ -144,7 +145,14 @@ class BonusForm(ModelForm):
             ).values_list('swap_vehicle', flat=True)
             self.fields['vehicle'].queryset = Vehicle.objects.filter(id__in=driver_vehicle_ids)
         else:
-            self.fields['vehicle'].queryset = Vehicle.objects.filter(partner=filter_partner)
+            print('driver_id', driver_id)
+            payment = DriverPayments.objects.filter(driver=driver_id).last()
+            driver_vehicle_ids = DriverReshuffle.objects.filter(
+                Q(driver_start=driver_id),
+                Q(swap_time__range=(payment.report_to, timezone.localtime())) |
+                Q(end_time__range=(payment.report_to, timezone.localtime()))
+            ).values_list('swap_vehicle', flat=True)
+            self.fields['vehicle'].queryset = Vehicle.objects.filter(id__in=driver_vehicle_ids)
         filter_category = Q(bonuscategory__isnull=False) if category == 'bonus' else Q(bonuscategory__isnull=True)
         category_queryset = Category.objects.filter(Q(partner=filter_partner) |
                                                     Q(partner__isnull=True),

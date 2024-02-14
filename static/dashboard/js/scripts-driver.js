@@ -13,4 +13,18 @@ $(document).ready(function(){
     penaltyBlock.style.display = 'block';
     bonusBlock.style.display = 'none';
   });
+
+  $(this).on('click', '.back-page', function() {
+  	window.history.back();
+  });
+
+	$(this).on('click', '.add-button-bonus, .add-button-penalty', function() {
+		if ($(this).hasClass('add-button-bonus')) {
+			var driver_id = $('.detail-driver-info').data('id');
+			console.log(driver_id);
+			openForm(null, null, 'bonus', driver_id);
+		} else {
+			openForm(null, null, 'penalty', driver_id);
+		}
+	});
 });

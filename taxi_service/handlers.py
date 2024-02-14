@@ -250,6 +250,7 @@ class PostRequestHandler:
         data = request.POST.copy()
         operation_type = data.get('action')
         new_category = data.get('new_category')
+        driver_id = data.get('driver_id')
         model_map = {
             'add-bonus': Bonus,
             'add-penalty': Penalty
@@ -261,9 +262,9 @@ class PostRequestHandler:
             return JsonResponse({'error': 'Invalid operation type'}, status=400)
 
         payment_id = data.get('idPayments', None)
-        form = BonusForm(request.user, payment_id=payment_id, category=data.get('category_type', None), data=data)
+        form = BonusForm(request.user, payment_id=payment_id,
+                         category=data.get('category_type', None), driver_id=driver_id, data=data)
         if form.is_valid():
-
             if new_category:
                 partner = request.user.manager.managers_partner if request.user.is_manager() else request.user.pk
                 if operation_type == 'add-bonus':
@@ -276,16 +277,18 @@ class PostRequestHandler:
             bonus_data = {"amount": form.cleaned_data['amount'],
                           "description": form.cleaned_data['description'],
                           "vehicle": form.cleaned_data['vehicle'],
-                          "category": new_category if new_category else form.cleaned_data[
-                              'category']}
-            if DriverPayments.objects.filter(id=payment_id).exists():
-                driver_payments = DriverPayments.objects.filter(id=payment_id)
-                bonus_data["driver_payments"] = driver_payments.first()
-                bonus_data["driver"] = driver_payments.first().driver
-                if operation_type == 'add-bonus':
-                    driver_payments.update(earning=F('earning') + Decimal(bonus_data['amount']))
-                else:
-                    driver_payments.update(earning=F('earning') - Decimal(bonus_data['amount']))
+                          "category": new_category if new_category else form.cleaned_data['category']}
+            if payment_id:
+                if DriverPayments.objects.filter(id=payment_id).exists():
+                    driver_payments = DriverPayments.objects.filter(id=payment_id)
+                    bonus_data["driver_payments"] = driver_payments.first()
+                    bonus_data["driver"] = driver_payments.first().driver
+                    if operation_type == 'add-bonus':
+                        driver_payments.update(earning=F('earning') + Decimal(bonus_data['amount']))
+                    else:
+                        driver_payments.update(earning=F('earning') - Decimal(bonus_data['amount']))
+            else:
+                bonus_data["driver_id"] = int(driver_id)
             model_instance.objects.create(**bonus_data)
         else:
             errors = {field: form.errors[field][0] for field in form.errors}
@@ -397,17 +400,19 @@ class GetRequestHandler:
         user = request.user
         bonus_id = request.GET.get('bonus_penalty')
         category_type = request.GET.get('type')
+        driver_id = request.GET.get('driver_id')
         if bonus_id:
             instance = PenaltyBonus.objects.filter(pk=bonus_id).first()
             payment_id = instance.driver_payments_id
-            bonus_form = BonusForm(user, payment_id=payment_id, category=category_type, instance=instance)
+            bonus_form = BonusForm(user, payment_id=payment_id, category=category_type, instance=instance,
+                                   driver_id=driver_id)
         else:
             payment_id = request.GET.get('payment')
-            bonus_form = BonusForm(user, payment_id=payment_id, category=category_type)
+            bonus_form = BonusForm(user, payment_id=payment_id, category=category_type, driver_id=driver_id)
         form_html = render_to_string('dashboard/_bonus-penalty-form.html', {'bonus_form': bonus_form})
 
         return JsonResponse({"data": form_html})
 
     @staticmethod
-    def handle_unknown_action(request):
+    def handle_unknown_action():
         return JsonResponse({"data": "i'm here now"}, status=400)

@@ -13,7 +13,7 @@
   </div>
 
   <div class="detail-driver-block">
-    <div class="detail-driver-info">
+    <div class="detail-driver-info" data-id="{{ object.id }}">
       <div class="driver-photo">
         <img src="https://storage.googleapis.com/jobdriver-bucket/{{ object.photo }}" alt="driver-photo">
         <span>{{ object.second_name }} {{ object.name }}</span>
@@ -59,7 +59,7 @@
         <div class="driver-bonus-item bonus">
           <div class="bonus-header">
             <h3 class="bonus-title">Бонус</h3>
-            <button class="add-button">Додати</button>
+            <button class="add-button-bonus">Додати</button>
           </div>
           <div class="driver-bonus-penalty-info">
             <div class="bonus-description">
@@ -79,7 +79,7 @@
         <div class="driver-penalty-item penalty">
           <div class="penalty-header">
             <h3 class="penalty-title">Штраф</h3>
-            <button class="add-button">Додати</button>
+            <button class="add-button-penalty">Додати</button>
           </div>
           <div class="driver-bonus-penalty-info">
             <div class="penalty-description">
@@ -99,6 +99,7 @@
       </div>
     </div>
   </div>
+  <div id="formContainer"></div>
 </main>
 
 <script>

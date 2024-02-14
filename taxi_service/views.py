@@ -71,7 +71,8 @@ class GetRequestView(View):
             "order_confirm": handler.handle_order_confirm,
             "aggregators": handler.handle_check_aggregators,
             "check_task": handler.handle_check_task,
-            "render_bonus": handler.handle_render_bonus_form
+            "render_bonus": handler.handle_render_bonus_form,
+            "render_bonus_driver": handler.handle_render_bonus_form,
         }
 
         if action in method:
@@ -191,8 +192,8 @@ class DriverDetailView(DetailView):
         context["partner_group"] = self.request.user.is_partner()
         context["manager_group"] = self.request.user.is_manager()
         context["vehicle"] = {
-            "number": driver_reshuffle.swap_vehicle.licence_plate,
-            "name": driver_reshuffle.swap_vehicle.name
+            "number": driver_reshuffle.swap_vehicle.licence_plate if driver_reshuffle else "Не назначено",
+            "name": driver_reshuffle.swap_vehicle.name if driver_reshuffle else ""
         }
         return context
 
