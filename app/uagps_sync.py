@@ -21,22 +21,24 @@ class UaGpsSynchronizer(Fleet):
         return token
 
     def get_session(self):
-        self.partner.gps_url = "https://hst-api.wialon.eu/" if self.partner.gps_url == "https://gps.antenor.online/" else self.partner.gps_url
-        params = {
-            'svc': 'token/login',
-            'params': json.dumps({"token": CredentialPartner.get_value('UAGPS_TOKEN', partner=self.partner)})
-        }
-        response = requests.get(f"{self.partner.gps_url}wialon/ajax.html", params=params)
-        if response.json().get("error"):
-            if not redis_instance().exists(f"{self.partner.id}_remove_gps"):
-                redis_instance().set(f"{self.partner.id}_remove_gps", response.json().get("error"), ex=86400)
-            return
-        redis_instance().delete(f"{self.partner.id}_remove_gps")
-        return response.json()['eid']
+        if not redis_instance().exists(f"{self.partner.id}_gps_session"):
+            self.partner.gps_url = "https://hst-api.wialon.eu/" if self.partner.gps_url == "https://gps.antenor.online/" else self.partner.gps_url
+            params = {
+                'svc': 'token/login',
+                'params': json.dumps({"token": CredentialPartner.get_value('UAGPS_TOKEN', partner=self.partner)})
+            }
+            response = requests.get(f"{self.partner.gps_url}wialon/ajax.html", params=params)
+            if response.json().get("error"):
+                print(response.json())
+                # if not redis_instance().exists(f"{self.partner.id}_remove_gps"):
+                #     redis_instance().set(f"{self.partner.id}_remove_gps", response.json().get("error"), ex=86400)
+                return
+            # redis_instance().delete(f"{self.partner.id}_remove_gps")
+            redis_instance().set(f"{self.partner.id}_gps_session", response.json()['eid'], ex=240)
+        return redis_instance().get(f"{self.partner.id}_gps_session")
 
     def get_gps_id(self):
         self.partner.gps_url = "https://hst-api.wialon.eu/" if self.partner.gps_url == "https://gps.antenor.online/" else self.partner.gps_url
-
         if not redis_instance().exists(f"{self.partner.id}_gps_id"):
             payload = {"spec": {"itemsType": "avl_resource", "propName": "sys_name",
                                 "propValueMask": "*", "sortType": ""},
@@ -75,7 +77,6 @@ class UaGpsSynchronizer(Fleet):
 
     def generate_report(self, start_time, end_time, vehicle_id):
         self.partner.gps_url = "https://hst-api.wialon.eu/" if self.partner.gps_url == "https://gps.antenor.online/" else self.partner.gps_url
-
         if not redis_instance().exists(f"{self.partner.id}_remove_gps"):
             parameters = {
                 "reportResourceId": self.get_gps_id(),
@@ -89,17 +90,21 @@ class UaGpsSynchronizer(Fleet):
                     "flags": 16777216
                 }
             }
-
             params = {
                 'svc': 'report/exec_report',
                 'sid': self.get_session(),
                 'params': json.dumps(parameters)
             }
             report = requests.get(f"{self.partner.gps_url}wialon/ajax.html", params=params)
-            raw_time = report.json()['reportResult']['stats'][4][1]
-            clean_time = [int(i) for i in raw_time.split(':')]
+            try:
+                raw_time = report.json()['reportResult']['stats'][4][1]
+                clean_time = [int(i) for i in raw_time.split(':')]
+                raw_distance = report.json()['reportResult']['stats'][5][1]
+            except ValueError:
+                raw_time = report.json()['reportResult']['stats'][12][1]
+                clean_time = [int(i) for i in raw_time.split(':')]
+                raw_distance = report.json()['reportResult']['stats'][11][1]
             road_time = timedelta(hours=clean_time[0], minutes=clean_time[1], seconds=clean_time[2])
-            raw_distance = report.json()['reportResult']['stats'][5][1]
             road_distance = Decimal(raw_distance.split(' ')[0])
             return road_distance, road_time
 
@@ -275,98 +280,3 @@ class UaGpsSynchronizer(Fleet):
                 time_now = timezone.localtime(end_time).strftime("%H:%M")
                 bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"),
                                  text=f"Орендовано на {time_now} {driver} - {rent_distance}")
-
-
-    def create_template(self):
-        payload_form = {"params": {
-              "id": 0,
-              "ct": "avl_unit",
-              "n": "Test create template",
-              "p": {
-                "descr": "",
-                "bind": {
-                  "avl_unit": []
-                }
-              },
-              "tbl": [
-                {
-                  "n": "unit_stats",
-                  "l": "Statistics",
-                  "f": 0,
-                  "c": "",
-                  "cl": "",
-                  "cp": {
-                    "address_format": "1255211008_10_5",
-                    "time_format": "%E.%b.%Y_%H:%M:%S",
-                    "us_units": 0
-                  },
-                  "sch": {
-                    "y": 0,
-                    "m": 0,
-                    "w": 0,
-                    "f1": 0,
-                    "f2": 0,
-                    "t1": 0,
-                    "t2": 0,
-                    "fl": 0
-                  },
-                  "sl": ["Address", "Time Format", "Measure"],
-                  "s": ["address_format", "time_format", "us_units"],
-                  "filter_order": []
-                },
-                {
-                  "n": "unit_stats",
-                  "l": "Statistics",
-                  "f": 0,
-                  "c": "",
-                  "cl": "",
-                  "cp": "",
-                  "sch": {
-                    "y": 0,
-                    "m": 0,
-                    "w": 0,
-                    "f1": 0,
-                    "f2": 0,
-                    "t1": 0,
-                    "t2": 0,
-                    "fl": 0
-                  },
-                  "sl": ["Unit", "Interval beginning", "Interval end"],
-                  "s": ["unit_name", "time_begin", "time_end"],
-                  "filter_order": []
-                },
-                {
-                  "n": "unit_trips",
-                  "l": "Trips",
-                  "f": 0,
-                  "c": "",
-                  "cl": "",
-                  "cp": "",
-                  "sch": {
-                    "y": 0,
-                    "m": 0,
-                    "w": 0,
-                    "f1": 0,
-                    "f2": 0,
-                    "t1": 0,
-                    "t2": 0,
-                    "fl": 0
-                  },
-                  "sl": ["Time in trips", "Mileage in trips"],
-                  "s": ["duration", "mileage"],
-                  "filter_order": []
-                }
-              ],
-              "t": "avl_unit",
-              "itemId": 66281,
-              "callMode": "create"
-            },
-            "sid": self.get_session()}
-
-        query_params = {"svc": "report/update_report",
-                        "sid": self.get_session()}
-        headers = {
-            'Content-Type': 'application/json'
-        }
-        response = requests.post("https://uagps.net/wialon/ajax.html", headers=headers, params=query_params, json=payload_form)
-        print(response.json())

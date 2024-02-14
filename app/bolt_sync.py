@@ -254,8 +254,6 @@ class BoltRequest(Fleet, Synchronizer):
                     time.sleep(3)
                     try:
                         driver_info = self.get_target_url(f'{self.base_url}getDriver', driver_params)
-                        driver_name = driver_info['data']['first_name']
-                        print(driver_name)
                     except Exception as e:
                         get_logger().error(e)
                 else:
@@ -329,6 +327,7 @@ class BoltRequest(Fleet, Synchronizer):
                         "date_order": start.date()
                         }
                 FleetOrder.objects.create(**data)
+                time.sleep(0.5)
 
     def get_drivers_status(self):
         with_client = []
@@ -464,9 +463,7 @@ class BoltRequest(Fleet, Synchronizer):
 
             params.update(self.param())
             response = self.get_target_url(f'{self.base_url}getCarsPaginated', params=params)
-            print(response['data']['total_rows'])
             if offset > response['data']['total_rows']:
-                print(f"vehicle_break {offset}")
                 break
             vehicles = response['data']['rows']
             time.sleep(0.5)
