@@ -140,6 +140,8 @@ class BoltRequest(Fleet, Synchronizer):
                           "limit": 50})
             reports = self.get_target_url(f'{self.base_url}getDriverEarnings/dateRange', param)
         for driver_report in reports['data']['drivers']:
+            if reports['data']['drivers']['id'] != driver.get_driver_external_id(self.name):
+                continue
             report = self.parse_json_report(start, end, driver, driver_report)
             if custom:
                 bolt_custom = CustomReport.objects.filter(report_from__date=start,
@@ -303,14 +305,16 @@ class BoltRequest(Fleet, Synchronizer):
                 if FleetOrder.objects.filter(order_id=order['order_id']).exists():
                     vehicle = check_vehicle(driver, date_time=timezone.make_aware(
                         datetime.fromtimestamp(order['accepted_time'])))
+                    if not vehicle:
+                        vehicle = Vehicle.objects.get(licence_plate=order['car_reg_number'])
                     FleetOrder.objects.filter(order_id=order['order_id']).update(price=price, tips=tip, vehicle=vehicle)
                     continue
-                vehicle = Vehicle.objects.get(licence_plate=order['car_reg_number'])
                 try:
                     finish = timezone.make_aware(
                         datetime.fromtimestamp(order['order_stops'][-1]['arrived_at']))
                 except TypeError:
                     finish = None
+                vehicle = Vehicle.objects.get(licence_plate=order['car_reg_number'])
                 data = {"order_id": order['order_id'],
                         "fleet": self.name,
                         "driver": driver,

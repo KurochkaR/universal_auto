@@ -21,25 +21,19 @@ def get_schedule(schema_time, day='*', periodic=None):
 
 
 def create_task(task, partner, schedule, param=None):
+    task_args = [partner, param] if param else [partner]
     try:
         periodic_task = PeriodicTask.objects.get(
-            name=f'{task}({partner})',
+            name=f'auto.tasks.{task}({task_args})',
             task=f'auto.tasks.{task}',
-            crontab=schedule,
             queue="beat_tasks"
         )
-        args_list = periodic_task.args
-        if param and param not in args_list[1]:
-            args_list[1].append(param)
-            periodic_task.args = args_list
-            periodic_task.save(update_fields=['args'])
-
+        if periodic_task.crontab != schedule:
+            periodic_task.crontab = schedule
+            periodic_task.save()
     except ObjectDoesNotExist:
-        task_args = [partner]
-        if param:
-            task_args.append([param])
         PeriodicTask.objects.create(
-            name=f'auto.tasks.{task}({partner})',
+            name=f'auto.tasks.{task}({task_args})',
             task=f'auto.tasks.{task}',
             queue="beat_tasks",
             crontab=schedule,

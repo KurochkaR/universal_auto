@@ -161,7 +161,7 @@ class UaGpsSynchronizer(Fleet):
             end_report = order.finish_time if order.finish_time < end else end
             try:
                 if previous_finish_time is None or order.accepted_time >= previous_finish_time:
-                    if order.finish_time < end and int(order.distance):
+                    if order.finish_time < end and order.distance:
                         report = (order.distance, order.road_time)
                     else:
                         report = self.generate_report(self.get_timestamp(timezone.localtime(order.accepted_time)),
@@ -182,6 +182,7 @@ class UaGpsSynchronizer(Fleet):
         return road_distance, road_time, previous_finish_time
 
     def get_vehicle_rent(self, start, end, schema=None):
+        no_vehicle_gps = []
         for driver in Driver.objects.get_active(partner=self.partner, schema=schema):
             reshuffles = check_reshuffle(driver, start, end)
             for reshuffle in reshuffles:
@@ -196,7 +197,12 @@ class UaGpsSynchronizer(Fleet):
                     state=FleetOrder.COMPLETED,
                     accepted_time__range=(start_period, end_period)).order_by('accepted_time')
                 road_distance = self.calculate_order_distance(orders, end)[0]
-                total_km = self.total_per_day(reshuffle.swap_vehicle.gps.gps_id, start_period, end_period)
+                try:
+                    total_km = self.total_per_day(reshuffle.swap_vehicle.gps.gps_id, start_period, end_period)
+                except AttributeError as e:
+                    no_vehicle_gps.append(reshuffle.swap_vehicle)
+                    get_logger().error(e)
+                    continue
                 rent_distance = total_km - road_distance
                 data = {"report_from": start_period,
                         "report_to": end_period,
@@ -208,6 +214,10 @@ class UaGpsSynchronizer(Fleet):
                                                   report_to=end_period,
                                                   vehicle=reshuffle.swap_vehicle,
                                                   defaults=data)
+        if no_vehicle_gps:
+            result_string = ', '.join([str(obj) for obj in no_vehicle_gps])
+            bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"),
+                             text=f"У авто {result_string} відсутній gps")
 
     def total_per_day(self, gps_id, start, end):
         distance = self.generate_report(self.get_timestamp(start),
