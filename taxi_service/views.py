@@ -164,8 +164,8 @@ class DashboardVehicleView(BaseDashboardView):
     template_name = "dashboard/dashboard-vehicle.html"
 
 
-class DashboardDriversView(BaseDashboardView):
-    template_name = "dashboard/dashboard-drivers.html"
+class DashboardDriversEfficiencyView(BaseDashboardView):
+    template_name = "dashboard/dashboard-efficiency.html"
 
 
 class DashboardCalendarView(BaseDashboardView):

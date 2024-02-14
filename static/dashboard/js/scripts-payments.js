@@ -177,7 +177,7 @@ $(document).ready(function () {
 
 	$('input[name="payment-status"]').change(function() {
     if ($(this).val() === 'closed') {
-      driverPayment(period='current_quarter', null, null, paymentStatus=$(this).val());
+      driverPayment(period='yesterday', null, null, paymentStatus=$(this).val());
       $('.filter-driver-payments').css('display', 'flex');
     } else {
       driverPayment(null, null, null, paymentStatus=$(this).val());
@@ -186,7 +186,7 @@ $(document).ready(function () {
     }
   });
 
-  function initializeCustomSelect(customSelect, selectedOption, optionsList, iconDown, datePicker) {
+  function initializeCustomPaymentsSelect(customSelect, selectedOption, optionsList, iconDown, datePicker) {
 		iconDown.click(function() {
 			customSelect.toggleClass("active");
 		});
@@ -214,13 +214,13 @@ $(document).ready(function () {
 		});
 	}
 
-	const customSelectDriver = $(".custom-select-drivers");
-	const selectedOptionDriver = customSelectDriver.find(".selected-option-drivers");
-	const optionsListDriver = customSelectDriver.find(".options-drivers");
+	const customSelectDriver = $(".custom-select-payments");
+	const selectedOptionDriver = customSelectDriver.find(".selected-option-payments");
+	const optionsListDriver = customSelectDriver.find(".options-payments");
 	const iconDownDriver = customSelectDriver.find(".fas.fa-angle-down");
-	const datePickerDriver = $("#datePickerDriver");
+	const datePickerDriver = $("#datePickerPayments");
 
-	initializeCustomSelect(customSelectDriver, selectedOptionDriver, optionsListDriver, iconDownDriver, datePickerDriver);
+	initializeCustomPaymentsSelect(customSelectDriver, selectedOptionDriver, optionsListDriver, iconDownDriver, datePickerDriver);
 
 	$(this).on('click', '.shift-close-btn', function () {
 		$('#modal-add-bonus').hide();

@@ -73,12 +73,12 @@
   let ajaxGetUrl = "{% url 'get_request' %}";
 </script>
 
+{% block js %}
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.3/dist/jquery.min.js" defer></script>
 <script src="{% static 'dashboard/js/header-sidebar.js' %}" defer></script>
-<script src="{% static 'dashboard/js/drivers.js' %}" defer></script>
 <script src="{% static 'dashboard/js/scripts-drivers.js' %}" defer></script>
-<script src="{% static 'dashboard/js/scripts-payments.js' %}" defer></script>
 <script src="{% static 'dashboard/js/scripts.js' %}" defer></script>
+{% endblock %}
 
 </body>
 </html>

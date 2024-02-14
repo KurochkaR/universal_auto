@@ -2102,7 +2102,9 @@ span.error-name {
 
 .driver-radio-buttons input[type="radio"]#driver-list-radio:checked + label::before,
 .driver-radio-buttons input[type="radio"]#driver-efficiency-radio:checked + label::before,
-.driver-radio-buttons input[type="radio"]#driver-payments-radio:checked + label::before {
+.driver-radio-buttons input[type="radio"]#driver-payments-radio:checked + label::before,
+.driver-radio-buttons input[type="radio"]#driver-bonus-radio:checked + label::before,
+.driver-radio-buttons input[type="radio"]#driver-penalty-radio:checked + label::before {
 	content: "";
 	position: absolute;
 	bottom: -5px;
@@ -2202,6 +2204,10 @@ span.error-name {
     text-align: center;
 }
 
+.driver-name-info p {
+	cursor: pointer;
+}
+
 .driver-info p {
     color: #141E17;
     font-size: 20px;
@@ -2243,7 +2249,8 @@ span.error-name {
 
 .detail-driver-block {
   display: grid;
-  grid-template-columns: 550px 100%;
+  grid-template-columns: 550px minmax(0, 1fr);
+  height: -webkit-fill-available;
 }
 
 .detail-driver-info {
@@ -2319,4 +2326,70 @@ span.error-name {
 	margin-right: 10px;
 	width: 100px;
 	height: auto;
+}
+
+/* Стилі для контейнера з таблицею бонус/штраф водіїв */
+
+.driver-statistics {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	margin: 20px;
+	box-shadow: 0 0 10px rgba(0, 0, 0, 0.4);
+	border-radius: 5px;
+	padding: 20px;
+}
+
+.driver-bonus-penalty-list {
+	width: 100%;
+}
+
+.bonus-header,
+.penalty-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+
+.bonus-header h3,
+.penalty-header h3 {
+	color: #141E17;
+	font-size: 23px;
+	font-style: normal;
+	font-weight: 700;
+	line-height: normal;
+}
+
+.bonus-header span,
+.penalty-header span {
+	color: #EC6323;
+	font-size: 20px;
+	font-style: normal;
+	font-weight: 700;
+	line-height: normal;
+}
+
+.bonus-header .add-button,
+.penalty-header .add-button {
+	display: flex;
+	align-items: center;
+	background-color: #EC6323;
+	color: #fff;
+	border: none;
+	padding: 10px 20px;
+	font-size: 16px;
+	cursor: pointer;
+	border-radius: 5px;
+	transition: background-color 0.3s ease;
+}
+
+.driver-bonus-penalty-info {
+	display: grid;
+	grid-template-columns: 1fr 1fr 1fr;
+	margin: 20px 15px;
+	gap: 60px;
+}
+
+.driver-penalty-item {
+	display: none;
 }

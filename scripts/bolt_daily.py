@@ -6,4 +6,4 @@ from auto_bot.handlers.order.utils import check_vehicle
 
 
 def run(*args):
-    PenaltyCategory.objects.create(title="Порушення ПДД")
+    BonusCategory.objects.create(title="Премія")

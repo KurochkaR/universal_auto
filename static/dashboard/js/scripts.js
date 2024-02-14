@@ -259,60 +259,76 @@ $(document).ready(function() {
 		});
 	}
 
-	if (sessionStorage.getItem('selectedOption')) {
-		var selectedOption = sessionStorage.getItem('selectedOption');
-		if (selectedOption !== 'driver-list') {
-			sessionStorage.setItem('selectedOption', 'driver-list');
-		}
-	} else {
-		sessionStorage.setItem('selectedOption', 'driver-list');
+	var selectedOption = sessionStorage.getItem('selectedOption');
+	if (selectedOption) {
+		$('input[name="driver-info"][value="' + selectedOption + '"]').prop('checked', true);
 	}
+
 	$('#DriverBtnContainers').on('click', function() {
 		$('input[name="driver-info"][value="driver-list"]').prop('checked', true);
 		sessionStorage.setItem('selectedOption', 'driver-list');
 	});
+
+	$('input[name="driver-info"]').change(function() {
+		var selectedValue = $(this).val();
+		console.log(selectedValue);
+		sessionStorage.setItem('selectedOption', selectedValue);
+
+		switch(selectedValue) {
+			case 'driver-list':
+				window.location.href = "/dashboard/drivers/";
+				break;
+			case 'driver-payments':
+				window.location.href = "/dashboard/drivers-payment/";
+				break;
+			case 'driver-efficiency':
+				window.location.href = "/dashboard/drivers-efficiency/";
+				break;
+			default:
+				break;
+		}
+	});
 });
 
 function applyCustomDateRange(item) {
+	let startDate = $("#start_report_driver").val();
+	let endDate = $("#end_report_driver").val();
+	const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
 
-    let startDate = $("#start_report_driver").val();
-    let endDate = $("#end_report_driver").val();
-    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+	if (!startDate.match(dateRegex) || !endDate.match(dateRegex)) {
+		$("#error_message").text("Дата повинна бути у форматі YYYY-MM-DD").show();
+		return;
+	}
 
-    if (!startDate.match(dateRegex) || !endDate.match(dateRegex)) {
-        $("#error_message").text("Дата повинна бути у форматі YYYY-MM-DD").show();
-        return;
-    }
+	if (startDate > endDate) {
+		$("#error_message").text("Кінцева дата повинна бути більшою або рівною початковій даті").show();
+		return;
+	}
 
-    if (startDate > endDate) {
-        $("#error_message").text("Кінцева дата повинна бути більшою або рівною початковій даті").show();
-        return;
-    }
+	$("#error_message").hide();
+	const selectedPeriod = 'custom';
 
-		$("#error_message").hide();
-    const selectedPeriod = 'custom';
+	if (item === 'driver') {
+		$(".apply-filter-button_driver").prop("disabled", true);
+		aggregator = $('.checkbox-container input[type="checkbox"]:checked').map(function() {
+			return $(this).val();
+		}).get();
+		var aggregatorsString = aggregator.join('&');
 
-    if (item === 'driver') {
-    		$(".apply-filter-button_driver").prop("disabled", true);
-        aggregator = $('.checkbox-container input[type="checkbox"]:checked').map(function() {
-            return $(this).val();
-        }).get();
-        var aggregatorsString = aggregator.join('&');
+		if (aggregatorsString === 'shared') {
+			fetchDriverEfficiencyData(selectedPeriod, startDate, endDate);
+		} else {
+			fetchDriverFleetEfficiencyData(selectedPeriod, startDate, endDate, aggregatorsString);
+		}
+	}
 
-        if (aggregatorsString === 'shared') {
-            fetchDriverEfficiencyData(selectedPeriod, startDate, endDate);
-        } else {
-            fetchDriverFleetEfficiencyData(selectedPeriod, startDate, endDate, aggregatorsString);
-        }
-    }
+	if (item === 'vehicle') {
+		$(".apply-filter-button_vehicle").prop("disabled", true);
+		fetchVehicleEarningsData(selectedPeriod, startDate, endDate);
+	}
 
-    if (item === 'vehicle') {
-    		$(".apply-filter-button_vehicle").prop("disabled", true);
-        fetchVehicleEarningsData(selectedPeriod, startDate, endDate);
-    }
-
-    if (item === 'payments') {
-    		$(".apply-filter-button_driver").prop("disabled", true);
-        driverPayment(selectedPeriod, startDate, endDate, paymentStatus="closed");
-    }
+	if (item === 'payments') {
+		$(".apply-filter-button_driver").prop("disabled", true);
+		driverPayment(selectedPeriod, startDate, endDate, paymentStatus="closed");
+	}
 }
