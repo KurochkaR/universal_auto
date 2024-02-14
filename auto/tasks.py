@@ -332,19 +332,19 @@ def check_daily_report(self, partner_pk, start=None, end=None):
 
 
 @app.task(bind=True, queue='beat_tasks', retry_backoff=30, max_retries=4)
-def download_nightly_report(self, partner_pk, schema, day=None):
+def download_nightly_report(self, day=None):
     try:
-        # for schema in schemas check uber orders
-        start, end = get_time_for_task(schema, day)[2:]
-        fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name='Gps')
-        for fleet in fleets:
-            for driver in Driver.objects.get_active(schema=schema):
-                driver_id = driver.get_driver_external_id(fleet)
-                if driver_id:
-                    if isinstance(fleet, UberRequest):
-                        fleet.save_custom_report(start, end, driver)
-                    else:
-                        fleet.save_custom_report(start, end, driver, custom=True)
+        for schema in Schema.objects.all():
+            start, end = get_time_for_task(schema, day)[2:]
+            fleets = Fleet.objects.filter(partner=schema.partner, deleted_at=None).exclude(name='Gps')
+            for fleet in fleets:
+                for driver in Driver.objects.get_active(schema=schema):
+                    driver_id = driver.get_driver_external_id(fleet)
+                    if driver_id:
+                        if isinstance(fleet, UberRequest):
+                            fleet.save_custom_report(start, end, driver)
+                        else:
+                            fleet.save_custom_report(start, end, driver, custom=True)
     except Exception as e:
         logger.error(e)
         retry_delay = retry_logic(e, self.request.retries + 1)
@@ -1251,8 +1251,6 @@ def update_schedule(self):
             for partner in partners:
                 create_task(db_task.name, partner.pk, schedule, db_task.arguments)
     for schema in work_schemas:
-        night_schedule = get_schedule(time(4, 30))
-        create_task('download_nightly_report', schema.partner.pk, night_schedule, schema.pk)
         if schema.shift_time != time.min:
             schedule = get_schedule(schema.shift_time)
             create_task('get_uber_orders', schema.partner.pk, schedule, schema.pk)
