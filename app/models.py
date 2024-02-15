@@ -852,7 +852,7 @@ class FleetOrder(models.Model):
     payment = models.CharField(max_length=25, choices=PaymentTypes.choices, null=True, verbose_name="Тип оплати")
     price = models.IntegerField(null=True, verbose_name="Вартість")
     tips = models.IntegerField(null=True, verbose_name="Чайові")
-    date_order = models.DateField(null=True, verbose_name='Дата замовлення')
+    date_order = models.DateTimeField(null=True, verbose_name='Дата замовлення')
     created_at = models.DateTimeField(editable=False, auto_now_add=True, verbose_name='Cтворено')
 
     driver = models.ForeignKey(Driver, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Водій')
