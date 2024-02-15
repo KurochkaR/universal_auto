@@ -140,7 +140,7 @@ class BoltRequest(Fleet, Synchronizer):
                           "limit": 50})
             reports = self.get_target_url(f'{self.base_url}getDriverEarnings/dateRange', param)
         for driver_report in reports['data']['drivers']:
-            if reports['data']['drivers']['id'] != driver.get_driver_external_id(self.name):
+            if str(driver_report['id']) != driver.get_driver_external_id(self):
                 continue
             report = self.parse_json_report(start, end, driver, driver_report)
             if custom:
@@ -302,12 +302,13 @@ class BoltRequest(Fleet, Synchronizer):
             for order in report['data']['rows']:
                 price = order.get('total_price', 0)
                 tip = order.get("tip", 0)
-                if FleetOrder.objects.filter(order_id=order['order_id']).exists():
+                if FleetOrder.objects.filter(order_id=order['order_id'], partner=self.partner).exists():
                     vehicle = check_vehicle(driver, date_time=timezone.make_aware(
                         datetime.fromtimestamp(order['accepted_time'])))
                     if not vehicle:
                         vehicle = Vehicle.objects.get(licence_plate=order['car_reg_number'])
-                    FleetOrder.objects.filter(order_id=order['order_id']).update(price=price, tips=tip, vehicle=vehicle)
+                    FleetOrder.objects.filter(order_id=order['order_id'],
+                                              partner=self.partner).update(price=price, tips=tip, vehicle=vehicle)
                     continue
                 try:
                     finish = timezone.make_aware(
@@ -328,7 +329,7 @@ class BoltRequest(Fleet, Synchronizer):
                         "price": price,
                         "tips": tip,
                         "partner": self.partner,
-                        "date_order": start.date()
+                        "date_order": timezone.make_aware(datetime.fromtimestamp(order['driver_assigned_time']))
                         }
                 FleetOrder.objects.create(**data)
                 time.sleep(0.5)

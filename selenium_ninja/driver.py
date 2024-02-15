@@ -355,13 +355,14 @@ class SeleniumTools:
                 reader = csv.reader(file)
                 next(reader)
                 for row in reader:
-                    if FleetOrder.objects.filter(order_id=row[0], fleet="Uber").exists():
+                    if FleetOrder.objects.filter(order_id=row[0], fleet="Uber", partner=self.partner).exists():
                         continue
                     try:
                         finish = timezone.make_aware(datetime.strptime(row[8], "%Y-%m-%d %H:%M:%S"))
                     except ValueError:
                         finish = None
-                    driver = FleetsDriversVehiclesRate.objects.filter(driver_external_id=row[1]).first()
+                    driver = FleetsDriversVehiclesRate.objects.filter(driver_external_id=row[1],
+                                                                      partner=self.partner).first()
                     if driver:
                         if row[5] == "AA3410YA":
                             row[5] = "AA4314YA"
@@ -376,7 +377,7 @@ class SeleniumTools:
                                 "state": states.get(row[12]),
                                 "vehicle": vehicle,
                                 "partner_id": self.partner,
-                                "date_order": start.date()}
+                                "date_order": timezone.make_aware(datetime.strptime(row[7], "%Y-%m-%d %H:%M:%S"))}
                         FleetOrder.objects.create(**data)
                 os.remove(file_path)
 

@@ -332,8 +332,14 @@ def send_into_group(sender=None, **kwargs):
                     bot.send_message(chat_id=ParkSettings.get_value('DRIVERS_CHAT',
                                                                     default=Partner.objects.get(pk=partner).chat_id,
                                                                     partner=partner), text=schema_message)
-                except BadRequest:
-                    pass
+                except BadRequest as e:
+                    if e.message == 'Message is too long':
+                        send_long_message(chat_id=ParkSettings.get_value('DRIVERS_CHAT',
+                                                                         default=Partner.objects.get(
+                                                                             pk=partner).chat_id,
+                                                                         partner=partner), text=message)
+                    else:
+                        pass
         for pk, message in drivers_messages.items():
             driver = Driver.objects.get(pk=pk)
             vehicle = check_vehicle(driver, yesterday, max_time=True)

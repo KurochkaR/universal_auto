@@ -318,7 +318,7 @@ class UklonRequest(Fleet, Synchronizer):
         try:
             for order in orders['items']:
                 if (order['status'] in ("running", "accepted", "arrived") or
-                        FleetOrder.objects.filter(order_id=order['id']).exists()):
+                        FleetOrder.objects.filter(order_id=order['id'], partner=self.partner).exists()):
                     continue
                 vehicle = Vehicle.objects.get(licence_plate=order['vehicle']['licencePlate'])
                 try:
@@ -345,7 +345,7 @@ class UklonRequest(Fleet, Synchronizer):
                         "payment": PaymentTypes.map_payments(order['payment']['paymentType']),
                         "price": order['payment']['cost'],
                         "partner": self.partner,
-                        "date_order": start.date()
+                        "date_order": timezone.make_aware(datetime.fromtimestamp(order["pickupTime"]))
                         }
                 FleetOrder.objects.create(**data)
         except KeyError:
