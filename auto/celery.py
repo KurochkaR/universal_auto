@@ -1,22 +1,12 @@
 from __future__ import absolute_import
 from celery import Celery
 import os
-
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'auto.settings')
 
 app = Celery('auto')
 
 app.config_from_object('django.conf:settings', namespace='CELERY')
-app.conf.task_queues = {
-    'beat_tasks': {
-        'exchange': 'beat_tasks',
-        'routing_key': 'beat_tasks',
-    },
-    'bot_tasks': {
-        'exchange': 'bot_tasks',
-        'routing_key': 'bot_tasks',
-    },
-}
+
 app.conf.update(
     task_ignore_result=True,
     task_serializer='json',

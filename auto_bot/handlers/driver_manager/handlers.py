@@ -325,13 +325,11 @@ def send_into_group(sender=None, **kwargs):
     if sender in (send_daily_statistic, send_driver_efficiency):
         messages, drivers_messages, schema = kwargs.get('retval')
         for partner, message in messages.items():
-            schema_message = f'Схема роботи: "{schema}"\n'
-            schema_message += message
             if message:
                 try:
                     bot.send_message(chat_id=ParkSettings.get_value('DRIVERS_CHAT',
                                                                     default=Partner.objects.get(pk=partner).chat_id,
-                                                                    partner=partner), text=schema_message)
+                                                                    partner=partner), text=message)
                 except BadRequest:
                     pass
         for pk, message in drivers_messages.items():

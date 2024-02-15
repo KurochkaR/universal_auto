@@ -26,12 +26,15 @@ def create_task(task, partner, schedule, param=None):
             name=f'{task}({partner})',
             task=f'auto.tasks.{task}',
             crontab=schedule,
-            queue="beat_tasks"
+            queue=f"beat_tasks_{partner}"
         )
-        args_list = periodic_task.args
-        if param and param not in args_list[1]:
-            args_list[1].append(param)
-            periodic_task.args = args_list
+        args_list = eval(periodic_task.args) if periodic_task.args else []
+        if param:
+            if len(args_list) == 1:
+                args_list.append([param])
+            if param not in args_list[1]:
+                args_list[1].append(param)
+            periodic_task.args = str(args_list)
             periodic_task.save(update_fields=['args'])
 
     except ObjectDoesNotExist:
@@ -39,9 +42,9 @@ def create_task(task, partner, schedule, param=None):
         if param:
             task_args.append([param])
         PeriodicTask.objects.create(
-            name=f'auto.tasks.{task}({partner})',
+            name=f'{task}({partner})',
             task=f'auto.tasks.{task}',
-            queue="beat_tasks",
+            queue=f"beat_tasks_{partner}",
             crontab=schedule,
             args=task_args
         )
