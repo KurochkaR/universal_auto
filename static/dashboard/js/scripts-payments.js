@@ -130,48 +130,10 @@ $(document).ready(function () {
 		} else if ($(this).hasClass('edit-penalty-btn')){
 			itemType = 'penalty';
 		}
-		openForm(paymentId=null, bonusId=itemId, itemType)
+		openForm(paymentId=null, bonusId=itemId, itemType, driverId=null);
 		$('#modal-add-bonus').data('bonus-penalty-id', itemId);
 		$('#modal-add-bonus').show();
 	});
-
-//	$(this).on('click', '#edit-button-bonus-penalty', function (e) {
-//		e.preventDefault();
-//		$('#amount-bonus-error, #category-bonus-error, #vehicle-bonus-error').hide();
-//		var idBonus = $('#modal-add-bonus').data('bonus-penalty-id');
-//		var category = $('#modal-add-bonus').data('category-type');
-//		var formDataArray = $('#modal-add-bonus :input').serializeArray();
-//
-//		var formData = {};
-//		$.each(formDataArray, function(i, field){
-//				formData[field.name] = field.value;
-//		});
-//		formData['action'] = 'upd_bonus_penalty';
-//		formData['bonus_id'] = idBonus;
-//		formData['category_type'] = category;
-//		formData['csrfmiddlewaretoken'] = $('input[name="csrfmiddlewaretoken"]').val()
-//		$.ajax({
-//			type: 'POST',
-//			url: ajaxPostUrl,
-//			data: formData,
-//			dataType: 'json',
-//			success: function (data) {
-//				$('#modal-add-bonus')[0].reset();
-//				$('#modal-add-bonus').hide();
-//				driverPayment(null, null, null, paymentStatus="on_inspection");
-//			},
-//			error: function (xhr, textStatus, errorThrown) {
-//				if (xhr.status === 400) {
-//					let errors = xhr.responseJSON.errors;
-//					$.each(errors, function (key, value) {
-//					$('#' + key + '-bonus-error').html(value).show();
-//					});
-//				} else {
-//					console.error('Помилка запиту: ' + textStatus);
-//				}
-//			},
-//		});
-//	});
 
 	driverPayment(null, null, null, paymentStatus="on_inspection");
 

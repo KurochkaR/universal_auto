@@ -347,8 +347,8 @@ $(document).ready(function() {
 		var idBonus = $('#modal-add-bonus').data('bonus-penalty-id');
 		var category = $('#modal-add-bonus').data('category-type');
 		var driverId = $('#modal-add-bonus').data('driver-id');
+		var paymentId = $('.tr-driver-payments').data('id');
 		var formDataArray = $('#modal-add-bonus :input').serializeArray();
-
 		var formData = {};
 		$.each(formDataArray, function(i, field){
 				formData[field.name] = field.value;
@@ -357,6 +357,7 @@ $(document).ready(function() {
 		formData['bonus_id'] = idBonus;
 		formData['category_type'] = category;
 		formData['driver_id'] = driverId;
+		formData['payment_id'] = paymentId;
 		formData['csrfmiddlewaretoken'] = $('input[name="csrfmiddlewaretoken"]').val()
 		$.ajax({
 			type: 'POST',
@@ -366,7 +367,11 @@ $(document).ready(function() {
 			success: function (data) {
 				$('#modal-add-bonus')[0].reset();
 				$('#modal-add-bonus').hide();
-				driverPayment(null, null, null, paymentStatus="on_inspection");
+				if (paymentId === undefined) {
+					window.location.reload();
+				} else {
+					driverPayment(null, null, null, paymentStatus="on_inspection");
+				}
 			},
 			error: function (xhr, textStatus, errorThrown) {
 				if (xhr.status === 400) {
@@ -379,9 +384,6 @@ $(document).ready(function() {
 				}
 			},
 		});
-		if (idPayments === null) {
-			window.location.reload();
-		}
 	});
 });
 
@@ -429,7 +431,6 @@ function applyCustomDateRange(item) {
 }
 
 function openForm(paymentId, bonusPenaltyId, itemType, driverId) {
-	console.log(bonusPenaltyId);
 	$.ajax({
 		url: ajaxGetUrl,
 		type: 'GET',

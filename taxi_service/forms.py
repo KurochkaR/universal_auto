@@ -136,6 +136,7 @@ class BonusForm(ModelForm):
         super().__init__(*args, **kwargs)
 
         filter_partner = user.manager.managers_partner if user.is_manager() else user
+
         if payment_id:
             payment = DriverPayments.objects.get(id=payment_id)
             driver_vehicle_ids = DriverReshuffle.objects.filter(
@@ -146,7 +147,7 @@ class BonusForm(ModelForm):
             self.fields['vehicle'].queryset = Vehicle.objects.filter(id__in=driver_vehicle_ids)
         else:
             payment = DriverPayments.objects.filter(driver=driver_id).last()
-            
+
             driver_vehicle_ids = DriverReshuffle.objects.filter(
                 Q(driver_start=driver_id),
                 Q(swap_time__range=(payment.report_to, timezone.localtime())) |

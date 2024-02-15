@@ -303,7 +303,10 @@ class PostRequestHandler:
         new_category = data.get('new_category', None)
         type_bonus_penalty = data.get('category_type', None)
         driver_id = data.get('driver_id')
-        form = BonusForm(request.user, category=type_bonus_penalty, data=data, driver_id=driver_id)
+        payment_id = data.get('payment_id')
+        print('payment_id', payment_id)
+        form = BonusForm(request.user, category=type_bonus_penalty, data=data, payment_id=payment_id,
+                         driver_id=driver_id)
         if form.is_valid():
 
             if new_category:
