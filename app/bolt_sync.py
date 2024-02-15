@@ -302,7 +302,9 @@ class BoltRequest(Fleet, Synchronizer):
             for order in report['data']['rows']:
                 price = order.get('total_price', 0)
                 tip = order.get("tip", 0)
-                if FleetOrder.objects.filter(order_id=order['order_id'], partner=self.partner).exists():
+                if FleetOrder.objects.filter(
+                        order_id=order['order_id'], partner=self.partner,
+                        date_order=timezone.make_aware(datetime.fromtimestamp(order["pickupTime"]))).exists():
                     vehicle = check_vehicle(driver, date_time=timezone.make_aware(
                         datetime.fromtimestamp(order['accepted_time'])))
                     if not vehicle:

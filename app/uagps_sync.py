@@ -133,7 +133,7 @@ class UaGpsSynchronizer(Fleet):
                                                        state=FleetOrder.COMPLETED,
                                                        accepted_time__gte=start_report,
                                                        accepted_time__lt=end_report).order_by('accepted_time')
-                road_distance, road_time, previous_finish_time = self.calculate_order_distance(completed, end)
+                road_distance, road_time, previous_finish_time = self.calculate_order_distance(completed, end_report)
                 if start.time == time.min:
                     yesterday_order = FleetOrder.objects.filter(driver=driver,
                                                                 finish_time__gt=start,
@@ -179,6 +179,7 @@ class UaGpsSynchronizer(Fleet):
             previous_finish_time = end_report
             road_distance += report[0]
             road_time += report[1]
+            print(road_distance)
         return road_distance, road_time, previous_finish_time
 
     def get_vehicle_rent(self, start, end, schema=None):
