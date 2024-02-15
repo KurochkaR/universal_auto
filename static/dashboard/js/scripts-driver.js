@@ -56,4 +56,22 @@ $(document).ready(function(){
 			}
 		});
 	});
+
+	const selectedButton = sessionStorage.getItem('selectedRadioButton');
+  const defaultSelectedButton = localStorage.getItem('selectedRadioButton');
+  if (!selectedButton && defaultSelectedButton) {
+    sessionStorage.setItem('selectedRadioButton', defaultSelectedButton);
+  } else if (!selectedButton && !defaultSelectedButton) {
+    sessionStorage.setItem('selectedRadioButton', 'driver-bonus');
+  }
+
+  if (selectedButton) {
+    $(`input[name="driver-statistics"][value="${selectedButton}"]`).click();
+  }
+
+  $('input[name="driver-statistics"]').on('change', function() {
+    if ($(this).is(':checked')) {
+      sessionStorage.setItem('selectedRadioButton', $(this).val());
+    }
+  });
 });

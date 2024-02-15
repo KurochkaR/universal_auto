@@ -49,7 +49,7 @@
     </div>
     <div class="driver-statistics">
       <div class="driver-radio-buttons">
-        <input type="radio" id="driver-bonus-radio" name="driver-statistics" value="driver-bonus" checked>
+        <input type="radio" id="driver-bonus-radio" name="driver-statistics" value="driver-bonus">
         <label for="driver-bonus-radio">Бонуси</label>
 
         <input type="radio" id="driver-penalty-radio" name="driver-statistics" value="driver-penalty">
@@ -61,22 +61,24 @@
             <h3 class="bonus-title">Бонус</h3>
             <button class="add-button-bonus">Додати</button>
           </div>
+          <div class="driver-bonus-penalty-title">
+            <h3 class="bonus-category">Категорія</h3>
+            <h3 class="bonus-amount">Сума</h3>
+            <h3 class="bonus-car">Авто</h3>
+            <h3 class="bonus-description">Опис</h3>
+          </div>
           {% for bonus in driver_bonus %}
           <div class="driver-bonus-penalty-info">
             <div class="bonus-category">
-              <h3>Категорія:</h3>
               <span>{{ bonus.category }}</span>
             </div>
             <div class="bonus-amount">
-              <h3>Сума:</h3>
               <span>{{ bonus.amount }}</span>
             </div>
             <div class="bonus-car">
-              <h3>Авто:</h3>
               <span>{{ bonus.vehicle }}</span>
             </div>
             <div class="bonus-description">
-              <h3>Опис:</h3>
               <span>{{ bonus.description|default_if_none:"&nbsp;" }}</span>
             </div>
             <div class="btns">
@@ -91,22 +93,24 @@
             <h3 class="penalty-title">Штраф</h3>
             <button class="add-button-penalty">Додати</button>
           </div>
+          <div class="driver-bonus-penalty-title">
+            <h3 class="bonus-category">Категорія</h3>
+            <h3 class="bonus-amount">Сума</h3>
+            <h3 class="bonus-car">Авто</h3>
+            <h3 class="bonus-description">Опис</h3>
+          </div>
           {% for penalty in driver_penalty %}
           <div class="driver-bonus-penalty-info">
             <div class="penalty-category">
-              <h3>Категорія:</h3>
               <span>{{ penalty.category }}</span>
             </div>
             <div class="penalty-amount">
-              <h3>Сума:</h3>
               <span>{{ penalty.amount }}</span>
             </div>
             <div class="penalty-car">
-              <h3>Авто:</h3>
               <span>{{ penalty.vehicle }}</span>
             </div>
             <div class="penalty-description">
-              <h3>Опис:</h3>
               <span>{{ penalty.description|default_if_none:"&nbsp;" }}</span>
             </div>
             <div class="btns">
