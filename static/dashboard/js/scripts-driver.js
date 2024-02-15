@@ -19,12 +19,41 @@ $(document).ready(function(){
   });
 
 	$(this).on('click', '.add-button-bonus, .add-button-penalty', function() {
+		var driver_id = $('.detail-driver-info').data('id');
 		if ($(this).hasClass('add-button-bonus')) {
-			var driver_id = $('.detail-driver-info').data('id');
-			console.log(driver_id);
 			openForm(null, null, 'bonus', driver_id);
 		} else {
 			openForm(null, null, 'penalty', driver_id);
 		}
+	});
+
+	$(this).on('click', '.edit-bonus-btn, .edit-penalty-btn', function() {
+		var itemId = $(this).data('id');
+		var driver_id = $('.detail-driver-info').data('id');
+		if ($(this).hasClass('edit-bonus-btn')) {
+			itemType = 'bonus';
+			openForm(null, itemId, itemType, driver_id);
+		} else {
+			itemType = 'penalty';
+			openForm(null, itemId, itemType, driver_id);
+		}
+	});
+
+	$(this).on('click', '.delete-bonus-penalty-btn', function () {
+		itemId = $(this).data('id');
+		dataToSend = {
+			action: "delete_bonus_penalty",
+			id: itemId,
+			csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
+		};
+		$.ajax({
+			url: ajaxPostUrl,
+			type: 'POST',
+			data: dataToSend,
+			dataType: 'json',
+			success: function (response) {
+				window.location.reload();
+			}
+		});
 	});
 });

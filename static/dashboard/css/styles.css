@@ -2369,8 +2369,8 @@ span.error-name {
 	line-height: normal;
 }
 
-.bonus-header .add-button,
-.penalty-header .add-button {
+.bonus-header .add-button-bonus,
+.penalty-header .add-button-penalty {
 	display: flex;
 	align-items: center;
 	background-color: #EC6323;
@@ -2385,11 +2385,47 @@ span.error-name {
 
 .driver-bonus-penalty-info {
 	display: grid;
-	grid-template-columns: 1fr 1fr 1fr;
+	grid-template-columns: repeat(5, 1fr);
 	margin: 20px 15px;
 	gap: 60px;
 }
 
 .driver-penalty-item {
 	display: none;
+}
+
+.btns {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+
+.btns .edit-bonus-btn,
+.btns .edit-penalty-btn {
+	color: green;
+}
+
+.btns .delete-bonus-penalty-btn {
+	color: red;
+	margin-bottom: 8px;
+}
+
+.btns .edit-bonus-btn,
+.btns .edit-penalty-btn,
+.btns .delete-bonus-penalty-btn {
+	background: none;
+	border: none;
+	padding: 0;
+	cursor: pointer;
+	font-size: 25px;
+}
+
+
+.bonus-category,
+.bonus-amount,
+.bonus-description,
+.bonus-car,
+.btns {
+    max-width: 80px;
+    min-width: 80px;
 }

@@ -145,8 +145,8 @@ class BonusForm(ModelForm):
             ).values_list('swap_vehicle', flat=True)
             self.fields['vehicle'].queryset = Vehicle.objects.filter(id__in=driver_vehicle_ids)
         else:
-            print('driver_id', driver_id)
             payment = DriverPayments.objects.filter(driver=driver_id).last()
+            
             driver_vehicle_ids = DriverReshuffle.objects.filter(
                 Q(driver_start=driver_id),
                 Q(swap_time__range=(payment.report_to, timezone.localtime())) |

@@ -18,7 +18,7 @@ from api.views import CarsInformationListView
 from taxi_service.forms import SubscriberForm, MainOrderForm, BonusForm
 from taxi_service.handlers import PostRequestHandler, GetRequestHandler
 from taxi_service.seo_keywords import *
-from app.models import Driver, Vehicle, CustomUser, BonusCategory, PenaltyCategory, DriverReshuffle
+from app.models import Driver, Vehicle, CustomUser, BonusCategory, PenaltyCategory, DriverReshuffle, Bonus, Penalty
 from auto_bot.main import bot
 
 
@@ -52,7 +52,7 @@ class PostRequestView(View):
             "add-bonus": handler.handler_add_bonus_or_penalty,
             "add-penalty": handler.handler_add_bonus_or_penalty,
             "upd-status-payment": handler.handler_upd_payment_status,
-            "upd_delete_bonus_penalty": handler.handler_upd_delete_bonus_penalty,
+            "upd_bonus_penalty": handler.handler_upd_bonus_penalty,
             "delete_bonus_penalty": handler.handler_delete_bonus_penalty,
         }
 
@@ -188,6 +188,8 @@ class DriverDetailView(DetailView):
             driver_start=driver_id).first()
 
         context = super().get_context_data(**kwargs)
+        context["driver_bonus"] = Bonus.objects.filter(driver=driver_id, driver_payments__isnull=True)
+        context["driver_penalty"] = Penalty.objects.filter(driver=driver_id, driver_payments__isnull=True)
         context["investor_group"] = self.request.user.is_investor()
         context["partner_group"] = self.request.user.is_partner()
         context["manager_group"] = self.request.user.is_manager()

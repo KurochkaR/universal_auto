@@ -297,12 +297,13 @@ class PostRequestHandler:
         return JsonResponse({'data': 'success'})
 
     @staticmethod
-    def handler_upd_delete_bonus_penalty(request):
+    def handler_upd_bonus_penalty(request):
         data = request.POST.copy()
         bonus_id = data.get('bonus_id', None)
         new_category = data.get('new_category', None)
         type_bonus_penalty = data.get('category_type', None)
-        form = BonusForm(request.user, category=type_bonus_penalty, data=data)
+        driver_id = data.get('driver_id')
+        form = BonusForm(request.user, category=type_bonus_penalty, data=data, driver_id=driver_id)
         if form.is_valid():
 
             if new_category:
@@ -347,11 +348,12 @@ class PostRequestHandler:
         instance = PenaltyBonus.objects.filter(id=bonus_id).first()
         if instance:
             driver_payments = instance.driver_payments
-            if isinstance(instance, Bonus):
-                driver_payments.earning -= instance.amount
-            else:
-                driver_payments.earning += instance.amount
-            driver_payments.save(update_fields=['earning'])
+            if driver_payments:
+                if isinstance(instance, Bonus):
+                    driver_payments.earning -= instance.amount
+                else:
+                    driver_payments.earning += instance.amount
+                driver_payments.save(update_fields=['earning'])
             instance.delete()
             return JsonResponse({'data': 'success'})
         else:

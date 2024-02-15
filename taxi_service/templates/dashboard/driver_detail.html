@@ -9,7 +9,7 @@
       <path d="M15.8335 9.16683H6.16682L10.5835 4.75016C10.9168 4.41683 10.9168 3.91683 10.5835 3.5835C10.2502 3.25016 9.75016 3.25016 9.41683 3.5835L3.5835 9.41683C3.25017 9.75016 3.25017 10.2502 3.5835 10.5835L9.41683 16.4168C9.5835 16.5835 9.8335 16.6668 10.0002 16.6668C10.1668 16.6668 10.4168 16.5835 10.5835 16.4168C10.9168 16.0835 10.9168 15.5835 10.5835 15.2502L6.16682 10.8335H15.8335C16.3335 10.8335 16.6668 10.5002 16.6668 10.0002C16.6668 9.50016 16.3335 9.16683 15.8335 9.16683Z" fill="currentColor"></path>
       </svg>Назад
     </button>
-    <h1>Сторінка водія {{ object.second_name }} {{ object.name }}</h1>
+    <h1>{{ object.second_name }} {{ object.name }}</h1>
   </div>
 
   <div class="detail-driver-block">
@@ -19,7 +19,7 @@
         <span>{{ object.second_name }} {{ object.name }}</span>
       </div>
       <div class="driver-data">
-        <h2 class="driver-data-item">Дані водія</h2>
+        <h2 class="driver-data-item">Особисті данні</h2>
         <div class="driver-flex">
           <h3 class="driver-phone-number">Номер телефону: </h3>
           <p>{{ object.phone_number }}</p>
@@ -50,10 +50,10 @@
     <div class="driver-statistics">
       <div class="driver-radio-buttons">
         <input type="radio" id="driver-bonus-radio" name="driver-statistics" value="driver-bonus" checked>
-        <label for="driver-bonus-radio">Бонуси водія</label>
+        <label for="driver-bonus-radio">Бонуси</label>
 
         <input type="radio" id="driver-penalty-radio" name="driver-statistics" value="driver-penalty">
-        <label for="driver-penalty-radio">Штрафи водія</label>
+        <label for="driver-penalty-radio">Штрафи</label>
       </div>
       <div class="driver-bonus-penalty-list">
         <div class="driver-bonus-item bonus">
@@ -61,40 +61,60 @@
             <h3 class="bonus-title">Бонус</h3>
             <button class="add-button-bonus">Додати</button>
           </div>
+          {% for bonus in driver_bonus %}
           <div class="driver-bonus-penalty-info">
-            <div class="bonus-description">
-              <h3>Опис бонусу:</h3>
-              <span>Бонус за безаварійну їзду.</span>
+            <div class="bonus-category">
+              <h3>Категорія:</h3>
+              <span>{{ bonus.category }}</span>
             </div>
             <div class="bonus-amount">
-              <h3>Сума бонусу:</h3>
-              <span>$100</span>
+              <h3>Сума:</h3>
+              <span>{{ bonus.amount }}</span>
             </div>
             <div class="bonus-car">
               <h3>Авто:</h3>
-              <span>Ваше авто</span>
+              <span>{{ bonus.vehicle }}</span>
+            </div>
+            <div class="bonus-description">
+              <h3>Опис:</h3>
+              <span>{{ bonus.description|default_if_none:"&nbsp;" }}</span>
+            </div>
+            <div class="btns">
+              <button class="edit-bonus-btn fa fa-pencil-alt"  data-id="{{ bonus.id }}"></button>
+              <button class="delete-bonus-penalty-btn fa fa-times"  data-id="{{ bonus.id }}"></button>
             </div>
           </div>
+          {% endfor %}
         </div>
         <div class="driver-penalty-item penalty">
           <div class="penalty-header">
             <h3 class="penalty-title">Штраф</h3>
             <button class="add-button-penalty">Додати</button>
           </div>
+          {% for penalty in driver_penalty %}
           <div class="driver-bonus-penalty-info">
-            <div class="penalty-description">
-              <h3>Опис штрафу:</h3>
-              <span>Штраф за перевищення швидкості.</span>
+            <div class="penalty-category">
+              <h3>Категорія:</h3>
+              <span>{{ penalty.category }}</span>
             </div>
             <div class="penalty-amount">
-              <h3>Сума штрафу:</h3>
-              <span>$100</span>
+              <h3>Сума:</h3>
+              <span>{{ penalty.amount }}</span>
             </div>
             <div class="penalty-car">
               <h3>Авто:</h3>
-              <span>Ваше авто</span>
+              <span>{{ penalty.vehicle }}</span>
+            </div>
+            <div class="penalty-description">
+              <h3>Опис:</h3>
+              <span>{{ penalty.description|default_if_none:"&nbsp;" }}</span>
+            </div>
+            <div class="btns">
+              <button class="edit-penalty-btn fa fa-pencil-alt"  data-id="{{ penalty.id }}"></button>
+              <button class="delete-bonus-penalty-btn fa fa-times"  data-id="{{ penalty.id }}"></button>
             </div>
           </div>
+          {% endfor %}
         </div>
       </div>
     </div>

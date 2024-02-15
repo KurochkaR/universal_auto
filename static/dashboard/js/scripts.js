@@ -271,7 +271,6 @@ $(document).ready(function() {
 
 	$('input[name="driver-info"]').change(function() {
 		var selectedValue = $(this).val();
-		console.log(selectedValue);
 		sessionStorage.setItem('selectedOption', selectedValue);
 
 		switch(selectedValue) {
@@ -295,7 +294,7 @@ $(document).ready(function() {
 		$('#modal-add-penalty').hide();
 	});
 
-		$(this).on('click', '#add-bonus-btn, #add-penalty-btn', function (e) {
+	$(this).on('click', '#add-bonus-btn, #add-penalty-btn', function (e) {
 		e.preventDefault();
 		$('#amount-bonus-error, #category-bonus-error, #vehicle-bonus-error').hide();
 		var idPayments = $('#modal-add-bonus').data('id');
@@ -306,7 +305,6 @@ $(document).ready(function() {
 		$.each(formDataArray, function(i, field){
 				formData[field.name] = field.value;
 		});
-		console.log(formData)
 		if ($(this).attr('id') === 'add-bonus-btn') {
 			formData['action'] = 'add-bonus';
 			formData['category_type'] = 'bonus'
@@ -330,7 +328,6 @@ $(document).ready(function() {
 			error: function (xhr, textStatus, errorThrown) {
 			if (xhr.status === 400) {
 				let errors = xhr.responseJSON.errors;
-				console.log(errors)
 				$.each(errors, function (key, value) {
 					$('#' + key + '-bonus-error').html(value).show();
 				});
@@ -339,8 +336,53 @@ $(document).ready(function() {
 			}
 			},
 		});
+		if (idPayments === null) {
+			window.location.reload();
+		}
 	});
 
+	$(this).on('click', '#edit-button-bonus-penalty', function (e) {
+		e.preventDefault();
+		$('#amount-bonus-error, #category-bonus-error, #vehicle-bonus-error').hide();
+		var idBonus = $('#modal-add-bonus').data('bonus-penalty-id');
+		var category = $('#modal-add-bonus').data('category-type');
+		var driverId = $('#modal-add-bonus').data('driver-id');
+		var formDataArray = $('#modal-add-bonus :input').serializeArray();
+
+		var formData = {};
+		$.each(formDataArray, function(i, field){
+				formData[field.name] = field.value;
+		});
+		formData['action'] = 'upd_bonus_penalty';
+		formData['bonus_id'] = idBonus;
+		formData['category_type'] = category;
+		formData['driver_id'] = driverId;
+		formData['csrfmiddlewaretoken'] = $('input[name="csrfmiddlewaretoken"]').val()
+		$.ajax({
+			type: 'POST',
+			url: ajaxPostUrl,
+			data: formData,
+			dataType: 'json',
+			success: function (data) {
+				$('#modal-add-bonus')[0].reset();
+				$('#modal-add-bonus').hide();
+				driverPayment(null, null, null, paymentStatus="on_inspection");
+			},
+			error: function (xhr, textStatus, errorThrown) {
+				if (xhr.status === 400) {
+					let errors = xhr.responseJSON.errors;
+					$.each(errors, function (key, value) {
+					$('#' + key + '-bonus-error').html(value).show();
+					});
+				} else {
+					console.error('Помилка запиту: ' + textStatus);
+				}
+			},
+		});
+		if (idPayments === null) {
+			window.location.reload();
+		}
+	});
 });
 
 function applyCustomDateRange(item) {
@@ -387,6 +429,7 @@ function applyCustomDateRange(item) {
 }
 
 function openForm(paymentId, bonusPenaltyId, itemType, driverId) {
+	console.log(bonusPenaltyId);
 	$.ajax({
 		url: ajaxGetUrl,
 		type: 'GET',
@@ -411,7 +454,6 @@ function openForm(paymentId, bonusPenaltyId, itemType, driverId) {
 			$('#add-bonus-btn').text(buttonText);
 			$('.title-add-bonus h2').text(headingText);
 			$('#add-bonus-btn').prop('id', buttonId);
-			console.log($('#modal-add-bonus').data('id'), $('#modal-add-bonus').data('bonus-penalty-id'), $('#modal-add-bonus').data('category-type'))
 			$('#modal-add-bonus').show();
 		},
 
