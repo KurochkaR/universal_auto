@@ -204,13 +204,7 @@ $(document).ready(function () {
 		}
 	});
 
-	$(this).on('change', '#bonus-category', function(){
-	if ($(this).val() === 'add_new_category'){
-		$('.new-category-field').css('display', 'flex')
-	} else {
-		$('.new-category-field').hide()
-	}
-	});
+
 
 	$('.driver-table tbody').on('click', '.apply-btn', function () {
     var id = $(this).closest('tr').data('id');

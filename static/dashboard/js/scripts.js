@@ -324,6 +324,9 @@ $(document).ready(function() {
 				$('#modal-add-bonus')[0].reset();
 				$('#modal-add-bonus').hide();
 				driverPayment(null, null, null, paymentStatus="on_inspection");
+				if (idPayments === null) {
+					window.location.reload();
+				}
 			},
 			error: function (xhr, textStatus, errorThrown) {
 			if (xhr.status === 400) {
@@ -336,9 +339,6 @@ $(document).ready(function() {
 			}
 			},
 		});
-		if (idPayments === null) {
-			window.location.reload();
-		}
 	});
 
 	$(this).on('click', '#edit-button-bonus-penalty', function (e) {
@@ -384,6 +384,14 @@ $(document).ready(function() {
 				}
 			},
 		});
+	});
+
+	$(this).on('change', '#bonus-category', function(){
+	if ($(this).val() === 'add_new_category'){
+		$('.new-category-field').css('display', 'flex')
+	} else {
+		$('.new-category-field').hide()
+	}
 	});
 });
 
