@@ -12,7 +12,7 @@ from app.models import BoltService, Driver, FleetsDriversVehiclesRate, FleetOrde
 from auto import settings
 from auto_bot.handlers.order.utils import check_vehicle
 from auto_bot.main import bot
-from scripts.redis_conn import redis_instance
+from scripts.redis_conn import redis_instance, get_logger
 from selenium_ninja.synchronizer import Synchronizer, AuthenticationError
 
 
@@ -101,7 +101,7 @@ class BoltRequest(Fleet, Synchronizer):
                                           accepted_time__lt=end,
                                           state=FleetOrder.COMPLETED,
                                           driver=driver).count()
-        vehicle = check_vehicle(driver, end, max_time=True)
+        vehicle = check_vehicle(driver, end)
         report = {
             "report_from": start,
             "report_to": end,
@@ -141,6 +141,8 @@ class BoltRequest(Fleet, Synchronizer):
                           "limit": 50})
             reports = self.get_target_url(f'{self.base_url}getDriverEarnings/dateRange', param)
         for driver_report in reports['data']['drivers']:
+            if str(driver_report['id']) != driver.get_driver_external_id(self):
+                continue
             report = self.parse_json_report(start, end, driver, driver_report)
             if custom:
                 bolt_custom = CustomReport.objects.filter(report_from__date=start,
@@ -149,11 +151,11 @@ class BoltRequest(Fleet, Synchronizer):
                                                           partner=self.partner).last()
                 if bolt_custom:
                     report.update(
-                        {"total_amount_cash": driver_report['cash_in_hand'] - bolt_custom.total_amount_cash,
-                         "total_amount": driver_report['gross_revenue'] - bolt_custom.total_amount,
-                         "tips": driver_report['tips'] - bolt_custom.tips,
-                         "bonuses": driver_report['bonuses'] - bolt_custom.bonuses,
-                         "cancels": driver_report['cancellation_fees'] - bolt_custom.cancels,
+                        {"total_amount_cash": Decimal(driver_report['cash_in_hand']) - bolt_custom.total_amount_cash,
+                         "total_amount": Decimal(driver_report['gross_revenue']) - bolt_custom.total_amount,
+                         "tips": Decimal(driver_report['tips']) - bolt_custom.tips,
+                         "bonuses": Decimal(driver_report['bonuses']) - bolt_custom.bonuses,
+                         "cancels": Decimal(driver_report['cancellation_fees']) - bolt_custom.cancels,
                          "fee": Decimal(
                              -(driver_report['gross_revenue'] - driver_report['net_earnings'])) + bolt_custom.fee,
                          "total_amount_without_fee": Decimal(
@@ -235,19 +237,30 @@ class BoltRequest(Fleet, Synchronizer):
     def get_drivers_table(self):
         driver_list = []
         start = end = datetime.now().strftime('%Y-%m-%d')
-        params = {"start_date": start,
-                  "end_date": end,
-                  "offset": 0,
-                  "limit": 25}
-        params.update(self.param())
-        report = self.get_target_url(f'{self.base_url}getDriverEngagementData/dateRange', params)
-        drivers = report['data']['rows']
-        for driver in drivers:
-            driver_params = self.param().copy()
-            driver_params['id'] = driver['id']
-            driver_info = self.get_target_url(f'{self.base_url}getDriver', driver_params)
-            time.sleep(0.5)
-            if driver_info['message'] == 'OK':
+        params = {"start_date": start, "end_date": end, "limit": 25}
+        offset = 0
+        limit = params["limit"]
+
+        while True:
+            params["offset"] = offset
+            params.update(self.param())
+            report = self.get_target_url(f'{self.base_url}getDriverEngagementData/dateRange', params)
+            if offset > report['data']['total_rows']:
+                break
+            drivers = report['data']['rows']
+            for driver in drivers:
+                driver_params = self.param().copy()
+                driver_params['id'] = driver['id']
+                driver_info = self.get_target_url(f'{self.base_url}getDriver', driver_params)
+                time.sleep(0.5)
+                if driver_info['message'] != 'OK':
+                    time.sleep(3)
+                    try:
+                        driver_info = self.get_target_url(f'{self.base_url}getDriver', driver_params)
+                    except Exception as e:
+                        get_logger().error(e)
+                else:
+                    pass
                 driver_list.append({
                     'fleet_name': self.name,
                     'name': driver_info['data']['first_name'],
@@ -256,6 +269,7 @@ class BoltRequest(Fleet, Synchronizer):
                     'phone_number': driver_info['data']['phone'],
                     'driver_external_id': driver_info['data']['id'],
                 })
+            offset += limit
         return driver_list
 
     def get_fleet_orders(self, start, end, pk, driver_id):
@@ -289,17 +303,22 @@ class BoltRequest(Fleet, Synchronizer):
             for order in report['data']['rows']:
                 price = order.get('total_price', 0)
                 tip = order.get("tip", 0)
-                if FleetOrder.objects.filter(order_id=order['order_id']).exists():
+                if FleetOrder.objects.filter(
+                        order_id=order['order_id'], partner=self.partner,
+                        date_order=timezone.make_aware(datetime.fromtimestamp(order['driver_assigned_time']))).exists():
                     vehicle = check_vehicle(driver, date_time=timezone.make_aware(
                         datetime.fromtimestamp(order['accepted_time'])))
-                    FleetOrder.objects.filter(order_id=order['order_id']).update(price=price, tips=tip, vehicle=vehicle)
+                    if not vehicle:
+                        vehicle = Vehicle.objects.get(licence_plate=order['car_reg_number'])
+                    FleetOrder.objects.filter(order_id=order['order_id'],
+                                              partner=self.partner).update(price=price, tips=tip, vehicle=vehicle)
                     continue
-                vehicle = Vehicle.objects.get(licence_plate=order['car_reg_number'])
                 try:
                     finish = timezone.make_aware(
                         datetime.fromtimestamp(order['order_stops'][-1]['arrived_at']))
                 except TypeError:
                     finish = None
+                vehicle = Vehicle.objects.get(licence_plate=order['car_reg_number'])
                 data = {"order_id": order['order_id'],
                         "fleet": self.name,
                         "driver": driver,
@@ -313,9 +332,10 @@ class BoltRequest(Fleet, Synchronizer):
                         "price": price,
                         "tips": tip,
                         "partner": self.partner,
-                        "date_order": start.date()
+                        "date_order": timezone.make_aware(datetime.fromtimestamp(order['driver_assigned_time']))
                         }
                 FleetOrder.objects.create(**data)
+                time.sleep(0.5)
                 if check_vehicle(driver) != vehicle:
                     bot.send_message(chat_id=515224934,
                                      text=f"{check_vehicle(driver)}!= {vehicle} order {order['order_id']}")
@@ -447,17 +467,24 @@ class BoltRequest(Fleet, Synchronizer):
     def get_vehicles(self):
         vehicles_list = []
         start = end = datetime.now().strftime('%Y-%m-%d')
-        params = {"start_date": start,
-                  "end_date": end,
-                  "offset": 0,
-                  "limit": 25}
-        params.update(self.param())
-        response = self.get_target_url(f'{self.base_url}getCarsPaginated', params=params)
-        vehicles = response['data']['rows']
-        for vehicle in vehicles:
-            vehicles_list.append({
-                'licence_plate': vehicle['reg_number'],
-                'vehicle_name': vehicle['model'],
-                'vin_code': ''
-            })
+        params = {"start_date": start, "end_date": end, "limit": 25}
+        offset = 0
+        limit = params["limit"]
+
+        while True:
+            params["offset"] = offset
+
+            params.update(self.param())
+            response = self.get_target_url(f'{self.base_url}getCarsPaginated', params=params)
+            if offset > response['data']['total_rows']:
+                break
+            vehicles = response['data']['rows']
+            time.sleep(0.5)
+            for vehicle in vehicles:
+                vehicles_list.append({
+                    'licence_plate': vehicle['reg_number'],
+                    'vehicle_name': vehicle['model'],
+                    'vin_code': ''
+                })
+            offset += limit
         return vehicles_list

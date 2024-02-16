@@ -742,7 +742,7 @@ function showShiftMessage(success, showText, time, vehicle) {
 
 		setTimeout(function () {
 			$(".shift-success-message").hide();
-		}, 3000);
+		}, 2000);
 	} else {
 		$(".shift-success-message").show();
 		if (time === undefined || time === null || time === "") {
@@ -762,7 +762,7 @@ function showConflictMessage(success, showText, messageList) {
 
 		setTimeout(function () {
 			$(".shift-success-message").hide();
-		}, 5000);
+		}, 2000);
 	} else {
 		$(".shift-success-message").show();
             const messages = messageList.map(conflict => `${conflict.licence_plate} - ${conflict.conflicting_time}`);
