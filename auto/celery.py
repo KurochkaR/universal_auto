@@ -1,10 +1,10 @@
 from __future__ import absolute_import
 from celery import Celery
 import os
+
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'auto.settings')
 
 app = Celery('auto')
-
 app.config_from_object('django.conf:settings', namespace='CELERY')
 app.conf.task_queues = {
     'beat_tasks_1': {

@@ -588,16 +588,15 @@ def fleets_cash_trips(self, partner_pk, pk, enable):
 
 @app.task(bind=True, retry_backoff=30, max_retries=4)
 def withdraw_uklon(self, partner_pk):
-    # try:
-    #     fleet = UklonRequest.objects.get(partner=partner_pk, deleted_at=None)
-    #     fleet.withdraw_money()
-    # except ObjectDoesNotExist:
-    #     return
-    # except Exception as exc:
-    #     logger.error(exc)
-    #     retry_delay = retry_logic(exc, self.request.retries + 1)
-    #     raise self.retry(exc=exc, countdown=retry_delay)
-    print(self)
+    try:
+        fleet = UklonRequest.objects.get(partner=partner_pk, deleted_at=None)
+        fleet.withdraw_money()
+    except ObjectDoesNotExist:
+        return
+    except Exception as exc:
+        logger.error(exc)
+        retry_delay = retry_logic(exc, self.request.retries + 1)
+        raise self.retry(exc=exc, countdown=retry_delay)
 
 
 @app.task(bind=True)
