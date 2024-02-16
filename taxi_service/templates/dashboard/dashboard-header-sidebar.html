@@ -102,14 +102,9 @@
       </div>
       {% endif %}
       {% if partner_group or manager_group %}
-      <div id="DriverBtnContainer">
-        <li class="sidebar-list-item" onclick="window.location='{% url 'dashboard_driver' %}'">
+      <div id="DriverBtnContainers">
+        <li class="sidebar-list-item" onclick="window.location='{% url 'drivers' %}'">
           <i class="fas fa-users"></i><span>{% trans 'Водії' %}</span>
-        </li>
-      </div>
-      <div id="paymentsDriverBtnContainer">
-        <li class="sidebar-list-item" onclick="window.location='{% url 'dashboard_payment' %}'">
-          <i class="fas fa-coins"></i><span>{% trans 'Виплати  Водіїв' %}</span>
         </li>
       </div>
       <div id="workCalendarBtnContainer">

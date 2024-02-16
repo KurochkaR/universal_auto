@@ -179,7 +179,7 @@ class UberRequest(Fleet, Synchronizer):
         return result
 
     def parse_json_report(self, start, end, driver, report):
-        vehicle = check_vehicle(driver, end, max_time=True)
+        vehicle = check_vehicle(driver, end)
         payment = {
             "report_from": start,
             "report_to": end,

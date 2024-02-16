@@ -1,28 +1,19 @@
 {% extends 'dashboard/drivers.html' %}
 {% load static %}
 {% load i18n %}
-
 <!-- Content -->
 {% block content %}
 <div class="info-driver">
   <div class="title-driver">
-    <h2>{% trans 'Виплати водіям' %}</h2>
+    <h2>{% trans 'Ефективність Водіїв' %}</h2>
     <h2 class="income-drivers-date"></h2>
   </div>
-  <div class="radio-btn-box">
-    <input type="radio" id="on_inspection" name="payment-status" value="on_inspection" checked>
-    <label for="on_inspection">{% trans 'На перевірці' %}</label>
-    <input type="radio" id="not_closed" name="payment-status" value="not_closed">
-    <label for="not_closed">{% trans 'Не закриті' %}</label>
-    <input type="radio" id="closed" name="payment-status" value="closed">
-    <label for="closed">{% trans 'Закриті' %}</label>
-  </div>
-  <div class="filter-driver-payments">
+  <div class="filter">
     <label for="period">{% trans 'Виберіть період:' %}</label>
-    <div class="custom-select-payments" id="period">
-      <span class="selected-option-payments">{% trans 'Вчора' %}</span>
+    <div class="custom-select-drivers" id="period">
+      <span class="selected-option-drivers" data-value="yesterday">{% trans 'Вчора' %}</span>
       <i class="fas fa-angle-down"></i>
-      <ul class="options-payments">
+      <ul class="options-drivers">
         <li data-value="yesterday">{% trans 'Вчора' %}</li>
         <li data-value="current_week">{% trans 'Поточний тиждень' %}</li>
         <li data-value="last_week">{% trans 'Минулий тиждень' %}</li>
@@ -33,32 +24,44 @@
         <li data-value="custom">{% trans 'Вибрати період >' %}</li>
       </ul>
     </div>
+    <div class="filter-aggregators">
+      <div class="checkbox-container">
+        <input type="checkbox" id="sharedCheckbox" name="shared" value="shared" checked>
+        <label for="sharedCheckbox">{% trans 'Спільне' %}</label>
+
+        <input type="checkbox" id="uberCheckbox" name="Uber" value="Uber">
+        <label for="uberCheckbox">{% trans 'Uber' %}</label>
+
+        <input type="checkbox" id="uklonCheckbox" name="Uklon" value="Uklon">
+        <label for="uklonCheckbox">{% trans 'Uklon' %}</label>
+
+        <input type="checkbox" id="boltCheckbox" name="Bolt" value="Bolt">
+        <label for="boltCheckbox">{% trans 'Bolt' %}</label>
+      </div>
+    </div>
   </div>
-  <div id="datePickerPayments" style="display: none;">
+  <div id="datePickerDriver" style="display: none;">
     <label for="start_report_driver">{% trans 'Початкова дата:' %}</label>
     <input type="date" id="start_report_driver" name="start_date">
     <label for="end_report_driver">{% trans 'Кінцева дата:' %}</label>
     <input type="date" id="end_report_driver" name="end_date">
-    <input class="apply-filter-button_driver" type="button" onclick="applyCustomDateRange('payments')"
+    <input class="apply-filter-button_driver" type="button" onclick="applyCustomDateRange('driver')"
            value="{% trans 'Фільтрувати'%}">
     <div id="error_message" style="display: none; color: red;"></div>
   </div>
   <table class="driver-table">
     <thead>
-    <tr class="tr-driver-title">
-      <th class="sortable" data-sort="period">{% trans 'Період виплати' %}</th>
+    <tr>
       <th class="sortable" data-sort="driver">{% trans 'Водій' %}</th>
+      <th class="sortable" data-sort="fleet">{% trans 'Агрегатор' %}</th>
       <th class="sortable" data-sort="kasa">{% trans 'Каса' %}</th>
-      <th class="sortable" data-sort="cash">{% trans 'Готівка' %}</th>
-      <th class="sortable" data-sort="rent">{% trans 'Холостий пробіг' %}</th>
-      <th class="sortable" data-sort="bonus">{% trans 'Бонуси' %}</th>
-      <th class="sortable" data-sort="fines">{% trans 'Штрафи' %}</th>
-      <th class="sortable" data-sort="earning">{% trans 'Виплата' %}</th>
-      <th class="sortable" data-sort="salary">{% trans 'Зарплата' %}</th>
-      <th class="sortable" data-sort="status">{% trans 'Статус виплати' %}</th>
-      <th class="sortable" data-sort="button">
-        <button class="send-all-button">{% trans 'Відправити усім' %}</button>
-      </th>
+      <th class="sortable" data-sort="orders">{% trans 'Кількість замовлень' %}</th>
+      <th class="sortable" data-sort="order-reject">{% trans 'Кількість відмов' %}</th>
+      <th class="sortable" data-sort="accept">{% trans '% прийнятих замовлень' %}</th>
+      <th class="sortable" data-sort="price">{% trans 'Середній чек, грн' %}</th>
+      <th class="sortable" data-sort="mileage">{% trans 'Пробіг, км' %}</th>
+      <th class="sortable" data-sort="efficiency">{% trans 'Ефективність, грн/км' %}</th>
+      <th class="sortable" data-sort="road">{% trans 'Час в дорозі' %}</th>
     </tr>
     </thead>
     <tr>
@@ -72,16 +75,16 @@
       <td></td>
       <td></td>
       <td></td>
-      <td></td>
     </tr>
   </table>
 </div>
-<div id="formContainer"></div>
+<div class="driver-container"></div>
 {% include 'dashboard/_confirmation-update-database.html' %}
 {% endblock %}
+
 {% block js %}
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.3/dist/jquery.min.js" defer></script>
 <script src="{% static 'dashboard/js/header-sidebar.js' %}" defer></script>
-<script src="{% static 'dashboard/js/scripts-payments.js' %}" defer></script>
+<script src="{% static 'dashboard/js/driver-efficiency.js' %}" defer></script>
 <script src="{% static 'dashboard/js/scripts.js' %}" defer></script>
 {% endblock %}

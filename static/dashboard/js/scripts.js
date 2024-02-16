@@ -258,48 +258,216 @@ $(document).ready(function() {
 			}
 		});
 	}
+
+	var selectedOption = sessionStorage.getItem('selectedOption');
+	if (selectedOption) {
+		$('input[name="driver-info"][value="' + selectedOption + '"]').prop('checked', true);
+	}
+
+	$('#DriverBtnContainers').on('click', function() {
+		$('input[name="driver-info"][value="driver-list"]').prop('checked', true);
+		sessionStorage.setItem('selectedOption', 'driver-list');
+	});
+
+	$('input[name="driver-info"]').change(function() {
+		var selectedValue = $(this).val();
+		sessionStorage.setItem('selectedOption', selectedValue);
+
+		switch(selectedValue) {
+			case 'driver-list':
+				window.location.href = "/dashboard/drivers/";
+				break;
+			case 'driver-payments':
+				window.location.href = "/dashboard/drivers-payment/";
+				break;
+			case 'driver-efficiency':
+				window.location.href = "/dashboard/drivers-efficiency/";
+				break;
+			default:
+				break;
+		}
+	});
+
+	$(this).on('click', '.shift-close-btn', function () {
+		$('#modal-add-bonus').hide();
+		$('#modal-upd-bonus').hide();
+		$('#modal-add-penalty').hide();
+	});
+
+	$(this).on('click', '#add-bonus-btn, #add-penalty-btn', function (e) {
+		e.preventDefault();
+		$('#amount-bonus-error, #category-bonus-error, #vehicle-bonus-error').hide();
+		var idPayments = $('#modal-add-bonus').data('id');
+		var driverId = $('#modal-add-bonus').data('driver-id');
+		var formDataArray = $('#modal-add-bonus :input').serializeArray();
+
+		var formData = {};
+		$.each(formDataArray, function(i, field){
+				formData[field.name] = field.value;
+		});
+		if ($(this).attr('id') === 'add-bonus-btn') {
+			formData['action'] = 'add-bonus';
+			formData['category_type'] = 'bonus'
+		} else {
+			formData['action'] = 'add-penalty';
+			formData['category_type'] = 'penalty'
+		}
+		formData['idPayments'] = idPayments;
+		formData['driver_id'] = driverId;
+		formData['csrfmiddlewaretoken'] = $('input[name="csrfmiddlewaretoken"]').val()
+		$.ajax({
+			type: 'POST',
+			url: ajaxPostUrl,
+			data: formData,
+			dataType: 'json',
+			success: function (data) {
+				$('#modal-add-bonus')[0].reset();
+				$('#modal-add-bonus').hide();
+				driverPayment(null, null, null, paymentStatus="on_inspection");
+				if (idPayments === null) {
+					window.location.reload();
+				}
+			},
+			error: function (xhr, textStatus, errorThrown) {
+			if (xhr.status === 400) {
+				let errors = xhr.responseJSON.errors;
+				$.each(errors, function (key, value) {
+					$('#' + key + '-bonus-error').html(value).show();
+				});
+			} else {
+				console.error('Помилка запиту: ' + textStatus);
+			}
+			},
+		});
+	});
+
+	$(this).on('click', '#edit-button-bonus-penalty', function (e) {
+		e.preventDefault();
+		$('#amount-bonus-error, #category-bonus-error, #vehicle-bonus-error').hide();
+		var idBonus = $('#modal-add-bonus').data('bonus-penalty-id');
+		var category = $('#modal-add-bonus').data('category-type');
+		var driverId = $('#modal-add-bonus').data('driver-id');
+		var paymentId = $('.tr-driver-payments').data('id');
+		var formDataArray = $('#modal-add-bonus :input').serializeArray();
+		var formData = {};
+		$.each(formDataArray, function(i, field){
+				formData[field.name] = field.value;
+		});
+		formData['action'] = 'upd_bonus_penalty';
+		formData['bonus_id'] = idBonus;
+		formData['category_type'] = category;
+		formData['driver_id'] = driverId;
+		formData['payment_id'] = paymentId;
+		formData['csrfmiddlewaretoken'] = $('input[name="csrfmiddlewaretoken"]').val()
+		$.ajax({
+			type: 'POST',
+			url: ajaxPostUrl,
+			data: formData,
+			dataType: 'json',
+			success: function (data) {
+				$('#modal-add-bonus')[0].reset();
+				$('#modal-add-bonus').hide();
+				if (paymentId === undefined) {
+					window.location.reload();
+				} else {
+					driverPayment(null, null, null, paymentStatus="on_inspection");
+				}
+			},
+			error: function (xhr, textStatus, errorThrown) {
+				if (xhr.status === 400) {
+					let errors = xhr.responseJSON.errors;
+					$.each(errors, function (key, value) {
+					$('#' + key + '-bonus-error').html(value).show();
+					});
+				} else {
+					console.error('Помилка запиту: ' + textStatus);
+				}
+			},
+		});
+	});
+
+	$(this).on('change', '#bonus-category', function(){
+	if ($(this).val() === 'add_new_category'){
+		$('.new-category-field').css('display', 'flex')
+	} else {
+		$('.new-category-field').hide()
+	}
+	});
 });
 
 function applyCustomDateRange(item) {
+	let startDate = $("#start_report_driver").val();
+	let endDate = $("#end_report_driver").val();
+	const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
 
-    let startDate = $("#start_report_driver").val();
-    let endDate = $("#end_report_driver").val();
-    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+	if (!startDate.match(dateRegex) || !endDate.match(dateRegex)) {
+		$("#error_message").text("Дата повинна бути у форматі YYYY-MM-DD").show();
+		return;
+	}
 
-    if (!startDate.match(dateRegex) || !endDate.match(dateRegex)) {
-        $("#error_message").text("Дата повинна бути у форматі YYYY-MM-DD").show();
-        return;
-    }
+	if (startDate > endDate) {
+		$("#error_message").text("Кінцева дата повинна бути більшою або рівною початковій даті").show();
+		return;
+	}
 
-    if (startDate > endDate) {
-        $("#error_message").text("Кінцева дата повинна бути більшою або рівною початковій даті").show();
-        return;
-    }
+	$("#error_message").hide();
+	const selectedPeriod = 'custom';
 
-		$("#error_message").hide();
-    const selectedPeriod = 'custom';
+	if (item === 'driver') {
+		$(".apply-filter-button_driver").prop("disabled", true);
+		aggregator = $('.checkbox-container input[type="checkbox"]:checked').map(function() {
+			return $(this).val();
+		}).get();
+		var aggregatorsString = aggregator.join('&');
 
-    if (item === 'driver') {
-    		$(".apply-filter-button_driver").prop("disabled", true);
-        aggregator = $('.checkbox-container input[type="checkbox"]:checked').map(function() {
-            return $(this).val();
-        }).get();
-        var aggregatorsString = aggregator.join('&');
+		if (aggregatorsString === 'shared') {
+			fetchDriverEfficiencyData(selectedPeriod, startDate, endDate);
+		} else {
+			fetchDriverFleetEfficiencyData(selectedPeriod, startDate, endDate, aggregatorsString);
+		}
+	}
 
-        if (aggregatorsString === 'shared') {
-            fetchDriverEfficiencyData(selectedPeriod, startDate, endDate);
-        } else {
-            fetchDriverFleetEfficiencyData(selectedPeriod, startDate, endDate, aggregatorsString);
-        }
-    }
+	if (item === 'vehicle') {
+		$(".apply-filter-button_vehicle").prop("disabled", true);
+		fetchVehicleEarningsData(selectedPeriod, startDate, endDate);
+	}
 
-    if (item === 'vehicle') {
-    		$(".apply-filter-button_vehicle").prop("disabled", true);
-        fetchVehicleEarningsData(selectedPeriod, startDate, endDate);
-    }
+	if (item === 'payments') {
+		$(".apply-filter-button_driver").prop("disabled", true);
+		driverPayment(selectedPeriod, startDate, endDate, paymentStatus="closed");
+	}
+}
 
-    if (item === 'payments') {
-    		$(".apply-filter-button_driver").prop("disabled", true);
-        driverPayment(selectedPeriod, startDate, endDate, paymentStatus="closed");
-    }
+function openForm(paymentId, bonusPenaltyId, itemType, driverId) {
+	$.ajax({
+		url: ajaxGetUrl,
+		type: 'GET',
+		data: {
+			 action: 'render_bonus',
+			 payment: paymentId,
+			 bonus_penalty: bonusPenaltyId,
+			 type: itemType,
+			 driver_id: driverId
+	 	},
+		success: function (response) {
+			$('#formContainer').html(response.data);
+			$('#modal-add-bonus').data('id', paymentId);
+			$('#modal-add-bonus').data('bonus-penalty-id', bonusPenaltyId);
+			$('#modal-add-bonus').data('category-type', itemType);
+			$('#modal-add-bonus').data('driver-id', driverId);
+			var headingText = itemType === 'bonus' ? (bonusPenaltyId ? 'Редагування бонуса' : 'Додавання бонуса') :
+																							 (bonusPenaltyId ? 'Редагування штрафа' : 'Додавання штрафа');
+			var buttonText = bonusPenaltyId ? 'Редагувати' : 'Додати';
+			var buttonId = itemType === 'bonus' ? (bonusPenaltyId ? 'edit-button-bonus-penalty' : 'add-bonus-btn') :
+																						(bonusPenaltyId ? 'edit-button-bonus-penalty' : 'add-penalty-btn');
+			$('#add-bonus-btn').text(buttonText);
+			$('.title-add-bonus h2').text(headingText);
+			$('#add-bonus-btn').prop('id', buttonId);
+			$('#modal-add-bonus').show();
+		},
+
+		error: function (error) {
+			console.error('Error:', error);
+		}
+	});
 }

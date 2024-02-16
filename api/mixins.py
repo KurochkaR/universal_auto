@@ -26,6 +26,7 @@ class ManagerFilterMixin:
             DriverEfficiencyFleet: (Q(driver__manager=user) | Q(partner=user)),
             Vehicle: (Q(manager=user) | Q(partner=user)),
             DriverPayments: (Q(driver__manager=user) | Q(partner=user)),
+            Driver: (Q(manager=user) | Q(partner=user)),
         }
 
         filter_condition = model_filter_map.get(model)

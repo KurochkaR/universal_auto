@@ -5,6 +5,7 @@ import os
 import time
 from datetime import datetime
 import re
+from urllib.parse import urlparse
 
 import redis
 from selenium.webdriver.support import expected_conditions as ec
@@ -254,6 +255,8 @@ class SeleniumTools:
         for cookie in cookies:
             if cookie.get('name') == 'sessions':
                 session = cookie.get('value')
+            else:
+                session = "5150a0c1025fda8440f78839971d5b73"
         self.quit()
         if session:
             params = {
@@ -261,7 +264,8 @@ class SeleniumTools:
                 'svc': 'token/list',
                 'params': json.dumps({})
             }
-            response = requests.get(f"{url}wialon/ajax.html", params=params)
+            wialon_url = "https://hst-api.wialon.eu/" if url == "https://gps.antenor.online/" else url
+            response = requests.get(f"{wialon_url}wialon/ajax.html", params=params)
             tokens_list = response.json()
             for token in tokens_list:
                 if not token.get('dur'):
@@ -353,13 +357,14 @@ class SeleniumTools:
                 reader = csv.reader(file)
                 next(reader)
                 for row in reader:
-                    if FleetOrder.objects.filter(order_id=row[0], fleet="Uber").exists():
+                    if FleetOrder.objects.filter(order_id=row[0], fleet="Uber", partner=self.partner).exists():
                         continue
                     try:
                         finish = timezone.make_aware(datetime.strptime(row[8], "%Y-%m-%d %H:%M:%S"))
                     except ValueError:
                         finish = None
-                    driver = FleetsDriversVehiclesRate.objects.filter(driver_external_id=row[1]).first()
+                    driver = FleetsDriversVehiclesRate.objects.filter(driver_external_id=row[1],
+                                                                      partner=self.partner).first()
                     if driver:
                         if row[5] == "AA3410YA":
                             row[5] = "AA4314YA"
@@ -374,11 +379,9 @@ class SeleniumTools:
                                 "state": states.get(row[12]),
                                 "vehicle": vehicle,
                                 "partner_id": self.partner,
-                                "date_order": start.date()}
+                                "date_order": timezone.make_aware(datetime.strptime(row[7], "%Y-%m-%d %H:%M:%S"))}
                         FleetOrder.objects.create(**data)
                         if check_vehicle(driver) != vehicle:
-                            bot.send_message(chat_id=515224934,
-                                             text=f"{check_vehicle(driver.driver)}!= {vehicle} order {row[0]}")
                             redis_instance().hset(f"wrong_vehicle_{driver.partner.pk}", driver.driver_id,
                                                   vehicle.licence_plate)
                 os.remove(file_path)

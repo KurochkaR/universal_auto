@@ -1,5 +1,7 @@
 import json
 from datetime import datetime, timedelta, time
+from urllib import parse
+
 import requests
 from _decimal import Decimal
 from django.utils import timezone
@@ -15,25 +17,31 @@ from selenium_ninja.driver import SeleniumTools
 
 
 class UaGpsSynchronizer(Fleet):
-
     @staticmethod
     def create_session(partner, login, password):
         partner_obj = Partner.objects.get(pk=partner)
         token = SeleniumTools(partner).create_gps_session(login, password, partner_obj.gps_url)
         return token
 
+    def get_base_url(self):
+        return "https://hst-api.wialon.eu/" if self.partner.gps_url == "https://gps.antenor.online/" else self.partner.gps_url
+
     def get_session(self):
-        params = {
-            'svc': 'token/login',
-            'params': json.dumps({"token": CredentialPartner.get_value('UAGPS_TOKEN', partner=self.partner)})
-        }
-        response = requests.get(f"{self.partner.gps_url}wialon/ajax.html", params=params)
-        if response.json().get("error"):
-            if not redis_instance().exists(f"{self.partner.id}_remove_gps"):
-                redis_instance().set(f"{self.partner.id}_remove_gps", response.json().get("error"), ex=86400)
-            return
-        redis_instance().delete(f"{self.partner.id}_remove_gps")
-        return response.json()['eid']
+        if not redis_instance().exists(f"{self.partner.id}_gps_session"):
+
+            params = {
+                'svc': 'token/login',
+                'params': json.dumps({"token": CredentialPartner.get_value('UAGPS_TOKEN', partner=self.partner)})
+            }
+            response = requests.get(f"{self.get_base_url()}wialon/ajax.html", params=params)
+            if response.json().get("error"):
+                print(response.json())
+                # if not redis_instance().exists(f"{self.partner.id}_remove_gps"):
+                #     redis_instance().set(f"{self.partner.id}_remove_gps", response.json().get("error"), ex=86400)
+                return
+            # redis_instance().delete(f"{self.partner.id}_remove_gps")
+            redis_instance().set(f"{self.partner.id}_gps_session", response.json()['eid'], ex=240)
+        return redis_instance().get(f"{self.partner.id}_gps_session")
 
     def get_gps_id(self):
         if not redis_instance().exists(f"{self.partner.id}_gps_id"):
@@ -45,7 +53,7 @@ class UaGpsSynchronizer(Fleet):
                 'svc': 'core/search_items',
             }
             params.update({'params': json.dumps(payload)})
-            response = requests.post(f"{self.partner.gps_url}wialon/ajax.html", params=params)
+            response = requests.post(f"{self.get_base_url()}wialon/ajax.html", params=params)
             redis_instance().set(f"{self.partner.id}_gps_id", response.json()['items'][0]['id'])
         return redis_instance().get(f"{self.partner.id}_gps_id")
 
@@ -59,7 +67,7 @@ class UaGpsSynchronizer(Fleet):
                                                 "flags": 1,
                                                 "mode": 0}]})
             }
-            response = requests.get(f"{self.partner.gps_url}wialon/ajax.html", params=params)
+            response = requests.get(f"{self.get_base_url()}wialon/ajax.html", params=params)
             for vehicle in response.json():
                 data = {"name": vehicle['d']['nm'],
                         "partner": self.partner}
@@ -84,17 +92,21 @@ class UaGpsSynchronizer(Fleet):
                     "flags": 16777216
                 }
             }
-
             params = {
                 'svc': 'report/exec_report',
                 'sid': self.get_session(),
                 'params': json.dumps(parameters)
             }
-            report = requests.get(f"{self.partner.gps_url}wialon/ajax.html", params=params)
-            raw_time = report.json()['reportResult']['stats'][4][1]
-            clean_time = [int(i) for i in raw_time.split(':')]
+            report = requests.get(f"{self.get_base_url()}wialon/ajax.html", params=params)
+            try:
+                raw_time = report.json()['reportResult']['stats'][4][1]
+                clean_time = [int(i) for i in raw_time.split(':')]
+                raw_distance = report.json()['reportResult']['stats'][5][1]
+            except ValueError:
+                raw_time = report.json()['reportResult']['stats'][12][1]
+                clean_time = [int(i) for i in raw_time.split(':')]
+                raw_distance = report.json()['reportResult']['stats'][11][1]
             road_time = timedelta(hours=clean_time[0], minutes=clean_time[1], seconds=clean_time[2])
-            raw_distance = report.json()['reportResult']['stats'][5][1]
             road_distance = Decimal(raw_distance.split(' ')[0])
             return road_distance, road_time
 
@@ -124,7 +136,7 @@ class UaGpsSynchronizer(Fleet):
                                                        state=FleetOrder.COMPLETED,
                                                        accepted_time__gte=start_report,
                                                        accepted_time__lt=end_report).order_by('accepted_time')
-                road_distance, road_time, previous_finish_time = self.calculate_order_distance(completed, end)
+                road_distance, road_time, previous_finish_time = self.calculate_order_distance(completed, end_report)
                 if start.time == time.min:
                     yesterday_order = FleetOrder.objects.filter(driver=driver,
                                                                 finish_time__gt=start,
@@ -152,7 +164,7 @@ class UaGpsSynchronizer(Fleet):
             end_report = order.finish_time if order.finish_time < end else end
             try:
                 if previous_finish_time is None or order.accepted_time >= previous_finish_time:
-                    if order.finish_time < end and int(order.distance):
+                    if order.finish_time < end and order.distance:
                         report = (order.distance, order.road_time)
                     else:
                         report = self.generate_report(self.get_timestamp(timezone.localtime(order.accepted_time)),
@@ -173,6 +185,7 @@ class UaGpsSynchronizer(Fleet):
         return road_distance, road_time, previous_finish_time
 
     def get_vehicle_rent(self, start, end, schema=None):
+        no_vehicle_gps = []
         for driver in Driver.objects.get_active(partner=self.partner, schema=schema):
             reshuffles = check_reshuffle(driver, start, end)
             for reshuffle in reshuffles:
@@ -187,7 +200,13 @@ class UaGpsSynchronizer(Fleet):
                     state=FleetOrder.COMPLETED,
                     accepted_time__range=(start_period, end_period)).order_by('accepted_time')
                 road_distance = self.calculate_order_distance(orders, end)[0]
-                total_km = self.total_per_day(reshuffle.swap_vehicle.gps.gps_id, start_period, end_period)
+                try:
+                    total_km = self.total_per_day(reshuffle.swap_vehicle.gps.gps_id, start_period, end_period)
+                except AttributeError as e:
+                    if reshuffle.swap_vehicle not in no_vehicle_gps:
+                        no_vehicle_gps.append(reshuffle.swap_vehicle)
+                    get_logger().error(e)
+                    continue
                 rent_distance = total_km - road_distance
                 data = {"report_from": start_period,
                         "report_to": end_period,
@@ -199,6 +218,10 @@ class UaGpsSynchronizer(Fleet):
                                                   report_to=end_period,
                                                   vehicle=reshuffle.swap_vehicle,
                                                   defaults=data)
+        if no_vehicle_gps:
+            result_string = ', '.join([str(obj) for obj in no_vehicle_gps])
+            bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"),
+                             text=f"У авто {result_string} відсутній gps")
 
     def total_per_day(self, gps_id, start, end):
         distance = self.generate_report(self.get_timestamp(start),
