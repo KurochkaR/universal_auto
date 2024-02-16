@@ -382,8 +382,6 @@ class SeleniumTools:
                                 "date_order": timezone.make_aware(datetime.strptime(row[7], "%Y-%m-%d %H:%M:%S"))}
                         FleetOrder.objects.create(**data)
                         if check_vehicle(driver) != vehicle:
-                            bot.send_message(chat_id=515224934,
-                                             text=f"{check_vehicle(driver.driver)}!= {vehicle} order {row[0]}")
                             redis_instance().hset(f"wrong_vehicle_{driver.partner.pk}", driver.driver_id,
                                                   vehicle.licence_plate)
                 os.remove(file_path)

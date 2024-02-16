@@ -337,8 +337,6 @@ class BoltRequest(Fleet, Synchronizer):
                 FleetOrder.objects.create(**data)
                 time.sleep(0.5)
                 if check_vehicle(driver) != vehicle:
-                    bot.send_message(chat_id=515224934,
-                                     text=f"{check_vehicle(driver)}!= {vehicle} order {order['order_id']}")
                     redis_instance().hset(f"wrong_vehicle_{driver.partner.pk}", driver_id,
                                           vehicle.licence_plate)
 
