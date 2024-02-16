@@ -5,7 +5,7 @@ import requests
 from _decimal import Decimal
 
 from django.core.exceptions import ObjectDoesNotExist
-from django.db.models import Sum, DecimalField, Q
+from django.db.models import Sum, DecimalField, Q, Value
 from django.db.models.functions import Coalesce
 from django.utils import timezone
 
@@ -80,39 +80,26 @@ def get_corrections(start, end, driver, driver_reports=None):
 
 
 def payment_24hours_create(start, end, fleet, driver, partner_pk):
-    reports = CustomReport.objects.filter(
+    report = CustomReport.objects.filter(
         report_from__range=(start, end),
         fleet=fleet,
-        driver=driver).values('vehicle').annotate(
-        without_fee=Sum('total_amount_without_fee'),
-        cash=Sum('total_amount_cash'),
-        amount=Sum('total_amount'),
-        card=Sum('total_amount_on_card') or 0,
-        tips=Sum('tips') or 0,
-        bonuses=Sum('bonuses') or 0,
-        fee=Sum('fee') or 0,
-        fares=Sum('fares') or 0,
-        cancels=Sum('cancels') or 0,
-        compensations=Sum('compensations'),
-        refunds=Sum('refunds') or 0,
-        distance=Sum('total_distance') or 0,
-        rides=Sum('total_rides'))
-    for report in reports:
-        auto = Vehicle.objects.get(pk=report["vehicle"]) if report["vehicle"] else None
-        data = {
-            "total_rides": report["rides"],
-            "total_distance": report["distance"],
-            "total_amount_cash": report["cash"],
-            "total_amount_on_card": report["card"],
-            "total_amount": report["amount"],
-            "tips": report["tips"],
-            "bonuses": report["bonuses"],
-            "fares": report["fares"],
-            "fee": report["fee"],
-            "total_amount_without_fee": report["without_fee"],
-            "partner": Partner.objects.get(pk=partner_pk),
-            "vehicle": auto
-        }
+        driver=driver)
+    if report:
+        data = report.aggregate(
+            total_amount_without_fee=Coalesce(Sum('total_amount_without_fee'), Decimal(0)),
+            total_amount_cash=Coalesce(Sum('total_amount_cash'), Decimal(0)),
+            total_amount=Coalesce(Sum('total_amount'), Decimal(0)),
+            total_amount_on_card=Coalesce(Sum('total_amount_on_card'), Decimal(0)),
+            tips=Coalesce(Sum('tips'), Decimal(0)),
+            bonuses=Coalesce(Sum('bonuses'), Decimal(0)),
+            fee=Coalesce(Sum('fee'), Decimal(0)),
+            fares=Coalesce(Sum('fares'), Decimal(0)),
+            cancels=Coalesce(Sum('cancels'), Decimal(0)),
+            compensations=Coalesce(Sum('compensations'), Decimal(0)),
+            refunds=Coalesce(Sum('refunds'), Decimal(0)),
+            total_distance=Coalesce(Sum('total_distance'), Decimal(0)),
+            total_rides=Coalesce(Sum('total_rides'), Value(0)))
+        data["partner"] = Partner.objects.get(pk=partner_pk)
         payment, created = Payments.objects.get_or_create(report_from=start,
                                                           report_to=end,
                                                           fleet=fleet,
