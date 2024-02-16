@@ -5,16 +5,19 @@ import os
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'auto.settings')
 
 app = Celery('auto')
-
 app.config_from_object('django.conf:settings', namespace='CELERY')
 app.conf.task_queues = {
-    'beat_tasks': {
-        'exchange': 'beat_tasks',
-        'routing_key': 'beat_tasks',
+    'beat_tasks_1': {
+        'exchange': 'beat_tasks_1',
+        'routing_key': 'beat_tasks_1',
     },
-    'bot_tasks': {
-        'exchange': 'bot_tasks',
-        'routing_key': 'bot_tasks',
+    'beat_tasks_2': {
+        'exchange': 'beat_tasks_2',
+        'routing_key': 'beat_tasks_2',
+    },
+    'beat_tasks_6': {
+        'exchange': 'beat_tasks_6',
+        'routing_key': 'beat_tasks_6',
     },
 }
 app.conf.update(

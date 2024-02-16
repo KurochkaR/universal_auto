@@ -1,4 +1,3 @@
-import time
 from datetime import timedelta
 
 import requests
@@ -7,7 +6,6 @@ from _decimal import Decimal
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Sum, DecimalField, Q, Value
 from django.db.models.functions import Coalesce
-from django.utils import timezone
 
 from app.models import CustomReport, ParkSettings, Vehicle, Partner, Payments, SummaryReport, DriverPayments, Penalty, \
     Bonus, FleetOrder
