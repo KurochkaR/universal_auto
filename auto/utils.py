@@ -59,12 +59,12 @@ def compare_reports(fleet, start, end, driver, correction_report, compare_model,
             summary_report_create(last_payment.report_from, last_payment.report_to, driver, partner_pk)
 
 
-def get_corrections(start, end, driver):
+def get_corrections(start, end, driver, driver_reports=None):
     payment = DriverPayments.objects.filter(report_from=start,
                                             report_to=end,
                                             driver=driver)
     if payment.exists():
-        data = create_driver_payments(start, end, driver, driver.schema)
+        data = create_driver_payments(start, end, driver, driver.schema, driver_reports)
         format_start = start.strftime("%d.%m")
         format_end = end.strftime("%d.%m")
         description = f"Корекція з {format_start} по {format_end}"

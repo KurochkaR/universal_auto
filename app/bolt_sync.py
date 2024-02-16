@@ -100,7 +100,7 @@ class BoltRequest(Fleet, Synchronizer):
                                           accepted_time__lt=end,
                                           state=FleetOrder.COMPLETED,
                                           driver=driver).count()
-        vehicle = check_vehicle(driver, end, max_time=True)
+        vehicle = check_vehicle(driver, end)
         report = {
             "report_from": start,
             "report_to": end,
@@ -150,11 +150,11 @@ class BoltRequest(Fleet, Synchronizer):
                                                           partner=self.partner).last()
                 if bolt_custom:
                     report.update(
-                        {"total_amount_cash": driver_report['cash_in_hand'] - bolt_custom.total_amount_cash,
-                         "total_amount": driver_report['gross_revenue'] - bolt_custom.total_amount,
-                         "tips": driver_report['tips'] - bolt_custom.tips,
-                         "bonuses": driver_report['bonuses'] - bolt_custom.bonuses,
-                         "cancels": driver_report['cancellation_fees'] - bolt_custom.cancels,
+                        {"total_amount_cash": Decimal(driver_report['cash_in_hand']) - bolt_custom.total_amount_cash,
+                         "total_amount": Decimal(driver_report['gross_revenue']) - bolt_custom.total_amount,
+                         "tips": Decimal(driver_report['tips']) - bolt_custom.tips,
+                         "bonuses": Decimal(driver_report['bonuses']) - bolt_custom.bonuses,
+                         "cancels": Decimal(driver_report['cancellation_fees']) - bolt_custom.cancels,
                          "fee": Decimal(
                              -(driver_report['gross_revenue'] - driver_report['net_earnings'])) + bolt_custom.fee,
                          "total_amount_without_fee": Decimal(
@@ -304,7 +304,7 @@ class BoltRequest(Fleet, Synchronizer):
                 tip = order.get("tip", 0)
                 if FleetOrder.objects.filter(
                         order_id=order['order_id'], partner=self.partner,
-                        date_order=timezone.make_aware(datetime.fromtimestamp(order["pickupTime"]))).exists():
+                        date_order=timezone.make_aware(datetime.fromtimestamp(order['driver_assigned_time']))).exists():
                     vehicle = check_vehicle(driver, date_time=timezone.make_aware(
                         datetime.fromtimestamp(order['accepted_time'])))
                     if not vehicle:

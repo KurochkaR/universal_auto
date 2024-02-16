@@ -321,7 +321,7 @@ def create_period_efficiency(update, context):
 
 @task_postrun.connect
 def send_into_group(sender=None, **kwargs):
-    yesterday = timezone.localtime() - timedelta(days=1)
+    yesterday = timezone.make_aware(datetime.combine(timezone.localtime() - timedelta(days=1), time.max))
     if sender in (send_daily_statistic, send_driver_efficiency):
         messages, drivers_messages, schema = kwargs.get('retval')
         for partner, message in messages.items():
@@ -342,7 +342,7 @@ def send_into_group(sender=None, **kwargs):
                         pass
         for pk, message in drivers_messages.items():
             driver = Driver.objects.get(pk=pk)
-            vehicle = check_vehicle(driver, yesterday, max_time=True)
+            vehicle = check_vehicle(driver, yesterday)
             if vehicle:
                 if vehicle.chat_id and message:
                     try:

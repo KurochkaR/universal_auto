@@ -142,7 +142,7 @@ class UklonRequest(Fleet, Synchronizer):
         return nested_data
 
     def parse_json_report(self, start, end, driver, driver_report):
-        vehicle = check_vehicle(driver, end, max_time=True)
+        vehicle = check_vehicle(driver, end)
         distance = driver_report.get('total_distance_meters', 0)
         report = {
             "report_from": start,

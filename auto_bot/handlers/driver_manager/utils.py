@@ -47,11 +47,12 @@ def find_reshuffle_period(reshuffle, start, end):
     return start_period, end_period
 
 
-def create_driver_payments(start, end, driver, schema, delete=None):
-    driver_report = SummaryReport.objects.filter(report_from__range=(start, end),
-                                                 driver=driver).aggregate(
-        cash=Coalesce(Sum('total_amount_cash'), 0, output_field=DecimalField()),
-        kasa=Coalesce(Sum('total_amount_without_fee'), 0, output_field=DecimalField()))
+def create_driver_payments(start, end, driver, schema, driver_report=None, delete=None):
+    if not driver_report:
+        driver_report = SummaryReport.objects.filter(report_from__range=(start, end),
+                                                     driver=driver).aggregate(
+            cash=Coalesce(Sum('total_amount_cash'), 0, output_field=DecimalField()),
+            kasa=Coalesce(Sum('total_amount_without_fee'), 0, output_field=DecimalField()))
     rent = calculate_rent(start, end, driver)
     rent_value = rent * schema.rent_price
     if delete:

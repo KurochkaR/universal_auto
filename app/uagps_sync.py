@@ -20,14 +20,17 @@ class UaGpsSynchronizer(Fleet):
         token = SeleniumTools(partner).create_gps_session(login, password, partner_obj.gps_url)
         return token
 
+    def get_base_url(self):
+        return "https://hst-api.wialon.eu/" if self.partner.gps_url == "https://gps.antenor.online/" else self.partner.gps_url
+
     def get_session(self):
         if not redis_instance().exists(f"{self.partner.id}_gps_session"):
-            self.partner.gps_url = "https://hst-api.wialon.eu/" if self.partner.gps_url == "https://gps.antenor.online/" else self.partner.gps_url
+
             params = {
                 'svc': 'token/login',
                 'params': json.dumps({"token": CredentialPartner.get_value('UAGPS_TOKEN', partner=self.partner)})
             }
-            response = requests.get(f"{self.partner.gps_url}wialon/ajax.html", params=params)
+            response = requests.get(f"{self.get_base_url()}wialon/ajax.html", params=params)
             if response.json().get("error"):
                 print(response.json())
                 # if not redis_instance().exists(f"{self.partner.id}_remove_gps"):
@@ -38,7 +41,6 @@ class UaGpsSynchronizer(Fleet):
         return redis_instance().get(f"{self.partner.id}_gps_session")
 
     def get_gps_id(self):
-        self.partner.gps_url = "https://hst-api.wialon.eu/" if self.partner.gps_url == "https://gps.antenor.online/" else self.partner.gps_url
         if not redis_instance().exists(f"{self.partner.id}_gps_id"):
             payload = {"spec": {"itemsType": "avl_resource", "propName": "sys_name",
                                 "propValueMask": "*", "sortType": ""},
@@ -48,13 +50,11 @@ class UaGpsSynchronizer(Fleet):
                 'svc': 'core/search_items',
             }
             params.update({'params': json.dumps(payload)})
-            response = requests.post(f"{self.partner.gps_url}wialon/ajax.html", params=params)
+            response = requests.post(f"{self.get_base_url()}wialon/ajax.html", params=params)
             redis_instance().set(f"{self.partner.id}_gps_id", response.json()['items'][0]['id'])
         return redis_instance().get(f"{self.partner.id}_gps_id")
 
     def synchronize(self):
-        self.partner.gps_url = "https://hst-api.wialon.eu/" if self.partner.gps_url == "https://gps.antenor.online/" else self.partner.gps_url
-
         if not redis_instance().exists(f"{self.partner.id}_remove_gps"):
             params = {
                 'sid': self.get_session(),
@@ -64,7 +64,7 @@ class UaGpsSynchronizer(Fleet):
                                                 "flags": 1,
                                                 "mode": 0}]})
             }
-            response = requests.get(f"{self.partner.gps_url}wialon/ajax.html", params=params)
+            response = requests.get(f"{self.get_base_url()}wialon/ajax.html", params=params)
             for vehicle in response.json():
                 data = {"name": vehicle['d']['nm'],
                         "partner": self.partner}
@@ -76,7 +76,6 @@ class UaGpsSynchronizer(Fleet):
                     obj.save()
 
     def generate_report(self, start_time, end_time, vehicle_id):
-        self.partner.gps_url = "https://hst-api.wialon.eu/" if self.partner.gps_url == "https://gps.antenor.online/" else self.partner.gps_url
         if not redis_instance().exists(f"{self.partner.id}_remove_gps"):
             parameters = {
                 "reportResourceId": self.get_gps_id(),
@@ -95,7 +94,7 @@ class UaGpsSynchronizer(Fleet):
                 'sid': self.get_session(),
                 'params': json.dumps(parameters)
             }
-            report = requests.get(f"{self.partner.gps_url}wialon/ajax.html", params=params)
+            report = requests.get(f"{self.get_base_url()}wialon/ajax.html", params=params)
             try:
                 raw_time = report.json()['reportResult']['stats'][4][1]
                 clean_time = [int(i) for i in raw_time.split(':')]
@@ -179,7 +178,6 @@ class UaGpsSynchronizer(Fleet):
             previous_finish_time = end_report
             road_distance += report[0]
             road_time += report[1]
-            print(road_distance)
         return road_distance, road_time, previous_finish_time
 
     def get_vehicle_rent(self, start, end, schema=None):
@@ -201,7 +199,8 @@ class UaGpsSynchronizer(Fleet):
                 try:
                     total_km = self.total_per_day(reshuffle.swap_vehicle.gps.gps_id, start_period, end_period)
                 except AttributeError as e:
-                    no_vehicle_gps.append(reshuffle.swap_vehicle)
+                    if reshuffle.swap_vehicle not in no_vehicle_gps:
+                        no_vehicle_gps.append(reshuffle.swap_vehicle)
                     get_logger().error(e)
                     continue
                 rent_distance = total_km - road_distance
