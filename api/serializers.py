@@ -1,9 +1,6 @@
-import ast
-
-from django.db.models import Sum
 from rest_framework import serializers
 
-from app.models import DriverPayments, Bonus, Penalty, DriverEfficiencyFleet
+from app.models import DriverPayments, Bonus, Penalty, Driver
 
 
 class AggregateReportSerializer(serializers.Serializer):
@@ -181,3 +178,16 @@ class DriverPaymentsSerializer(serializers.ModelSerializer):
         model = DriverPayments
         fields = ('full_name', 'driver_vehicles', 'kasa', 'cash', 'rent', 'earning', 'salary', 'status', 'report_from',
                   'report_to', 'id', 'bonuses', 'penalties', 'bonuses_list', 'penalties_list')
+
+
+class DriverInformationSerializer(serializers.ModelSerializer):
+    photo = serializers.CharField()
+    full_name = serializers.CharField()
+    vehicle = serializers.CharField()
+    driver_schema = serializers.CharField()
+
+    class Meta:
+        model = Driver
+        fields = (
+            "id", "photo", "full_name", "phone_number", "chat_id", "driver_schema", "driver_status", "vehicle"
+        )

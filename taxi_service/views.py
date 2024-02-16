@@ -9,7 +9,8 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import login, logout
 from django.core.paginator import Paginator
 from django.http import HttpResponseRedirect
-from django.views.generic import View, TemplateView
+from django.utils import timezone
+from django.views.generic import View, TemplateView, DetailView
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 
@@ -17,7 +18,7 @@ from api.views import CarsInformationListView
 from taxi_service.forms import SubscriberForm, MainOrderForm, BonusForm
 from taxi_service.handlers import PostRequestHandler, GetRequestHandler
 from taxi_service.seo_keywords import *
-from app.models import Driver, Vehicle, CustomUser, BonusCategory, PenaltyCategory
+from app.models import Driver, Vehicle, CustomUser, BonusCategory, PenaltyCategory, DriverReshuffle, Bonus, Penalty
 from auto_bot.main import bot
 
 
@@ -51,14 +52,14 @@ class PostRequestView(View):
             "add-bonus": handler.handler_add_bonus_or_penalty,
             "add-penalty": handler.handler_add_bonus_or_penalty,
             "upd-status-payment": handler.handler_upd_payment_status,
-            "upd_delete_bonus_penalty": handler.handler_upd_delete_bonus_penalty,
+            "upd_bonus_penalty": handler.handler_upd_bonus_penalty,
             "delete_bonus_penalty": handler.handler_delete_bonus_penalty,
         }
 
         if action in method:
             return method[action](request)
         else:
-            return handler.handler_unknown_action(request)
+            return handler.handle_unknown_action()
 
 
 class GetRequestView(View):
@@ -70,13 +71,14 @@ class GetRequestView(View):
             "order_confirm": handler.handle_order_confirm,
             "aggregators": handler.handle_check_aggregators,
             "check_task": handler.handle_check_task,
-            "render_bonus": handler.handle_render_bonus_form
+            "render_bonus": handler.handle_render_bonus_form,
+            "render_bonus_driver": handler.handle_render_bonus_form,
         }
 
         if action in method:
             return method[action](request)
         else:
-            return handler.handle_unknown_action(request)
+            return handler.handle_unknown_action()
 
 
 class BaseContextView(TemplateView):
@@ -117,21 +119,6 @@ class InvestmentView(BaseContextView, TemplateView):
         context["seo_keywords"] = seo_investment_page
         context["seo_title"] = seo_investment_page_title
         context["seo_description"] = seo_description_investment_page
-        return context
-
-
-class DriversView(TemplateView):
-    template_name = "drivers.html"
-    paginate_by = 8
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        drivers = Driver.objects.all()
-        paginator = Paginator(drivers, self.paginate_by)
-        page_number = self.request.GET.get("page")
-        page_obj = paginator.get_page(page_number)
-        context["subscribe_form"] = SubscriberForm()
-        context["page_obj"] = page_obj
         return context
 
 
@@ -178,12 +165,39 @@ class DashboardVehicleView(BaseDashboardView):
     template_name = "dashboard/dashboard-vehicle.html"
 
 
-class DashboardDriversView(BaseDashboardView):
-    template_name = "dashboard/dashboard-drivers.html"
+class DashboardDriversEfficiencyView(BaseDashboardView):
+    template_name = "dashboard/dashboard-efficiency.html"
 
 
 class DashboardCalendarView(BaseDashboardView):
     template_name = "dashboard/dashboard-calendar.html"
+
+
+class DriversView(BaseDashboardView):
+    template_name = "dashboard/drivers.html"
+
+
+class DriverDetailView(DetailView):
+    model = Driver
+    template_name = 'dashboard/driver_detail.html'
+
+    def get_context_data(self, **kwargs):
+        driver_id = self.kwargs['pk']
+        driver_reshuffle = DriverReshuffle.objects.filter(
+            swap_time__lte=timezone.localtime(), end_time__gt=timezone.localtime(),
+            driver_start=driver_id).first()
+
+        context = super().get_context_data(**kwargs)
+        context["driver_bonus"] = Bonus.objects.filter(driver=driver_id, driver_payments__isnull=True)
+        context["driver_penalty"] = Penalty.objects.filter(driver=driver_id, driver_payments__isnull=True)
+        context["investor_group"] = self.request.user.is_investor()
+        context["partner_group"] = self.request.user.is_partner()
+        context["manager_group"] = self.request.user.is_manager()
+        context["vehicle"] = {
+            "number": driver_reshuffle.swap_vehicle.licence_plate if driver_reshuffle else "Не назначено",
+            "name": driver_reshuffle.swap_vehicle.name if driver_reshuffle else ""
+        }
+        return context
 
 
 # OTHER PAGES VIEWS ->

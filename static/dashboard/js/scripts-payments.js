@@ -28,8 +28,9 @@ function driverPayment(period = null, start = null, end = null, paymentStatus = 
 					var arrowBtn = '<button class="arrow-btn"><i class="fa fa-arrow-left"></i></button>';
 					var payByn = '<button class="pay-btn">Отримано</button>';
 					var notPayByn = '<button class="not-pay-btn">Не отримано</button>';
+					var dataId = response[i].id;
 
-					var rowBonus = '<tr class="tr-driver-payments"><td colspan="11" class="bonus-table"><table class="bonus-penalty-table"><tr class="title-bonus-penalty"><th class="edit-bonus-penalty">Тип</th><th class="edit-bonus-penalty">Сума</th><th class="edit-bonus-penalty">Опис</th>' + (response[i].status === 'Перевіряється' ? '<th class="edit-bonus-penalty">Дії</th>' : '') + '</tr>';
+					var rowBonus = '<tr class="tr-driver-payments" data-id="' + dataId + '"><td colspan="11" class="bonus-table"><table class="bonus-penalty-table"><tr class="title-bonus-penalty"><th class="edit-bonus-penalty">Тип</th><th class="edit-bonus-penalty">Сума</th><th class="edit-bonus-penalty">Опис</th>' + (response[i].status === 'Перевіряється' ? '<th class="edit-bonus-penalty">Дії</th>' : '') + '</tr>';
 
 					function generateRow(items, type, editClass, deleteClass) {
 						var rowBon = '';
@@ -47,7 +48,6 @@ function driverPayment(period = null, start = null, end = null, paymentStatus = 
 						}
 						return rowBon;
 					}
-
 					rowBonus += generateRow(response[i].bonuses_list, 'bonus', 'edit-bonus-btn', 'delete-bonus-penalty-btn');
 					rowBonus += generateRow(response[i].penalties_list, 'penalty', 'edit-penalty-btn', 'delete-bonus-penalty-btn');
 					rowBonus += '</table></td></tr>';
@@ -90,8 +90,14 @@ function driverPayment(period = null, start = null, end = null, paymentStatus = 
 					tableBody.append(rowBonus);
 				}
 			}
+			if (clickedDate && clickedId) {
+				var $targetElement = $('.tr-driver-payments[data-id="' + clickedId + '"]');
+				$targetElement.find('.bonus-table').show();
+			}
 		}
 	});
+	var clickedDate = sessionStorage.getItem('clickedDate');
+	var clickedId = sessionStorage.getItem('clickedId');
 }
 
 $(document).ready(function () {
@@ -106,22 +112,22 @@ $(document).ready(function () {
 	});
 
 	$(this).on('click', '.bonus-table .delete-bonus-penalty-btn', function () {
-	    itemId = $(this).data('bonus-penalty-id');
+		itemId = $(this).data('bonus-penalty-id');
 		dataToSend = {
-		action: "delete_bonus_penalty",
-		id: itemId,
-		csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
-	};
-	$.ajax({
-		url: ajaxPostUrl,
-		type: 'POST',
-		data: dataToSend,
-		dataType: 'json',
-		success: function (response) {
-			driverPayment(null, null, null, paymentStatus="on_inspection");
-		}
+			action: "delete_bonus_penalty",
+			id: itemId,
+			csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
+		};
+		$.ajax({
+			url: ajaxPostUrl,
+			type: 'POST',
+			data: dataToSend,
+			dataType: 'json',
+			success: function (response) {
+				driverPayment(null, null, null, paymentStatus="on_inspection");
+			}
+		});
 	});
-    });
 
 	$(this).on('click', '.bonus-table .edit-bonus-btn, .bonus-table .edit-penalty-btn', function () {
 	    itemId = $(this).data('bonus-penalty-id');
@@ -130,54 +136,21 @@ $(document).ready(function () {
 		} else if ($(this).hasClass('edit-penalty-btn')){
 			itemType = 'penalty';
 		}
-		openForm(paymentId=null, bonusId=itemId, itemType)
+		openForm(paymentId=null, bonusId=itemId, itemType, driverId=null);
 		$('#modal-add-bonus').data('bonus-penalty-id', itemId);
 		$('#modal-add-bonus').show();
 	});
 
-	$(this).on('click', '#edit-button-bonus-penalty', function (e) {
-  	        e.preventDefault();
-            $('#amount-bonus-error, #category-bonus-error, #vehicle-bonus-error').hide();
-            var idBonus = $('#modal-add-bonus').data('bonus-penalty-id');
-            var category = $('#modal-add-bonus').data('category-type');
-            var formDataArray = $('#modal-add-bonus :input').serializeArray();
-
-            var formData = {};
-            $.each(formDataArray, function(i, field){
-                formData[field.name] = field.value;
-            });
-            formData['action'] = 'upd_delete_bonus_penalty';
-            formData['bonus_id'] = idBonus;
-            formData['category_type'] = category;
-            formData['csrfmiddlewaretoken'] = $('input[name="csrfmiddlewaretoken"]').val()
-            $.ajax({
-                type: 'POST',
-                url: ajaxPostUrl,
-                data: formData,
-                dataType: 'json',
-                success: function (data) {
-                    $('#modal-add-bonus')[0].reset();
-                    $('#modal-add-bonus').hide();
-				    driverPayment(null, null, null, paymentStatus="on_inspection");
-                },
-                error: function (xhr, textStatus, errorThrown) {
-				if (xhr.status === 400) {
-					let errors = xhr.responseJSON.errors;
-					$.each(errors, function (key, value) {
-						$('#' + key + '-bonus-error').html(value).show();
-					});
-				} else {
-					console.error('Помилка запиту: ' + textStatus);
-				}
-				},
-            });
-        });
-
 	driverPayment(null, null, null, paymentStatus="on_inspection");
-
+	var clickedDate = sessionStorage.getItem('clickedDate');
+	var clickedId = sessionStorage.getItem('clickedId');
+	if (clickedDate && clickedId) {
+		var $targetElement = $('.tr-driver-payments[data-id="' + clickedId + '"]');
+		$targetElement.find('.bonus-table').show();
+	}
 	$('input[name="payment-status"]').change(function() {
     if ($(this).val() === 'closed') {
-      driverPayment(period='current_quarter', null, null, paymentStatus=$(this).val());
+      driverPayment(period='yesterday', null, null, paymentStatus=$(this).val());
       $('.filter-driver-payments').css('display', 'flex');
     } else {
       driverPayment(null, null, null, paymentStatus=$(this).val());
@@ -186,7 +159,7 @@ $(document).ready(function () {
     }
   });
 
-  function initializeCustomSelect(customSelect, selectedOption, optionsList, iconDown, datePicker) {
+  function initializeCustomPaymentsSelect(customSelect, selectedOption, optionsList, iconDown, datePicker) {
 		iconDown.click(function() {
 			customSelect.toggleClass("active");
 		});
@@ -214,78 +187,24 @@ $(document).ready(function () {
 		});
 	}
 
-	const customSelectDriver = $(".custom-select-drivers");
-	const selectedOptionDriver = customSelectDriver.find(".selected-option-drivers");
-	const optionsListDriver = customSelectDriver.find(".options-drivers");
+	const customSelectDriver = $(".custom-select-payments");
+	const selectedOptionDriver = customSelectDriver.find(".selected-option-payments");
+	const optionsListDriver = customSelectDriver.find(".options-payments");
 	const iconDownDriver = customSelectDriver.find(".fas.fa-angle-down");
-	const datePickerDriver = $("#datePickerDriver");
+	const datePickerDriver = $("#datePickerPayments");
 
-	initializeCustomSelect(customSelectDriver, selectedOptionDriver, optionsListDriver, iconDownDriver, datePickerDriver);
-
-	$(this).on('click', '.shift-close-btn', function () {
-		$('#modal-add-bonus').hide();
-		$('#modal-upd-bonus').hide();
-		$('#modal-add-penalty').hide();
-	});
+	initializeCustomPaymentsSelect(customSelectDriver, selectedOptionDriver, optionsListDriver, iconDownDriver, datePickerDriver);
 
 	$('.driver-table tbody').on('click', '.add-btn-bonus, .add-btn-penalty', function () {
 		var id = $(this).closest('tr').data('id');
 		if ($(this).hasClass('add-btn-bonus')){
-		    openForm(id, null, 'bonus');
+		    openForm(id, null, 'bonus', null);
 		} else {
-		    openForm(id, null, 'penalty');
+		    openForm(id, null, 'penalty', null);
 		}
 	});
-    $(this).on('change', '#bonus-category', function(){
-    if ($(this).val() === 'add_new_category'){
-        $('.new-category-field').css('display', 'flex')
-    } else {
-        $('.new-category-field').hide()
-    }
-    });
 
-    $(this).on('click', '#add-bonus-btn, #add-penalty-btn', function (e) {
-        e.preventDefault();
-        $('#amount-bonus-error, #category-bonus-error, #vehicle-bonus-error').hide();
-        var idPayments = $('#modal-add-bonus').data('id');
-        var formDataArray = $('#modal-add-bonus :input').serializeArray();
 
-        var formData = {};
-        $.each(formDataArray, function(i, field){
-            formData[field.name] = field.value;
-        });
-        console.log(formData)
-        if ($(this).attr('id') === 'add-bonus-btn') {
-            formData['action'] = 'add-bonus';
-            formData['category_type'] = 'bonus'
-        } else {
-            formData['action'] = 'add-penalty';
-            formData['category_type'] = 'penalty'
-        }
-        formData['idPayments'] = idPayments;
-        formData['csrfmiddlewaretoken'] = $('input[name="csrfmiddlewaretoken"]').val()
-        $.ajax({
-            type: 'POST',
-            url: ajaxPostUrl,
-            data: formData,
-            dataType: 'json',
-            success: function (data) {
-                $('#modal-add-bonus')[0].reset();
-                $('#modal-add-bonus').hide();
-                driverPayment(null, null, null, paymentStatus="on_inspection");
-            },
-            error: function (xhr, textStatus, errorThrown) {
-            if (xhr.status === 400) {
-                let errors = xhr.responseJSON.errors;
-                $.each(errors, function (key, value) {
-                    $('#' + key + '-bonus-error').html(value).show();
-                });
-            } else {
-                console.error('Помилка запиту: ' + textStatus);
-            }
-            },
-        });
-    });
 
 	$('.driver-table tbody').on('click', '.apply-btn', function () {
     var id = $(this).closest('tr').data('id');
@@ -315,7 +234,6 @@ $(document).ready(function () {
     $("#confirmation-btn-on").data('id', id).data('status', status);
 	});
 
-
 	$("#confirmation-btn-on").click(function () {
     var id = $(this).data('id');
     var status = $(this).data('status');
@@ -332,39 +250,23 @@ $(document).ready(function () {
 		updStatusDriverPayments(null, status='pending', paymentStatus="on_inspection", all=allDataIds);
   });
 
+	$(this).on('click', '.driver-table tbody .driver-name', function () {
+    var date = $(this).closest('.tr-driver-payments').find('td:first-child').text().trim();
+    var id = $(this).closest('.tr-driver-payments').data('id');
+
+    var clickedDate = sessionStorage.getItem('clickedDate');
+    var clickedId = sessionStorage.getItem('clickedId');
+    if (clickedDate === date && parseInt(clickedId) === id) {
+			sessionStorage.removeItem('clickedDate');
+			sessionStorage.removeItem('clickedId');
+    } else {
+			sessionStorage.setItem('clickedDate', date);
+			sessionStorage.setItem('clickedId', id);
+    }
+	});
 });
 
-function openForm(paymentId, bonusPenaltyId, itemType) {
-            $.ajax({
-                url: ajaxGetUrl,
-                type: 'GET',
-                data: {
-                       action: 'render_bonus',
-                       payment: paymentId,
-                       bonus_penalty: bonusPenaltyId,
-                       type: itemType
-                       },
-                success: function (response) {
-                    $('#formContainer').html(response.data);
-                    $('#modal-add-bonus').data('id', paymentId);
-                    $('#modal-add-bonus').data('bonus-penalty-id', bonusPenaltyId);
-                    $('#modal-add-bonus').data('category-type', itemType);
-                    var headingText = itemType === 'bonus' ? (bonusPenaltyId ? 'Редагування бонуса' : 'Додавання бонуса') :
-                                                             (bonusPenaltyId ? 'Редагування штрафа' : 'Додавання штрафа');
-                    var buttonText = bonusPenaltyId ? 'Редагувати' : 'Додати';
-                    var buttonId = itemType === 'bonus' ? (bonusPenaltyId ? 'edit-button-bonus-penalty' : 'add-bonus-btn') :
-                                                          (bonusPenaltyId ? 'edit-button-bonus-penalty' : 'add-penalty-btn');
-                    $('#add-bonus-btn').text(buttonText);
-                    $('.title-add-bonus h2').text(headingText);
-                    $('#add-bonus-btn').prop('id', buttonId);
-                    $('#modal-add-bonus').show();
-                },
 
-                error: function (error) {
-                    console.error('Error:', error);
-                }
-            });
-        }
 
 function updStatusDriverPayments(id, status, paymentStatus, all=null) {
 	if (all !== null) {

@@ -249,40 +249,46 @@ class PostRequestHandler:
     def handler_add_bonus_or_penalty(request):
         data = request.POST.copy()
         operation_type = data.get('action')
-        new_category = data.get('new_category', None)
+        new_category = data.get('new_category')
+        driver_id = data.get('driver_id')
         model_map = {
             'add-bonus': Bonus,
             'add-penalty': Penalty
         }
 
         model_instance = model_map.get(operation_type)
+
         if model_instance is None:
             return JsonResponse({'error': 'Invalid operation type'}, status=400)
-        if new_category:
-            partner = request.user.manager.managers_partner if request.user.is_manager() else request.user.pk
-            if operation_type == 'add-bonus':
-                new_category, _ = BonusCategory.objects.get_or_create(title=data.get('new_category', None),
-                                                                      partner_id=partner)
-            else:
-                new_category, _ = PenaltyCategory.objects.get_or_create(title=data.get('new_category', None),
-                                                                        partner_id=partner)
-        data.setlist('category', [str(new_category.pk)])
 
         payment_id = data.get('idPayments', None)
-        form = BonusForm(request.user, payment_id=payment_id, category=data.get('category_type', None), data=data)
+        form = BonusForm(request.user, payment_id=payment_id,
+                         category=data.get('category_type', None), driver_id=driver_id, data=data)
         if form.is_valid():
+            if new_category:
+                partner = request.user.manager.managers_partner if request.user.is_manager() else request.user.pk
+                if operation_type == 'add-bonus':
+                    new_category, _ = BonusCategory.objects.get_or_create(title=data.get('new_category', None),
+                                                                          partner_id=partner)
+                else:
+                    new_category, _ = PenaltyCategory.objects.get_or_create(title=data.get('new_category', None),
+                                                                            partner_id=partner)
+
             bonus_data = {"amount": form.cleaned_data['amount'],
                           "description": form.cleaned_data['description'],
                           "vehicle": form.cleaned_data['vehicle'],
                           "category": new_category if new_category else form.cleaned_data['category']}
-            if DriverPayments.objects.filter(id=payment_id).exists():
-                driver_payments = DriverPayments.objects.filter(id=payment_id)
-                bonus_data["driver_payments"] = driver_payments.first()
-                bonus_data["driver"] = driver_payments.first().driver
-                if operation_type == 'add-bonus':
-                    driver_payments.update(earning=F('earning') + Decimal(bonus_data['amount']))
-                else:
-                    driver_payments.update(earning=F('earning') - Decimal(bonus_data['amount']))
+            if payment_id:
+                if DriverPayments.objects.filter(id=payment_id).exists():
+                    driver_payments = DriverPayments.objects.filter(id=payment_id)
+                    bonus_data["driver_payments"] = driver_payments.first()
+                    bonus_data["driver"] = driver_payments.first().driver
+                    if operation_type == 'add-bonus':
+                        driver_payments.update(earning=F('earning') + Decimal(bonus_data['amount']))
+                    else:
+                        driver_payments.update(earning=F('earning') - Decimal(bonus_data['amount']))
+            else:
+                bonus_data["driver_id"] = int(driver_id)
             model_instance.objects.create(**bonus_data)
         else:
             errors = {field: form.errors[field][0] for field in form.errors}
@@ -291,22 +297,26 @@ class PostRequestHandler:
         return JsonResponse({'data': 'success'})
 
     @staticmethod
-    def handler_upd_delete_bonus_penalty(request):
+    def handler_upd_bonus_penalty(request):
         data = request.POST.copy()
         bonus_id = data.get('bonus_id', None)
         new_category = data.get('new_category', None)
         type_bonus_penalty = data.get('category_type', None)
-        if new_category:
-            partner = request.user.manager.managers_partner if request.user.is_manager() else request.user.pk
-            if type_bonus_penalty == 'bonus':
-                new_category, _ = BonusCategory.objects.get_or_create(title=data.get('new_category', None),
-                                                                      partner_id=partner)
-            else:
-                new_category, _ = PenaltyCategory.objects.get_or_create(title=data.get('new_category', None),
-                                                                        partner_id=partner)
-        data.setlist('category', [str(new_category.pk)])
-        form = BonusForm(request.user, category=type_bonus_penalty, data=data)
+        driver_id = data.get('driver_id')
+        payment_id = data.get('payment_id')
+        print('payment_id', payment_id)
+        form = BonusForm(request.user, category=type_bonus_penalty, data=data, payment_id=payment_id,
+                         driver_id=driver_id)
         if form.is_valid():
+
+            if new_category:
+                partner = request.user.manager.managers_partner if request.user.is_manager() else request.user.pk
+                if type_bonus_penalty == 'bonus':
+                    new_category, _ = BonusCategory.objects.get_or_create(title=data.get('new_category', None),
+                                                                          partner_id=partner)
+                else:
+                    new_category, _ = PenaltyCategory.objects.get_or_create(title=data.get('new_category', None),
+                                                                            partner_id=partner)
             instance = PenaltyBonus.objects.filter(id=bonus_id).first()
 
             if instance:
@@ -314,7 +324,7 @@ class PostRequestHandler:
                 instance.amount = form.cleaned_data['amount']
                 instance.description = form.cleaned_data['description']
                 instance.vehicle = form.cleaned_data['vehicle']
-                instance.category = form.cleaned_data['category']
+                instance.category = new_category if new_category else form.cleaned_data['category']
                 instance.save(update_fields=['amount', 'description', 'category', 'vehicle'])
                 if instance.driver_payments:
                     driver_payments = instance.driver_payments
@@ -341,11 +351,12 @@ class PostRequestHandler:
         instance = PenaltyBonus.objects.filter(id=bonus_id).first()
         if instance:
             driver_payments = instance.driver_payments
-            if isinstance(instance, Bonus):
-                driver_payments.earning -= instance.amount
-            else:
-                driver_payments.earning += instance.amount
-            driver_payments.save(update_fields=['earning'])
+            if driver_payments:
+                if isinstance(instance, Bonus):
+                    driver_payments.earning -= instance.amount
+                else:
+                    driver_payments.earning += instance.amount
+                driver_payments.save(update_fields=['earning'])
             instance.delete()
             return JsonResponse({'data': 'success'})
         else:
@@ -394,17 +405,19 @@ class GetRequestHandler:
         user = request.user
         bonus_id = request.GET.get('bonus_penalty')
         category_type = request.GET.get('type')
+        driver_id = request.GET.get('driver_id')
         if bonus_id:
             instance = PenaltyBonus.objects.filter(pk=bonus_id).first()
             payment_id = instance.driver_payments_id
-            bonus_form = BonusForm(user, payment_id=payment_id, category=category_type, instance=instance)
+            bonus_form = BonusForm(user, payment_id=payment_id, category=category_type, instance=instance,
+                                   driver_id=driver_id)
         else:
             payment_id = request.GET.get('payment')
-            bonus_form = BonusForm(user, payment_id=payment_id, category=category_type)
+            bonus_form = BonusForm(user, payment_id=payment_id, category=category_type, driver_id=driver_id)
         form_html = render_to_string('dashboard/_bonus-penalty-form.html', {'bonus_form': bonus_form})
 
         return JsonResponse({"data": form_html})
 
     @staticmethod
-    def handle_unknown_action(request):
+    def handle_unknown_action():
         return JsonResponse({"data": "i'm here now"}, status=400)

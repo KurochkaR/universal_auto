@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+{% load static %}
+{% load i18n %}
+{% include 'dashboard/dashboard-header-sidebar.html' %}
+<!-- Content -->
+<main class="main-container">
+
+  <div class="driver-header">
+    <div class="driver-radio-buttons">
+      <input type="radio" id="driver-list-radio" name="driver-info" value="driver-list">
+      <label for="driver-list-radio">{% trans "Список водіїв" %}</label>
+
+      <input type="radio" id="driver-efficiency-radio" name="driver-info" value="driver-efficiency">
+      <label for="driver-efficiency-radio">{% trans "Ефективність водіїв" %}</label>
+
+      <input type="radio" id="driver-payments-radio" name="driver-info" value="driver-payments">
+      <label for="driver-payments-radio">{% trans "Виплати водіїв" %}</label>
+    </div>
+  </div>
+  {% block content %}
+  <div class="search-filter-block">
+    <div class="search-inputs">
+      <div class="search-input">
+        <input type="text" id="search-name" placeholder="Пошук за іменем">
+        <div class="search-icon">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M16.4167 15.25L13.0833 11.9167L13 11.8333C13.75 10.8333 14.1667 9.66667 14.1667 8.33333C14.1667 5.08333 11.5833 2.5 8.33333 2.5C5.08333 2.5 2.5 5.08333 2.5 8.33333C2.5 11.5833 5.08333 14.1667 8.33333 14.1667C9.66667 14.1667 10.8333 13.75 11.8333 13C11.8333 13 11.8333 13.0833 11.9167 13.0833L15.25 16.4167C15.4167 16.5833 15.6667 16.6667 15.8333 16.6667C16 16.6667 16.25 16.5833 16.4167 16.4167C16.75 16.0833 16.75 15.5833 16.4167 15.25ZM8.33333 12.5C6 12.5 4.16667 10.6667 4.16667 8.33333C4.16667 6 6 4.16667 8.33333 4.16667C10.6667 4.16667 12.5 6 12.5 8.33333C12.5 10.6667 10.6667 12.5 8.33333 12.5Z" fill="#73757E"></path>
+          </svg>
+        </div>
+      </div>
+      <div class="search-input">
+        <input type="text" id="search-phone" placeholder="Пошук за номером телефону">
+        <div class="search-icon">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M16.4167 15.25L13.0833 11.9167L13 11.8333C13.75 10.8333 14.1667 9.66667 14.1667 8.33333C14.1667 5.08333 11.5833 2.5 8.33333 2.5C5.08333 2.5 2.5 5.08333 2.5 8.33333C2.5 11.5833 5.08333 14.1667 8.33333 14.1667C9.66667 14.1667 10.8333 13.75 11.8333 13C11.8333 13 11.8333 13.0833 11.9167 13.0833L15.25 16.4167C15.4167 16.5833 15.6667 16.6667 15.8333 16.6667C16 16.6667 16.25 16.5833 16.4167 16.4167C16.75 16.0833 16.75 15.5833 16.4167 15.25ZM8.33333 12.5C6 12.5 4.16667 10.6667 4.16667 8.33333C4.16667 6 6 4.16667 8.33333 4.16667C10.6667 4.16667 12.5 6 12.5 8.33333C12.5 10.6667 10.6667 12.5 8.33333 12.5Z" fill="#73757E"></path>
+          </svg>
+        </div>
+      </div>
+    </div>
+    <select id="status-filter">
+        <option value="all">Усі статуси</option>
+        <option value="active">Активні</option>
+        <option value="inactive">Неактивні</option>
+        <option value="blocked">Заблоковані</option>
+    </select>
+    <select id="block-drivers">
+        <option value="all-drivers">Всі водії</option>
+        <option value="dismissed-drivers">Звільнені водії</option>
+        <option value="blocked-drivers">Заблоковані водії</option>
+    </select>
+  </div>
+
+  <div class="drivers-list">
+    <div class="driver-item">
+      <div class="driver-header">
+          <h3>Прізвище та ім'я</h3>
+          <h3>Номер телефону</h3>
+          <h3>Ідентифікатор чату</h3>
+          <h3>Схема роботи</h3>
+          <h3>Статус водія</h3>
+          <h3>Автомобіль</h3>
+      </div>
+    </div>
+  </div>
+  {% endblock %}
+</main>
+</div>
+
+<script>
+  const VehicleImg = "{% static 'app/images/index-one-block-2.webp' %}";
+  const logoImageUrl = "{% static 'app/images/logo-2.svg' %}";
+  let ajaxPostUrl = "{% url 'post_request' %}";
+  let ajaxGetUrl = "{% url 'get_request' %}";
+</script>
+
+{% block js %}
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.6.3/dist/jquery.min.js" defer></script>
+<script src="{% static 'dashboard/js/header-sidebar.js' %}" defer></script>
+<script src="{% static 'dashboard/js/scripts-drivers.js' %}" defer></script>
+<script src="{% static 'dashboard/js/scripts.js' %}" defer></script>
+{% endblock %}
+
+</body>
+</html>
