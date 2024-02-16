@@ -76,7 +76,7 @@ def memcache_lock(lock_id, task_args, oid, lock_time, finish_lock_time=10):
             # also don't release the lock if we didn't acquire it
 
 
-@app.task()
+@app.task(queue="beat_task_1")
 def raw_gps_handler():
     raw_list = RawGPS.objects.filter(vehiclegps__isnull=True).order_by('created_at')[:1000]
     count = 0
