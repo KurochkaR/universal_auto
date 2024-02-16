@@ -321,11 +321,13 @@ $(document).ready(function() {
 			data: formData,
 			dataType: 'json',
 			success: function (data) {
+				console.log(idPayments);
 				$('#modal-add-bonus')[0].reset();
 				$('#modal-add-bonus').hide();
-				driverPayment(null, null, null, paymentStatus="on_inspection");
 				if (idPayments === null) {
 					window.location.reload();
+				} else {
+					driverPayment(null, null, null, paymentStatus="on_inspection");
 				}
 			},
 			error: function (xhr, textStatus, errorThrown) {
