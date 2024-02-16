@@ -11,11 +11,11 @@ from telegram.error import BadRequest
 from app.uagps_sync import UaGpsSynchronizer
 from auto.tasks import send_on_job_application_on_driver, check_time_order, search_driver_for_order, \
     calculate_vehicle_earnings, calculate_vehicle_spending, calculate_failed_earnings
-from django.db.models.signals import pre_save, post_save, post_delete, pre_delete
+from django.db.models.signals import post_save, post_delete, pre_delete
 from django.dispatch import receiver
 from app.models import Driver, StatusChange, JobApplication, ParkSettings, Partner, Order, DriverSchemaRate, \
     Schema, DriverPayments, InvestorPayments, FleetOrder
-from auto_bot.handlers.driver_manager.utils import get_time_for_task, create_driver_payments, message_driver_report
+from auto_bot.handlers.driver_manager.utils import create_driver_payments, message_driver_report
 from auto_bot.handlers.order.keyboards import inline_reject_order
 from auto_bot.handlers.order.static_text import client_order_info
 from auto_bot.handlers.order.utils import check_vehicle
@@ -47,8 +47,7 @@ def add_road_time_and_distance(sender, instance, created, **kwargs):
             except ObjectDoesNotExist:
                 pass
         if check_vehicle(instance.driver) != instance.vehicle:
-            bot.send_message(chat_id=515224934, text=f"{check_vehicle(instance.driver)}!= {instance.vehicle} order {instance.order_id}")
-            redis_instance().hset(f"wrong_vehicle_{instance.partner.pk}", instance.driver_id,
+            redis_instance().hset(f"wrong_vehicle_{instance.partner.pk}", instance.driver.id,
                                   instance.vehicle.licence_plate)
 
 

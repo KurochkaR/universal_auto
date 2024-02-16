@@ -4,7 +4,7 @@ import random
 from datetime import datetime, date, time
 from decimal import Decimal
 
-from django.core.exceptions import ObjectDoesNotExist
+from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.core.validators import MaxLengthValidator, EmailValidator, RegexValidator
 from django.db.models import Sum, F
 from django.db.models.signals import post_delete
@@ -343,6 +343,9 @@ class Driver(User):
                                                          partner=self.partner,
                                                          deleted_at=None).driver_external_id
         except ObjectDoesNotExist:
+            return
+        except MultipleObjectsReturned:
+            print(self)
             return
 
     def __str__(self) -> str:
@@ -849,7 +852,7 @@ class FleetOrder(models.Model):
     payment = models.CharField(max_length=25, choices=PaymentTypes.choices, null=True, verbose_name="Тип оплати")
     price = models.IntegerField(null=True, verbose_name="Вартість")
     tips = models.IntegerField(null=True, verbose_name="Чайові")
-    date_order = models.DateField(null=True, verbose_name='Дата замовлення')
+    date_order = models.DateTimeField(null=True, verbose_name='Дата замовлення')
     created_at = models.DateTimeField(editable=False, auto_now_add=True, verbose_name='Cтворено')
 
     driver = models.ForeignKey(Driver, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Водій')

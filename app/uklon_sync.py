@@ -2,6 +2,8 @@ import json
 from datetime import datetime, time
 import requests
 from _decimal import Decimal
+
+from django.db.models import Q
 from django.utils import timezone
 from django.db import models
 from requests import JSONDecodeError
@@ -140,7 +142,7 @@ class UklonRequest(Fleet, Synchronizer):
         return nested_data
 
     def parse_json_report(self, start, end, driver, driver_report):
-        vehicle = check_vehicle(driver, end, max_time=True)
+        vehicle = check_vehicle(driver, end)
         distance = driver_report.get('total_distance_meters', 0)
         report = {
             "report_from": start,
@@ -317,8 +319,9 @@ class UklonRequest(Fleet, Synchronizer):
         orders = self.response_data(url=f"{Service.get_value('UKLON_1')}orders", params=params)
         try:
             for order in orders['items']:
-                if (order['status'] in ("running", "accepted", "arrived") or
-                        FleetOrder.objects.filter(order_id=order['id']).exists()):
+                if any([order['status'] in ("running", "accepted", "arrived"), FleetOrder.objects.filter(
+                        date_order=timezone.make_aware(datetime.fromtimestamp(order["pickupTime"])),
+                        order_id=order['id'], partner=self.partner).exists()]):
                     continue
                 vehicle = Vehicle.objects.get(licence_plate=order['vehicle']['licencePlate'])
                 try:
@@ -345,7 +348,7 @@ class UklonRequest(Fleet, Synchronizer):
                         "payment": PaymentTypes.map_payments(order['payment']['paymentType']),
                         "price": order['payment']['cost'],
                         "partner": self.partner,
-                        "date_order": start.date()
+                        "date_order": timezone.make_aware(datetime.fromtimestamp(order["pickupTime"]))
                         }
                 FleetOrder.objects.create(**data)
         except KeyError:

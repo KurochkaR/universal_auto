@@ -20,13 +20,12 @@ from app.models import (RawGPS, Vehicle, Order, Driver, JobApplication, ParkSett
                         InvestorPayments, VehicleSpending, DriverReshuffle, DriverPayments,
                         PaymentTypes, TaskScheduler, DriverEffVehicleKasa, Schema, CustomReport, Fleet,
                         VehicleGPS, PartnerEarnings, Investor, Bonus, Penalty, PaymentsStatus,
-                        FleetsDriversVehiclesRate,
-                        SalaryCalculation, DriverEfficiencyFleet, GPS)
+                        FleetsDriversVehiclesRate, DriverEfficiencyFleet)
 from django.db.models import Sum, IntegerField, FloatField, Value, DecimalField, Q
 from django.db.models.functions import Cast, Coalesce
 from app.utils import get_schedule, create_task
 from auto.utils import payment_24hours_create, summary_report_create, compare_reports, get_corrections, \
-    get_currency_rate, polymorphic_efficiency_create, get_efficiency_info
+    get_currency_rate, polymorphic_efficiency_create
 from auto_bot.handlers.driver_manager.utils import get_daily_report, get_efficiency, generate_message_report, \
     get_driver_efficiency_report, calculate_rent, get_vehicle_income, get_time_for_task, \
     create_driver_payments, calculate_income_partner, get_failed_income, find_reshuffle_period
@@ -1112,6 +1111,8 @@ def calculate_driver_reports(self, partner_pk, schema, day=None):
         end, start = get_time_for_task(schema, day)[1:3]
     for driver in Driver.objects.get_active(partner=partner_pk, schema=schema):
         reshuffles = check_reshuffle(driver, start, end)
+        report_kasa = SummaryReport.objects.filter(driver=driver, report_from__range=(start, end)).aggregate(
+                kasa=Coalesce(Sum('total_amount_without_fee'), 0, output_field=DecimalField()))['kasa']
         if reshuffles:
             data = create_driver_payments(start, end, driver, schema_obj)
             payment, created = DriverPayments.objects.get_or_create(report_from=start,
@@ -1123,6 +1124,13 @@ def calculate_driver_reports(self, partner_pk, schema, day=None):
                 Penalty.objects.filter(driver=driver, driver_payments__isnull=True).update(driver_payments=payment)
                 payment.earning = Decimal(payment.earning) + payment.get_bonuses() - payment.get_penalties()
                 payment.save(update_fields=['earning'])
+        elif not reshuffles and report_kasa:
+            last_payment = DriverPayments.objects.filter(driver=driver).last()
+            driver_reports = SummaryReport.objects.filter(report_from__range=(last_payment.report_from, end),
+                                                          driver=driver).aggregate(
+                cash=Coalesce(Sum('total_amount_cash'), 0, output_field=DecimalField()),
+                kasa=Coalesce(Sum('total_amount_without_fee'), 0, output_field=DecimalField()))
+            get_corrections(last_payment.report_from, last_payment.report_to, driver, driver_reports)
 
 
 @app.task(bind=True, queue='bot_tasks')
@@ -1290,7 +1298,7 @@ def update_schedule(self):
 def run_periodic_tasks(sender, **kwargs):
     # sender.add_periodic_task(crontab(minute="*/2"), send_time_order.s())
     sender.add_periodic_task(crontab(minute='*/15'), auto_send_task_bot.s())
-    sender.add_periodic_task(crontab(minute='*/10'), raw_gps_handler.s())
+    sender.add_periodic_task(crontab(minute='*/20'), raw_gps_handler.s())
     # sender.add_periodic_task(crontab(minute="*/2"), order_not_accepted.s())
     # sender.add_periodic_task(crontab(minute="*/4"), check_personal_orders.s())
     sender.add_periodic_task(crontab(minute="0", hour="*/1"), update_schedule.s())
