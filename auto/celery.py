@@ -6,7 +6,16 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'auto.settings')
 app = Celery('auto')
 
 app.config_from_object('django.conf:settings', namespace='CELERY')
-
+app.conf.task_queues = {
+    'beat_tasks_1': {
+        'exchange': 'beat_tasks_1',
+        'routing_key': 'beat_tasks_1',
+    },
+    'beat_tasks_2': {
+        'exchange': 'beat_tasks_2',
+        'routing_key': 'beat_tasks_2',
+    },
+}
 app.conf.update(
     task_ignore_result=True,
     task_serializer='json',
