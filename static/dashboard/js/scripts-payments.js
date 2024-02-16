@@ -28,8 +28,9 @@ function driverPayment(period = null, start = null, end = null, paymentStatus = 
 					var arrowBtn = '<button class="arrow-btn"><i class="fa fa-arrow-left"></i></button>';
 					var payByn = '<button class="pay-btn">Отримано</button>';
 					var notPayByn = '<button class="not-pay-btn">Не отримано</button>';
+					var dataId = response[i].id;
 
-					var rowBonus = '<tr class="tr-driver-payments"><td colspan="11" class="bonus-table"><table class="bonus-penalty-table"><tr class="title-bonus-penalty"><th class="edit-bonus-penalty">Тип</th><th class="edit-bonus-penalty">Сума</th><th class="edit-bonus-penalty">Опис</th>' + (response[i].status === 'Перевіряється' ? '<th class="edit-bonus-penalty">Дії</th>' : '') + '</tr>';
+					var rowBonus = '<tr class="tr-driver-payments" data-id="' + dataId + '"><td colspan="11" class="bonus-table"><table class="bonus-penalty-table"><tr class="title-bonus-penalty"><th class="edit-bonus-penalty">Тип</th><th class="edit-bonus-penalty">Сума</th><th class="edit-bonus-penalty">Опис</th>' + (response[i].status === 'Перевіряється' ? '<th class="edit-bonus-penalty">Дії</th>' : '') + '</tr>';
 
 					function generateRow(items, type, editClass, deleteClass) {
 						var rowBon = '';
@@ -47,7 +48,6 @@ function driverPayment(period = null, start = null, end = null, paymentStatus = 
 						}
 						return rowBon;
 					}
-
 					rowBonus += generateRow(response[i].bonuses_list, 'bonus', 'edit-bonus-btn', 'delete-bonus-penalty-btn');
 					rowBonus += generateRow(response[i].penalties_list, 'penalty', 'edit-penalty-btn', 'delete-bonus-penalty-btn');
 					rowBonus += '</table></td></tr>';
@@ -90,8 +90,14 @@ function driverPayment(period = null, start = null, end = null, paymentStatus = 
 					tableBody.append(rowBonus);
 				}
 			}
+			if (clickedDate && clickedId) {
+				var $targetElement = $('.tr-driver-payments[data-id="' + clickedId + '"]');
+				$targetElement.find('.bonus-table').show();
+			}
 		}
 	});
+	var clickedDate = sessionStorage.getItem('clickedDate');
+	var clickedId = sessionStorage.getItem('clickedId');
 }
 
 $(document).ready(function () {
@@ -136,7 +142,12 @@ $(document).ready(function () {
 	});
 
 	driverPayment(null, null, null, paymentStatus="on_inspection");
-
+	var clickedDate = sessionStorage.getItem('clickedDate');
+	var clickedId = sessionStorage.getItem('clickedId');
+	if (clickedDate && clickedId) {
+		var $targetElement = $('.tr-driver-payments[data-id="' + clickedId + '"]');
+		$targetElement.find('.bonus-table').show();
+	}
 	$('input[name="payment-status"]').change(function() {
     if ($(this).val() === 'closed') {
       driverPayment(period='yesterday', null, null, paymentStatus=$(this).val());
@@ -192,6 +203,7 @@ $(document).ready(function () {
 		    openForm(id, null, 'penalty', null);
 		}
 	});
+
 	$(this).on('change', '#bonus-category', function(){
 	if ($(this).val() === 'add_new_category'){
 		$('.new-category-field').css('display', 'flex')
@@ -228,7 +240,6 @@ $(document).ready(function () {
     $("#confirmation-btn-on").data('id', id).data('status', status);
 	});
 
-
 	$("#confirmation-btn-on").click(function () {
     var id = $(this).data('id');
     var status = $(this).data('status');
@@ -245,6 +256,20 @@ $(document).ready(function () {
 		updStatusDriverPayments(null, status='pending', paymentStatus="on_inspection", all=allDataIds);
   });
 
+	$(this).on('click', '.driver-table tbody .driver-name', function () {
+    var date = $(this).closest('.tr-driver-payments').find('td:first-child').text().trim();
+    var id = $(this).closest('.tr-driver-payments').data('id');
+
+    var clickedDate = sessionStorage.getItem('clickedDate');
+    var clickedId = sessionStorage.getItem('clickedId');
+    if (clickedDate === date && parseInt(clickedId) === id) {
+			sessionStorage.removeItem('clickedDate');
+			sessionStorage.removeItem('clickedId');
+    } else {
+			sessionStorage.setItem('clickedDate', date);
+			sessionStorage.setItem('clickedId', id);
+    }
+	});
 });
 
 
