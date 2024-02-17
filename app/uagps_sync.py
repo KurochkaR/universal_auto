@@ -294,10 +294,9 @@ class UaGpsSynchronizer(Fleet):
             kasa, card, mileage, orders, canceled_orders = get_today_statistic(self.partner, start, end_time, driver_obj)
             time_now = timezone.localtime(end_time)
             if kasa and mileage:
-                kasa_text = f'<font color="red">{kasa}</font>' if kasa/time_now.hour < 10 else kasa
                 text = f"Поточна статистика на {time_now.strftime('%H:%M')}:\n" \
                        f"Водій: {driver_obj}\n"\
-                       f"Каса: {kasa_text}\n"\
+                       f"Каса: {kasa}\n"\
                        f"Виконано замовлень: {orders}\n"\
                        f"Скасовано замовлень: {canceled_orders}\n"\
                        f"Пробіг під замовленням: {mileage}\n"\

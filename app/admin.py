@@ -9,12 +9,14 @@ from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 from django.shortcuts import redirect
 from django.db.models import Q, Prefetch
+from django_celery_beat.models import PeriodicTask
 from polymorphic.admin import PolymorphicParentModelAdmin
 from scripts.google_calendar import GoogleCalendar
 from .filters import VehicleEfficiencyUserFilter, DriverEfficiencyUserFilter, RentInformationUserFilter, \
     TransactionInvestorUserFilter, ReportUserFilter, VehicleManagerFilter, SummaryReportUserFilter, \
     ChildModelFilter, PartnerPaymentFilter, FleetFilter, FleetDriverFilter, FleetOrderFilter, VehicleSpendingFilter
 from .models import *
+from .utils import get_schedule
 
 
 class SoftDeleteAdmin(admin.ModelAdmin):
@@ -185,10 +187,42 @@ class SchemaAdmin(admin.ModelAdmin):
     search_fields = ('title',)
 
     def save_model(self, request, obj, form, change):
+        old_obj = Schema.objects.get(pk=obj.pk)
+        old_shift_time = old_obj.shift_time
         schema_field = form.cleaned_data.get('schema')
         calc_field = form.cleaned_data.get('salary_calculation')
+
         if calc_field == SalaryCalculation.WEEK:
             obj.shift_time = time.min
+        if obj.shift_time != old_shift_time:
+            crontab = get_schedule(obj.shift_time)
+            old_crontab = get_schedule(old_shift_time)
+            if calc_field == SalaryCalculation.WEEK:
+                crontab = get_schedule(time(9, 0))
+            elif old_obj.salary_calculation == SalaryCalculation.WEEK:
+                old_crontab = get_schedule(time(9, 0))
+
+            new_task, created = PeriodicTask.objects.get_or_create(
+                name=f"get_information_from_fleets({request.user.pk}_{crontab})",
+                task="auto.tasks.get_information_from_fleets",
+                queue=f"beat_tasks_{request.user.pk}",
+                crontab=crontab,
+                defaults={"args": f"[{request.user.pk}, [{obj.pk}]]"})
+            if not created:
+                new_args = eval(new_task.args)
+                new_args[1].append(obj.pk)
+                new_task.args = str(new_args)
+                new_task.save(update_fields=["args"])
+            old_task = PeriodicTask.objects.filter(name=f"get_information_from_fleets({request.user.pk}_{old_crontab})")
+            if old_task.exists():
+                task = old_task.first()
+                old_args = eval(task.args)
+                old_args[1] = [value for value in old_args[1] if value != obj.pk]
+                if old_args[1]:
+                    task.args = str(old_args)
+                    task.save(update_fields=["args"])
+                else:
+                    task.delete()
         if schema_field == 'HALF':
             obj.rate = 0.5
             obj.rental = obj.plan * obj.rate

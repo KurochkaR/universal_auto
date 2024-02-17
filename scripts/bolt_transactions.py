@@ -1,6 +1,7 @@
-from app.models import BoltTransactions
+from app.models import FleetsDriversVehiclesRate
+
 
 def run():
-    file_name = input('Please enter file name: ')
-    BoltTransactions.save_transactions_to_db(file_name)
-    print("Transactions added to DB")
+    fleets = FleetsDriversVehiclesRate.objects.filter(driver=26).values_list("fleet", flat=True)
+    print(fleets)
+

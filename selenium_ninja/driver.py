@@ -381,8 +381,8 @@ class SeleniumTools:
                                 "partner_id": self.partner,
                                 "date_order": timezone.make_aware(datetime.strptime(row[7], "%Y-%m-%d %H:%M:%S"))}
                         FleetOrder.objects.create(**data)
-                        if check_vehicle(driver) != vehicle:
-                            redis_instance().hset(f"wrong_vehicle_{driver.partner.pk}", driver.driver_id,
+                        if check_vehicle(driver.driver) != vehicle:
+                            redis_instance().hset(f"wrong_vehicle_{driver.partner.pk}", driver.driver.id,
                                                   vehicle.licence_plate)
                 os.remove(file_path)
 
