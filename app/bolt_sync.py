@@ -1,9 +1,13 @@
 from datetime import datetime
 import mimetypes
 import time
+from io import BytesIO
 from urllib import parse
 import requests
 from _decimal import Decimal
+
+from django.core.exceptions import ObjectDoesNotExist
+from django.core.files import File
 from django.utils import timezone
 
 from django.db import models
@@ -336,7 +340,7 @@ class BoltRequest(Fleet, Synchronizer):
                 FleetOrder.objects.create(**data)
                 time.sleep(0.5)
 
-    def get_drivers_status(self):
+    def get_drivers_status(self, photo=None):
         with_client = []
         wait = []
         report = self.get_target_url(f'{self.base_url}getDriversForLiveMap', self.param())
@@ -349,6 +353,18 @@ class BoltRequest(Fleet, Synchronizer):
                 else:
                     with_client.append((name, second_name))
                     with_client.append((second_name, name))
+                if photo:
+                    try:
+                        bolt_driver = Driver.objects.get(name=name, second_name=second_name, partner=self.partner)
+                        if bolt_driver.photo == 'drivers/default-driver.png':
+                            response = requests.get(driver['picture'])
+                            if response.status_code == 200:
+                                image_data = response.content
+                                image_file = BytesIO(image_data)
+                                bolt_driver.photo = File(image_file, name=f"{name}_{second_name}.jpg")
+                                bolt_driver.save(update_fields=["photo"])
+                    except (ObjectDoesNotExist, KeyError):
+                        continue
         return {'wait': wait,
                 'with_client': with_client}
 
