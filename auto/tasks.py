@@ -1232,16 +1232,16 @@ def driver_efficiency_all(self, partner_pk, schemas, day=None):
 @app.task(bind=True)
 def get_information_from_fleets(self, partner_pk, schemas, day=None):
     task_chain = chain(
-        download_daily_report.si(schemas, partner_pk, day).set(queue=f'beat_tasks_{partner_pk}'),
-        get_orders_from_fleets.si(schemas, partner_pk, day).set(queue=f'beat_tasks_{partner_pk}'),
-        generate_payments.si(schemas, partner_pk, day).set(queue=f'beat_tasks_{partner_pk}'),
-        generate_summary_report.si(schemas, partner_pk, day).set(queue=f'beat_tasks_{partner_pk}'),
-        get_rent_information.si(schemas, partner_pk, day).set(queue=f'beat_tasks_{partner_pk}'),
+        download_daily_report.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
+        get_orders_from_fleets.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
+        generate_payments.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
+        generate_summary_report.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
+        get_rent_information.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
         driver_efficiency_all.si(schemas, partner_pk, day).set(queue=f'beat_tasks_{partner_pk}'),
-        calculate_driver_reports.si(schemas, partner_pk, day).set(queue=f'beat_tasks_{partner_pk}'),
-        send_daily_statistic.si(schemas, partner_pk).set(queue=f'beat_tasks_{partner_pk}'),
-        send_driver_efficiency.si(schemas, partner_pk).set(queue=f'beat_tasks_{partner_pk}'),
-        send_driver_report.si(schemas, partner_pk).set(queue=f'beat_tasks_{partner_pk}')
+        calculate_driver_reports.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
+        send_daily_statistic.si(schemas).set(queue=f'beat_tasks_{partner_pk}'),
+        send_driver_efficiency.si(schemas).set(queue=f'beat_tasks_{partner_pk}'),
+        send_driver_report.si(schemas).set(queue=f'beat_tasks_{partner_pk}')
     )
     task_chain()
 
