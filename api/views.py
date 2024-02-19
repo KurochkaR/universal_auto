@@ -39,11 +39,19 @@ class SummaryReportListView(CombinedPermissionsMixin,
         queryset = ManagerFilterMixin.get_queryset(SummaryReport, self.request.user)
         filtered_qs = queryset.filter(report_from__range=(start, end))
         kasa = filtered_qs.aggregate(kasa=Coalesce(Sum('total_amount_without_fee'), Decimal(0)))['kasa']
+
         rent_amount_subquery = RentInformation.objects.filter(
             report_from__range=(start, end)
         ).values('driver_id').annotate(
             rent_amount=Sum('rent_distance')
         )
+        payment_amount_subquery = DriverPayments.objects.filter(
+            report_from__range=(start, end),
+            status__in=[PaymentsStatus.CHECKING, PaymentsStatus.PENDING]
+        ).values('driver_id').annotate(
+            payment_amount=Sum('kasa')
+        )
+
         queryset = filtered_qs.values('driver_id').annotate(
             full_name=Concat(
                 Func(F("driver__user_ptr__name"), Value(1), Value(1), function='SUBSTRING', output_field=CharField()),
@@ -53,11 +61,14 @@ class SummaryReportListView(CombinedPermissionsMixin,
             total_cash=Sum('total_amount_cash'),
             total_card=Sum('total_amount_without_fee') - Sum('total_amount_cash'),
             rent_amount=Subquery(rent_amount_subquery.filter(
-                driver_id=OuterRef('driver_id')).values('rent_amount'), output_field=DecimalField())
+                driver_id=OuterRef('driver_id')).values('rent_amount'), output_field=DecimalField()),
+            payment_amount=Subquery(payment_amount_subquery.filter(
+                driver_id=OuterRef('driver_id')).values('payment_amount'), output_field=DecimalField())
         )
         total_rent = queryset.aggregate(total_rent=Sum('rent_amount'))['total_rent'] or 0
+        total_payment = queryset.aggregate(total_payment=Sum('payment_amount'))['total_payment'] or 0
         queryset = queryset.exclude(total_kasa=0).order_by('full_name')
-        return [{'total_rent': total_rent, 'kasa': kasa,
+        return [{'total_rent': total_rent, 'kasa': kasa, 'total_payment': total_payment,
                  'start': format_start, 'end': format_end, 'drivers': queryset}]
 
 
