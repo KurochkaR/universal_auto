@@ -103,6 +103,8 @@ class SummaryReportSerializer(serializers.Serializer):
     total_rent = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
     total_payment = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
     kasa = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    total_vehicle_spending = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    total_driver_spending = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
     start = serializers.CharField()
     end = serializers.CharField()
 

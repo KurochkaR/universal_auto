@@ -52,6 +52,14 @@ class SummaryReportListView(CombinedPermissionsMixin,
             payment_amount=Sum('kasa')
         )
 
+        total_vehicle_spending = VehicleSpending.objects.filter(
+            created_at__range=(start, end)
+        ).aggregate(total_spending=Coalesce(Sum('amount'), Decimal(0)))['total_spending']
+
+        total_driver_spending = Bonus.objects.filter(
+            created_at__range=(start, end)
+        ).aggregate(total_spending=Coalesce(Sum('amount'), Decimal(0)))['total_spending']
+
         queryset = filtered_qs.values('driver_id').annotate(
             full_name=Concat(
                 Func(F("driver__user_ptr__name"), Value(1), Value(1), function='SUBSTRING', output_field=CharField()),
@@ -69,6 +77,7 @@ class SummaryReportListView(CombinedPermissionsMixin,
         total_payment = queryset.aggregate(total_payment=Sum('payment_amount'))['total_payment'] or 0
         queryset = queryset.exclude(total_kasa=0).order_by('full_name')
         return [{'total_rent': total_rent, 'kasa': kasa, 'total_payment': total_payment,
+                 'total_vehicle_spending': total_vehicle_spending, 'total_driver_spending': total_driver_spending,
                  'start': format_start, 'end': format_end, 'drivers': queryset}]
 
 
