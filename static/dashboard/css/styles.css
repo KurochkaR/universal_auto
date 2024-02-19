@@ -281,7 +281,7 @@ input[type="button"] {
 .main-cards,
 .main-cards-partner {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: repeat(4, 1fr);
   gap: 20px;
   margin: 30px 0;
 }
@@ -324,6 +324,17 @@ input[type="button"] {
 .card:nth-child(3),
 .card-partner:nth-child(3) {
   background-color: #A1E8B9;
+}
+
+.card:nth-child(4),
+.card-partner:nth-child(4) {
+  background-color: #A1E8B9;
+}
+
+.card h3 {
+	margin-top: 10px;
+	margin-bottom: 0px;
+	font-size: 16px;
 }
 
 .card-inner,
@@ -1361,6 +1372,27 @@ select:focus {
 	line-height: normal;
 }
 
+.common-period .weekly-income-dates {
+	float: right;
+	color: #EC6323;
+	font-size: 30px;
+	font-style: normal;
+	font-weight: 700;
+	line-height: normal;
+}
+
+.custom-dropdown-card {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	align-items: center;
+	gap: 15px;
+	margin: 0px;
+}
+
+.not-closed-payments,
+.not-closed {
+	cursor: pointer;
+}
 
 /* driver-calendar */
 

@@ -301,6 +301,7 @@ function fetchSummaryReportData(period, start, end) {
 		type: 'GET',
 		dataType: 'json',
 		success: function (data) {
+			console.log(data[0]["kasa"]);
 			$(".apply-filter-button").prop("disabled", false);
 			let startDate = data[0]['start'];
 			let endDate = data[0]['end'];
@@ -339,9 +340,9 @@ function fetchSummaryReportData(period, start, end) {
 			} else {
 				$('.weekly-income-dates').text(gettext('З ') + startDate + ' ' + gettext('по') + ' ' + endDate);
 			}
-			;
-			$('.weekly-income-rent').text(totalDistance + ' ' + gettext('км'));
-			$('.weekly-income-amount').text(data[0]["kasa"] + ' ' + gettext('грн'));
+			$('.weekly-income-rent').text(totalDistance);
+			$('.weekly-income-amount').text(data[0]["kasa"]);
+			$('.not-closed-payments').text(data[0]["total_payment"]);
 		},
 		error: function (error) {
 			console.error(error);
@@ -392,9 +393,9 @@ function fetchCarEfficiencyData(period, vehicleId, vehicle_lc, start, end) {
 				$('#bar-three-chart').hide();
 				$('.car-select').css('display', 'contents');
 			};
-			$('.weekly-clean-amount').text(data["earning"] + ' ' + gettext('грн'));
-			$('.income-km').text(data["total_mileage"] + ' ' + gettext("км"));
-			$('.income-efficiency').text(data["average_efficiency"].toFixed(2) + ' ' + gettext('грн/км'));
+			$('.weekly-clean-amount').text(data["earning"].toFixed(2));
+			$('.income-km').text(data["total_mileage"].toFixed(2));
+			$('.income-efficiency').text(data["average_efficiency"].toFixed(2));
 		},
 		error: function (error) {
 			console.error(error);
