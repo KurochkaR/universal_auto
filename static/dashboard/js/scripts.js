@@ -1,12 +1,11 @@
 $(document).ready(function() {
-	//	перехід на сторінку адмінки
+
 	$("#admin-link").click(function() {
 		var adminUrl = $(this).data("url");
 		window.open(adminUrl, "_blank");
 	});
 
-	//	підтвердження оновлення бази даних
-	$("#updateDatabaseContainer").click(function () {
+	$(this).on('click', '#updateDatabaseContainer', function() {
 		$(".confirmation-box h2").text("Бажаєте оновити базу даних?");
 		$(".confirmation-update-database").show();
 		$("#confirmation-btn-on").data('confirmUpd', true);

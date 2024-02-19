@@ -390,7 +390,7 @@ function fetchCarEfficiencyData(period, vehicleId, vehicle_lc, start, end) {
 				$(".noDataMessage2").show();
 				$('#area-chart').hide();
 				$('#bar-three-chart').hide();
-				$('.car-select').hide();
+				$('.car-select').css('display', 'contents');
 			};
 			$('.weekly-clean-amount').text(data["earning"] + ' ' + gettext('грн'));
 			$('.income-km').text(data["total_mileage"] + ' ' + gettext("км"));
