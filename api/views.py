@@ -18,7 +18,7 @@ from api.serializers import SummaryReportSerializer, CarEfficiencySerializer, Ca
     DriverEfficiencyRentSerializer, InvestorCarsSerializer, ReshuffleSerializer, DriverPaymentsSerializer, \
     DriverEfficiencyFleetRentSerializer, DriverInformationSerializer
 from app.models import SummaryReport, CarEfficiency, Vehicle, DriverEfficiency, RentInformation, DriverReshuffle, \
-    PartnerEarnings, InvestorPayments, DriverPayments, PaymentsStatus, PenaltyBonus, Penalty, Bonus, \
+    PartnerEarnings, InvestorPayments, DriverPayments, PaymentsStatus, PenaltyBonus, \
     DriverEfficiencyFleet, VehicleSpending, Driver
 from taxi_service.utils import get_start_end
 
@@ -316,9 +316,10 @@ class DriverReshuffleListView(CombinedPermissionsMixin, generics.ListAPIView):
 
     def get_queryset(self):
         vehicles = ManagerFilterMixin.get_queryset(Vehicle, self.request.user)
+        active_vehicles = vehicles.filter(deleted_at=None)
         start, end, format_start, format_end = get_start_end(self.kwargs['period'])
         qs = DriverReshuffle.objects.filter(
-            swap_vehicle__in=vehicles,
+            swap_vehicle__in=active_vehicles,
             swap_time__range=(start, end)
         ).select_related('driver_start', 'swap_vehicle').annotate(
             licence_plate=F('swap_vehicle__licence_plate'),
@@ -340,7 +341,7 @@ class DriverReshuffleListView(CombinedPermissionsMixin, generics.ListAPIView):
         for key, group in groupby(sorted_reshuffles, key=itemgetter('licence_plate')):
             grouped_by_licence_plate[key].extend(group)
 
-        for vehicle in vehicles:
+        for vehicle in active_vehicles:
             if vehicle.licence_plate not in grouped_by_licence_plate:
                 grouped_by_licence_plate[vehicle.licence_plate] = []
         reshuffles_list = []

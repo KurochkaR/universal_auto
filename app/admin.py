@@ -39,7 +39,7 @@ class SoftDeleteAdmin(admin.ModelAdmin):
     def get_actions(self, request):
         actions = super().get_actions(request)
         actions['delete_selected'] = (
-            self.delete_selected, 'delete_selected', _(f"Звільнити {self.model._meta.verbose_name_plural}в"))
+            self.delete_selected, 'delete_selected', _(f"Видалити {self.model._meta.verbose_name_plural}"))
         return actions
 
     def get_queryset(self, request):
@@ -1089,7 +1089,7 @@ class FiredDriverAdmin(admin.ModelAdmin):
 
 
 @admin.register(Vehicle)
-class VehicleAdmin(admin.ModelAdmin):
+class VehicleAdmin(SoftDeleteAdmin):
     search_fields = ('name', 'licence_plate', 'vin_code',)
     ordering = ('name',)
     exclude = ('deleted_at',)

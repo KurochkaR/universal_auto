@@ -126,7 +126,7 @@ def summary_report_create(start, end, driver, partner_pk):
                                                               report_to=end,
                                                               driver=driver,
                                                               vehicle=vehicle,
-                                                              partner_id=partner_pk,
+                                                              partner=partner_pk,
                                                               defaults=default_values)
         if not created:
             for field in fields:

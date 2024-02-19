@@ -211,7 +211,6 @@ def get_today_orders(self, partner_pk):
                 driver_id = driver.get_driver_external_id(fleet)
                 if driver_id:
                     fleet.get_fleet_orders(start, end, driver.pk, driver_id)
-        print("finnished")
     except Exception as e:
         logger.error(e)
         retry_delay = retry_logic(e, self.request.retries + 1)
@@ -220,7 +219,6 @@ def get_today_orders(self, partner_pk):
 
 @app.task(bind=True, retry_backoff=30, max_retries=4)
 def check_card_cash_value(self, partner_pk):
-    print("check_cash")
     try:
         today = timezone.localtime()
         yesterday = timezone.make_aware(datetime.combine(today, time.min)) - timedelta(days=1)
@@ -247,7 +245,6 @@ def check_card_cash_value(self, partner_pk):
 
 @app.task(bind=True)
 def send_notify_to_check_car(self, partner_pk):
-    print("notify")
     if redis_instance().exists(f"wrong_vehicle_{partner_pk}"):
         wrong_cars = redis_instance().hgetall(f"wrong_vehicle_{partner_pk}")
         for driver, car in wrong_cars.items():
@@ -337,11 +334,11 @@ def check_daily_report(self, partner_pk, start=None, end=None):
 
 
 @app.task(bind=True, retry_backoff=30, max_retries=4)
-def download_nightly_report(self, day=None):
+def download_nightly_report(self, partner_pk, day=None):
     try:
         for schema in Schema.objects.all():
             start, end = get_time_for_task(schema.pk, day)[2:]
-            fleets = Fleet.objects.filter(partner=schema.partner, deleted_at=None).exclude(name='Gps')
+            fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name='Gps')
             for fleet in fleets:
                 for driver in Driver.objects.get_active(schema=schema):
                     driver_id = driver.get_driver_external_id(fleet)
@@ -378,7 +375,7 @@ def generate_summary_report(self, schemas, day=None):
 def get_car_efficiency(self, partner_pk):
     start = timezone.make_aware(datetime.combine(timezone.localtime() - timedelta(days=1), time.min))
     end = timezone.make_aware(datetime.combine(start, time.max))
-    for vehicle in Vehicle.objects.filter(partner=partner_pk, gps__isnull=False).select_related('gps'):
+    for vehicle in Vehicle.objects.get_active(partner=partner_pk, gps__isnull=False).select_related('gps'):
         efficiency = CarEfficiency.objects.filter(report_from=start,
                                                   partner=partner_pk,
                                                   vehicle=vehicle)
@@ -513,7 +510,7 @@ def send_on_job_application_on_driver(self, job_id):
 def schedule_for_detaching_uklon(self, partner_pk):
     today = timezone.localtime()
     desired_time = today + timedelta(hours=1)
-    for vehicle in Vehicle.objects.filter(partner=partner_pk):
+    for vehicle in Vehicle.objects.get_active(partner=partner_pk):
         reshuffle = DriverReshuffle.objects.filter(~Q(end_time__time=time(23, 59, 00)),
                                                    swap_time__date=today.date(),
                                                    swap_vehicle=vehicle,
@@ -618,9 +615,9 @@ def manager_paid_weekly(self, partner_pk):
 
 @app.task(bind=True)
 def send_driver_report(self, schemas):
+    result = []
     for schema in schemas:
-        result = []
-        partner_pk = Schema.objects.get(pk=schema).partner
+        partner_pk = Schema.objects.get(pk=schema).partner.id
         managers = list(Manager.objects.filter(
             managers_partner=partner_pk, chat_id__isnull=False).exclude(chat_id='').values_list('chat_id', flat=True))
         managers.extend(list(Partner.objects.filter(
@@ -632,10 +629,10 @@ def send_driver_report(self, schemas):
 
 @app.task(bind=True)
 def send_daily_statistic(self, schemas):
-    message = ''
     driver_dict_msg = {}
     dict_msg = {}
     for schema in schemas:
+        message = ''
         schema_obj = Schema.objects.get(pk=schema)
         managers = list(Manager.objects.filter(
             managers_partner=schema_obj.partner.pk, chat_id__isnull=False).exclude(chat_id='').values('chat_id'))
@@ -651,7 +648,7 @@ def send_daily_statistic(self, schemas):
                             key, schema_obj.title, result[0][key], result[1].get(key, 0), result[2].get(key, 0), result[3].get(key, 0))
                         driver_dict_msg[key.pk] = driver_msg
                         message += f"{num}.{driver_msg}"
-                if schema_obj.partner_pk in dict_msg:
+                if schema_obj.partner.pk in dict_msg:
                     dict_msg[schema_obj.partner.pk] += message
                 else:
                     dict_msg[schema_obj.partner.pk] = message
@@ -679,11 +676,11 @@ def send_efficiency_report(self, partner_pk):
 
 @app.task(bind=True)
 def send_driver_efficiency(self, schemas):
-    message = ''
     driver_dict_msg = {}
     dict_msg = {}
     for schema in schemas:
-        schema_obj = Schema.objects.get(pk=schema).select_related("partner")
+        message = ''
+        schema_obj = Schema.objects.get(pk=schema)
         managers = list(Manager.objects.filter(managers_partner=schema_obj.partner).values_list('chat_id', flat=True))
         if not managers:
             managers = [Partner.objects.filter(pk=schema_obj.partner.id).values_list('chat_id', flat=True).first()]
@@ -1098,7 +1095,7 @@ def calculate_driver_reports(self, schemas, day=None):
         schema_obj = Schema.objects.get(pk=schema)
         today = datetime.combine(timezone.localtime(), time.max)
         if schema_obj.is_weekly():
-            if today.weekday():
+            if not today.weekday():
                 end = timezone.make_aware(datetime.combine(today - timedelta(days=today.weekday() + 1), time.max))
                 start = timezone.make_aware(datetime.combine(end - timedelta(days=6), time.min))
             else:

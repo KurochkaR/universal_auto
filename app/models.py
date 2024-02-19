@@ -289,6 +289,8 @@ class Vehicle(models.Model):
     updated_at = models.DateTimeField(auto_now=True, verbose_name='Оновлено')
     deleted_at = models.DateTimeField(null=True, blank=True, verbose_name='Видалено')
 
+    objects = SoftDeleteManager()
+
     class Meta:
         verbose_name = 'Автомобіль'
         verbose_name_plural = 'Автомобілі'

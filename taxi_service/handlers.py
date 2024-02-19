@@ -81,7 +81,8 @@ class PostRequestHandler:
         aggregator = request.POST.get('aggregator')
         login = request.POST.get('login')
         password = request.POST.get('password')
-        task = get_session.delay(request.user.pk, aggregator, login=login, password=password)
+        task = get_session.apply_async(args=[request.user.pk, aggregator, login, password],
+                                       queue=f'beat_tasks_{request.user.pk}')
         json_data = JsonResponse({'task_id': task.id}, safe=False)
         response = HttpResponse(json_data, content_type='application/json')
 
@@ -160,7 +161,7 @@ class PostRequestHandler:
         else:
             manager = Manager.objects.get(pk=request.user.pk)
             partner = manager.managers_partner.pk
-        upd = update_driver_data.delay(partner)
+        upd = update_driver_data.apply_async(args=[partner], queue=f'beat_tasks_{partner}')
         json_data = JsonResponse({'task_id': upd.id}, safe=False)
         response = HttpResponse(json_data, content_type='application/json')
         return response

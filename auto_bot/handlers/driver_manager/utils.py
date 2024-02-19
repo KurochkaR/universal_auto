@@ -159,7 +159,7 @@ def calculate_by_rate(driver, kasa, partner):
 def get_daily_report(manager_id, schema_obj=None):
     drivers = get_drivers_vehicles_list(manager_id, Driver)[0]
     if schema_obj:
-        report_time = datetime.combine(timezone.localtime().date(), schema_obj.shift_time)
+        report_time = timezone.make_aware(datetime.combine(timezone.localtime().date(), schema_obj.shift_time))
         drivers = drivers.filter(schema=schema_obj)
     else:
         report_time = timezone.localtime()
@@ -389,7 +389,7 @@ def get_driver_efficiency_report(manager_id, schema=None, start=None, end=None):
     yesterday = timezone.localtime().date() - timedelta(days=1)
     if not start and not end:
         if schema:
-            report_time = datetime.combine(timezone.localtime().date(), schema.shift_time)
+            report_time = timezone.make_aware(datetime.combine(timezone.localtime().date(), schema.shift_time))
             yesterday = report_time - timedelta(days=1)
             drivers = drivers.filter(schema=schema)
         else:

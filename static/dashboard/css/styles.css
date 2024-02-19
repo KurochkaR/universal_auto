@@ -634,6 +634,7 @@ input[type="button"] {
 
 .progress-label {
   padding-left: 5px;
+  text-align: right;
   color: #fff !important;
 }
 
