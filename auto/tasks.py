@@ -1132,7 +1132,7 @@ def calculate_vehicle_earnings(self, payment_pk):
     driver = payment.driver
     start = timezone.localtime(payment.report_from)
     end = timezone.localtime(payment.report_to)
-    driver_value = payment.earning + payment.cash + payment.rent
+    driver_value = payment.earning + payment.cash + payment.rent - payment.get_bonuses() + payment.get_penalties()
     if payment.kasa:
         spending_rate = 1 - round(driver_value / payment.kasa, 6) if driver_value > 0 else 1
         if payment.is_weekly():
@@ -1163,6 +1163,11 @@ def calculate_vehicle_earnings(self, payment_pk):
         else:
             vehicles_income = reshuffles_income
     for vehicle, income in vehicles_income.items():
+        vehicle_bonus = Penalty.objects.filter(vehicle=vehicle, driver_payments=payment).aggregate(
+            total_amount=Coalesce(Sum('amount'), Decimal(0)))['total_amount']
+        vehicle_penalty = Bonus.objects.filter(vehicle=vehicle, driver_payments=payment).aggregate(
+            total_amount=Coalesce(Sum('amount'), Decimal(0)))['total_amount']
+        earning = income + vehicle_bonus - vehicle_penalty
         PartnerEarnings.objects.get_or_create(
             report_from=payment.report_from,
             report_to=payment.report_to,
@@ -1171,7 +1176,7 @@ def calculate_vehicle_earnings(self, payment_pk):
             partner=driver.partner,
             defaults={
                 "status": PaymentsStatus.COMPLETED,
-                "earning": income,
+                "earning": earning,
             }
         )
 

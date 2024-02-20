@@ -23,7 +23,6 @@ from app.models import FleetOrder, Vehicle, FleetsDriversVehiclesRate, UberServi
 from app.uklon_sync import UklonRequest
 from auto import settings
 from auto_bot.handlers.order.utils import check_vehicle
-from auto_bot.main import bot
 from scripts.redis_conn import get_logger, redis_instance
 from selenium_ninja.synchronizer import AuthenticationError, InfinityTokenError
 
@@ -236,10 +235,10 @@ class SeleniumTools:
             ec.element_to_be_clickable((By.XPATH, UberService.get_value('UBER_LOGIN_2')))).click()
 
     def create_gps_session(self, login, password, url):
+        session = None
+        self.driver.get(url)
+        time.sleep(self.sleep)
         try:
-            session = None
-            self.driver.get(url)
-            time.sleep(self.sleep)
             user_field = WebDriverWait(self.driver, self.sleep).until(
                 ec.presence_of_element_located((By.ID, UaGpsService.get_value('UAGPS_LOGIN_1'))))
             click_and_clear(user_field)

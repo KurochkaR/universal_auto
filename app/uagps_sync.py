@@ -296,7 +296,7 @@ class UaGpsSynchronizer(Fleet):
             if kasa and mileage:
                 text = f"Поточна статистика на {time_now.strftime('%H:%M')}:\n" \
                        f"Водій: {driver_obj}\n"\
-                       f"Каса: {kasa}\n"\
+                       f"Каса: {round(kasa, 2)}\n"\
                        f"Виконано замовлень: {orders}\n"\
                        f"Скасовано замовлень: {canceled_orders}\n"\
                        f"Пробіг під замовленням: {mileage}\n"\
