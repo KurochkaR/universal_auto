@@ -19,7 +19,7 @@ from api.serializers import SummaryReportSerializer, CarEfficiencySerializer, Ca
     DriverEfficiencyFleetRentSerializer, DriverInformationSerializer
 from app.models import SummaryReport, CarEfficiency, Vehicle, DriverEfficiency, RentInformation, DriverReshuffle, \
     PartnerEarnings, InvestorPayments, DriverPayments, PaymentsStatus, PenaltyBonus, Penalty, Bonus, \
-    DriverEfficiencyFleet, VehicleSpending, Driver
+    DriverEfficiencyFleet, VehicleSpending, Driver, BonusCategory
 from taxi_service.utils import get_start_end
 
 
@@ -49,8 +49,24 @@ class SummaryReportListView(CombinedPermissionsMixin,
             report_from__range=(start, end),
             status__in=[PaymentsStatus.CHECKING, PaymentsStatus.PENDING]
         ).values('driver_id').annotate(
-            payment_amount=Sum('kasa')
+            payment_amount=Sum('kasa'),
+            rent_distance=Sum('rent_distance')
         )
+
+        driver_payments_list = DriverPayments.objects.filter(
+            report_from__range=(start, end),
+            status__in=[PaymentsStatus.COMPLETED]
+        )
+        sum_rent = driver_payments_list.aggregate(
+            payment_rent=Coalesce(Sum('rent'), Value(0, output_field=DecimalField()))
+        )['payment_rent']
+
+        total_compensation_bonus = Bonus.objects.filter(
+            category=BonusCategory.objects.get(title='Компенсація оренди'),
+            driver_payments__in=driver_payments_list
+        ).aggregate(
+            total_amount=Coalesce(Sum('amount'), Value(0, output_field=DecimalField()))
+        )['total_amount']
 
         total_vehicle_spending = VehicleSpending.objects.filter(
             created_at__range=(start, end)
@@ -71,14 +87,20 @@ class SummaryReportListView(CombinedPermissionsMixin,
             rent_amount=Subquery(rent_amount_subquery.filter(
                 driver_id=OuterRef('driver_id')).values('rent_amount'), output_field=DecimalField()),
             payment_amount=Subquery(payment_amount_subquery.filter(
-                driver_id=OuterRef('driver_id')).values('payment_amount'), output_field=DecimalField())
+                driver_id=OuterRef('driver_id')).values('payment_amount'), output_field=DecimalField()),
+            rent_distance=Subquery(payment_amount_subquery.filter(
+                driver_id=OuterRef('driver_id')).values('rent_distance'), output_field=DecimalField())
         )
+        rent_earnings = sum_rent - total_compensation_bonus
         total_rent = queryset.aggregate(total_rent=Sum('rent_amount'))['total_rent'] or 0
         total_payment = queryset.aggregate(total_payment=Sum('payment_amount'))['total_payment'] or 0
+        total_distance = queryset.aggregate(total_distance=Sum('rent_distance'))['total_distance'] or 0
         queryset = queryset.exclude(total_kasa=0).order_by('full_name')
-        return [{'total_rent': total_rent, 'kasa': kasa, 'total_payment': total_payment,
-                 'total_vehicle_spending': total_vehicle_spending, 'total_driver_spending': total_driver_spending,
-                 'start': format_start, 'end': format_end, 'drivers': queryset}]
+        return [
+            {'total_distance': total_distance, 'rent_earnings': rent_earnings, 'total_rent': total_rent, 'kasa': kasa,
+             'total_payment': total_payment,
+             'total_vehicle_spending': total_vehicle_spending, 'total_driver_spending': total_driver_spending,
+             'start': format_start, 'end': format_end, 'drivers': queryset}]
 
 
 class InvestorCarsEarningsView(CombinedPermissionsMixin,

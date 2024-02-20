@@ -60,12 +60,16 @@
           <span class="weekly-income-amount"></span>
         </div>
         <div class="custom-dropdown-card">
-          <h3 class="not-closed">{% trans 'Не закриті виплати' %}<i class="fas fa-eye" style="margin-left: 10px;"></i></h3>
-          <span class="not-closed-payments"></span>
-        </div>
-        <div class="custom-dropdown-card">
           <h3>{% trans 'Чистий' %}</h3>
           <span class="weekly-clean-amount"></span>
+        </div>
+        <div class="custom-dropdown-card">
+          <h3>{% trans 'За холостий пробіг' %}</h3>
+          <span class="rent-earning"></span>
+        </div>
+        <div class="custom-dropdown-card">
+          <h3 class="not-closed">{% trans 'Не закриті виплати' %}<i class="fas fa-eye" style="margin-left: 10px;"></i></h3>
+          <span class="not-closed-payments"></span>
         </div>
         {% else %}
         <div class="custom-dropdown-card">
@@ -96,6 +100,10 @@
         <div class="custom-dropdown-card">
           <h3>{% trans 'Холостий' %}</h3>
           <span class="weekly-income-rent"></span>
+        </div>
+        <div class="custom-dropdown-card">
+          <h3>{% trans 'Холостий не виплачений' %}</h3>
+          <span class="unpaid-rent"></span>
         </div>
         <div class="custom-dropdown-card">
           <h3>{% trans 'Загальний' %}</h3>

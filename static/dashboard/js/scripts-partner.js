@@ -345,6 +345,8 @@ function fetchSummaryReportData(period, start, end) {
 			$('.not-closed-payments').text(data[0]["total_payment"]);
 			$('.weekly-spending-driver').text(data[0]["total_driver_spending"]);
 			$('.weekly-spending-vehicle').text(data[0]["total_vehicle_spending"]);
+			$('.rent-earning').text(data[0]["rent_earnings"]);
+			$('.unpaid-rent').text(data[0]["total_distance"]);
 
 			const driversWithPayments = data[0]['drivers'].filter(driver => driver.payment_amount !== null);
 			const table = $('.driver-table');
