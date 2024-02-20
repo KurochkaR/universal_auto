@@ -22,7 +22,7 @@ from selenium_ninja.synchronizer import Synchronizer, AuthenticationError
 class BoltRequest(Fleet, Synchronizer):
     base_url = models.URLField(default=BoltService.get_value('REQUEST_BOLT_LOGIN_URL'))
 
-    def create_session(self, partner=None, login=None, password=None):
+    def create_session(self, partner, password, login):
         partner_id = partner if partner else self.partner.id
         if self.partner and not self.deleted_at:
             login = CredentialPartner.get_value("BOLT_NAME", partner=partner_id)

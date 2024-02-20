@@ -15,13 +15,21 @@ from selenium_ninja.driver import SeleniumTools
 
 class UaGpsSynchronizer(Fleet):
     @staticmethod
-    def create_session(partner, login, password):
-        partner_obj = Partner.objects.get(pk=partner)
-        token = SeleniumTools(partner).create_gps_session(login, password, partner_obj.gps_url)
-        return token
+    def create_session(*args):
+        partner_obj = Partner.objects.get(pk=args[0])
+        params = {
+            'svc': 'token/login',
+            'params': json.dumps({"token": args[1]})
+        }
+        response = requests.get(f"{partner_obj.gps_url}wialon/ajax.html", params=params)
+        if response.json().get("error"):
+            print(response.json())
+            return False
+        # token = SeleniumTools(partner).create_gps_session(login, password, partner_obj.gps_url)
+        return args[1]
 
     def get_base_url(self):
-        return "https://hst-api.wialon.eu/" if self.partner.gps_url == "https://gps.antenor.online/" else self.partner.gps_url
+        return self.partner.gps_url
 
     def get_session(self):
         if not redis_instance().exists(f"{self.partner.id}_gps_session"):

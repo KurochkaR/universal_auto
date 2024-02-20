@@ -12,17 +12,15 @@
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500&family=Open+Sans&display=swap"
         rel="stylesheet">
   <!-- Material Icons -->
-  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined"
-        rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
   <!-- Custom CSS -->
   <link rel="stylesheet" href="{% static 'dashboard/css/styles.css' %}">
-  <link
-    href="https://cdn.jsdelivr.net/npm/apexcharts@3.41.0/dist/apexcharts.min.css"
-    rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.3/css/lightbox.min.css">
+  <link href="https://cdn.jsdelivr.net/npm/apexcharts@3.41.0/dist/apexcharts.min.css" rel="stylesheet">
   <link rel="shortcut icon" href="{% static 'app/images/favicon.webp' %}"/>
   <script src="https://kit.fontawesome.com/3f8b10f3dc.js" crossorigin="anonymous"></script>
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.3/js/lightbox.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
@@ -168,6 +166,7 @@
             <input type="text" id="partnerLogin" name="partnerLogin" placeholder="{% trans 'Логін' %}" required>
             <input class="showPassword partnerPassword" type="password" id="partnerPassword" name="partnerPassword"
                    placeholder="{% trans 'Пароль' %}" required>
+            <a class="helper-token" href="#" data-lightbox="image">Де взяти токен gps?</a>
             <div class="loader-login"></div>
           </form>
 

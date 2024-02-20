@@ -138,8 +138,8 @@ def get_session(self, partner_pk, aggregator='Uber', login=None, password=None):
     except ObjectDoesNotExist:
         fleet = Fleet.objects.get(name=aggregator, partner=None)
     try:
-        token = fleet.create_session(partner_pk, login=login, password=password)
-        if login and password:
+        token = fleet.create_session(partner_pk, password, login)
+        if password:
             success = login_in(aggregator=aggregator, partner_id=partner_pk,
                                login_name=login, password=password, token=token)
             return partner_pk, success

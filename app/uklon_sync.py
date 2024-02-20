@@ -47,7 +47,7 @@ class UklonRequest(Fleet, Synchronizer):
             redis_instance().set(f"{self.partner.id}_park_id", response['fleets'][0]['id'])
         return redis_instance().get(f"{self.partner.id}_park_id")
 
-    def create_session(self, partner, login=None, password=None):
+    def create_session(self, partner, password, login):
         payload = self.park_payload(login, password)
         response = requests.post(f"{self.base_url}auth", json=payload)
         if response.status_code == 201:
