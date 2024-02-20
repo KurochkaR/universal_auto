@@ -1383,7 +1383,7 @@ select:focus {
 
 .custom-dropdown-card {
 	display: grid;
-	grid-template-columns: 1fr 1fr;
+	grid-template-columns: 60% 40%;
 	align-items: center;
 	gap: 15px;
 	margin: 0px;
@@ -2474,4 +2474,24 @@ span#vehicle-bonus-error {
 .btns {
     max-width: 80px;
     min-width: 80px;
+}
+
+.modal-not-closed-payments {
+	width: 100%;
+	height: auto;
+	display: none;
+	position: fixed;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	z-index: 9999;
+}
+
+.modal-header {
+	width: 100%;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	border-bottom: 6px solid #EC6323;
+	border-radius: 11px;
 }

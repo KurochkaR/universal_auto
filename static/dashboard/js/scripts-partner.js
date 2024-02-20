@@ -343,6 +343,22 @@ function fetchSummaryReportData(period, start, end) {
 			$('.weekly-income-rent').text(totalDistance);
 			$('.weekly-income-amount').text(data[0]["kasa"]);
 			$('.not-closed-payments').text(data[0]["total_payment"]);
+			$('.weekly-spending-driver').text(data[0]["total_driver_spending"]);
+			$('.weekly-spending-vehicle').text(data[0]["total_vehicle_spending"]);
+
+			const driversWithPayments = data[0]['drivers'].filter(driver => driver.payment_amount !== null);
+			const table = $('.driver-table');
+
+			table.find('tbody').empty();
+
+			driversWithPayments.forEach(driver => {
+				const row = $('<tr></tr>');
+
+				row.append(`<td>${driver.full_name}</td>`);
+				row.append(`<td>${driver.payment_amount}</td>`);
+
+				table.append(row);
+			});
 		},
 		error: function (error) {
 			console.error(error);

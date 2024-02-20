@@ -291,6 +291,7 @@ $(document).ready(function() {
 		$('#modal-add-bonus').hide();
 		$('#modal-upd-bonus').hide();
 		$('#modal-add-penalty').hide();
+		$('.modal-not-closed-payments').hide();
 	});
 
 	$(this).on('click', '#add-bonus-btn, #add-penalty-btn', function (e) {
@@ -388,12 +389,17 @@ $(document).ready(function() {
 	});
 
 	$(this).on('change', '#bonus-category', function(){
-	if ($(this).val() === 'add_new_category'){
-		$('.new-category-field').css('display', 'flex')
-	} else {
-		$('.new-category-field').hide()
-	}
+		if ($(this).val() === 'add_new_category'){
+			$('.new-category-field').css('display', 'flex')
+		} else {
+			$('.new-category-field').hide()
+		}
 	});
+
+	$(this).on('click', '.not-closed', function () {
+		$('.modal-not-closed-payments').show();
+	});
+
 });
 
 function applyCustomDateRange(item) {
