@@ -236,7 +236,20 @@ def check_card_cash_value(self, partner_pk):
                 else:
                     rate = driver.schema.rate
                 enable = int(ratio > rate)
-                fleets_cash_trips.delay(partner_pk, driver.pk, enable)
+                disabled = []
+                for fleet in fleets:
+                    driver_rate = FleetsDriversVehiclesRate.objects.filter(
+                        driver=driver, fleet=fleet).first()
+                    if driver_rate and int(driver_rate.pay_cash) != enable:
+                        result = fleet.disable_cash(driver_rate.driver_external_id, enable)
+                        disabled.append(result)
+                if disabled:
+                    if enable:
+                        text = f"Готівка {driver} \U0001F7E2"
+                    else:
+                        text = f"Готівка {driver} \U0001F534"
+                    bot.send_message(chat_id=ParkSettings.get_value("DRIVERS_CHAT", partner=partner_pk),
+                                     text=text)
     except Exception as e:
         logger.error(e)
         retry_delay = retry_logic(e, self.request.retries + 1)
@@ -1136,7 +1149,7 @@ def calculate_vehicle_earnings(self, payment_pk):
     driver = payment.driver
     start = timezone.localtime(payment.report_from)
     end = timezone.localtime(payment.report_to)
-    driver_value = payment.earning + payment.cash + payment.rent - payment.get_bonuses() + payment.get_penalties()
+    driver_value = payment.earning + payment.cash + payment.rent
     if payment.kasa:
         spending_rate = 1 - round(driver_value / payment.kasa, 6) if driver_value > 0 else 1
         if payment.is_weekly():
@@ -1167,11 +1180,11 @@ def calculate_vehicle_earnings(self, payment_pk):
         else:
             vehicles_income = reshuffles_income
     for vehicle, income in vehicles_income.items():
-        vehicle_bonus = Penalty.objects.filter(vehicle=vehicle, driver_payments=payment).aggregate(
-            total_amount=Coalesce(Sum('amount'), Decimal(0)))['total_amount']
-        vehicle_penalty = Bonus.objects.filter(vehicle=vehicle, driver_payments=payment).aggregate(
-            total_amount=Coalesce(Sum('amount'), Decimal(0)))['total_amount']
-        earning = income + vehicle_bonus - vehicle_penalty
+        # vehicle_bonus = Penalty.objects.filter(vehicle=vehicle, driver_payments=payment).aggregate(
+        #     total_amount=Coalesce(Sum('amount'), Decimal(0)))['total_amount']
+        # vehicle_penalty = Bonus.objects.filter(vehicle=vehicle, driver_payments=payment).aggregate(
+        #     total_amount=Coalesce(Sum('amount'), Decimal(0)))['total_amount']
+        # earning = income + vehicle_bonus - vehicle_penalty
         PartnerEarnings.objects.get_or_create(
             report_from=payment.report_from,
             report_to=payment.report_to,
@@ -1180,7 +1193,7 @@ def calculate_vehicle_earnings(self, payment_pk):
             partner=driver.partner,
             defaults={
                 "status": PaymentsStatus.COMPLETED,
-                "earning": earning,
+                "earning": income,
             }
         )
 
