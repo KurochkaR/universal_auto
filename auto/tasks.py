@@ -1142,7 +1142,6 @@ def calculate_driver_reports(self, schemas, day=None):
                     get_corrections(start, end, driver)
 
 
-
 @app.task(bind=True, queue='bot_tasks')
 def calculate_vehicle_earnings(self, payment_pk):
     payment = DriverPayments.objects.get(pk=payment_pk)

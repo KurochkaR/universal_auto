@@ -124,6 +124,7 @@ class Schema(models.Model):
         ('HALF', 'Схема 50/50'),
         ('DYNAMIC', 'Динамічна схема'),
         ('CUSTOM', 'Індивідуальний відсоток'),
+        ('FLOAT', 'Плаваючий відсоток'),
     ]
 
     title = models.CharField(max_length=255, verbose_name='Назва схеми')
@@ -299,6 +300,13 @@ class Vehicle(models.Model):
         return f'{self.licence_plate}'
 
 
+class DeletedVehicle(Vehicle):
+    class Meta:
+        verbose_name = 'Видалений автомобіль'
+        verbose_name_plural = 'Видалені автомобілі'
+        proxy = True
+
+
 class VehicleSpending(models.Model):
     class Category(models.TextChoices):
         FUEL = 'FUEL', 'Паливо'
@@ -460,6 +468,7 @@ class BonusCategory(Category):
 
 
 class PenaltyBonus(PolymorphicModel):
+    photo = models.ImageField(upload_to='penalty_bonus/', blank=True, null=True, verbose_name='Фото')
     amount = models.DecimalField(max_digits=8, decimal_places=2, verbose_name='Сума')
     description = models.CharField(max_length=255, null=True, verbose_name='Опис')
 
@@ -468,6 +477,7 @@ class PenaltyBonus(PolymorphicModel):
     driver = models.ForeignKey(Driver, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Водій')
     driver_payments = models.ForeignKey(DriverPayments, null=True, blank=True, verbose_name='Виплата водію',
                                         on_delete=models.CASCADE)
+    created_at = models.DateTimeField(editable=False, auto_now_add=True, verbose_name='Створено')
 
     class Meta:
         verbose_name = 'Штраф/Бонус'
