@@ -23,7 +23,6 @@ from app.models import FleetOrder, Vehicle, FleetsDriversVehiclesRate, UberServi
 from app.uklon_sync import UklonRequest
 from auto import settings
 from auto_bot.handlers.order.utils import check_vehicle
-from auto_bot.main import bot
 from scripts.redis_conn import get_logger, redis_instance
 from selenium_ninja.synchronizer import AuthenticationError, InfinityTokenError
 
@@ -235,47 +234,47 @@ class SeleniumTools:
         WebDriverWait(self.driver, self.sleep).until(
             ec.element_to_be_clickable((By.XPATH, UberService.get_value('UBER_LOGIN_2')))).click()
 
-    def create_gps_session(self, login, password, url):
-        try:
-            session = None
-            self.driver.get(url)
-            time.sleep(self.sleep)
-            user_field = WebDriverWait(self.driver, self.sleep).until(
-                ec.presence_of_element_located((By.ID, UaGpsService.get_value('UAGPS_LOGIN_1'))))
-            click_and_clear(user_field)
-            user_field.send_keys(login)
-            pass_field = self.driver.find_element(By.ID, UaGpsService.get_value('UAGPS_LOGIN_2'))
-            click_and_clear(pass_field)
-            pass_field.send_keys(password)
-            self.driver.find_element(By.ID, UaGpsService.get_value('UAGPS_LOGIN_3')).click()
-            time.sleep(self.sleep)
-            cookies = self.driver.get_cookies()
-        except (NoSuchElementException, InvalidArgumentException):
-            return False
-        for cookie in cookies:
-            if cookie.get('name') == 'sessions':
-                session = cookie.get('value')
-            else:
-                session = "5150a0c1025fda8440f78839971d5b73"
-        self.quit()
-        if session:
-            params = {
-                'sid': session,
-                'svc': 'token/list',
-                'params': json.dumps({})
-            }
-            wialon_url = "https://hst-api.wialon.eu/" if url == "https://gps.antenor.online/" else url
-            response = requests.get(f"{wialon_url}wialon/ajax.html", params=params)
-            tokens_list = response.json()
-            for token in tokens_list:
-                if not token.get('dur'):
-                    infinity_token = token['h']
-                    break
-            else:
-                raise InfinityTokenError
-        else:
-            raise AuthenticationError(f"Gps login or password incorrect.")
-        return infinity_token
+    # def create_gps_session(self, login, password, url):
+    #     try:
+    #         session = None
+    #         self.driver.get(url)
+    #         time.sleep(self.sleep)
+    #         user_field = WebDriverWait(self.driver, self.sleep).until(
+    #             ec.presence_of_element_located((By.ID, UaGpsService.get_value('UAGPS_LOGIN_1'))))
+    #         click_and_clear(user_field)
+    #         user_field.send_keys(login)
+    #         pass_field = self.driver.find_element(By.ID, UaGpsService.get_value('UAGPS_LOGIN_2'))
+    #         click_and_clear(pass_field)
+    #         pass_field.send_keys(password)
+    #         self.driver.find_element(By.ID, UaGpsService.get_value('UAGPS_LOGIN_3')).click()
+    #         time.sleep(self.sleep)
+    #         cookies = self.driver.get_cookies()
+    #     except (NoSuchElementException, InvalidArgumentException):
+    #         return False
+    #     for cookie in cookies:
+    #         if cookie.get('name') == 'sessions':
+    #             session = cookie.get('value')
+    #         else:
+    #             session = "5150a0c1025fda8440f78839971d5b73"
+    #     self.quit()
+    #     if session:
+    #         params = {
+    #             'sid': session,
+    #             'svc': 'token/list',
+    #             'params': json.dumps({})
+    #         }
+    #         wialon_url = "https://hst-api.wialon.eu/" if url == "https://gps.antenor.online/" else url
+    #         response = requests.get(f"{wialon_url}wialon/ajax.html", params=params)
+    #         tokens_list = response.json()
+    #         for token in tokens_list:
+    #             if not token.get('dur'):
+    #                 infinity_token = token['h']
+    #                 break
+    #         else:
+    #             raise InfinityTokenError
+    #     else:
+    #         raise AuthenticationError(f"Gps login or password incorrect.")
+    #     return infinity_token
 
     @staticmethod
     def report_file_name(pattern):
@@ -381,8 +380,8 @@ class SeleniumTools:
                                 "partner_id": self.partner,
                                 "date_order": timezone.make_aware(datetime.strptime(row[7], "%Y-%m-%d %H:%M:%S"))}
                         FleetOrder.objects.create(**data)
-                        if check_vehicle(driver) != vehicle:
-                            redis_instance().hset(f"wrong_vehicle_{driver.partner.pk}", driver.driver_id,
+                        if check_vehicle(driver.driver) != vehicle:
+                            redis_instance().hset(f"wrong_vehicle_{driver.partner.pk}", driver.driver.id,
                                                   vehicle.licence_plate)
                 os.remove(file_path)
 

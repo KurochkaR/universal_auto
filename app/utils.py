@@ -23,9 +23,8 @@ def get_schedule(schema_time, day='*', periodic=None):
 def create_task(task, partner, schedule, param=None):
     try:
         periodic_task = PeriodicTask.objects.get(
-            name=f'{task}({partner})',
+            name=f'{task}({partner}_{schedule})',
             task=f'auto.tasks.{task}',
-            crontab=schedule,
             queue=f"beat_tasks_{partner}"
         )
         args_list = eval(periodic_task.args) if periodic_task.args else []
@@ -42,7 +41,7 @@ def create_task(task, partner, schedule, param=None):
         if param:
             task_args.append([param])
         PeriodicTask.objects.create(
-            name=f'{task}({partner})',
+            name=f'{task}({partner}_{schedule})',
             task=f'auto.tasks.{task}',
             queue=f"beat_tasks_{partner}",
             crontab=schedule,

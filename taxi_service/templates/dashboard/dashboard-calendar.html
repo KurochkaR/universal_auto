@@ -11,7 +11,7 @@
       <label for="search-vehicle-calendar">{% trans "Автомобіль" %}</label>
       <select id="search-vehicle-calendar">
         <option value="all">--------</option>
-        {% for vehicle in get_all_vehicle %}
+        {% for vehicle in get_active_vehicle %}
         <option value="{{ vehicle.id }}">{{ vehicle }}</option>
         {% endfor %}
       </select>

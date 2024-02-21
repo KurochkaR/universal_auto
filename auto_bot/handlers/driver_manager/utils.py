@@ -159,7 +159,7 @@ def calculate_by_rate(driver, kasa, partner):
 def get_daily_report(manager_id, schema_obj=None):
     drivers = get_drivers_vehicles_list(manager_id, Driver)[0]
     if schema_obj:
-        report_time = datetime.combine(timezone.localtime().date(), schema_obj.shift_time)
+        report_time = timezone.make_aware(datetime.combine(timezone.localtime().date(), schema_obj.shift_time))
         drivers = drivers.filter(schema=schema_obj)
     else:
         report_time = timezone.localtime()
@@ -389,7 +389,7 @@ def get_driver_efficiency_report(manager_id, schema=None, start=None, end=None):
     yesterday = timezone.localtime().date() - timedelta(days=1)
     if not start and not end:
         if schema:
-            report_time = datetime.combine(timezone.localtime().date(), schema.shift_time)
+            report_time = timezone.make_aware(datetime.combine(timezone.localtime().date(), schema.shift_time))
             yesterday = report_time - timedelta(days=1)
             drivers = drivers.filter(schema=schema)
         else:
@@ -520,19 +520,23 @@ def calculate_income_partner(driver, start, end, spending_rate, rent, driver_ren
 def get_failed_income(payment):
     vehicle_income = {}
     updated_income = {}
-    start = payment.report_from
-    end = payment.report_to
+    start = timezone.localtime(payment.report_from)
+    end = timezone.localtime(payment.report_to)
     bolt_fleet = Fleet.objects.get(name="Bolt", partner=payment.partner)
     while start.date() <= end.date():
-        bolt_report = CustomReport.objects.filter(report_to__lte=end, report_from__date=start.date(),
-                                                  driver=payment.driver, fleet=bolt_fleet).first()
-        bolt_total_cash = bolt_report.total_amount_cash if bolt_report else 0
-        end_report = bolt_report.report_to if bolt_report and bolt_report.report_to < end else end
-        start_report = start if start < end else timezone.make_aware(datetime.combine(start, time.min))
+        bolt_total_cash = 0
         orders_total_cash = 0
         bonuses = 0
         compensations = 0
-
+        start_report = start if start < end else timezone.make_aware(datetime.combine(start, time.min))
+        end_report = timezone.make_aware(datetime.combine(start, time.max))
+        bolt_report = CustomReport.objects.filter(report_to__lte=end_report,
+                                                  report_from__gte=start_report,
+                                                  fleet=bolt_fleet,
+                                                  driver=payment.driver).order_by('report_from').first()
+        if bolt_report:
+            bolt_total_cash = bolt_report.total_amount_cash
+            end_report = bolt_report.report_to
         reshuffles = check_reshuffle(payment.driver, start_report, end_report)
         checked = False
         quantity_reshuffles = reshuffles.count()
@@ -564,10 +568,9 @@ def get_failed_income(payment):
 
             total_bolt_income = Decimal(bolt_kasa['total_price'] * 0.75004 +
                                         bolt_kasa['total_tips'] + compensations + bonuses)
-            bolt_cash = Decimal(bolt_cash['total_price'] * 0.75004 + bolt_kasa['total_tips'])
+            bolt_cash = Decimal(bolt_cash['total_price'] + bolt_cash['total_tips'])
             orders_total_cash += bolt_cash
             total_income = total_bolt_income + uber_uklon_income - uber_uklon_cash - bolt_cash
-
             if not vehicle_income.get(vehicle):
                 vehicle_income[vehicle] = total_income
             else:
@@ -578,7 +581,6 @@ def get_failed_income(payment):
             updated_income = {key: value + vehicle_card_bonus for key, value in vehicle_income.items()}
         else:
             updated_income = vehicle_income
-
         start += timedelta(days=1)
     return updated_income
 

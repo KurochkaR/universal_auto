@@ -2,19 +2,19 @@ from django import forms
 from django.contrib import admin
 from django.contrib.admin.widgets import FilteredSelectMultiple
 from django.contrib.auth.models import Group
-from django.forms import inlineformset_factory, modelform_factory, SelectMultiple
 from django.http import HttpResponseRedirect
 from django.urls import reverse
-from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 from django.shortcuts import redirect
-from django.db.models import Q, Prefetch
+from django.db.models import Prefetch
+from django_celery_beat.models import PeriodicTask
 from polymorphic.admin import PolymorphicParentModelAdmin
 from scripts.google_calendar import GoogleCalendar
 from .filters import VehicleEfficiencyUserFilter, DriverEfficiencyUserFilter, RentInformationUserFilter, \
     TransactionInvestorUserFilter, ReportUserFilter, VehicleManagerFilter, SummaryReportUserFilter, \
     ChildModelFilter, PartnerPaymentFilter, FleetFilter, FleetDriverFilter, FleetOrderFilter, VehicleSpendingFilter
 from .models import *
+from .utils import get_schedule
 
 
 class SoftDeleteAdmin(admin.ModelAdmin):
@@ -37,7 +37,7 @@ class SoftDeleteAdmin(admin.ModelAdmin):
     def get_actions(self, request):
         actions = super().get_actions(request)
         actions['delete_selected'] = (
-            self.delete_selected, 'delete_selected', _(f"Звільнити {self.model._meta.verbose_name_plural}в"))
+            self.delete_selected, 'delete_selected', _(f"Приховати {self.model._meta.verbose_name_plural}"))
         return actions
 
     def get_queryset(self, request):
@@ -185,10 +185,42 @@ class SchemaAdmin(admin.ModelAdmin):
     search_fields = ('title',)
 
     def save_model(self, request, obj, form, change):
+        old_obj = Schema.objects.get(pk=obj.pk)
+        old_shift_time = old_obj.shift_time
         schema_field = form.cleaned_data.get('schema')
         calc_field = form.cleaned_data.get('salary_calculation')
+
         if calc_field == SalaryCalculation.WEEK:
             obj.shift_time = time.min
+        if obj.shift_time != old_shift_time:
+            crontab = get_schedule(obj.shift_time)
+            old_crontab = get_schedule(old_shift_time)
+            if calc_field == SalaryCalculation.WEEK:
+                crontab = get_schedule(time(9, 0))
+            elif old_obj.salary_calculation == SalaryCalculation.WEEK:
+                old_crontab = get_schedule(time(9, 0))
+
+            new_task, created = PeriodicTask.objects.get_or_create(
+                name=f"get_information_from_fleets({request.user.pk}_{crontab})",
+                task="auto.tasks.get_information_from_fleets",
+                queue=f"beat_tasks_{request.user.pk}",
+                crontab=crontab,
+                defaults={"args": f"[{request.user.pk}, [{obj.pk}]]"})
+            if not created:
+                new_args = eval(new_task.args)
+                new_args[1].append(obj.pk)
+                new_task.args = str(new_args)
+                new_task.save(update_fields=["args"])
+            old_task = PeriodicTask.objects.filter(name=f"get_information_from_fleets({request.user.pk}_{old_crontab})")
+            if old_task.exists():
+                task = old_task.first()
+                old_args = eval(task.args)
+                old_args[1] = [value for value in old_args[1] if value != obj.pk]
+                if old_args[1]:
+                    task.args = str(old_args)
+                    task.save(update_fields=["args"])
+                else:
+                    task.delete()
         if schema_field == 'HALF':
             obj.rate = 0.5
             obj.rental = obj.plan * obj.rate
@@ -479,9 +511,9 @@ class VehicleSpendingAdmin(admin.ModelAdmin):
             if db_field.name == 'vehicle':
 
                 if user.is_partner():
-                    kwargs['queryset'] = db_field.related_model.objects.filter(partner=request.user)
+                    kwargs['queryset'] = db_field.related_model.objects.get_active(partner=user)
                 if user.is_manager():
-                    kwargs['queryset'] = db_field.related_model.objects.filter(manager=request.user)
+                    kwargs['queryset'] = db_field.related_model.objects.get_active(manager=user)
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
     display_photo.short_description = 'Попередній перегляд'
@@ -888,7 +920,8 @@ class ManagerAdmin(admin.ModelAdmin):
                                                                          partner=request.user, deleted_at__isnull=True)
             form.base_fields['drivers'].initial = Driver.objects.get_active(partner=request.user, manager=obj)
             form.base_fields['vehicles'].queryset = Vehicle.objects.filter(Q(manager__isnull=True) | Q(manager=obj),
-                                                                           partner=request.user)
+                                                                           partner=request.user,
+                                                                           deleted_at__isnull=True)
             form.base_fields['vehicles'].initial = Vehicle.objects.filter(partner=request.user, manager=obj)
         return form
 
@@ -1055,7 +1088,7 @@ class FiredDriverAdmin(admin.ModelAdmin):
 
 
 @admin.register(Vehicle)
-class VehicleAdmin(admin.ModelAdmin):
+class VehicleAdmin(SoftDeleteAdmin):
     search_fields = ('name', 'licence_plate', 'vin_code',)
     ordering = ('name',)
     exclude = ('deleted_at',)

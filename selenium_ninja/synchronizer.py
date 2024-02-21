@@ -4,10 +4,9 @@ import requests
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.files import File
 from django.db.models import Q
-from django.utils import timezone
-from app.models import Fleet, FleetsDriversVehiclesRate, Driver, Vehicle, Role, JobApplication, \
-    DriverReshuffle
-import datetime
+
+from app.models import Fleet, FleetsDriversVehiclesRate, Driver, Vehicle, Role, JobApplication
+from auto_bot.handlers.order.utils import normalized_plate
 
 
 class AuthenticationError(Exception):
@@ -88,12 +87,12 @@ class Synchronizer:
 
     def get_or_create_vehicle(self, **kwargs):
         licence_plate, v_name, vin = kwargs['licence_plate'], kwargs['vehicle_name'], kwargs['vin_code']
-
         if licence_plate:
-            vehicle, created = Vehicle.objects.get_or_create(licence_plate=licence_plate,
+            plate = normalized_plate(licence_plate)
+            vehicle, created = Vehicle.objects.get_or_create(licence_plate=plate,
                                                              defaults={
                                                                  "name": v_name.upper(),
-                                                                 "licence_plate": licence_plate,
+                                                                 "licence_plate": plate,
                                                                  "vin_code": vin,
                                                                  "partner": self.partner
                                                              })
