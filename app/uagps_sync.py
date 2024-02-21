@@ -6,11 +6,12 @@ import requests
 from _decimal import Decimal
 from django.utils import timezone
 from app.models import Driver, GPSNumber, RentInformation, FleetOrder, \
-    DriverEfficiency, CredentialPartner, ParkSettings, Fleet, Partner, VehicleRent
+    DriverEfficiency, CredentialPartner, ParkSettings, Fleet, Partner, VehicleRent, Vehicle
 from auto_bot.handlers.order.utils import check_reshuffle
 from auto_bot.main import bot
 from scripts.redis_conn import redis_instance, get_logger
 from selenium_ninja.driver import SeleniumTools
+from selenium_ninja.synchronizer import AuthenticationError
 
 
 class UaGpsSynchronizer(Fleet):
@@ -24,7 +25,7 @@ class UaGpsSynchronizer(Fleet):
         response = requests.get(f"{partner_obj.gps_url}wialon/ajax.html", params=params)
         if response.json().get("error"):
             print(response.json())
-            return False
+            raise AuthenticationError(f"gps token incorrect.")
         # token = SeleniumTools(partner).create_gps_session(login, password, partner_obj.gps_url)
         return args[1]
 
@@ -82,6 +83,12 @@ class UaGpsSynchronizer(Fleet):
                     for key, value in data.items():
                         setattr(obj, key, value)
                     obj.save()
+                for partner_vehicle in Vehicle.objects.filter(partner=self.partner, gps__isnull=True):
+                    licence_number = ''.join(char for char in partner_vehicle.licence_plate if char.isdigit())
+                    if licence_number in vehicle['d']['nm']:
+                        partner_vehicle.gps = obj
+                        partner_vehicle.save()
+                        break
 
     def generate_report(self, start_time, end_time, vehicle_id):
         if not redis_instance().exists(f"{self.partner.id}_remove_gps"):

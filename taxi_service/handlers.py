@@ -78,9 +78,7 @@ class PostRequestHandler:
         aggregator = request.POST.get('aggregator')
         login = request.POST.get('login')
         password = request.POST.get('password')
-        print("aggregator", aggregator)
         task = get_session.delay(request.user.pk, aggregator, login=login, password=password)
-        print(task.id)
         json_data = JsonResponse({'task_id': task.id}, safe=False)
         response = HttpResponse(json_data, content_type='application/json')
 

@@ -14,7 +14,7 @@ from django.db import models
 from app.models import BoltService, Driver, FleetsDriversVehiclesRate, FleetOrder, \
     CredentialPartner, Vehicle, PaymentTypes, Fleet, CustomReport, WeeklyReport, DailyReport
 from auto import settings
-from auto_bot.handlers.order.utils import check_vehicle
+from auto_bot.handlers.order.utils import check_vehicle, normalized_plate
 from scripts.redis_conn import redis_instance, get_logger
 from selenium_ninja.synchronizer import Synchronizer, AuthenticationError
 
@@ -42,6 +42,7 @@ class BoltRequest(Fleet, Synchronizer):
         else:
             refresh_token = response.json()["data"]["refresh_token"]
             redis_instance().set(f"{partner_id}_{self.name}_refresh", refresh_token)
+            return True
 
     def get_header(self):
         token = redis_instance().get(f"{self.partner.id}_{self.name}_access")
@@ -312,7 +313,7 @@ class BoltRequest(Fleet, Synchronizer):
                     vehicle = check_vehicle(driver, date_time=timezone.make_aware(
                         datetime.fromtimestamp(order['accepted_time'])))
                     if not vehicle:
-                        vehicle = Vehicle.objects.get(licence_plate=order['car_reg_number'])
+                        vehicle = Vehicle.objects.get(licence_plate=normalized_plate(order['car_reg_number']))
                     FleetOrder.objects.filter(order_id=order['order_id'],
                                               partner=self.partner).update(price=price, tips=tip, vehicle=vehicle)
                     continue
@@ -321,7 +322,7 @@ class BoltRequest(Fleet, Synchronizer):
                         datetime.fromtimestamp(order['order_stops'][-1]['arrived_at']))
                 except TypeError:
                     finish = None
-                vehicle = Vehicle.objects.get(licence_plate=order['car_reg_number'])
+                vehicle = Vehicle.objects.get(licence_plate=normalized_plate(order['car_reg_number']))
                 data = {"order_id": order['order_id'],
                         "fleet": self.name,
                         "driver": driver,
