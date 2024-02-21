@@ -147,13 +147,21 @@ class BonusForm(ModelForm):
             self.fields['vehicle'].queryset = Vehicle.objects.filter(id__in=driver_vehicle_ids)
         else:
             payment = DriverPayments.objects.filter(driver=driver_id).last()
-
-            driver_vehicle_ids = DriverReshuffle.objects.filter(
-                Q(driver_start=driver_id),
-                Q(swap_time__range=(payment.report_to, timezone.localtime())) |
-                Q(end_time__range=(payment.report_to, timezone.localtime()))
-            ).values_list('swap_vehicle', flat=True)
+            if payment:
+                driver_vehicle_ids = DriverReshuffle.objects.filter(
+                    Q(driver_start=driver_id),
+                    Q(swap_time__range=(payment.report_to, timezone.localtime())) |
+                    Q(end_time__range=(payment.report_to, timezone.localtime()))
+                ).values_list('swap_vehicle', flat=True)
+            else:
+                driver_vehicle_ids = DriverReshuffle.objects.filter(
+                    Q(driver_start=driver_id),
+                ).values_list('swap_vehicle', flat=True)
+        if Vehicle.objects.filter(id__in=driver_vehicle_ids).exists():
             self.fields['vehicle'].queryset = Vehicle.objects.filter(id__in=driver_vehicle_ids)
+        else:
+            raise forms.ValidationError(_('Водій не має доступних автомобілів'))
+
         filter_category = Q(bonuscategory__isnull=False) if category == 'bonus' else Q(bonuscategory__isnull=True)
         category_queryset = Category.objects.filter(Q(partner=filter_partner) |
                                                     Q(partner__isnull=True),

@@ -8,6 +8,7 @@ class AggregateReportSerializer(serializers.Serializer):
     total_kasa = serializers.DecimalField(max_digits=10, decimal_places=2)
     total_card = serializers.DecimalField(max_digits=10, decimal_places=2)
     total_cash = serializers.DecimalField(max_digits=10, decimal_places=2)
+    payment_amount = serializers.DecimalField(max_digits=10, decimal_places=2)
 
 
 class CarDetailSerializer(serializers.Serializer):
@@ -99,8 +100,13 @@ class CarEfficiencySerializer(serializers.Serializer):
 
 class SummaryReportSerializer(serializers.Serializer):
     drivers = AggregateReportSerializer(many=True)
+    rent_earnings = serializers.DecimalField(max_digits=10, decimal_places=2)
+    total_distance = serializers.DecimalField(max_digits=10, decimal_places=2)
     total_rent = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    total_payment = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
     kasa = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    total_vehicle_spending = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    total_driver_spending = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
     start = serializers.CharField()
     end = serializers.CharField()
 
