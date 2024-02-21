@@ -2,6 +2,7 @@ import json
 from datetime import datetime, time
 
 import requests
+from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from django.utils import timezone
 from telegram.error import BadRequest
@@ -17,6 +18,13 @@ def validate_text(text):
         return True
 
 
+def normalized_plate(licence_plate):
+    translation_table = str.maketrans("АВСЕНІКМОРТХавсенікмортх", "ABCEHIKMOPTXABCEHIKMOPTX")
+
+    plate = licence_plate.translate(translation_table).upper()
+    return plate
+
+
 def check_reshuffle(driver, start, end):
     reshuffles = DriverReshuffle.objects.filter(
         (Q(swap_time__lt=end) & Q(end_time__gt=start)),
@@ -25,15 +33,16 @@ def check_reshuffle(driver, start, end):
     return reshuffles
 
 
-def check_vehicle(driver, date_time=timezone.localtime(), max_time=False):
-    if max_time:
-        date_time = timezone.make_aware(datetime.combine(date_time.date(), time.max))
+def check_vehicle(driver, date_time=timezone.localtime()):
+    try:
+        reshuffle = DriverReshuffle.objects.get(swap_time__lt=date_time,
+                                                swap_time__date=date_time.date(),
+                                                driver_start=driver).order_by("-swap_time")
+        return reshuffle.swap_vehicle
+    except ObjectDoesNotExist:
+        return None
 
-    reshuffle = DriverReshuffle.objects.filter(swap_time__lt=date_time,
-                                               swap_time__date=date_time.date(),
-                                               driver_start=driver).order_by("-swap_time").first()
-    vehicle = reshuffle.swap_vehicle if reshuffle else None
-    return vehicle
+
 
 
 def buttons_addresses(address):

@@ -648,6 +648,13 @@ input[type="button"] {
 }
 
 /*!* Стилі для вікна з налаштуваннями(логін партнерів) *!*/
+.helper-token {
+    display: none;
+    color: black;
+}
+.helper-token:hover{
+    color: #EC6323;
+}
 .loader-login {
   display: none;
   border: 4px solid #f3f3f3;

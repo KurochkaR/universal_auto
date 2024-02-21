@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, time
 import time as tm
 import requests
 from _decimal import Decimal, ROUND_HALF_UP
-from celery import chain, signature
+from celery import chain
 from celery.exceptions import MaxRetriesExceededError
 from celery.utils.log import get_task_logger
 from django.core.cache import cache
@@ -138,8 +138,8 @@ def get_session(self, partner_pk, aggregator='Uber', login=None, password=None):
     except ObjectDoesNotExist:
         fleet = Fleet.objects.get(name=aggregator, partner=None)
     try:
-        token = fleet.create_session(partner_pk, login=login, password=password)
-        if login and password:
+        token = fleet.create_session(partner_pk, password, login)
+        if token:
             success = login_in(aggregator=aggregator, partner_id=partner_pk,
                                login_name=login, password=password, token=token)
             return partner_pk, success
@@ -440,14 +440,14 @@ def get_driver_efficiency_fleet(self, schemas, day=None):
 
 
 @app.task(bind=True)
-def update_driver_status(self, partner_pk):
+def update_driver_status(self, partner_pk, photo=None):
     with memcache_lock(self.name, self.request.args, self.app.oid, 600) as acquired:
         if acquired:
             status_online = set()
             status_with_client = set()
             fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name='Gps')
             for fleet in fleets:
-                statuses = fleet.get_drivers_status()
+                statuses = fleet.get_drivers_status(photo) if isinstance(fleet, BoltRequest) else fleet.get_drivers_status()
                 logger.info(f"{fleet} {statuses}")
                 status_online = status_online.union(set(statuses['wait']))
                 status_with_client = status_with_client.union(set(statuses['with_client']))
@@ -1119,11 +1119,15 @@ def calculate_driver_reports(self, schemas, day=None):
                     payment.save(update_fields=['earning'])
             elif not reshuffles and report_kasa:
                 last_payment = DriverPayments.objects.filter(driver=driver).last()
-                driver_reports = SummaryReport.objects.filter(report_from__range=(last_payment.report_from, end),
-                                                              driver=driver).aggregate(
-                    cash=Coalesce(Sum('total_amount_cash'), 0, output_field=DecimalField()),
-                    kasa=Coalesce(Sum('total_amount_without_fee'), 0, output_field=DecimalField()))
-                get_corrections(last_payment.report_from, last_payment.report_to, driver, driver_reports)
+                if last_payment:
+                    driver_reports = SummaryReport.objects.filter(report_from__range=(last_payment.report_from, end),
+                                                                  driver=driver).aggregate(
+                        cash=Coalesce(Sum('total_amount_cash'), 0, output_field=DecimalField()),
+                        kasa=Coalesce(Sum('total_amount_without_fee'), 0, output_field=DecimalField()))
+                    get_corrections(last_payment.report_from, last_payment.report_to, driver, driver_reports)
+                else:
+                    get_corrections(start, end, driver)
+
 
 
 @app.task(bind=True, queue='bot_tasks')

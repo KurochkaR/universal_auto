@@ -1,30 +1,35 @@
 import json
 from datetime import datetime, timedelta, time
-from urllib import parse
 
 import requests
 from _decimal import Decimal
 from django.utils import timezone
-from telegram import ParseMode
-
 from app.models import (Driver, GPSNumber, RentInformation, FleetOrder, CredentialPartner, ParkSettings, Fleet,
-                        Partner, VehicleRent, DriverReshuffle)
+                        Partner, VehicleRent, Vehicle, DriverReshuffle)
 from auto_bot.handlers.driver_manager.utils import get_today_statistic
 from auto_bot.handlers.order.utils import check_reshuffle
 from auto_bot.main import bot
 from scripts.redis_conn import redis_instance, get_logger
-from selenium_ninja.driver import SeleniumTools
+from selenium_ninja.synchronizer import AuthenticationError
 
 
 class UaGpsSynchronizer(Fleet):
     @staticmethod
-    def create_session(partner, login, password):
-        partner_obj = Partner.objects.get(pk=partner)
-        token = SeleniumTools(partner).create_gps_session(login, password, partner_obj.gps_url)
-        return token
+    def create_session(*args):
+        partner_obj = Partner.objects.get(pk=args[0])
+        params = {
+            'svc': 'token/login',
+            'params': json.dumps({"token": args[1]})
+        }
+        response = requests.get(f"{partner_obj.gps_url}wialon/ajax.html", params=params)
+        if response.json().get("error"):
+            print(response.json())
+            raise AuthenticationError(f"gps token incorrect.")
+        # token = SeleniumTools(partner).create_gps_session(login, password, partner_obj.gps_url)
+        return args[1]
 
     def get_base_url(self):
-        return "https://hst-api.wialon.eu/" if self.partner.gps_url == "https://gps.antenor.online/" else self.partner.gps_url
+        return self.partner.gps_url
 
     def get_session(self):
         if not redis_instance().exists(f"{self.partner.id}_gps_session"):
@@ -77,6 +82,12 @@ class UaGpsSynchronizer(Fleet):
                     for key, value in data.items():
                         setattr(obj, key, value)
                     obj.save()
+                for partner_vehicle in Vehicle.objects.filter(partner=self.partner, gps__isnull=True):
+                    licence_number = ''.join(char for char in partner_vehicle.licence_plate if char.isdigit())
+                    if licence_number in vehicle['d']['nm']:
+                        partner_vehicle.gps = obj
+                        partner_vehicle.save()
+                        break
 
     def generate_report(self, start_time, end_time, vehicle_id):
         if not redis_instance().exists(f"{self.partner.id}_remove_gps"):
@@ -307,4 +318,4 @@ class UaGpsSynchronizer(Fleet):
                        f"Холостий пробіг: {rent_distance}\n"
             if timezone.localtime(end_time).time() > time(7, 0):
                 bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"),
-                                 text=text, parse_mode=ParseMode.HTML)
+                                 text=text)
