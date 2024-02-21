@@ -2,7 +2,7 @@ import json
 from decimal import Decimal
 
 from celery.result import AsyncResult
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db.models import F
 from django.http import JsonResponse, HttpResponse
@@ -160,7 +160,7 @@ class PostRequestHandler:
         else:
             manager = Manager.objects.get(pk=request.user.pk)
             partner = manager.managers_partner.pk
-        upd = update_driver_data.delay(partner)
+        upd = update_driver_data.apply_async(args=[partner], queue=f'beat_tasks_{request.user.pk}')
         json_data = JsonResponse({'task_id': upd.id}, safe=False)
         response = HttpResponse(json_data, content_type='application/json')
         return response
@@ -304,7 +304,6 @@ class PostRequestHandler:
         type_bonus_penalty = data.get('category_type', None)
         driver_id = data.get('driver_id')
         payment_id = data.get('payment_id')
-        print('payment_id', payment_id)
         form = BonusForm(request.user, category=type_bonus_penalty, data=data, payment_id=payment_id,
                          driver_id=driver_id)
         if form.is_valid():
@@ -406,14 +405,20 @@ class GetRequestHandler:
         bonus_id = request.GET.get('bonus_penalty')
         category_type = request.GET.get('type')
         driver_id = request.GET.get('driver_id')
-        if bonus_id:
-            instance = PenaltyBonus.objects.filter(pk=bonus_id).first()
-            payment_id = instance.driver_payments_id
-            bonus_form = BonusForm(user, payment_id=payment_id, category=category_type, instance=instance,
-                                   driver_id=driver_id)
-        else:
-            payment_id = request.GET.get('payment')
-            bonus_form = BonusForm(user, payment_id=payment_id, category=category_type, driver_id=driver_id)
+        try:
+            if bonus_id:
+                instance = PenaltyBonus.objects.filter(pk=bonus_id).first()
+                payment_id = instance.driver_payments_id
+                bonus_form = BonusForm(user, payment_id=payment_id, category=category_type, instance=instance,
+                                       driver_id=driver_id)
+            else:
+                payment_id = request.GET.get('payment')
+                bonus_form = BonusForm(user, payment_id=payment_id, category=category_type, driver_id=driver_id)
+        except ValidationError:
+            return JsonResponse({
+                                    "data": "За водієм не закріплено жодного автомобіля! Для додавання бонусу або штрафу створіть зміну водію!"},
+                                status=404)
+
         form_html = render_to_string('dashboard/_bonus-penalty-form.html', {'bonus_form': bonus_form})
 
         return JsonResponse({"data": form_html})

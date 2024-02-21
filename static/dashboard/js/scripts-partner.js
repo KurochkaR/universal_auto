@@ -301,6 +301,7 @@ function fetchSummaryReportData(period, start, end) {
 		type: 'GET',
 		dataType: 'json',
 		success: function (data) {
+			console.log(data[0]["kasa"]);
 			$(".apply-filter-button").prop("disabled", false);
 			let startDate = data[0]['start'];
 			let endDate = data[0]['end'];
@@ -339,9 +340,27 @@ function fetchSummaryReportData(period, start, end) {
 			} else {
 				$('.weekly-income-dates').text(gettext('З ') + startDate + ' ' + gettext('по') + ' ' + endDate);
 			}
-			;
-			$('.weekly-income-rent').text(totalDistance + ' ' + gettext('км'));
-			$('.weekly-income-amount').text(data[0]["kasa"] + ' ' + gettext('грн'));
+			$('.weekly-income-rent').text(totalDistance);
+			$('.weekly-income-amount').text(data[0]["kasa"]);
+			$('.not-closed-payments').text(data[0]["total_payment"]);
+			$('.weekly-spending-driver').text(data[0]["total_driver_spending"]);
+			$('.weekly-spending-vehicle').text(data[0]["total_vehicle_spending"]);
+			$('.rent-earning').text(data[0]["rent_earnings"]);
+			$('.unpaid-rent').text(data[0]["total_distance"]);
+
+			const driversWithPayments = data[0]['drivers'].filter(driver => driver.payment_amount !== null);
+			const table = $('.driver-table');
+
+			table.find('tbody').empty();
+
+			driversWithPayments.forEach(driver => {
+				const row = $('<tr></tr>');
+
+				row.append(`<td>${driver.full_name}</td>`);
+				row.append(`<td>${driver.payment_amount}</td>`);
+
+				table.append(row);
+			});
 		},
 		error: function (error) {
 			console.error(error);
@@ -390,11 +409,11 @@ function fetchCarEfficiencyData(period, vehicleId, vehicle_lc, start, end) {
 				$(".noDataMessage2").show();
 				$('#area-chart').hide();
 				$('#bar-three-chart').hide();
-				$('.car-select').hide();
+				$('.car-select').css('display', 'contents');
 			};
-			$('.weekly-clean-amount').text(data["earning"] + ' ' + gettext('грн'));
-			$('.income-km').text(data["total_mileage"] + ' ' + gettext("км"));
-			$('.income-efficiency').text(data["average_efficiency"].toFixed(2) + ' ' + gettext('грн/км'));
+			$('.weekly-clean-amount').text(data["earning"].toFixed(2));
+			$('.income-km').text(data["total_mileage"].toFixed(2));
+			$('.income-efficiency').text(data["average_efficiency"].toFixed(2));
 		},
 		error: function (error) {
 			console.error(error);
