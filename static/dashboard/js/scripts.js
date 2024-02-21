@@ -321,7 +321,6 @@ $(document).ready(function() {
 			data: formData,
 			dataType: 'json',
 			success: function (data) {
-				console.log(idPayments);
 				$('#modal-add-bonus')[0].reset();
 				$('#modal-add-bonus').hide();
 				if (idPayments === null) {

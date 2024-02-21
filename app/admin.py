@@ -2,13 +2,11 @@ from django import forms
 from django.contrib import admin
 from django.contrib.admin.widgets import FilteredSelectMultiple
 from django.contrib.auth.models import Group
-from django.forms import inlineformset_factory, modelform_factory, SelectMultiple
 from django.http import HttpResponseRedirect
 from django.urls import reverse
-from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 from django.shortcuts import redirect
-from django.db.models import Q, Prefetch
+from django.db.models import Prefetch
 from django_celery_beat.models import PeriodicTask
 from polymorphic.admin import PolymorphicParentModelAdmin
 from scripts.google_calendar import GoogleCalendar
@@ -39,7 +37,7 @@ class SoftDeleteAdmin(admin.ModelAdmin):
     def get_actions(self, request):
         actions = super().get_actions(request)
         actions['delete_selected'] = (
-            self.delete_selected, 'delete_selected', _(f"Видалити {self.model._meta.verbose_name_plural}"))
+            self.delete_selected, 'delete_selected', _(f"Приховати {self.model._meta.verbose_name_plural}"))
         return actions
 
     def get_queryset(self, request):
@@ -513,9 +511,9 @@ class VehicleSpendingAdmin(admin.ModelAdmin):
             if db_field.name == 'vehicle':
 
                 if user.is_partner():
-                    kwargs['queryset'] = db_field.related_model.objects.filter(partner=request.user)
+                    kwargs['queryset'] = db_field.related_model.objects.get_active(partner=user)
                 if user.is_manager():
-                    kwargs['queryset'] = db_field.related_model.objects.filter(manager=request.user)
+                    kwargs['queryset'] = db_field.related_model.objects.get_active(manager=user)
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
     display_photo.short_description = 'Попередній перегляд'
@@ -922,7 +920,8 @@ class ManagerAdmin(admin.ModelAdmin):
                                                                          partner=request.user, deleted_at__isnull=True)
             form.base_fields['drivers'].initial = Driver.objects.get_active(partner=request.user, manager=obj)
             form.base_fields['vehicles'].queryset = Vehicle.objects.filter(Q(manager__isnull=True) | Q(manager=obj),
-                                                                           partner=request.user)
+                                                                           partner=request.user,
+                                                                           deleted_at__isnull=True)
             form.base_fields['vehicles'].initial = Vehicle.objects.filter(partner=request.user, manager=obj)
         return form
 

@@ -140,11 +140,14 @@ class BaseDashboardView(LoginRequiredMixin, TemplateView):
         context["get_all_driver"] = None
 
         if user.is_manager():
-            context["get_all_vehicle"] = Vehicle.objects.get_active(manager=user).order_by("licence_plate")
+            context["get_active_vehicle"] = Vehicle.objects.get_active(manager=user).order_by("licence_plate")
             context["get_all_driver"] = Driver.objects.get_active(manager=user).order_by("second_name")
+            context["get_all_vehicle"] = Vehicle.objects.filter(manager=user).order_by("licence_plate")
+
         elif user.is_partner():
-            context["get_all_vehicle"] = Vehicle.objects.get_active(partner=user).order_by("licence_plate")
+            context["get_all_vehicle"] = Vehicle.objects.filter(partner=user).order_by("licence_plate")
             context["get_all_driver"] = Driver.objects.get_active(partner=user).order_by("second_name")
+            context["get_active_vehicle"] = Vehicle.objects.get_active(partner=user).order_by("licence_plate")
 
         context["investor_group"] = user.is_investor()
         context["partner_group"] = user.is_partner()
