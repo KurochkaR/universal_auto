@@ -59,7 +59,9 @@ class UaGpsSynchronizer(Fleet):
             }
             params.update({'params': json.dumps(payload)})
             response = requests.post(f"{self.get_base_url()}wialon/ajax.html", params=params)
-            redis_instance().set(f"{self.partner.id}_gps_id", response.json()['items'][0]['id'])
+            gps_id = response.json()['items'][0]['id'] if len(response.json()['items']) == 1 else \
+                response.json()['items'][1]['id']
+            redis_instance().set(f"{self.partner.id}_gps_id", gps_id)
         return redis_instance().get(f"{self.partner.id}_gps_id")
 
     def synchronize(self):
