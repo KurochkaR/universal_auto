@@ -66,7 +66,6 @@ $(document).ready(function() {
 		$(".confirmation-update-database").hide();
 	});
 
-	//	відправка перевірка статусу агрегатора (логін або логаут агрегаторів)
 	$.ajax({
 		url: ajaxGetUrl,
 		type: "GET",
@@ -471,10 +470,19 @@ function openForm(paymentId, bonusPenaltyId, itemType, driverId) {
 			$('.title-add-bonus h2').text(headingText);
 			$('#add-bonus-btn').prop('id', buttonId);
 			$('#modal-add-bonus').show();
+			var selectedValue = $('#bonus-category').val();
+			if (selectedValue === 'add_new_category') {
+				$('.new-category-field').css('display', 'flex');
+			}
 		},
 
-		error: function (error) {
-			console.error('Error:', error);
-		}
-	});
+		error: function(xhr, status, error) {
+			var errorMessage = xhr.responseJSON.data
+      $('#errorText').text(errorMessage);
+  		$('#errorModal').show();
+  		setTimeout(function() {
+				$('#errorModal').hide();
+			}, 5000);
+    }
+  });
 }
