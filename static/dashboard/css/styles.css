@@ -1383,7 +1383,7 @@ select:focus {
 
 .custom-dropdown-card {
 	display: grid;
-	grid-template-columns: 60% 40%;
+	grid-template-columns: 55% 45%;
 	align-items: center;
 	gap: 15px;
 	margin: 0px;
