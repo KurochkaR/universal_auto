@@ -229,7 +229,21 @@ def check_card_cash_value(self, partner_pk):
                 else:
                     rate = driver.schema.rate
                 enable = int(ratio > rate)
-                fleets_cash_trips.delay(partner_pk, driver.pk, enable)
+                fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name='Gps')
+                disabled = []
+                for fleet in fleets:
+                    driver_rate = FleetsDriversVehiclesRate.objects.filter(
+                        driver=driver, fleet=fleet).first()
+                    if driver_rate and int(driver_rate.pay_cash) != enable:
+                        result = fleet.disable_cash(driver_rate.driver_external_id, enable)
+                        disabled.append(result)
+                if disabled:
+                    if enable:
+                        text = f"Готівка {driver} \U0001F7E2"
+                    else:
+                        text = f"Готівка {driver} \U0001F534"
+                    bot.send_message(chat_id=ParkSettings.get_value("DRIVERS_CHAT", partner=partner_pk),
+                                     text=text)
     except Exception as e:
         logger.error(e)
         retry_delay = retry_logic(e, self.request.retries + 1)
@@ -421,7 +435,7 @@ def get_driver_efficiency(self, schemas, day=None):
 
 @app.task(bind=True)
 def get_driver_efficiency_fleet(self, schemas, day=None):
-    schema_obj = Schema.objects.get(pk__in=schemas)
+    schema_obj = Schema.objects.filter(pk__in=schemas).first()
     if Fleet.objects.filter(partner=schema_obj.partner, deleted_at=None, name="Gps").exists():
         for driver in Driver.objects.get_active(schema__in=schemas):
             end, start = get_time_for_task(driver.schema.id, day)[1:3]

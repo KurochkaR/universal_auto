@@ -75,7 +75,8 @@ class SummaryReportListView(CombinedPermissionsMixin,
 
         total_driver_spending = Bonus.objects.filter(
             created_at__range=(start, end),
-            driver_payments__status=PaymentsStatus.COMPLETED
+            driver_payments__status=PaymentsStatus.COMPLETED,
+            driver_payments__partner=self.request.user
         ).aggregate(total_spending=Coalesce(Sum('amount'), Decimal(0)))['total_spending']
 
         queryset = filtered_qs.values('driver_id').annotate(

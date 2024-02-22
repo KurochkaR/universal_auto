@@ -324,15 +324,16 @@ class UklonRequest(Fleet, Synchronizer):
             orders = self.response_data(url=f"{Service.get_value('UKLON_1')}orders", params=params)
             for order in orders['items']:
                 try:
+                    if any([order['status'] in ("running", "accepted", "arrived"), FleetOrder.objects.filter(
+                            date_order=timezone.make_aware(datetime.fromtimestamp(order["pickupTime"])),
+                            order_id=order['id'], partner=self.partner).exists()]):
+                        continue
                     formatted_uuid = str(uuid.UUID(order['driver']['id']))
                     driver_id_query = FleetsDriversVehiclesRate.objects.filter(
                         fleet=self, partner=self.partner, driver_external_id=formatted_uuid)
                     if driver_id_query.exists():
                         driver = driver_id_query.first().driver
-                        if any([order['status'] in ("running", "accepted", "arrived"), FleetOrder.objects.filter(
-                                date_order=timezone.make_aware(datetime.fromtimestamp(order["pickupTime"])),
-                                order_id=order['id'], partner=self.partner).exists()]):
-                            continue
+
                         vehicle = Vehicle.objects.get(licence_plate=normalized_plate(order['vehicle']['licencePlate']))
                         try:
                             finish_time = timezone.make_aware(datetime.fromtimestamp(order["completedAt"]))
