@@ -5126,70 +5126,6 @@ span.error-name {
 	height: 320px;
 	margin-bottom: 77px;
 }
-/*.investment-in-numbers-section .container .durations {
-	display: flex;
-	width: 100%;
-	justify-content: center;
-	margin-top: 24px;
-}
-
-.investment-in-numbers-section .container .durations p {
-	flex: 0 0 calc(20% - 10px);
-	padding: 0 20px 0 20px;
-	border: 0px solid rgba(0, 0, 0, 0.125);
-	color: #53785E;
-	text-align: center;
-	font-size: 20px;
-	font-style: normal;
-	font-weight: 400;
-	line-height: normal;
-}
-
-.investment-in-numbers-section .container .durations p:nth-child(1) {
-	position: relative;
-	top: 187px;
-	left: 100px;
-	flex: 0 0 200px;
-}
-
-.investment-in-numbers-section .container .durations p:nth-child(2) {
-	position: relative;
-	left: 85px;
-	margin-top: 140px;
-	flex: 0 0 200px;
-}
-
-.investment-in-numbers-section .container .durations p:nth-child(3) {
-	position: relative;
-	flex: 0 0 355px;
-	left: 53px;
-}
-
-.investment-in-numbers-section .container .durations p:nth-child(4) {
-	position: relative;
-	flex: 0 0 254px;
-	margin-top: 140px;
-	right: 97px;
-}
-
-.investment-in-numbers-section .container .durations p:nth-child(5) {
-	position: relative;
-	flex: 0 0 310px;
-	right: 50px;
-}
-
-.investment-in-numbers-section .container .img-box {
-	position: relative;
-	bottom: 205px;
-}
-
-.investment-in-numbers-section .container .img-box img{
-	margin-top: 5%;
-}
-
-.investment-in-numbers-section .container .img-box .img-phone {
-	display: none;
-}*/
 
 /* block 5 */
 
@@ -5271,6 +5207,78 @@ span.error-name {
 
 .investment-park-slider .img-box .slid-img-phone {
 	display: none;
+}
+
+
+/* park-block-electro-car */
+
+.owners-electric-cars {
+	margin-top: 80px;
+}
+
+.owners-electric-cars .title-block h2 {
+	color: #141E17;
+	font-size: 32px;
+	font-style: normal;
+	font-weight: 700;
+	line-height: normal;
+	text-transform: uppercase;
+}
+
+.owners-cars{
+	display: flex;
+	justify-content: space-between;
+}
+
+.owners-car-description h3 {
+	margin: 25px 0 25px 0px;
+	color: #53785E;
+	font-size: 25px;
+	font-style: normal;
+	font-weight: 400;
+	line-height: normal;
+}
+
+.owners-car-description span {
+	color: #EC6323;
+	font-size: 25px;
+	font-style: normal;
+	font-weight: 700;
+	line-height: normal;
+}
+
+.be-responsible h2 {
+	margin: 25px 0 23px 0;
+	color: #53785E;
+	font-size: 25px;
+	font-style: normal;
+	font-weight: 400;
+	line-height: normal;
+}
+
+.be-responsible ul {
+	list-style: none;
+	padding: 0;
+}
+
+.be-responsible ul li {
+	margin-top: 10px;
+	color: #53785E;
+	font-size: 25px;
+	font-style: normal;
+	font-weight: 400;
+	line-height: normal;
+}
+
+.be-responsible ul li::before {
+	content: "";
+	display: inline-block;
+	width: 50px;
+	height: 50px;
+	background-image: url(/static/app/images/app-check-mark.webp);
+	background-size: cover;
+	margin-right: 5px;
+	vertical-align: middle;
 }
 
 
