@@ -463,6 +463,28 @@ input[type="button"] {
     grid-template-columns: 1fr;
     margin-top: 30px;
   }
+
+  .common-period {
+		display: flex;
+		flex-direction: column;
+	}
+
+	.common-period .weekly-income-dates {
+		margin-top: 20px;
+	}
+
+	.custom-dropdown-card {
+		grid-template-columns: 60% 40% !important;
+	}
+
+	.card h3 {
+    font-size: 14px;
+	}
+
+	.main-cards .card span,
+	.main-cards-partner .card-partner h3 {
+    font-size: 14px;
+	}
 }
 
 
