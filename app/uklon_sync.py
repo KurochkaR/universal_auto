@@ -9,7 +9,7 @@ from django.db import models
 from requests import JSONDecodeError
 from app.models import ParkSettings, FleetsDriversVehiclesRate, Driver, Service, FleetOrder, \
     CredentialPartner, Vehicle, PaymentTypes, CustomReport, Fleet, WeeklyReport, DailyReport
-from auto_bot.handlers.order.utils import check_vehicle
+from auto_bot.handlers.order.utils import check_vehicle, normalized_plate
 from auto_bot.main import bot
 from scripts.redis_conn import redis_instance
 from selenium_ninja.synchronizer import Synchronizer, AuthenticationError
@@ -47,7 +47,7 @@ class UklonRequest(Fleet, Synchronizer):
             redis_instance().set(f"{self.partner.id}_park_id", response['fleets'][0]['id'])
         return redis_instance().get(f"{self.partner.id}_park_id")
 
-    def create_session(self, partner, login=None, password=None):
+    def create_session(self, partner, password, login):
         payload = self.park_payload(login, password)
         response = requests.post(f"{self.base_url}auth", json=payload)
         if response.status_code == 201:
@@ -279,25 +279,32 @@ class UklonRequest(Fleet, Synchronizer):
     def get_drivers_table(self):
         drivers = []
         param = {'status': 'All',
-                 'limit': '30',
-                 'offset': '0'}
+                 'limit': '30'}
         url = f"{Service.get_value('UKLON_1')}{self.uklon_id()}"
         url_1 = url + Service.get_value('UKLON_6')
-        all_drivers = self.response_data(url=url_1, params=param)
-        for driver in all_drivers['items']:
-            email = self.response_data(url=f"{url_1}/{driver['id']}")
-            driver_data = self.response_data(
-                url=f"{Service.get_value('UKLON_1')}{Service.get_value('UKLON_6')}/{driver['id']}/images",
-                params={'image_size': 'sm'})
-            drivers.append({
-                'fleet_name': self.name,
-                'name': driver['first_name'].split()[0],
-                'second_name': driver['last_name'].split()[0],
-                'email': email.get('email'),
-                'phone_number': f"+{driver['phone']}",
-                'driver_external_id': driver['id'],
-                'photo': driver_data["driver_avatar_photo"]["url"],
-            })
+        offset = 0
+        limit = param["limit"]
+
+        while True:
+            param["offset"] = offset
+            all_drivers = self.response_data(url=url_1, params=param)
+            if offset > all_drivers['total_count']:
+                break
+            for driver in all_drivers['items']:
+                email = self.response_data(url=f"{url_1}/{driver['id']}")
+                driver_data = self.response_data(
+                    url=f"{Service.get_value('UKLON_1')}{Service.get_value('UKLON_6')}/{driver['id']}/images",
+                    params={'image_size': 'sm'})
+                drivers.append({
+                    'fleet_name': self.name,
+                    'name': driver['first_name'].split()[0],
+                    'second_name': driver['last_name'].split()[0],
+                    'email': email.get('email'),
+                    'phone_number': f"+{driver['phone']}",
+                    'driver_external_id': driver['id'],
+                    'photo': driver_data["driver_avatar_photo"]["url"],
+                })
+            offset += int(limit)
         return drivers
 
     def get_fleet_orders(self, start, end, pk, driver_id):
@@ -322,7 +329,7 @@ class UklonRequest(Fleet, Synchronizer):
                         date_order=timezone.make_aware(datetime.fromtimestamp(order["pickupTime"])),
                         order_id=order['id'], partner=self.partner).exists()]):
                     continue
-                vehicle = Vehicle.objects.get(licence_plate=order['vehicle']['licencePlate'])
+                vehicle = Vehicle.objects.get(licence_plate=normalized_plate(order['vehicle']['licencePlate']))
                 try:
                     finish_time = timezone.make_aware(datetime.fromtimestamp(order["completedAt"]))
                 except KeyError:
@@ -351,7 +358,7 @@ class UklonRequest(Fleet, Synchronizer):
                         }
                 FleetOrder.objects.create(**data)
                 if check_vehicle(driver) != vehicle:
-                    redis_instance().hset(f"wrong_vehicle_{driver.partner.pk}", driver_id,
+                    redis_instance().hset(f"wrong_vehicle_{self.partner.pk}", pk,
                                           vehicle.licence_plate)
         except KeyError:
             bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"), text=f"{orders}")
@@ -405,7 +412,8 @@ class UklonRequest(Fleet, Synchronizer):
             'limit': '30',
         }
         vehicles = self.response_data(url=url, params=params)
-        matching_object = next((item for item in vehicles["data"] if item["licencePlate"] == licence_plate), None)
+        matching_object = next((item for item in vehicles["data"]
+                                if normalized_plate(item["licencePlate"]) == licence_plate), None)
         if matching_object:
             id_vehicle = matching_object["id"]
             url += f"/{id_vehicle}/release"
@@ -413,15 +421,23 @@ class UklonRequest(Fleet, Synchronizer):
 
     def get_vehicles(self):
         vehicles = []
-        param = {'limit': '30', 'offset': '0'}
-        url = f"{Service.get_value('UKLON_1')}{self.uklon_id()}"
-        url += Service.get_value('UKLON_2')
-        all_vehicles = self.response_data(url=url, params=param)
-        for vehicle in all_vehicles['data']:
-            response = self.response_data(url=f"{url}/{vehicle['id']}")
-            vehicles.append({
-                'licence_plate': vehicle['licencePlate'],
-                'vehicle_name': f"{vehicle['about']['maker']['name']} {vehicle['about']['model']['name']}",
-                'vin_code': response.get('vin_code', '')
-            })
+        param = {'limit': '30'}
+        offset = 0
+        limit = param["limit"]
+
+        while True:
+            param["offset"] = offset
+            url = f"{Service.get_value('UKLON_1')}{self.uklon_id()}"
+            url += Service.get_value('UKLON_2')
+            all_vehicles = self.response_data(url=url, params=param)
+            if offset > all_vehicles['total']:
+                break
+            for vehicle in all_vehicles['data']:
+                response = self.response_data(url=f"{url}/{vehicle['id']}")
+                vehicles.append({
+                    'licence_plate': vehicle['licencePlate'],
+                    'vehicle_name': f"{vehicle['about']['maker']['name']} {vehicle['about']['model']['name']}",
+                    'vin_code': response.get('vin_code', '')
+                })
+            offset += int(limit)
         return vehicles

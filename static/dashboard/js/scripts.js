@@ -96,6 +96,12 @@ $(document).ready(function() {
 
 	partnerRadioButtons.change(function () {
 		const selectedPartner = $("input[name='partner']:checked").val();
+		if (selectedPartner === "Gps"){
+		$("#partnerLogin").hide()
+		$(".helper-token").show()
+		$("#partnerLogin").removeAttr('required')
+		$("#partnerPassword").attr('placeholder', "Введіть токен gps")
+		}
 		updateLoginField(selectedPartner);
 	});
 
@@ -141,7 +147,10 @@ $(document).ready(function() {
 		const selectedPartner = partnerForm.find("input[name='partner']:checked").val();
 		sendLogautDataToServer(selectedPartner);
 		localStorage.removeItem(selectedPartner);
-		$("#partnerLogin").show()
+		if (selectedPartner !== 'Gps'){
+		    $("#partnerLogin").show()
+		    $(".helper-token").hide()
+		    }
 		$("#partnerPassword").show()
 		$(".opt-partnerForm").show()
 		$(".login-ok").hide()
@@ -173,17 +182,22 @@ $(document).ready(function() {
 
 		if (login === "success") {
 			$("#partnerLogin").hide()
+			$(".helper-token").hide()
 			$("#partnerPassword").hide()
 			$(".opt-partnerForm").hide()
 			$(".login-ok").show()
 			$("#loginErrorMessage").hide()
 		} else {
-			$("#partnerLogin").show()
+		    if (partner !== 'Gps') {
+			    $("#partnerLogin").show()
+			    $(".helper-token").hide()
+			}
 			$("#partnerPassword").show()
 			$(".opt-partnerForm").show()
 			$(".login-ok").hide()
 			$("#loginErrorMessage").hide()
 		}
+
 	})
 
 	function sendLoginDataToServer(partner, login, password) {
@@ -211,6 +225,7 @@ $(document).ready(function() {
 							if (response.data === true) {
 								localStorage.setItem(partner, 'success');
 								$("#partnerLogin").hide();
+								$(".helper-token").hide()
 								$("#partnerPassword").hide().val('');
 								$(".opt-partnerForm").hide();
 								$(".login-ok").show();
@@ -320,7 +335,6 @@ $(document).ready(function() {
 			data: formData,
 			dataType: 'json',
 			success: function (data) {
-				console.log(idPayments);
 				$('#modal-add-bonus')[0].reset();
 				$('#modal-add-bonus').hide();
 				if (idPayments === null) {

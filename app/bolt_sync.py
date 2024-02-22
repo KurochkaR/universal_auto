@@ -1,17 +1,22 @@
 from datetime import datetime
 import mimetypes
 import time
+from io import BytesIO
 from urllib import parse
 import requests
 from _decimal import Decimal
+
+from django.core.exceptions import ObjectDoesNotExist
+from django.core.files import File
 from django.utils import timezone
 
 from django.db import models
 from app.models import BoltService, Driver, FleetsDriversVehiclesRate, FleetOrder, \
     CredentialPartner, Vehicle, PaymentTypes, Fleet, CustomReport, WeeklyReport, DailyReport
 from auto import settings
-from auto_bot.handlers.order.utils import check_vehicle
 from auto_bot.main import bot
+
+from auto_bot.handlers.order.utils import check_vehicle, normalized_plate
 from scripts.redis_conn import redis_instance, get_logger
 from selenium_ninja.synchronizer import Synchronizer, AuthenticationError
 
@@ -19,7 +24,7 @@ from selenium_ninja.synchronizer import Synchronizer, AuthenticationError
 class BoltRequest(Fleet, Synchronizer):
     base_url = models.URLField(default=BoltService.get_value('REQUEST_BOLT_LOGIN_URL'))
 
-    def create_session(self, partner=None, login=None, password=None):
+    def create_session(self, partner, password, login):
         partner_id = partner if partner else self.partner.id
         if self.partner and not self.deleted_at:
             login = CredentialPartner.get_value("BOLT_NAME", partner=partner_id)
@@ -39,6 +44,7 @@ class BoltRequest(Fleet, Synchronizer):
         else:
             refresh_token = response.json()["data"]["refresh_token"]
             redis_instance().set(f"{partner_id}_{self.name}_refresh", refresh_token)
+            return True
 
     def get_header(self):
         token = redis_instance().get(f"{self.partner.id}_{self.name}_access")
@@ -309,7 +315,7 @@ class BoltRequest(Fleet, Synchronizer):
                     vehicle = check_vehicle(driver, date_time=timezone.make_aware(
                         datetime.fromtimestamp(order['accepted_time'])))
                     if not vehicle:
-                        vehicle = Vehicle.objects.get(licence_plate=order['car_reg_number'])
+                        vehicle = Vehicle.objects.get(licence_plate=normalized_plate(order['car_reg_number']))
                     FleetOrder.objects.filter(order_id=order['order_id'],
                                               partner=self.partner).update(price=price, tips=tip, vehicle=vehicle)
                     continue
@@ -318,7 +324,7 @@ class BoltRequest(Fleet, Synchronizer):
                         datetime.fromtimestamp(order['order_stops'][-1]['arrived_at']))
                 except TypeError:
                     finish = None
-                vehicle = Vehicle.objects.get(licence_plate=order['car_reg_number'])
+                vehicle = Vehicle.objects.get(licence_plate=normalized_plate(order['car_reg_number']))
                 data = {"order_id": order['order_id'],
                         "fleet": self.name,
                         "driver": driver,
@@ -340,7 +346,7 @@ class BoltRequest(Fleet, Synchronizer):
                     redis_instance().hset(f"wrong_vehicle_{driver.partner.pk}", driver_id,
                                           vehicle.licence_plate)
 
-    def get_drivers_status(self):
+    def get_drivers_status(self, photo=None):
         with_client = []
         wait = []
         report = self.get_target_url(f'{self.base_url}getDriversForLiveMap', self.param())
@@ -353,6 +359,18 @@ class BoltRequest(Fleet, Synchronizer):
                 else:
                     with_client.append((name, second_name))
                     with_client.append((second_name, name))
+                if photo:
+                    try:
+                        bolt_driver = Driver.objects.get(name=name, second_name=second_name, partner=self.partner)
+                        if bolt_driver.photo == 'drivers/default-driver.png':
+                            response = requests.get(driver['picture'])
+                            if response.status_code == 200:
+                                image_data = response.content
+                                image_file = BytesIO(image_data)
+                                bolt_driver.photo = File(image_file, name=f"{name}_{second_name}.jpg")
+                                bolt_driver.save(update_fields=["photo"])
+                    except (ObjectDoesNotExist, KeyError):
+                        continue
         return {'wait': wait,
                 'with_client': with_client}
 

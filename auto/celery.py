@@ -19,6 +19,10 @@ app.conf.task_queues = {
         'exchange': 'beat_tasks_6',
         'routing_key': 'beat_tasks_6',
     },
+    'beat_tasks_7': {
+        'exchange': 'beat_tasks_7',
+        'routing_key': 'beat_tasks_7',
+    },
 }
 app.conf.update(
     task_ignore_result=True,

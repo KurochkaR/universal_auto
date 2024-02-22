@@ -8,7 +8,7 @@ from django.db.models import Sum, DecimalField, Q, Value
 from django.db.models.functions import Coalesce
 
 from app.models import CustomReport, ParkSettings, Vehicle, Partner, Payments, SummaryReport, DriverPayments, Penalty, \
-    Bonus, FleetOrder
+    Bonus, FleetOrder, Fleet
 from app.uagps_sync import UaGpsSynchronizer
 from auto_bot.handlers.driver_manager.utils import create_driver_payments
 from auto_bot.handlers.order.utils import check_vehicle
@@ -100,7 +100,7 @@ def payment_24hours_create(start, end, fleet, driver, partner_pk):
         data["partner"] = Partner.objects.get(pk=partner_pk)
         payment, created = Payments.objects.get_or_create(report_from=start,
                                                           report_to=end,
-                                                          fleet=fleet,
+                                                          fleet_id=fleet,
                                                           driver=driver,
                                                           partner=partner_pk,
                                                           defaults={**data})
@@ -126,7 +126,7 @@ def summary_report_create(start, end, driver, partner_pk):
                                                               report_to=end,
                                                               driver=driver,
                                                               vehicle=vehicle,
-                                                              partner_id=partner_pk,
+                                                              partner=partner_pk,
                                                               defaults=default_values)
         if not created:
             for field in fields:
@@ -140,8 +140,9 @@ def get_efficiency_info(partner_pk, driver, start, end, payments_model, aggregat
     payment_request = Q(driver=driver, report_from__date=start, partner_id=partner_pk)
 
     if aggregator:
-        filter_request &= Q(fleet=aggregator.name)
-        payment_request &= Q(fleet=aggregator)
+        fleet = Fleet.objects.get(pk=aggregator)
+        filter_request &= Q(fleet=fleet.name)
+        payment_request &= Q(fleet=fleet)
     fleet_orders = FleetOrder.objects.filter(filter_request)
     total_kasa = payments_model.objects.filter(payment_request).aggregate(
         kasa=Coalesce(Sum('total_amount_without_fee'), Decimal(0)))['kasa']
@@ -167,7 +168,7 @@ def polymorphic_efficiency_create(create_model, partner_pk, driver, start, end, 
         vehicles = fleet_orders.exclude(vehicle__isnull=True).values_list('vehicle', flat=True).distinct()
         mileage = fleet_orders.filter(state=FleetOrder.COMPLETED).aggregate(
             km=Coalesce(Sum('distance'), Decimal(0)))['km']
-        efficiency_filter['fleet'] = aggregator
+        efficiency_filter['fleet_id'] = aggregator
     else:
         try:
             mileage, vehicles = UaGpsSynchronizer.objects.get(

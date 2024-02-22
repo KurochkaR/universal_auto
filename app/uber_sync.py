@@ -26,7 +26,7 @@ class UberRequest(Fleet, Synchronizer):
         return str(obj_session.uber_uuid)
 
     @staticmethod
-    def create_session(partner, login, password):
+    def create_session(partner, password, login):
         if not login:
             login = CredentialPartner.get_value(key='UBER_NAME', partner=partner)
             password = CredentialPartner.get_value(key='UBER_PASSWORD', partner=partner)

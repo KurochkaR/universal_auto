@@ -323,13 +323,13 @@ def create_period_efficiency(update, context):
 def send_into_group(sender=None, **kwargs):
     yesterday = timezone.make_aware(datetime.combine(timezone.localtime() - timedelta(days=1), time.max))
     if sender in (send_daily_statistic, send_driver_efficiency):
-        messages, drivers_messages, schema = kwargs.get('retval')
+        messages, drivers_messages = kwargs.get('retval')
         for partner, message in messages.items():
             if message:
                 try:
                     bot.send_message(chat_id=ParkSettings.get_value('DRIVERS_CHAT',
                                                                     default=Partner.objects.get(pk=partner).chat_id,
-                                                                    partner=partner), text=schema_message)
+                                                                    partner=partner), text=message)
                 except BadRequest as e:
                     if e.message == 'Message is too long':
                         send_long_message(chat_id=ParkSettings.get_value('DRIVERS_CHAT',
