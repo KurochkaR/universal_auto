@@ -190,8 +190,9 @@ class SchemaAdmin(admin.ModelAdmin):
 
         if calc_field == SalaryCalculation.WEEK:
             obj.shift_time = time.min
-        if obj:
-            old_obj = Schema.objects.get(pk=obj.pk)
+
+        old_obj = Schema.objects.filter(pk=obj.pk).first()
+        if old_obj:
             old_shift_time = old_obj.shift_time
             if obj.shift_time != old_shift_time:
                 crontab = get_schedule(obj.shift_time)

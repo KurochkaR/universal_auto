@@ -165,14 +165,11 @@ def remove_gps_partner(self, partner_pk):
 def get_orders_from_fleets(self, schemas, day=None):
     try:
         schema_obj = Schema.objects.filter(pk__in=schemas).first()
+        end = timezone.make_aware(datetime.combine(timezone.localtime(), schema_obj.shift_time))
+        start = end - timedelta(days=1)
         fleets = Fleet.objects.filter(partner=schema_obj.partner, deleted_at=None).exclude(name__in=['Gps', 'Uber'])
-        drivers = Driver.objects.get_active(schema__in=schemas)
         for fleet in fleets:
-            for driver in drivers:
-                driver_id = driver.get_driver_external_id(fleet)
-                if driver_id:
-                    end, start = get_time_for_task(driver.schema.pk, day)[1:3]
-                    fleet.get_fleet_orders(start, end, driver.pk, driver_id)
+            fleet.get_fleet_orders(start, end)
     except Exception as e:
         logger.error(e)
         retry_delay = retry_logic(e, self.request.retries + 1)
@@ -203,14 +200,10 @@ def get_today_orders(self, partner_pk):
         fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name__in=('Gps', 'Uber'))
         end = timezone.localtime()
         start = timezone.make_aware(datetime.combine(end, time.min))
-        drivers = Driver.objects.get_active(partner=partner_pk)
         for fleet in fleets:
             if isinstance(fleet, UklonRequest) and end <= start:
                 continue
-            for driver in drivers:
-                driver_id = driver.get_driver_external_id(fleet)
-                if driver_id:
-                    fleet.get_fleet_orders(start, end, driver.pk, driver_id)
+            fleet.get_fleet_orders(start, end)
     except Exception as e:
         logger.error(e)
         retry_delay = retry_logic(e, self.request.retries + 1)

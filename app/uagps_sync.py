@@ -133,31 +133,36 @@ class UaGpsSynchronizer(Fleet):
             else DriverReshuffle.objects.filter(partner=1, swap_time__date=timezone.localtime()
                                                 ).values_list('driver_start', flat=True)
         for driver in drivers:
+            road_distance = 0
+            road_time = timedelta()
+            previous_finish_time = None
             if RentInformation.objects.filter(report_to=end, driver=driver):
                 continue
-            completed = []
+
             reshuffles = check_reshuffle(driver, start, end)
             for reshuffle in reshuffles:
+                completed = []
                 start_report = timezone.localtime(reshuffle.swap_time)
                 end_report = timezone.localtime(reshuffle.end_time)
                 if start_report < start:
                     start_report = start
                 if end_report > end:
                     end_report = end
-
                 completed += FleetOrder.objects.filter(driver=driver,
                                                        state=FleetOrder.COMPLETED,
                                                        accepted_time__gte=start_report,
                                                        accepted_time__lt=end_report).order_by('accepted_time')
-                road_distance, road_time, previous_finish_time = self.calculate_order_distance(completed, end_report)
-                if start.time == time.min:
+                distance, time_in_road, previous_finish_time = self.calculate_order_distance(completed, end_report)
+                road_distance += distance
+                road_time += time_in_road
+                if start_report.time() == time.min or start_report.time() == driver.schema.shift_time:
                     yesterday_order = FleetOrder.objects.filter(driver=driver,
-                                                                finish_time__gt=start,
+                                                                finish_time__gt=start_report,
                                                                 state=FleetOrder.COMPLETED,
-                                                                accepted_time__lte=start).first()
+                                                                accepted_time__lte=start_report).first()
                     if yesterday_order and yesterday_order.vehicle.gps:
                         try:
-                            report = self.generate_report(self.get_timestamp(start),
+                            report = self.generate_report(self.get_timestamp(start_report),
                                                           self.get_timestamp(timezone.localtime(
                                                               yesterday_order.finish_time)),
                                                           yesterday_order.vehicle.gps.gps_id)
@@ -166,7 +171,7 @@ class UaGpsSynchronizer(Fleet):
                             continue
                         road_distance += report[0]
                         road_time += report[1]
-                road_dict[driver] = (road_distance, road_time, previous_finish_time)
+            road_dict[driver] = (road_distance, road_time, previous_finish_time)
         return road_dict
 
     def calculate_order_distance(self, orders, end):
