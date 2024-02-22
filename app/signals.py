@@ -24,9 +24,9 @@ from scripts.redis_conn import redis_instance
 from scripts.settings_for_park import standard_rates, settings_for_partner
 
 
-@receiver(post_delete, sender=Driver)
+@receiver(post_save, sender=Driver)
 def calculate_fired_driver(sender, instance, **kwargs):
-    if instance.schema and instance.schema.is_weekly():
+    if instance.schema and instance.schema.is_weekly() and instance.deleted_at:
         end = timezone.localtime().date()
         start = end - timedelta(days=end.weekday())
         create_driver_payments(start, end, instance, instance.schema, delete=True)

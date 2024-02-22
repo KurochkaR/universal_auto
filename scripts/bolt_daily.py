@@ -12,3 +12,10 @@ def run(*args):
     end = timezone.localtime()
     start = end - timedelta(days=1)
     UaGpsSynchronizer.objects.get(partner=1).get_road_distance(start, end, 1)
+
+    for order in orders:
+        param.append(order.time)
+    report = genegate_wialon_report_batch(param)
+    for result in report
+        #i need update order.distance = result[0] order.road_time = result[1]
+# how can i map orders from first loop with results from second

@@ -91,7 +91,7 @@ class UaGpsSynchronizer(Fleet):
                         partner_vehicle.save()
                         break
 
-    def get_params_for_report(self, start_time, end_time, vehicle_id):
+    def get_params_for_report(self, start_time, end_time, vehicle_id, sid=None):
         parameters = {
             "reportResourceId": self.get_gps_id(),
             "reportObjectId": vehicle_id,
@@ -108,29 +108,35 @@ class UaGpsSynchronizer(Fleet):
             "svc": "report/exec_report",
             "params": parameters
         }
+        if sid:
+            params['sid'] = sid
+            params['params'] = json.dumps(parameters)
         return params
 
-    def generate_report(self, parameters):
-        if not redis_instance().exists(f"{self.partner.id}_remove_gps"):
-            params = {
-                "svc": "core/batch",
-                "sid": self.get_session(),
-                "params": parameters
-            }
-            print(params)
-            report = requests.get(f"{self.get_base_url()}wialon/ajax.html", params=params)
-            print(report.json())
-            # try:
-            #     raw_time = report.json()['reportResult']['stats'][4][1]
-            #     clean_time = [int(i) for i in raw_time.split(':')]
-            #     raw_distance = report.json()['reportResult']['stats'][5][1]
-            # except ValueError:
-            #     raw_time = report.json()['reportResult']['stats'][12][1]
-            #     clean_time = [int(i) for i in raw_time.split(':')]
-            #     raw_distance = report.json()['reportResult']['stats'][11][1]
-            # road_time = timedelta(hours=clean_time[0], minutes=clean_time[1], seconds=clean_time[2])
-            # road_distance = Decimal(raw_distance.split(' ')[0])
-            # return road_distance, road_time
+    def generate_report(self, params):
+        road_distance = 0
+        road_time = timedelta()
+        report = requests.get(f"{self.get_base_url()}wialon/ajax.html", params=params)
+        for item in report.json():
+            try:
+                raw_time = item['reportResult']['stats'][4][1]
+                clean_time = [int(i) for i in raw_time.split(':')]
+                raw_distance = item['reportResult']['stats'][5][1]
+            except ValueError:
+                raw_time = item['reportResult']['stats'][12][1]
+                clean_time = [int(i) for i in raw_time.split(':')]
+                raw_distance = item['reportResult']['stats'][11][1]
+            road_time += timedelta(hours=clean_time[0], minutes=clean_time[1], seconds=clean_time[2])
+            road_distance += Decimal(raw_distance.split(' ')[0])
+
+    def generate_batch_report(self, parameters):
+        params = {
+            "svc": "core/batch",
+            "sid": self.get_session(),
+            "params": json.dumps(parameters)
+        }
+        return self.generate_report(params)
+
 
     @staticmethod
     def get_timestamp(timeframe):
@@ -143,8 +149,6 @@ class UaGpsSynchronizer(Fleet):
                                                 ).values_list('driver_start', flat=True)
         for driver in drivers:
             parameters = []
-            road_distance = 0
-            road_time = timedelta()
             previous_finish_time = None
             if RentInformation.objects.filter(report_to=end, driver=driver):
                 continue
@@ -162,9 +166,8 @@ class UaGpsSynchronizer(Fleet):
                                                        state=FleetOrder.COMPLETED,
                                                        accepted_time__gte=start_report,
                                                        accepted_time__lt=end_report).order_by('accepted_time')
-                distance, time_in_road, previous_finish_time = self.calculate_order_distance(completed, end_report)
-                road_distance += distance
-                road_time += time_in_road
+                order_params, previous_finish_time = self.get_order_parameters(completed, end_report)
+
                 parameters.extend(order_params)
 
                 if start_report.time() == time.min or start_report.time() == driver.schema.shift_time:
@@ -174,7 +177,7 @@ class UaGpsSynchronizer(Fleet):
                                                                 accepted_time__lte=start_report).first()
                     if yesterday_order and yesterday_order.vehicle.gps:
                         try:
-                            report = self.get_params_for_report(self.get_timestamp(start),
+                            report = self.get_params_for_report(self.get_timestamp(start_report),
                                                                 self.get_timestamp(timezone.localtime(
                                                                     yesterday_order.finish_time)),
                                                                 yesterday_order.vehicle.gps.gps_id)
@@ -183,7 +186,7 @@ class UaGpsSynchronizer(Fleet):
                             get_logger().error(e)
                             continue
                             # print(parameters)
-                            self.generate_report(parameters)
+                distance, road_time = self.generate_batch_report(parameters)
                             # road_dict[driver] = parameters, previous_finish_time
                 return road_dict
                         #                 road_distance += report[0]
@@ -198,12 +201,9 @@ class UaGpsSynchronizer(Fleet):
             end_report = order.finish_time if order.finish_time < end else end
             try:
                 if previous_finish_time is None or order.accepted_time >= previous_finish_time:
-                    if order.finish_time < end and order.distance:
-                        report = (order.distance, order.road_time)
-                    else:
-                        report = self.get_params_for_report(self.get_timestamp(timezone.localtime(order.accepted_time)),
-                                                            self.get_timestamp(timezone.localtime(end_report)),
-                                                            order.vehicle.gps.gps_id)
+                    report = self.get_params_for_report(self.get_timestamp(timezone.localtime(order.accepted_time)),
+                                                        self.get_timestamp(timezone.localtime(end_report)),
+                                                        order.vehicle.gps.gps_id)
                 elif order.finish_time <= previous_finish_time:
                     continue
                 else:
@@ -283,60 +283,62 @@ class UaGpsSynchronizer(Fleet):
         return total_km, driver_vehicles
 
     def save_daily_rent(self, start, end, schema):
-        self.get_vehicle_rent(start, end, schema)
-        in_road = self.get_road_distance(start, end, schema)
-        for driver, result in in_road.items():
-            distance, road_time = result[0], result[1]
-            total_km = self.calc_total_km(driver, start, end)[0]
+        if not redis_instance().exists(f"{self.partner.id}_remove_gps"):
+            self.get_vehicle_rent(start, end, schema)
+            in_road = self.get_road_distance(start, end, schema)
+            for driver, result in in_road.items():
+                distance, road_time = result[0], result[1]
+                total_km = self.calc_total_km(driver, start, end)[0]
 
-            rent_distance = total_km - distance
-            RentInformation.objects.create(report_from=start,
-                                           report_to=end,
-                                           driver=driver,
-                                           partner=self.partner,
-                                           rent_distance=rent_distance)
+                rent_distance = total_km - distance
+                RentInformation.objects.create(report_from=start,
+                                               report_to=end,
+                                               driver=driver,
+                                               partner=self.partner,
+                                               rent_distance=rent_distance)
 
     def check_today_rent(self):
-        start = timezone.make_aware(datetime.combine(timezone.localtime(), time.min))
-        end = timezone.make_aware(datetime.combine(timezone.localtime(), time.max))
-        in_road = self.get_road_distance(start, end)
-        for driver, result in in_road.items():
-            distance, road_time, end_time = result
-            total_km = 0
-            if not end_time:
-                end_time = timezone.localtime()
-            reshuffles = check_reshuffle(driver, start, end)
-            for reshuffle in reshuffles:
-                try:
-                    if reshuffle.end_time < end_time:
-                        total_km += self.total_per_day(reshuffle.swap_vehicle.gps.gps_id,
-                                                       reshuffle.swap_time,
-                                                       reshuffle.end_time)
-                    elif reshuffle.swap_time < end_time:
-                        total_km += self.total_per_day(reshuffle.swap_vehicle.gps.gps_id,
-                                                       reshuffle.swap_time,
-                                                       end_time)
-                    else:
+        if not redis_instance().exists(f"{self.partner.id}_remove_gps"):
+            start = timezone.make_aware(datetime.combine(timezone.localtime(), time.min))
+            end = timezone.make_aware(datetime.combine(timezone.localtime(), time.max))
+            in_road = self.get_road_distance(start, end)
+            for driver, result in in_road.items():
+                distance, road_time, end_time = result
+                total_km = 0
+                if not end_time:
+                    end_time = timezone.localtime()
+                reshuffles = check_reshuffle(driver, start, end)
+                for reshuffle in reshuffles:
+                    try:
+                        if reshuffle.end_time < end_time:
+                            total_km += self.total_per_day(reshuffle.swap_vehicle.gps.gps_id,
+                                                           reshuffle.swap_time,
+                                                           reshuffle.end_time)
+                        elif reshuffle.swap_time < end_time:
+                            total_km += self.total_per_day(reshuffle.swap_vehicle.gps.gps_id,
+                                                           reshuffle.swap_time,
+                                                           end_time)
+                        else:
+                            continue
+                    except AttributeError as e:
+                        get_logger().error(e)
                         continue
-                except AttributeError as e:
-                    get_logger().error(e)
-                    continue
-            rent_distance = total_km - distance
-            driver_obj = Driver.objects.get(id=driver)
-            kasa, card, mileage, orders, canceled_orders = get_today_statistic(self.partner, start, end_time, driver_obj)
-            time_now = timezone.localtime(end_time)
-            if kasa and mileage:
-                text = f"Поточна статистика на {time_now.strftime('%H:%M')}:\n" \
-                       f"Водій: {driver_obj}\n"\
-                       f"Каса: {round(kasa, 2)}\n"\
-                       f"Виконано замовлень: {orders}\n"\
-                       f"Скасовано замовлень: {canceled_orders}\n"\
-                       f"Пробіг під замовленням: {mileage}\n"\
-                       f"Ефективність: {round(kasa / mileage, 2)}\n"\
-                       f"Холостий пробіг: {rent_distance}\n"
-            else:
-                text = f"Водій {driver_obj} ще не виконав замовлень\n" \
-                       f"Холостий пробіг: {rent_distance}\n"
-            if timezone.localtime(end_time).time() > time(7, 0):
-                bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"),
-                                 text=text)
+                rent_distance = total_km - distance
+                driver_obj = Driver.objects.get(id=driver)
+                kasa, card, mileage, orders, canceled_orders = get_today_statistic(self.partner, start, end_time, driver_obj)
+                time_now = timezone.localtime(end_time)
+                if kasa and mileage:
+                    text = f"Поточна статистика на {time_now.strftime('%H:%M')}:\n" \
+                           f"Водій: {driver_obj}\n"\
+                           f"Каса: {round(kasa, 2)}\n"\
+                           f"Виконано замовлень: {orders}\n"\
+                           f"Скасовано замовлень: {canceled_orders}\n"\
+                           f"Пробіг під замовленням: {mileage}\n"\
+                           f"Ефективність: {round(kasa / mileage, 2)}\n"\
+                           f"Холостий пробіг: {rent_distance}\n"
+                else:
+                    text = f"Водій {driver_obj} ще не виконав замовлень\n" \
+                           f"Холостий пробіг: {rent_distance}\n"
+                if timezone.localtime(end_time).time() > time(7, 0):
+                    bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"),
+                                     text=text)
