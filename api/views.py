@@ -57,6 +57,7 @@ class SummaryReportListView(CombinedPermissionsMixin,
             report_from__range=(start, end),
             status__in=[PaymentsStatus.COMPLETED]
         )
+
         sum_rent = driver_payments_list.aggregate(
             payment_rent=Coalesce(Sum('rent'), Value(0, output_field=DecimalField()))
         )['payment_rent']
@@ -73,7 +74,8 @@ class SummaryReportListView(CombinedPermissionsMixin,
         ).aggregate(total_spending=Coalesce(Sum('amount'), Decimal(0)))['total_spending']
 
         total_driver_spending = Bonus.objects.filter(
-            created_at__range=(start, end)
+            created_at__range=(start, end),
+            driver_payments__status=PaymentsStatus.COMPLETED
         ).aggregate(total_spending=Coalesce(Sum('amount'), Decimal(0)))['total_spending']
 
         queryset = filtered_qs.values('driver_id').annotate(
