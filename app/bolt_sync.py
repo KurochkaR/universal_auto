@@ -278,7 +278,7 @@ class BoltRequest(Fleet, Synchronizer):
             offset += limit
         return driver_list
 
-    def get_fleet_orders(self, start, end, pk, driver_id):
+    def get_fleet_orders(self, start, end):
         bolt_states = {
             "client_did_not_show": FleetOrder.CLIENT_CANCEL,
             "finished": FleetOrder.COMPLETED,
@@ -286,15 +286,13 @@ class BoltRequest(Fleet, Synchronizer):
             "driver_cancelled_after_accept": FleetOrder.DRIVER_CANCEL,
             "driver_rejected": FleetOrder.DRIVER_CANCEL
         }
-        driver = Driver.objects.get(pk=pk)
         format_start = start.strftime("%Y-%m-%d")
         format_end = end.strftime("%Y-%m-%d")
         payload = {
             "offset": 0,
-            "limit": 50,
+            "limit": 100,
             "from_date": format_start,
             "to_date": format_end,
-            "driver_id": driver_id,
             "orders_state_statuses": [
                 "client_did_not_show",
                 "finished",
@@ -303,48 +301,57 @@ class BoltRequest(Fleet, Synchronizer):
                 "driver_rejected"
             ]
         }
-        report = self.get_target_url(f'{self.base_url}getOrdersHistory', self.param(), payload, method="POST")
-        time.sleep(0.5)
-        if report.get('data'):
-            for order in report['data']['rows']:
-                price = order.get('total_price', 0)
-                tip = order.get("tip", 0)
-                if FleetOrder.objects.filter(
-                        order_id=order['order_id'], partner=self.partner,
-                        date_order=timezone.make_aware(datetime.fromtimestamp(order['driver_assigned_time']))).exists():
-                    vehicle = check_vehicle(driver, date_time=timezone.make_aware(
-                        datetime.fromtimestamp(order['accepted_time'])))
-                    if not vehicle:
+        offset = 0
+        limit = payload["limit"]
+        while True:
+            payload["offset"] = offset
+            report = self.get_target_url(f'{self.base_url}getOrdersHistory', self.param(), payload, method="POST")
+            if report.get('data') and report['data']['total_rows'] > offset:
+                for order in report['data']['rows']:
+                    driver_id_query = FleetsDriversVehiclesRate.objects.filter(fleet=self, partner=self.partner,
+                                                                               driver_external_id=order['driver_id'])
+                    if driver_id_query.exists():
+                        driver = driver_id_query.first().driver
+                        price = order.get('total_price', 0)
+                        tip = order.get("tip", 0)
+                        date_order = timezone.make_aware(datetime.fromtimestamp(order['driver_assigned_time']))
+                        accepted_time = timezone.make_aware(datetime.fromtimestamp(order['accepted_time']))
+                        if FleetOrder.objects.filter(order_id=order['order_id'], partner=self.partner,
+                                                     date_order=date_order).exists():
+                            vehicle = check_vehicle(driver, date_time=accepted_time)
+                            if not vehicle:
+                                vehicle = Vehicle.objects.get(licence_plate=normalized_plate(order['car_reg_number']))
+                            FleetOrder.objects.filter(order_id=order['order_id'], partner=self.partner).update(
+                                price=price, tips=tip, vehicle=vehicle)
+                            continue
+                        try:
+                            finish = timezone.make_aware(
+                                datetime.fromtimestamp(order['order_stops'][-1]['arrived_at']))
+                        except TypeError:
+                            finish = None
                         vehicle = Vehicle.objects.get(licence_plate=normalized_plate(order['car_reg_number']))
-                    FleetOrder.objects.filter(order_id=order['order_id'],
-                                              partner=self.partner).update(price=price, tips=tip, vehicle=vehicle)
-                    continue
-                try:
-                    finish = timezone.make_aware(
-                        datetime.fromtimestamp(order['order_stops'][-1]['arrived_at']))
-                except TypeError:
-                    finish = None
-                vehicle = Vehicle.objects.get(licence_plate=normalized_plate(order['car_reg_number']))
-                data = {"order_id": order['order_id'],
-                        "fleet": self.name,
-                        "driver": driver,
-                        "from_address": order['pickup_address'],
-                        "accepted_time": timezone.make_aware(datetime.fromtimestamp(order['accepted_time'])),
-                        "state": bolt_states.get(order['order_try_state']),
-                        "finish_time": finish,
-                        "payment": PaymentTypes.map_payments(order['payment_method']),
-                        "destination": order['order_stops'][-1]['address'],
-                        "vehicle": vehicle,
-                        "price": price,
-                        "tips": tip,
-                        "partner": self.partner,
-                        "date_order": timezone.make_aware(datetime.fromtimestamp(order['driver_assigned_time']))
-                        }
-                FleetOrder.objects.create(**data)
-                time.sleep(0.5)
-                if check_vehicle(driver) != vehicle:
-                    redis_instance().hset(f"wrong_vehicle_{driver.partner.pk}", driver_id,
-                                          vehicle.licence_plate)
+                        data = {"order_id": order['order_id'],
+                                "fleet": self.name,
+                                "driver": driver,
+                                "from_address": order['pickup_address'],
+                                "accepted_time": accepted_time,
+                                "state": bolt_states.get(order['order_try_state']),
+                                "finish_time": finish,
+                                "payment": PaymentTypes.map_payments(order['payment_method']),
+                                "destination": order['order_stops'][-1]['address'],
+                                "vehicle": vehicle,
+                                "price": price,
+                                "tips": tip,
+                                "partner": self.partner,
+                                "date_order": date_order
+                                }
+                        FleetOrder.objects.create(**data)
+                        if check_vehicle(driver) != vehicle:
+                            redis_instance().hset(f"wrong_vehicle_{driver.partner.pk}", driver.pk,
+                                                  vehicle.licence_plate)
+                offset += limit
+            else:
+                break
 
     def get_drivers_status(self, photo=None):
         with_client = []
