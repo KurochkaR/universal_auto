@@ -5626,6 +5626,45 @@ span.error-name {
     width: 100%;
 	}
 
+	/* park-block-electro-car */
+
+	.owners-electric-cars .title-block h2 {
+		font-size: 15px;
+		text-align: left;
+	}
+
+	.owners-cars {
+		flex-direction: column;
+	}
+
+	.owners-car-img img {
+		width: 100%;
+		height: auto;
+	}
+
+	.owners-car-description h3 {
+		font-size: 15px;
+    margin: 15px 0 10px 0px;
+	}
+
+	.owners-car-description span {
+		font-size: 15px;
+	}
+
+	.be-responsible h2 {
+		font-size: 15px;
+		margin: 10px 0 10px 0;
+	}
+
+	.be-responsible ul li {
+		margin-top: 0px;
+		font-size: 15px;
+	}
+
+	.be-responsible ul li::before {
+		width: 30px;
+		height: 30px;
+	}
 
 	/* modal */
 
