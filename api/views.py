@@ -168,7 +168,7 @@ class CarEfficiencyListView(CombinedPermissionsMixin,
         dates = sorted(list(set(queryset.values_list("report_from", flat=True))))
         format_dates = []
         for date in dates:
-            new_date = date.strftime("%d.%m")
+            new_date = timezone.localtime(date).strftime("%d.%m")
             format_dates.append(new_date)
         efficiency_dict = {
             "mileage": list(queryset.values_list("mileage", flat=True)),
