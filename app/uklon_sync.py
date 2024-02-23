@@ -1,13 +1,13 @@
 import json
+import uuid
 from datetime import datetime, time
 import requests
 from _decimal import Decimal
 
-from django.db.models import Q
 from django.utils import timezone
 from django.db import models
 from requests import JSONDecodeError
-from app.models import ParkSettings, FleetsDriversVehiclesRate, Driver, Service, FleetOrder, \
+from app.models import ParkSettings, FleetsDriversVehiclesRate, Service, FleetOrder, \
     CredentialPartner, Vehicle, PaymentTypes, CustomReport, Fleet, WeeklyReport, DailyReport
 from auto_bot.handlers.order.utils import check_vehicle, normalized_plate
 from auto_bot.main import bot
@@ -307,7 +307,7 @@ class UklonRequest(Fleet, Synchronizer):
             offset += int(limit)
         return drivers
 
-    def get_fleet_orders(self, start, end, pk, driver_id):
+    def get_fleet_orders(self, start, end):
         states = {"completed": FleetOrder.COMPLETED,
                   "Rider": FleetOrder.CLIENT_CANCEL,
                   "Driver": FleetOrder.DRIVER_CANCEL,
@@ -315,53 +315,62 @@ class UklonRequest(Fleet, Synchronizer):
                   "Dispatcher": FleetOrder.SYSTEM_CANCEL
                   }
 
-        driver = Driver.objects.get(pk=pk)
-        params = {"limit": 50,
+        params = {"limit": 100,
                   "fleetId": self.uklon_id(),
-                  "driverId": driver_id,
                   "from": self.report_interval(start),
                   "to": self.report_interval(end)
                   }
-        orders = self.response_data(url=f"{Service.get_value('UKLON_1')}orders", params=params)
-        try:
+        while True:
+            orders = self.response_data(url=f"{Service.get_value('UKLON_1')}orders", params=params)
             for order in orders['items']:
-                if any([order['status'] in ("running", "accepted", "arrived"), FleetOrder.objects.filter(
-                        date_order=timezone.make_aware(datetime.fromtimestamp(order["pickupTime"])),
-                        order_id=order['id'], partner=self.partner).exists()]):
-                    continue
-                vehicle = Vehicle.objects.get(licence_plate=normalized_plate(order['vehicle']['licencePlate']))
                 try:
-                    finish_time = timezone.make_aware(datetime.fromtimestamp(order["completedAt"]))
+                    if any([order['status'] in ("running", "accepted", "arrived"), FleetOrder.objects.filter(
+                            date_order=timezone.make_aware(datetime.fromtimestamp(order["pickupTime"])),
+                            order_id=order['id'], partner=self.partner).exists()]):
+                        continue
+                    formatted_uuid = str(uuid.UUID(order['driver']['id']))
+                    driver_id_query = FleetsDriversVehiclesRate.objects.filter(
+                        fleet=self, partner=self.partner, driver_external_id=formatted_uuid)
+                    if driver_id_query.exists():
+                        driver = driver_id_query.first().driver
+
+                        vehicle = Vehicle.objects.get(licence_plate=normalized_plate(order['vehicle']['licencePlate']))
+                        try:
+                            finish_time = timezone.make_aware(datetime.fromtimestamp(order["completedAt"]))
+                        except KeyError:
+                            finish_time = None
+                        try:
+                            start_time = timezone.make_aware(datetime.fromtimestamp(order["acceptedAt"]))
+                        except KeyError:
+                            start_time = None
+                        if order['status'] != "completed":
+                            state = order["cancellation"]["initiator"]
+                        else:
+                            state = order['status']
+                        data = {"order_id": order['id'],
+                                "fleet": self.name,
+                                "driver": driver,
+                                "from_address": order['route']['points'][0]["address"],
+                                "accepted_time": start_time,
+                                "state": states.get(state),
+                                "finish_time": finish_time,
+                                "destination": order['route']['points'][-1]["address"],
+                                "vehicle": vehicle,
+                                "payment": PaymentTypes.map_payments(order['payment']['paymentType']),
+                                "price": order['payment']['cost'],
+                                "partner": self.partner,
+                                "date_order": timezone.make_aware(datetime.fromtimestamp(order["pickupTime"]))
+                                }
+                        FleetOrder.objects.create(**data)
+                        if check_vehicle(driver) != vehicle:
+                            redis_instance().hset(f"wrong_vehicle_{self.partner.pk}", driver.pk,
+                                                  vehicle.licence_plate)
                 except KeyError:
-                    finish_time = None
-                try:
-                    start_time = timezone.make_aware(datetime.fromtimestamp(order["acceptedAt"]))
-                except KeyError:
-                    start_time = None
-                if order['status'] != "completed":
-                    state = order["cancellation"]["initiator"]
-                else:
-                    state = order['status']
-                data = {"order_id": order['id'],
-                        "fleet": self.name,
-                        "driver": driver,
-                        "from_address": order['route']['points'][0]["address"],
-                        "accepted_time": start_time,
-                        "state": states.get(state),
-                        "finish_time": finish_time,
-                        "destination": order['route']['points'][-1]["address"],
-                        "vehicle": vehicle,
-                        "payment": PaymentTypes.map_payments(order['payment']['paymentType']),
-                        "price": order['payment']['cost'],
-                        "partner": self.partner,
-                        "date_order": timezone.make_aware(datetime.fromtimestamp(order["pickupTime"]))
-                        }
-                FleetOrder.objects.create(**data)
-                if check_vehicle(driver) != vehicle:
-                    redis_instance().hset(f"wrong_vehicle_{self.partner.pk}", pk,
-                                          vehicle.licence_plate)
-        except KeyError:
-            bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"), text=f"{orders}")
+                    bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"), text=f"{order}")
+            if orders['cursor']:
+                params['cursor'] = orders['cursor']
+            else:
+                break
 
     def disable_cash(self, driver_id, enable):
         url = f"{Service.get_value('UKLON_1')}{self.uklon_id()}"

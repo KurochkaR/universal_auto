@@ -55,25 +55,31 @@ class SummaryReportListView(CombinedPermissionsMixin,
 
         driver_payments_list = DriverPayments.objects.filter(
             report_from__range=(start, end),
-            status__in=[PaymentsStatus.COMPLETED]
+            status__in=[PaymentsStatus.COMPLETED],
+            partner=self.request.user
         )
+
         sum_rent = driver_payments_list.aggregate(
             payment_rent=Coalesce(Sum('rent'), Value(0, output_field=DecimalField()))
         )['payment_rent']
 
         total_compensation_bonus = Bonus.objects.filter(
             category=BonusCategory.objects.get(title='Компенсація оренди'),
-            driver_payments__in=driver_payments_list
+            driver_payments__in=driver_payments_list,
+            driver_payments__partner=self.request.user
         ).aggregate(
             total_amount=Coalesce(Sum('amount'), Value(0, output_field=DecimalField()))
         )['total_amount']
 
         total_vehicle_spending = VehicleSpending.objects.filter(
-            created_at__range=(start, end)
+            created_at__range=(start, end),
+            partner=self.request.user
         ).aggregate(total_spending=Coalesce(Sum('amount'), Decimal(0)))['total_spending']
 
         total_driver_spending = Bonus.objects.filter(
-            created_at__range=(start, end)
+            created_at__range=(start, end),
+            driver_payments__status=PaymentsStatus.COMPLETED,
+            driver_payments__partner=self.request.user
         ).aggregate(total_spending=Coalesce(Sum('amount'), Decimal(0)))['total_spending']
 
         queryset = filtered_qs.values('driver_id').annotate(
@@ -168,7 +174,7 @@ class CarEfficiencyListView(CombinedPermissionsMixin,
         dates = sorted(list(set(queryset.values_list("report_from", flat=True))))
         format_dates = []
         for date in dates:
-            new_date = date.strftime("%d.%m")
+            new_date = timezone.localtime(date).strftime("%d.%m")
             format_dates.append(new_date)
         efficiency_dict = {
             "mileage": list(queryset.values_list("mileage", flat=True)),

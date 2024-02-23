@@ -190,8 +190,9 @@ class SchemaAdmin(admin.ModelAdmin):
 
         if calc_field == SalaryCalculation.WEEK:
             obj.shift_time = time.min
-        if obj:
-            old_obj = Schema.objects.get(pk=obj.pk)
+
+        old_obj = Schema.objects.filter(pk=obj.pk).first()
+        if old_obj:
             old_shift_time = old_obj.shift_time
             if obj.shift_time != old_shift_time:
                 crontab = get_schedule(obj.shift_time)
@@ -212,7 +213,8 @@ class SchemaAdmin(admin.ModelAdmin):
                     new_args[1].append(obj.pk)
                     new_task.args = str(new_args)
                     new_task.save(update_fields=["args"])
-                old_task = PeriodicTask.objects.filter(name=f"get_information_from_fleets({request.user.pk}_{old_crontab})")
+                old_task = PeriodicTask.objects.filter(
+                    name=f"get_information_from_fleets({request.user.pk}_{old_crontab})")
                 if old_task.exists():
                     task = old_task.first()
                     old_args = eval(task.args)
@@ -547,10 +549,16 @@ class PartnerEarningsAdmin(admin.ModelAdmin):
 
 @admin.register(CarEfficiency)
 class CarEfficiencyAdmin(admin.ModelAdmin):
-    list_filter = (VehicleEfficiencyUserFilter,)
+
     list_per_page = 25
     raw_id_fields = ['vehicle']
     list_select_related = ['vehicle']
+
+    def get_list_filter(self, request):
+        list_filter = [VehicleEfficiencyUserFilter]
+        if request.user.is_superuser:
+            list_filter.append('partner')
+        return list_filter
 
     def get_list_display(self, request):
         if request.user.is_superuser:
@@ -579,10 +587,15 @@ class CarEfficiencyAdmin(admin.ModelAdmin):
 
 @admin.register(DriverEfficiency)
 class DriverEfficiencyAdmin(admin.ModelAdmin):
-    list_filter = [DriverEfficiencyUserFilter]
     list_per_page = 25
     raw_id_fields = ['driver', 'partner']
     list_select_related = ['driver', 'partner']
+
+    def get_list_filter(self, request):
+        list_filter = [DriverEfficiencyUserFilter]
+        if request.user.is_superuser:
+            list_filter.append('partner')
+        return list_filter
 
     def get_list_display(self, request):
         if request.user.is_superuser:
@@ -627,6 +640,12 @@ class RentInformationAdmin(admin.ModelAdmin):
     list_per_page = 25
     raw_id_fields = ['driver', 'partner']
     list_select_related = ['partner', 'driver']
+
+    def get_list_filter(self, request):
+        list_filter = [RentInformationUserFilter, 'created_at']
+        if request.user.is_superuser:
+            list_filter.append('partner')
+        return list_filter
 
     def get_list_display(self, request):
         if request.user.is_superuser:
@@ -731,6 +750,12 @@ class PaymentsOrderAdmin(BaseReportAdmin):
 class SummaryReportAdmin(BaseReportAdmin):
     list_filter = (SummaryReportUserFilter,)
     ordering = ('-report_from', 'driver')
+
+    def get_list_filter(self, request):
+        list_filter = [SummaryReportUserFilter]
+        if request.user.is_superuser:
+            list_filter.append('partner')
+        return list_filter
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
@@ -1029,6 +1054,47 @@ class DriverAdmin(SoftDeleteAdmin):
                                                             )
 
         super().save_model(request, obj, form, change)
+
+
+@admin.register(DeletedVehicle)
+class DeletedVehicleAdmin(admin.ModelAdmin):
+    list_display = ('licence_plate', 'name', 'deleted_at')
+    list_filter = ('deleted_at',)
+    search_fields = ('licence_plate', 'name')
+    list_per_page = 25
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request).filter(deleted_at__isnull=False)
+        if request.user.is_partner():
+            return qs.filter(partner_id=request.user.pk)
+        return qs
+
+    change_form_template = 'admin/change_form_fired_driver.html'
+
+    def get_fieldsets(self, request, obj=None):
+        fieldsets = (
+            ('Інформація про авто', {'fields': ['name', 'licence_plate',
+                                                ]}),
+        )
+        return fieldsets
+
+    def change_view(self, request, object_id, form_url='', extra_context=None):
+        extra_context = extra_context or {}
+
+        if 'restore_driver' in request.POST:
+            # Add your custom restore logic here
+            instance = self.get_object(request, object_id)
+            if instance:
+                instance.deleted_at = None
+                instance.save()
+
+                self.message_user(request, 'Object restored successfully.')
+
+                # Redirect to the change form again
+                list_url = reverse('admin:app_deletedvehicle_changelist')
+                return HttpResponseRedirect(list_url)
+
+        return super().change_view(request, object_id, form_url, extra_context)
 
 
 @admin.register(FiredDriver)
@@ -1416,6 +1482,10 @@ class DriverPaymentsAdmin(admin.ModelAdmin):
 @admin.register(DriverEfficiencyFleet)
 class DriverFleetEfficiencyAdmin(admin.ModelAdmin):
     list_display = ['driver', 'efficiency', 'total_kasa', 'total_orders', 'mileage', 'fleet']
+
+    def get_list_filter(self, request):
+        if request.user.is_superuser:
+            return ['partner']
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)

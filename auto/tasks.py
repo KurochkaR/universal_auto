@@ -165,14 +165,10 @@ def remove_gps_partner(self, partner_pk):
 def get_orders_from_fleets(self, schemas, day=None):
     try:
         schema_obj = Schema.objects.filter(pk__in=schemas).first()
+        end, start = get_time_for_task(schema_obj.pk, day)[1:3]
         fleets = Fleet.objects.filter(partner=schema_obj.partner, deleted_at=None).exclude(name__in=['Gps', 'Uber'])
-        drivers = Driver.objects.get_active(schema__in=schemas)
         for fleet in fleets:
-            for driver in drivers:
-                driver_id = driver.get_driver_external_id(fleet)
-                if driver_id:
-                    end, start = get_time_for_task(driver.schema.pk, day)[1:3]
-                    fleet.get_fleet_orders(start, end, driver.pk, driver_id)
+            fleet.get_fleet_orders(start, end)
     except Exception as e:
         logger.error(e)
         retry_delay = retry_logic(e, self.request.retries + 1)
@@ -203,14 +199,10 @@ def get_today_orders(self, partner_pk):
         fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name__in=('Gps', 'Uber'))
         end = timezone.localtime()
         start = timezone.make_aware(datetime.combine(end, time.min))
-        drivers = Driver.objects.get_active(partner=partner_pk)
         for fleet in fleets:
             if isinstance(fleet, UklonRequest) and end <= start:
                 continue
-            for driver in drivers:
-                driver_id = driver.get_driver_external_id(fleet)
-                if driver_id:
-                    fleet.get_fleet_orders(start, end, driver.pk, driver_id)
+            fleet.get_fleet_orders(start, end)
     except Exception as e:
         logger.error(e)
         retry_delay = retry_logic(e, self.request.retries + 1)
@@ -236,7 +228,21 @@ def check_card_cash_value(self, partner_pk):
                 else:
                     rate = driver.schema.rate
                 enable = int(ratio > rate)
-                fleets_cash_trips.delay(partner_pk, driver.pk, enable)
+                fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name='Gps')
+                disabled = []
+                for fleet in fleets:
+                    driver_rate = FleetsDriversVehiclesRate.objects.filter(
+                        driver=driver, fleet=fleet).first()
+                    if driver_rate and int(driver_rate.pay_cash) != enable:
+                        result = fleet.disable_cash(driver_rate.driver_external_id, enable)
+                        disabled.append(result)
+                if disabled:
+                    if enable:
+                        text = f"Готівка {driver} \U0001F7E2"
+                    else:
+                        text = f"Готівка {driver} \U0001F534"
+                    bot.send_message(chat_id=ParkSettings.get_value("DRIVERS_CHAT", partner=partner_pk),
+                                     text=text)
     except Exception as e:
         logger.error(e)
         retry_delay = retry_logic(e, self.request.retries + 1)
@@ -421,21 +427,21 @@ def get_driver_efficiency(self, schemas, day=None):
     schema_obj = Schema.objects.filter(pk__in=schemas).first()
     if Fleet.objects.filter(partner=schema_obj.partner, deleted_at=None, name="Gps").exists():
         for driver in Driver.objects.get_active(schema__in=schemas):
-            end, start = get_time_for_task(driver.schema, day)[1:3]
-            polymorphic_efficiency_create(DriverEfficiency, driver.partner, driver,
+            end, start = get_time_for_task(driver.schema.id, day)[1:3]
+            polymorphic_efficiency_create(DriverEfficiency, driver.partner.pk, driver,
                                           start, end, SummaryReport)
 
 
 @app.task(bind=True)
 def get_driver_efficiency_fleet(self, schemas, day=None):
-    schema_obj = Schema.objects.get(pk__in=schemas)
+    schema_obj = Schema.objects.filter(pk__in=schemas).first()
     if Fleet.objects.filter(partner=schema_obj.partner, deleted_at=None, name="Gps").exists():
         for driver in Driver.objects.get_active(schema__in=schemas):
-            end, start = get_time_for_task(driver.schema, day)[1:3]
+            end, start = get_time_for_task(driver.schema.id, day)[1:3]
             fleets = FleetsDriversVehiclesRate.objects.filter(
                 driver=driver, deleted_at=None).values_list("fleet", flat=True)
             for fleet in fleets:
-                polymorphic_efficiency_create(DriverEfficiencyFleet, driver.partner, driver,
+                polymorphic_efficiency_create(DriverEfficiencyFleet, driver.partner.pk, driver,
                                               start, end, Payments, fleet)
 
 
@@ -1227,14 +1233,6 @@ def check_cash_and_vehicle(self, partner_pk):
 
 
 @app.task(bind=True)
-def driver_efficiency_all(self, partner_pk, schemas, day=None):
-    tasks = chain(get_driver_efficiency.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
-                  get_driver_efficiency_fleet.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
-                  )
-    tasks()
-
-
-@app.task(bind=True)
 def get_information_from_fleets(self, partner_pk, schemas, day=None):
     task_chain = chain(
         download_daily_report.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
@@ -1242,11 +1240,28 @@ def get_information_from_fleets(self, partner_pk, schemas, day=None):
         generate_payments.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
         generate_summary_report.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
         get_rent_information.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
-        driver_efficiency_all.si(schemas, partner_pk, day).set(queue=f'beat_tasks_{partner_pk}'),
+        get_driver_efficiency.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
+        get_driver_efficiency_fleet.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
         calculate_driver_reports.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
         send_daily_statistic.si(schemas).set(queue=f'beat_tasks_{partner_pk}'),
         send_driver_efficiency.si(schemas).set(queue=f'beat_tasks_{partner_pk}'),
         send_driver_report.si(schemas).set(queue=f'beat_tasks_{partner_pk}')
+    )
+    task_chain()
+
+
+@app.task(bind=True)
+def get_all(self, partner_pk, schemas, day=None):
+    task_chain = chain(
+        download_nightly_report.si(partner_pk, day).set(queue=f'beat_tasks_{partner_pk}'),
+        download_daily_report.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
+        get_orders_from_fleets.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
+        generate_payments.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
+        generate_summary_report.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
+        get_rent_information.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
+        get_driver_efficiency.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
+        get_driver_efficiency_fleet.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
+        calculate_driver_reports.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
     )
     task_chain()
 
