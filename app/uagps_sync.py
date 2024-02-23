@@ -5,7 +5,7 @@ import requests
 from _decimal import Decimal
 from django.utils import timezone
 from app.models import (Driver, GPSNumber, RentInformation, FleetOrder, CredentialPartner, ParkSettings, Fleet,
-                        Partner, VehicleRent, Vehicle, DriverReshuffle)
+                        Partner, VehicleRent, Vehicle, DriverReshuffle, Schema)
 from auto_bot.handlers.driver_manager.utils import get_today_statistic
 from auto_bot.handlers.order.utils import check_reshuffle
 from auto_bot.main import bot
@@ -155,7 +155,8 @@ class UaGpsSynchronizer(Fleet):
                 distance, time_in_road, previous_finish_time = self.calculate_order_distance(completed, end_report)
                 road_distance += distance
                 road_time += time_in_road
-                if start_report.time() == time.min or start_report.time() == driver.schema.shift_time:
+                if (start_report.time() == time.min or
+                        (schema and start_report.time() == Schema.objects.get(pk=schema).shift_time)):
                     yesterday_order = FleetOrder.objects.filter(driver=driver,
                                                                 finish_time__gt=start_report,
                                                                 state=FleetOrder.COMPLETED,
