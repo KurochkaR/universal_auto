@@ -113,11 +113,11 @@ class UaGpsSynchronizer(Fleet):
             params['params'] = json.dumps(parameters)
         return params
 
-    def generate_report(self, params):
-        road_distance = 0
-        road_time = timedelta()
+    def generate_report(self, params, orders):
         report = requests.get(f"{self.get_base_url()}wialon/ajax.html", params=params)
+        print(report.json())
         items = report.json() if isinstance(report.json(), list) else [report.json()]
+        result_list = []
         for item in items:
             try:
                 raw_time = item['reportResult']['stats'][4][1]
@@ -127,17 +127,23 @@ class UaGpsSynchronizer(Fleet):
                 raw_time = item['reportResult']['stats'][12][1]
                 clean_time = [int(i) for i in raw_time.split(':')]
                 raw_distance = item['reportResult']['stats'][11][1]
-            road_time += timedelta(hours=clean_time[0], minutes=clean_time[1], seconds=clean_time[2])
-            road_distance += Decimal(raw_distance.split(' ')[0])
-        return road_distance, road_time
+            result_list.append((Decimal(raw_distance.split(' ')[0]), timedelta(hours=clean_time[0],
+                                                                               minutes=clean_time[1],
+                                                                               seconds=clean_time[2])))
+        if orders:
+            return result_list
+        else:
+            road_distance = sum(item[0] for item in result_list)
+            road_time = sum(item[1] for item in result_list)
+            return road_distance, road_time
 
-    def generate_batch_report(self, parameters):
+    def generate_batch_report(self, parameters, orders=False):
         params = {
             "svc": "core/batch",
             "sid": self.get_session(),
             "params": json.dumps(parameters)
         }
-        return self.generate_report(params)
+        return self.generate_report(params, orders)
 
     @staticmethod
     def get_timestamp(timeframe):
@@ -190,10 +196,28 @@ class UaGpsSynchronizer(Fleet):
             distance, road_time = self.generate_batch_report(parameters)
             road_dict[driver] = distance, road_time, previous_finish_time
         return road_dict
-                        #                 road_distance += report[0]
-                        #                 road_time += report[1]
-                        #         road_dict[driver] = (road_distance, road_time, previous_finish_time)
-                        # return road_dict
+
+    def get_order_distance(self, orders):
+        batch_params = []
+        updated_orders = []
+        for instance in orders:
+            if instance.finish_time and instance.vehicle.gps:
+                batch_params.append(self.get_params_for_report(self.get_timestamp(instance.accepted_time),
+                                                               self.get_timestamp(instance.finish_time),
+                                                               instance.vehicle.gps.gps_id))
+        if batch_params:
+            batch_size = 50
+            batches = [batch_params[i:i + batch_size] for i in range(0, len(batch_params), batch_size)]
+
+            distance_list = []
+
+            for batch in batches:
+                distance_list.extend(self.generate_batch_report(batch, True))
+            for order, (distance, road_time) in zip(orders, distance_list):
+                order.distance = distance
+                order.road_time = road_time
+                updated_orders.append(order)
+            FleetOrder.objects.bulk_update(updated_orders, fields=['distance', 'road_time'], batch_size=200)
 
     def get_order_parameters(self, orders, end):
         parameters = []

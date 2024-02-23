@@ -5,7 +5,7 @@ import requests
 from _decimal import Decimal
 
 from django.utils import timezone
-from django.db import models
+from django.db import models, transaction
 from requests import JSONDecodeError
 from app.models import ParkSettings, FleetsDriversVehiclesRate, Service, FleetOrder, \
     CredentialPartner, Vehicle, PaymentTypes, CustomReport, Fleet, WeeklyReport, DailyReport
@@ -320,6 +320,7 @@ class UklonRequest(Fleet, Synchronizer):
                   "from": self.report_interval(start),
                   "to": self.report_interval(end)
                   }
+        batch_data = []
         while True:
             orders = self.response_data(url=f"{Service.get_value('UKLON_1')}orders", params=params)
             for order in orders['items']:
@@ -360,16 +361,20 @@ class UklonRequest(Fleet, Synchronizer):
                                 "partner": self.partner,
                                 "date_order": timezone.make_aware(datetime.fromtimestamp(order["pickupTime"]))
                                 }
-                        FleetOrder.objects.create(**data)
                         calendar_vehicle = check_vehicle(driver)
                         if calendar_vehicle != vehicle:
                             redis_instance().hset(f"wrong_vehicle_{self.partner.pk}", driver.pk,
                                                   vehicle.licence_plate)
+                        fleet_order = FleetOrder(**data)
+                        batch_data.append(fleet_order)
+
                 except KeyError:
                     bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"), text=f"{order}")
             if orders['cursor']:
                 params['cursor'] = orders['cursor']
             else:
+                with transaction.atomic():
+                    FleetOrder.objects.bulk_create(batch_data)
                 break
 
     def disable_cash(self, driver_id, enable):

@@ -209,6 +209,19 @@ def get_today_orders(self, partner_pk):
         raise self.retry(exc=e, countdown=retry_delay)
 
 
+@app.task(bind=True, retry_backoff=30, max_retries=3)
+def add_distance_for_order(self, partner_pk):
+    gps_query = UaGpsSynchronizer.objects.filter(partner=partner_pk)
+    end = timezone.localtime()
+    start = end - timedelta(hours=36)
+    if gps_query.exists():
+        orders = FleetOrder.objects.filter(partner=partner_pk, vehicle__isnull=False,
+                                           distance__isnull=True, finish_time__isnull=False,
+                                           vehicle__gps__isnull=False, date_order__range=(start, end))
+        gps = gps_query.first()
+        gps.get_order_distance(orders)
+
+
 @app.task(bind=True, retry_backoff=30, max_retries=4)
 def check_card_cash_value(self, partner_pk):
     try:
@@ -1134,7 +1147,7 @@ def calculate_driver_reports(self, schemas, day=None):
                     get_corrections(start, end, driver)
 
 
-@app.task(bind=True, queue='bot_tasks')
+@app.task(bind=True)
 def calculate_vehicle_earnings(self, payment_pk):
     payment = DriverPayments.objects.get(pk=payment_pk)
     driver = payment.driver
@@ -1189,7 +1202,7 @@ def calculate_vehicle_earnings(self, payment_pk):
         )
 
 
-@app.task(bind=True, queue='bot_tasks')
+@app.task(bind=True)
 def calculate_vehicle_spending(self, payment_pk):
     payment = InvestorPayments.objects.get(pk=payment_pk)
     spending = -payment.earning
@@ -1204,7 +1217,7 @@ def calculate_vehicle_spending(self, payment_pk):
     )
 
 
-@app.task(bind=True, queue='beat_tasks')
+@app.task(bind=True)
 def calculate_failed_earnings(self, payment_pk):
     payment = DriverPayments.objects.get(pk=payment_pk)
     vehicle_income = get_failed_income(payment)
@@ -1225,6 +1238,7 @@ def calculate_failed_earnings(self, payment_pk):
 @app.task(bind=True)
 def check_cash_and_vehicle(self, partner_pk):
     tasks = chain(get_today_orders.si(partner_pk).set(queue=f'beat_tasks_{partner_pk}'),
+                  add_distance_for_order.si(partner_pk).set(queue=f'beat_tasks_{partner_pk}'),
                   send_notify_to_check_car.si(partner_pk).set(queue=f'beat_tasks_{partner_pk}'),
                   check_card_cash_value.si(partner_pk).set(queue=f'beat_tasks_{partner_pk}')
                   )
@@ -1236,6 +1250,7 @@ def get_information_from_fleets(self, partner_pk, schemas, day=None):
     task_chain = chain(
         download_daily_report.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
         get_orders_from_fleets.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
+        add_distance_for_order.si(partner_pk).set(queue=f'beat_tasks_{partner_pk}'),
         generate_payments.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
         generate_summary_report.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
         get_rent_information.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),

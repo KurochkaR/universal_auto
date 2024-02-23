@@ -36,31 +36,14 @@ def calculate_fired_driver(sender, instance, **kwargs):
                                              defaults=data)
 
 
-@receiver(post_save, sender=FleetOrder)
-def add_road_time_and_distance(sender, instance, created, **kwargs):
-    if created:
-        if instance.finish_time and instance.vehicle.gps:
-            try:
-                gps = UaGpsSynchronizer.objects.get(partner=instance.partner)
-                distance, road_time = gps.generate_report(gps.get_params_for_report(int(instance.accepted_time.timestamp()),
-                                                          int(instance.finish_time.timestamp()),
-                                                          instance.vehicle.gps.gps_id,
-                                                          gps.get_session()))
-                instance.distance = distance
-                instance.road_time = road_time
-                instance.save(update_fields=["distance", "road_time"])
-            except ObjectDoesNotExist:
-                pass
-
-
 @receiver(post_save, sender=DriverPayments)
 @receiver(post_save, sender=InvestorPayments)
 def create_payments(sender, instance, created, **kwargs):
     if instance.is_completed():
         if isinstance(instance, DriverPayments):
-            calculate_vehicle_earnings.delay(instance.pk)
+            calculate_vehicle_earnings.apply_async(args=[instance.pk], queue=f'beat_tasks_{instance.partner.pk}')
         else:
-            calculate_vehicle_spending.delay(instance.pk)
+            calculate_vehicle_spending.apply_async(args=[instance.pk], queue=f'beat_tasks_{instance.partner.pk}')
     elif instance.is_pending():
         if isinstance(instance, DriverPayments):
             message = message_driver_report(instance.driver, instance)
@@ -78,7 +61,7 @@ def create_payments(sender, instance, created, **kwargs):
             pass
     # InvestorMassage
     elif instance.is_failed():
-        calculate_failed_earnings.delay(instance.pk)
+        calculate_failed_earnings.apply_async(args=[instance.pk], queue=f'beat_tasks_{instance.partner.pk}')
 
 
 @receiver(post_save, sender=Partner)
