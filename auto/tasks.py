@@ -165,8 +165,7 @@ def remove_gps_partner(self, partner_pk):
 def get_orders_from_fleets(self, schemas, day=None):
     try:
         schema_obj = Schema.objects.filter(pk__in=schemas).first()
-        end = timezone.make_aware(datetime.combine(timezone.localtime(), schema_obj.shift_time))
-        start = end - timedelta(days=1)
+        end, start = get_time_for_task(schema_obj.pk, day)[1:3]
         fleets = Fleet.objects.filter(partner=schema_obj.partner, deleted_at=None).exclude(name__in=['Gps', 'Uber'])
         for fleet in fleets:
             fleet.get_fleet_orders(start, end)

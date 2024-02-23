@@ -346,7 +346,8 @@ class BoltRequest(Fleet, Synchronizer):
                                 "date_order": date_order
                                 }
                         FleetOrder.objects.create(**data)
-                        if check_vehicle(driver) != vehicle:
+                        calendar_vehicle = check_vehicle(driver)
+                        if calendar_vehicle != vehicle:
                             redis_instance().hset(f"wrong_vehicle_{driver.partner.pk}", driver.pk,
                                                   vehicle.licence_plate)
                 offset += limit

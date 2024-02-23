@@ -24,28 +24,33 @@ from scripts.redis_conn import redis_instance
 from scripts.settings_for_park import standard_rates, settings_for_partner
 
 
-@receiver(post_save, sender=Driver)
+@receiver(post_delete, sender=Driver)
 def calculate_fired_driver(sender, instance, **kwargs):
-    if instance.schema and instance.schema.is_weekly() and instance.deleted_at:
+    if instance.schema and instance.schema.is_weekly():
         end = timezone.localtime().date()
         start = end - timedelta(days=end.weekday())
-        create_driver_payments(start, end, instance, instance.schema, delete=True)
+        data = create_driver_payments(start, end, instance, instance.schema, delete=True)
+        DriverPayments.objects.get_or_create(report_from=start,
+                                             report_to=end,
+                                             driver=instance,
+                                             defaults=data)
 
 
-# @receiver(post_save, sender=FleetOrder)
-# def add_road_time_and_distance(sender, instance, created, **kwargs):
-#     if created:
-#         if instance.finish_time and instance.vehicle.gps:
-#             try:
-#                 gps = UaGpsSynchronizer.objects.get(partner=instance.partner)
-#                 distance, road_time = gps.generate_report(int(instance.accepted_time.timestamp()),
-#                                                           int(instance.finish_time.timestamp()),
-#                                                           instance.vehicle.gps.gps_id)
-#                 instance.distance = distance
-#                 instance.road_time = road_time
-#                 instance.save(update_fields=["distance", "road_time"])
-#             except ObjectDoesNotExist:
-#                 pass
+@receiver(post_save, sender=FleetOrder)
+def add_road_time_and_distance(sender, instance, created, **kwargs):
+    if created:
+        if instance.finish_time and instance.vehicle.gps:
+            try:
+                gps = UaGpsSynchronizer.objects.get(partner=instance.partner)
+                distance, road_time = gps.generate_report(gps.get_params_for_report(int(instance.accepted_time.timestamp()),
+                                                          int(instance.finish_time.timestamp()),
+                                                          instance.vehicle.gps.gps_id,
+                                                          gps.get_session()))
+                instance.distance = distance
+                instance.road_time = road_time
+                instance.save(update_fields=["distance", "road_time"])
+            except ObjectDoesNotExist:
+                pass
 
 
 @receiver(post_save, sender=DriverPayments)

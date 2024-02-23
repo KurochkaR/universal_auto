@@ -117,7 +117,8 @@ class UaGpsSynchronizer(Fleet):
         road_distance = 0
         road_time = timedelta()
         report = requests.get(f"{self.get_base_url()}wialon/ajax.html", params=params)
-        for item in report.json():
+        items = report.json() if isinstance(report.json(), list) else [report.json()]
+        for item in items:
             try:
                 raw_time = item['reportResult']['stats'][4][1]
                 clean_time = [int(i) for i in raw_time.split(':')]
@@ -128,6 +129,7 @@ class UaGpsSynchronizer(Fleet):
                 raw_distance = item['reportResult']['stats'][11][1]
             road_time += timedelta(hours=clean_time[0], minutes=clean_time[1], seconds=clean_time[2])
             road_distance += Decimal(raw_distance.split(' ')[0])
+        return road_distance, road_time
 
     def generate_batch_report(self, parameters):
         params = {
@@ -136,7 +138,6 @@ class UaGpsSynchronizer(Fleet):
             "params": json.dumps(parameters)
         }
         return self.generate_report(params)
-
 
     @staticmethod
     def get_timestamp(timeframe):
@@ -186,9 +187,9 @@ class UaGpsSynchronizer(Fleet):
                             get_logger().error(e)
                             continue
                             # print(parameters)
-                distance, road_time = self.generate_batch_report(parameters)
-                            # road_dict[driver] = parameters, previous_finish_time
-                return road_dict
+            distance, road_time = self.generate_batch_report(parameters)
+            road_dict[driver] = distance, road_time, previous_finish_time
+        return road_dict
                         #                 road_distance += report[0]
                         #                 road_time += report[1]
                         #         road_dict[driver] = (road_distance, road_time, previous_finish_time)
@@ -218,6 +219,7 @@ class UaGpsSynchronizer(Fleet):
 
     def get_vehicle_rent(self, start, end, schema=None):
         no_vehicle_gps = []
+        parameters = []
         for driver in Driver.objects.get_active(partner=self.partner, schema=schema):
             reshuffles = check_reshuffle(driver, start, end)
             for reshuffle in reshuffles:
@@ -231,34 +233,37 @@ class UaGpsSynchronizer(Fleet):
                     driver=driver,
                     state=FleetOrder.COMPLETED,
                     accepted_time__range=(start_period, end_period)).order_by('accepted_time')
-                road_distance = self.get_order_parameters(orders, end)[0]
+                parameters.extend(self.get_order_parameters(orders, end)[0])
+                road_distance = self.generate_batch_report(parameters)[0] if parameters else 0
                 try:
                     total_km = self.total_per_day(reshuffle.swap_vehicle.gps.gps_id, start_period, end_period)
+                    rent_distance = total_km - road_distance
+                    data = {"report_from": start_period,
+                            "report_to": end_period,
+                            "rent_distance": rent_distance,
+                            "vehicle": reshuffle.swap_vehicle,
+                            "driver": driver,
+                            "partner": self.partner}
+                    VehicleRent.objects.get_or_create(report_from=start_period,
+                                                      report_to=end_period,
+                                                      vehicle=reshuffle.swap_vehicle,
+                                                      defaults=data)
                 except AttributeError as e:
                     if reshuffle.swap_vehicle not in no_vehicle_gps:
                         no_vehicle_gps.append(reshuffle.swap_vehicle)
                     get_logger().error(e)
                     continue
-                rent_distance = total_km - road_distance
-                data = {"report_from": start_period,
-                        "report_to": end_period,
-                        "rent_distance": rent_distance,
-                        "vehicle": reshuffle.swap_vehicle,
-                        "driver": driver,
-                        "partner": self.partner}
-                VehicleRent.objects.get_or_create(report_from=start_period,
-                                                  report_to=end_period,
-                                                  vehicle=reshuffle.swap_vehicle,
-                                                  defaults=data)
+
         if no_vehicle_gps:
             result_string = ', '.join([str(obj) for obj in no_vehicle_gps])
             bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"),
                              text=f"У авто {result_string} відсутній gps")
 
     def total_per_day(self, gps_id, start, end):
-        distance = self.generate_report(self.get_timestamp(start),
-                                        self.get_timestamp(end),
-                                        gps_id)[0]
+        distance = self.generate_report(self.get_params_for_report(self.get_timestamp(start),
+                                                                   self.get_timestamp(end),
+                                                                   gps_id,
+                                                                   self.get_session()))[0]
         return distance
 
     def calc_total_km(self, driver, start, end):
@@ -325,7 +330,8 @@ class UaGpsSynchronizer(Fleet):
                         continue
                 rent_distance = total_km - distance
                 driver_obj = Driver.objects.get(id=driver)
-                kasa, card, mileage, orders, canceled_orders = get_today_statistic(self.partner, start, end_time, driver_obj)
+                kasa, card, mileage, orders, canceled_orders = get_today_statistic(self.partner, start,
+                                                                                   end_time, driver_obj)
                 time_now = timezone.localtime(end_time)
                 if kasa and mileage:
                     text = f"Поточна статистика на {time_now.strftime('%H:%M')}:\n" \
