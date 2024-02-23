@@ -112,6 +112,11 @@ $(document).ready(function () {
 	});
 
 	$(this).on('click', '.bonus-table .delete-bonus-penalty-btn', function () {
+	   	var $button = $(this);
+        if ($button.hasClass('disabled')) {
+        return;
+        }
+        $button.addClass('disabled');
 		itemId = $(this).data('bonus-penalty-id');
 		dataToSend = {
 			action: "delete_bonus_penalty",

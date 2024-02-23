@@ -241,6 +241,7 @@ def check_card_cash_value(self, partner_pk):
                 else:
                     rate = driver.schema.rate
                 enable = int(ratio > rate)
+                fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name='Gps')
                 disabled = []
                 for fleet in fleets:
                     driver_rate = FleetsDriversVehiclesRate.objects.filter(
@@ -439,21 +440,21 @@ def get_driver_efficiency(self, schemas, day=None):
     schema_obj = Schema.objects.filter(pk__in=schemas).first()
     if Fleet.objects.filter(partner=schema_obj.partner, deleted_at=None, name="Gps").exists():
         for driver in Driver.objects.get_active(schema__in=schemas):
-            end, start = get_time_for_task(driver.schema, day)[1:3]
-            polymorphic_efficiency_create(DriverEfficiency, driver.partner, driver,
+            end, start = get_time_for_task(driver.schema.id, day)[1:3]
+            polymorphic_efficiency_create(DriverEfficiency, driver.partner.pk, driver,
                                           start, end, SummaryReport)
 
 
 @app.task(bind=True)
 def get_driver_efficiency_fleet(self, schemas, day=None):
-    schema_obj = Schema.objects.get(pk__in=schemas)
+    schema_obj = Schema.objects.filter(pk__in=schemas).first()
     if Fleet.objects.filter(partner=schema_obj.partner, deleted_at=None, name="Gps").exists():
         for driver in Driver.objects.get_active(schema__in=schemas):
-            end, start = get_time_for_task(driver.schema, day)[1:3]
+            end, start = get_time_for_task(driver.schema.id, day)[1:3]
             fleets = FleetsDriversVehiclesRate.objects.filter(
                 driver=driver, deleted_at=None).values_list("fleet", flat=True)
             for fleet in fleets:
-                polymorphic_efficiency_create(DriverEfficiencyFleet, driver.partner, driver,
+                polymorphic_efficiency_create(DriverEfficiencyFleet, driver.partner.pk, driver,
                                               start, end, Payments, fleet)
 
 

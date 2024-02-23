@@ -549,10 +549,16 @@ class PartnerEarningsAdmin(admin.ModelAdmin):
 
 @admin.register(CarEfficiency)
 class CarEfficiencyAdmin(admin.ModelAdmin):
-    list_filter = (VehicleEfficiencyUserFilter,)
+
     list_per_page = 25
     raw_id_fields = ['vehicle']
     list_select_related = ['vehicle']
+
+    def get_list_filter(self, request):
+        list_filter = [VehicleEfficiencyUserFilter]
+        if request.user.is_superuser:
+            list_filter.append('partner')
+        return list_filter
 
     def get_list_display(self, request):
         if request.user.is_superuser:
@@ -581,10 +587,15 @@ class CarEfficiencyAdmin(admin.ModelAdmin):
 
 @admin.register(DriverEfficiency)
 class DriverEfficiencyAdmin(admin.ModelAdmin):
-    list_filter = [DriverEfficiencyUserFilter]
     list_per_page = 25
     raw_id_fields = ['driver', 'partner']
     list_select_related = ['driver', 'partner']
+
+    def get_list_filter(self, request):
+        list_filter = [DriverEfficiencyUserFilter]
+        if request.user.is_superuser:
+            list_filter.append('partner')
+        return list_filter
 
     def get_list_display(self, request):
         if request.user.is_superuser:
@@ -629,6 +640,12 @@ class RentInformationAdmin(admin.ModelAdmin):
     list_per_page = 25
     raw_id_fields = ['driver', 'partner']
     list_select_related = ['partner', 'driver']
+
+    def get_list_filter(self, request):
+        list_filter = [RentInformationUserFilter, 'created_at']
+        if request.user.is_superuser:
+            list_filter.append('partner')
+        return list_filter
 
     def get_list_display(self, request):
         if request.user.is_superuser:
@@ -733,6 +750,12 @@ class PaymentsOrderAdmin(BaseReportAdmin):
 class SummaryReportAdmin(BaseReportAdmin):
     list_filter = (SummaryReportUserFilter,)
     ordering = ('-report_from', 'driver')
+
+    def get_list_filter(self, request):
+        list_filter = [SummaryReportUserFilter]
+        if request.user.is_superuser:
+            list_filter.append('partner')
+        return list_filter
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
@@ -1286,10 +1309,15 @@ class OrderAdmin(admin.ModelAdmin):
 
 @admin.register(FleetOrder)
 class FleetOrderAdmin(admin.ModelAdmin):
-    list_filter = ('fleet', FleetOrderFilter)
     list_per_page = 25
     raw_id_fields = ['vehicle', 'driver', 'partner']
     list_select_related = ['vehicle', 'driver', 'partner']
+
+    def get_list_filter(self, request):
+        list_filter = ['fleet', FleetOrderFilter]
+        if request.user.is_superuser:
+            list_filter.append('partner')
+        return list_filter
 
     def get_list_display(self, request):
         if request.user.is_superuser:
@@ -1459,6 +1487,10 @@ class DriverPaymentsAdmin(admin.ModelAdmin):
 @admin.register(DriverEfficiencyFleet)
 class DriverFleetEfficiencyAdmin(admin.ModelAdmin):
     list_display = ['driver', 'efficiency', 'total_kasa', 'total_orders', 'mileage', 'fleet']
+
+    def get_list_filter(self, request):
+        if request.user.is_superuser:
+            return ['partner']
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
