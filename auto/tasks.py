@@ -1135,7 +1135,7 @@ def calculate_driver_reports(self, schemas, day=None):
                     get_corrections(start, end, driver)
 
 
-@app.task(bind=True, queue='bot_tasks')
+@app.task(bind=True)
 def calculate_vehicle_earnings(self, payment_pk):
     payment = DriverPayments.objects.get(pk=payment_pk)
     driver = payment.driver
@@ -1190,7 +1190,7 @@ def calculate_vehicle_earnings(self, payment_pk):
         )
 
 
-@app.task(bind=True, queue='bot_tasks')
+@app.task(bind=True)
 def calculate_vehicle_spending(self, payment_pk):
     payment = InvestorPayments.objects.get(pk=payment_pk)
     spending = -payment.earning
@@ -1205,7 +1205,7 @@ def calculate_vehicle_spending(self, payment_pk):
     )
 
 
-@app.task(bind=True, queue='beat_tasks')
+@app.task(bind=True)
 def calculate_failed_earnings(self, payment_pk):
     payment = DriverPayments.objects.get(pk=payment_pk)
     vehicle_income = get_failed_income(payment)
