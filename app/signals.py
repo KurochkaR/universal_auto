@@ -29,7 +29,11 @@ def calculate_fired_driver(sender, instance, **kwargs):
     if instance.schema and instance.schema.is_weekly():
         end = timezone.localtime().date()
         start = end - timedelta(days=end.weekday())
-        create_driver_payments(start, end, instance, instance.schema, delete=True)
+        data = create_driver_payments(start, end, instance, instance.schema, delete=True)
+        DriverPayments.objects.get_or_create(report_from=start,
+                                             report_to=end,
+                                             driver=instance,
+                                             defaults=data)
 
 
 @receiver(post_save, sender=FleetOrder)

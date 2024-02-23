@@ -310,6 +310,11 @@ $(document).ready(function() {
 
 	$(this).on('click', '#add-bonus-btn, #add-penalty-btn', function (e) {
 		e.preventDefault();
+		var $button = $(this);
+        if ($button.hasClass('disabled')) {
+            return;
+        }
+        $button.addClass('disabled');
 		$('#amount-bonus-error, #category-bonus-error, #vehicle-bonus-error').hide();
 		var idPayments = $('#modal-add-bonus').data('id');
 		var driverId = $('#modal-add-bonus').data('driver-id');
@@ -337,6 +342,7 @@ $(document).ready(function() {
 			success: function (data) {
 				$('#modal-add-bonus')[0].reset();
 				$('#modal-add-bonus').hide();
+				$button.removeClass('disabled');
 				if (idPayments === null) {
 					window.location.reload();
 				} else {
@@ -352,12 +358,18 @@ $(document).ready(function() {
 			} else {
 				console.error('Помилка запиту: ' + textStatus);
 			}
+			$button.removeClass('disabled');
 			},
 		});
 	});
 
 	$(this).on('click', '#edit-button-bonus-penalty', function (e) {
 		e.preventDefault();
+		var $button = $(this);
+        if ($button.hasClass('disabled')) {
+            return;
+        }
+        $button.addClass('disabled');
 		$('#amount-bonus-error, #category-bonus-error, #vehicle-bonus-error').hide();
 		var idBonus = $('#modal-add-bonus').data('bonus-penalty-id');
 		var category = $('#modal-add-bonus').data('category-type');
@@ -382,6 +394,7 @@ $(document).ready(function() {
 			success: function (data) {
 				$('#modal-add-bonus')[0].reset();
 				$('#modal-add-bonus').hide();
+				$button.removeClass('disabled');
 				if (paymentId === undefined) {
 					window.location.reload();
 				} else {
@@ -397,6 +410,7 @@ $(document).ready(function() {
 				} else {
 					console.error('Помилка запиту: ' + textStatus);
 				}
+			$button.removeClass('disabled');
 			},
 		});
 	});
