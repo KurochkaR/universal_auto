@@ -210,10 +210,10 @@ def get_today_orders(self, partner_pk):
 
 
 @app.task(bind=True, retry_backoff=30, max_retries=3)
-def add_distance_for_order(self, partner_pk):
+def add_distance_for_order(self, partner_pk, day=None):
     gps_query = UaGpsSynchronizer.objects.filter(partner=partner_pk)
-    end = timezone.localtime()
-    start = end - timedelta(hours=36)
+    end = datetime.strptime(day, "%Y-%m-%d") if day else timezone.localtime()
+    start = end - timedelta(days=1)
     if gps_query.exists():
         orders = FleetOrder.objects.filter(partner=partner_pk, vehicle__isnull=False,
                                            distance__isnull=True, finish_time__isnull=False,
@@ -1251,7 +1251,7 @@ def get_information_from_fleets(self, partner_pk, schemas, day=None):
     task_chain = chain(
         download_daily_report.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
         get_orders_from_fleets.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
-        add_distance_for_order.si(partner_pk).set(queue=f'beat_tasks_{partner_pk}'),
+        add_distance_for_order.si(partner_pk, day).set(queue=f'beat_tasks_{partner_pk}'),
         generate_payments.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
         generate_summary_report.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
         get_rent_information.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
