@@ -391,8 +391,9 @@ def generate_summary_report(self, schemas, day=None):
 
 
 @app.task(bind=True)
-def get_car_efficiency(self, partner_pk):
-    start = timezone.make_aware(datetime.combine(timezone.localtime() - timedelta(days=1), time.min))
+def get_car_efficiency(self, partner_pk, day=None):
+    date = datetime.strptime(day, "%Y-%m-%d") if day else timezone.localtime()
+    start = timezone.make_aware(datetime.combine(date - timedelta(days=1), time.min))
     end = timezone.make_aware(datetime.combine(start, time.max))
     for vehicle in Vehicle.objects.get_active(partner=partner_pk, gps__isnull=False).select_related('gps'):
         efficiency = CarEfficiency.objects.filter(report_from=start,
@@ -1254,9 +1255,9 @@ def get_information_from_fleets(self, partner_pk, schemas, day=None):
         add_distance_for_order.si(partner_pk, day).set(queue=f'beat_tasks_{partner_pk}'),
         generate_payments.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
         generate_summary_report.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
-        get_rent_information.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
         get_driver_efficiency.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
         get_driver_efficiency_fleet.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
+        get_rent_information.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
         calculate_driver_reports.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
         send_daily_statistic.si(schemas).set(queue=f'beat_tasks_{partner_pk}'),
         send_driver_efficiency.si(schemas).set(queue=f'beat_tasks_{partner_pk}'),
