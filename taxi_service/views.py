@@ -122,6 +122,17 @@ class InvestmentView(BaseContextView, TemplateView):
         return context
 
 
+class ChargingStationsView(BaseContextView, TemplateView):
+    template_name = "charging-station.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # context["seo_keywords"] = seo_charging_stations_page
+        # context["seo_title"] = seo_charging_stations_page_title
+        # context["seo_description"] = seo_description_charging_stations_page
+        return context
+
+
 # DASHBOARD VIEWS ->
 
 
