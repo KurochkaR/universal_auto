@@ -6410,7 +6410,7 @@ end Drivers page*/
 	background-size: cover;
 	background-position: center;
 	background-repeat: no-repeat;
-	margin-top: 40px;
+	margin-top: 142px;
 }
 
 .charging-station-section-2 .container {
@@ -6556,4 +6556,69 @@ end Drivers page*/
 	margin-top: 15px;
 }
 
+/* block 5 */
 
+.charging-station-section-5 {
+	margin-top: 80px;
+}
+
+.charging-station-section-5 .container {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	align-items: center;
+	justify-content: center;
+	gap: 20px;
+}
+
+.charging-station-section-5 .container .how-to-charge h2 {
+	color: #141E17;
+	font-size: 32px;
+	font-style: normal;
+	font-weight: 600;
+	line-height: normal;
+	text-transform: uppercase;
+}
+
+.charging-station-section-5 .container .how-to-charge ul {
+	list-style: none;
+	padding: 0;
+}
+
+.charging-station-section-5 .container .how-to-charge ul li {
+	margin-top: 20px;
+	color: #53785E;
+	font-size: 25px;
+	font-style: normal;
+	font-weight: 400;
+	line-height: normal;
+}
+
+.charging-station-section-5 .container .how-to-charge ul li::before {
+	content: "";
+	display: inline-block;
+	width: 50px;
+	height: 50px;
+	background-image: url(/static/app/images/app-check-mark.webp);
+	background-size: cover;
+	margin-right: 5px;
+	vertical-align: middle;
+}
+
+.charging-station-section-5 .container .how-to-charge .images-box {
+	display: flex;
+	justify-content: space-between;
+}
+
+.charging-station-section-5 .container .how-to-charge .images-box img {
+    margin-right: 29px;
+}
+
+.charging-station-section-5 .container .how-to-charge .images-box img:last-child {
+    margin-right: 0;
+}
+
+.charging-station-section-5 .container .img-box {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
