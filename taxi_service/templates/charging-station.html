@@ -25,16 +25,16 @@
 
 <section class="charging-station-section-2">
   <div class="container">
-    <h2>прямуй прямо до цілі. Вже сьогодні</h2>
+    <h2>{% trans "прямуй прямо до цілі. Вже сьогодні" %}</h2>
 
     <div class="charging-cards">
       <div class="charging-card">
         <img src="{% static 'app/images/charging-station/charging-block-2.webp' %}" alt="img 1">
         <div class="card-description">
-          <h3>Безпека</h3>
+          <h3>{% trans "Безпека" %}</h3>
           <p>
-            Наші зарядні станції мають захист від перенапруги та системи ізоляції,
-            що запобігають пошкодженню електроніки електромобіля.
+            {% trans "Наші зарядні станції мають захист від перенапруги та системи ізоляції," %}
+            {% trans "що запобігають пошкодженню електроніки електромобіля." %}
           </p>
         </div>
       </div>
@@ -42,9 +42,9 @@
       <div class="charging-card">
         <img src="{% static 'app/images/charging-station/charging-block-2.webp' %}" alt="img 2">
         <div class="card-description">
-          <h3>Швидкість</h3>
+          <h3>{% trans "Швидкість" %}</h3>
           <p>
-            Наші швидкісні зарядні станції можуть зарядити Ваш електрокар з 0 до 80 за 60 хвилин
+            {% trans "Наші швидкісні зарядні станції можуть зарядити Ваш електрокар з 0 до 80 за 60 хвилин" %}
           </p>
         </div>
       </div>
@@ -52,10 +52,9 @@
       <div class="charging-card">
         <img src="{% static 'app/images/charging-station/charging-block-2.webp' %}" alt="img 3">
         <div class="card-description">
-          <h3>Вид зарядної станції</h3>
+          <h3>{% trans "Вид зарядної станції" %}</h3>
           <p>
-            Наша зарядна станція -
-            40 kWt GBT/DC
+            {% trans "Наша зарядна станція - 40 kWt GBT/DC" %}
           </p>
         </div>
       </div>
@@ -63,9 +62,9 @@
       <div class="charging-card">
         <img src="{% static 'app/images/charging-station/charging-block-2.webp' %}" alt="img 1">
         <div class="card-description">
-          <h3>Ми завжди на зв’язку</h3>
+          <h3>{% trans "Ми завжди на зв’язку" %}</h3>
           <p>
-            Якщо у Вас виникнуть питання - ми завжди з Вами на зв’язку
+            {% trans "Якщо у Вас виникнуть питання - ми завжди з Вами на зв’язку" %}
           </p>
         </div>
       </div>
@@ -77,12 +76,14 @@
   <div class="container">
     <div class="charging-station">
       <div class="charging-station-description">
-        <h2>Ninja Зарядні станції</h2>
-        <p>NINJA TAXI пропонує інвестувати в зарядні станції. Це вигідна інвестиція, яка не потребує багато вкладень та
-          зусиль.</p>
+        <h2>{% trans "Ninja Зарядні станції" %}</h2>
+        <p>
+          {% trans "NINJA TAXI пропонує інвестувати в зарядні станції." %}
+          {% trans "Це вигідна інвестиція, яка не потребує багато вкладень та зусиль." %}
+        </p>
       </div>
       <div class="buttons-box">
-        <button class="contact-me-button">Дізнатися подробиці</button>
+        <button class="contact-me-button">{% trans "Дізнатися подробиці" %}</button>
       </div>
     </div>
     <div class="img-box">
@@ -98,8 +99,8 @@
     </div>
     <div class="charging-station-map">
       <div class="charging-station-description">
-        <h2>Розташування NINJA ЗАРЯДОК</h2>
-        <p>Зарядні станції NINJA розташовані в Києві. Ви можете знайти наші зарядні станції на карті</p>
+        <h2>{% trans "Розташування NINJA ЗАРЯДОК" %}</h2>
+        <p>{% trans "Зарядні станції NINJA розташовані в Києві. Ви можете знайти наші зарядні станції на карті" %}</p>
       </div>
     </div>
   </div>
@@ -109,12 +110,12 @@
   <div class="container">
     <div class="how-to-charge">
       <div>
-        <h2>Як зарядити Електрокар</h2>
+        <h2>{% trans "Як зарядити Електрокар" %}</h2>
         <ul>
-          <li>Завантажити застосунок CHARGEX</li>
-          <li>Обрати зарядну станцію NINJA TAXI</li>
-          <li>Поповнити гаманець в застосунку</li>
-          <li>Розпочати зарядку</li>
+          <li>{% trans "Завантажити застосунок CHARGEX" %}</li>
+          <li>{% trans "Обрати зарядну станцію NINJA TAXI" %}</li>
+          <li>{% trans "Поповнити гаманець в застосунку" %}</li>
+          <li>{% trans "Розпочати зарядку" %}</li>
         </ul>
         <div class="images-box">
           <img class="img-1" src="{% static 'app/images/charging-station/charging-block-5-1.webp' %}" alt=""
