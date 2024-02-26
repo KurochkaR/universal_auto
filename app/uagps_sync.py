@@ -116,8 +116,8 @@ class UaGpsSynchronizer(Fleet):
             params['params'] = json.dumps(parameters)
         return params
 
-    def generate_report(self, params, body, orders=False):
-        report = requests.post(f"{self.get_base_url()}wialon/ajax.html", params=params, data=body)
+    def generate_report(self, params, orders=False):
+        report = requests.get(f"{self.get_base_url()}wialon/ajax.html", params=params)
         items = report.json() if isinstance(report.json(), list) else [report.json()]
         result_list = []
         for item in items:
