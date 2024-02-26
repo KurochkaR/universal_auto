@@ -123,7 +123,7 @@ class BoltRequest(Fleet, Synchronizer):
             "bonuses": driver_report['bonuses'],
             "cancels": driver_report['cancellation_fees'],
             "fee": -(driver_report['gross_revenue'] - driver_report['net_earnings']),
-            "total_amount_without_fee": driver_report['net_earnings'],
+            "total_amount_without_fee": driver_report['net_earnings'] - driver_report['bonuses'],
             "compensations": driver_report['compensations'],
             "refunds": driver_report['expense_refunds'],
             "total_rides": rides,
@@ -159,8 +159,8 @@ class BoltRequest(Fleet, Synchronizer):
                 report = self.parse_json_report(start, end, driver_report)
                 if custom:
                     start_day = timezone.make_aware(datetime.combine(start, time.min))
-                    bolt_custom = CustomReport.objects.filter(report_from__date=start,
-                                                              driver=driver,
+                    bolt_custom = CustomReport.objects.filter(report_from=start_day,
+                                                              driver=report['driver'],
                                                               fleet=self,
                                                               partner=self.partner).last()
                     if bolt_custom:
@@ -173,15 +173,16 @@ class BoltRequest(Fleet, Synchronizer):
                              "fee": Decimal(
                                  -(driver_report['gross_revenue'] - driver_report['net_earnings'])) + bolt_custom.fee,
                              "total_amount_without_fee": Decimal(
-                                 driver_report['net_earnings']) - bolt_custom.total_amount_without_fee,
+                                 driver_report['net_earnings'] - driver_report['bonuses']) - bolt_custom.total_amount_without_fee,
                              "compensations": Decimal(driver_report['compensations']) - bolt_custom.compensations,
                              "refunds": Decimal(driver_report['expense_refunds']) - bolt_custom.refunds,
                              })
                 db_report = CustomReport.objects.filter(report_from=start,
-                                                        driver=driver,
+                                                        driver=report['driver'],
                                                         fleet=self,
                                                         partner=self.partner)
                 db_report.update(**report) if db_report else CustomReport.objects.create(**report)
+            offset += limit
 
     def save_weekly_report(self, start, end, driver):
         tm.sleep(0.5)
