@@ -1109,7 +1109,7 @@ def save_report_to_ninja_payment(start, end, partner_pk, schema, fleet_name='Nin
                 pass
 
 
-@app.task(bind=True, queue='beat_tasks')
+@app.task(bind=True)
 def calculate_driver_reports(self, schemas, day=None):
     for schema in schemas:
         schema_obj = Schema.objects.get(pk=schema)
@@ -1137,16 +1137,16 @@ def calculate_driver_reports(self, schemas, day=None):
                     Penalty.objects.filter(driver=driver, driver_payments__isnull=True).update(driver_payments=payment)
                     payment.earning = Decimal(payment.earning) + payment.get_bonuses() - payment.get_penalties()
                     payment.save(update_fields=['earning'])
-            elif not reshuffles and report_kasa:
-                last_payment = DriverPayments.objects.filter(driver=driver).last()
-                if last_payment:
-                    driver_reports = SummaryReport.objects.filter(report_from__range=(last_payment.report_from, end),
-                                                                  driver=driver).aggregate(
-                        cash=Coalesce(Sum('total_amount_cash'), 0, output_field=DecimalField()),
-                        kasa=Coalesce(Sum('total_amount_without_fee'), 0, output_field=DecimalField()))
-                    get_corrections(last_payment.report_from, last_payment.report_to, driver, driver_reports)
-                else:
-                    get_corrections(start, end, driver)
+            # elif not reshuffles and report_kasa:
+            #     last_payment = DriverPayments.objects.filter(driver=driver).last()
+            #     if last_payment:
+            #         driver_reports = SummaryReport.objects.filter(report_from__range=(last_payment.report_from, end),
+            #                                                       driver=driver).aggregate(
+            #             cash=Coalesce(Sum('total_amount_cash'), 0, output_field=DecimalField()),
+            #             kasa=Coalesce(Sum('total_amount_without_fee'), 0, output_field=DecimalField()))
+            #         get_corrections(last_payment.report_from, last_payment.report_to, driver, driver_reports)
+            #     else:
+            #         get_corrections(start, end, driver)
 
 
 @app.task(bind=True)

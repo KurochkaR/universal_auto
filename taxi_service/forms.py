@@ -136,27 +136,20 @@ class BonusForm(ModelForm):
         super().__init__(*args, **kwargs)
 
         filter_partner = user.manager.managers_partner if user.is_manager() else user
-
         if payment_id:
             payment = DriverPayments.objects.get(id=payment_id)
-            driver_vehicle_ids = DriverReshuffle.objects.filter(
-                Q(driver_start=payment.driver),
-                Q(swap_time__range=(payment.report_from, payment.report_to)) |
-                Q(end_time__range=(payment.report_from, payment.report_to))
-            ).values_list('swap_vehicle', flat=True)
-            self.fields['vehicle'].queryset = Vehicle.objects.filter(id__in=driver_vehicle_ids)
+            reshuffle_query = Q(Q(swap_time__range=(payment.report_from, payment.report_to)) |
+                                Q(end_time__range=(payment.report_from, payment.report_to)))
+            driver_id = payment.driver
         else:
             payment = DriverPayments.objects.filter(driver=driver_id).last()
             if payment:
-                driver_vehicle_ids = DriverReshuffle.objects.filter(
-                    Q(driver_start=driver_id),
-                    Q(swap_time__range=(payment.report_to, timezone.localtime())) |
-                    Q(end_time__range=(payment.report_to, timezone.localtime()))
-                ).values_list('swap_vehicle', flat=True)
+                reshuffle_query = Q(Q(swap_time__range=(payment.report_to, timezone.localtime())) |
+                                    Q(end_time__range=(payment.report_to, timezone.localtime())))
             else:
-                driver_vehicle_ids = DriverReshuffle.objects.filter(
-                    Q(driver_start=driver_id),
-                ).values_list('swap_vehicle', flat=True)
+                reshuffle_query = Q()
+        driver_vehicle_ids = DriverReshuffle.objects.filter(
+            Q(driver_start=driver_id), reshuffle_query).values_list('swap_vehicle', flat=True)
         if Vehicle.objects.filter(id__in=driver_vehicle_ids).exists():
             self.fields['vehicle'].queryset = Vehicle.objects.filter(id__in=driver_vehicle_ids)
         else:

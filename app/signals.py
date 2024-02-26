@@ -28,12 +28,13 @@ from scripts.settings_for_park import standard_rates, settings_for_partner
 def calculate_fired_driver(sender, instance, **kwargs):
     if instance.schema and instance.schema.is_weekly():
         end = timezone.localtime().date()
-        start = end - timedelta(days=end.weekday())
-        data = create_driver_payments(start, end, instance, instance.schema, delete=True)
-        DriverPayments.objects.get_or_create(report_from=start,
-                                             report_to=end,
-                                             driver=instance,
-                                             defaults=data)
+        if end.weekday():
+            start = end - timedelta(days=end.weekday())
+            data = create_driver_payments(start, end, instance, instance.schema, delete=True)
+            DriverPayments.objects.get_or_create(report_from=start,
+                                                 report_to=end,
+                                                 driver=instance,
+                                                 defaults=data)
 
 
 @receiver(post_save, sender=DriverPayments)

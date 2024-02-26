@@ -10,7 +10,7 @@ from auto_bot.handlers.order.utils import check_vehicle
 
 def run(*args):
     end = timezone.make_aware(datetime.combine(timezone.localtime(), time.min))
-    start = end - timedelta(days=1)
+    start = end - timedelta(days=7)
     gps = UaGpsSynchronizer.objects.get(partner=1)
     # params = gps.get_params_for_report(gps.get_timestamp(start), gps.get_timestamp(end), 66635, gps.get_session())
     # gps.generate_report(params)

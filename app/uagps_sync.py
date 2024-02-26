@@ -116,8 +116,8 @@ class UaGpsSynchronizer(Fleet):
             params['params'] = json.dumps(parameters)
         return params
 
-    def generate_report(self, params, orders=False):
-        report = requests.get(f"{self.get_base_url()}wialon/ajax.html", params=params)
+    def generate_report(self, params, body, orders=False):
+        report = requests.post(f"{self.get_base_url()}wialon/ajax.html", params=params, data=body)
         items = report.json() if isinstance(report.json(), list) else [report.json()]
         result_list = []
         for item in items:
@@ -256,40 +256,56 @@ class UaGpsSynchronizer(Fleet):
         parameters = []
         for driver in Driver.objects.get_active(partner=self.partner, schema=schema):
             reshuffles = check_reshuffle(driver, start, end)
-            for reshuffle in reshuffles:
-                if reshuffle.swap_vehicle.gps:
-                    road_distance = 0
-                    if start > reshuffle.swap_time:
-                        start_period, end_period = start, reshuffle.end_time
-                    elif reshuffle.end_time <= end:
-                        start_period, end_period = reshuffle.swap_time, reshuffle.end_time
+            unique_vehicle_count = reshuffles.values('swap_vehicle').distinct().count()
+            if unique_vehicle_count == 1:
+                rent_distance = RentInformation.objects.filter(report_from=start,
+                                                               report_to=end,
+                                                               driver=driver).first().rent_distance
+                data = {"report_from": start,
+                        "report_to": end,
+                        "rent_distance": rent_distance,
+                        "vehicle": reshuffles.first().swap_vehicle,
+                        "driver": driver,
+                        "partner": self.partner}
+                VehicleRent.objects.get_or_create(report_from=start,
+                                                  report_to=end,
+                                                  vehicle=reshuffles.first().swap_vehicle,
+                                                  defaults=data)
+            else:
+                for reshuffle in reshuffles:
+                    if reshuffle.swap_vehicle.gps:
+                        road_distance = 0
+                        if start > reshuffle.swap_time:
+                            start_period, end_period = start, reshuffle.end_time
+                        elif reshuffle.end_time <= end:
+                            start_period, end_period = reshuffle.swap_time, reshuffle.end_time
+                        else:
+                            start_period, end_period = reshuffle.swap_time, end
+                        orders = FleetOrder.objects.filter(
+                            driver=driver,
+                            state=FleetOrder.COMPLETED,
+                            accepted_time__range=(start_period, end_period)).order_by('accepted_time')
+                        parameters.extend(self.get_order_parameters(orders, end)[0])
+                        batch_size = 40
+                        batches = [parameters[i:i + batch_size] for i in range(0, len(parameters), batch_size)]
+                        for batch in batches:
+                            road_distance += self.generate_batch_report(batch)[0]
+                        total_km = self.total_per_day(reshuffle.swap_vehicle.gps.gps_id, start_period, end_period)
+                        rent_distance = total_km - road_distance
+                        data = {"report_from": start_period,
+                                "report_to": end_period,
+                                "rent_distance": rent_distance,
+                                "vehicle": reshuffle.swap_vehicle,
+                                "driver": driver,
+                                "partner": self.partner}
+                        VehicleRent.objects.get_or_create(report_from=start_period,
+                                                          report_to=end_period,
+                                                          vehicle=reshuffle.swap_vehicle,
+                                                          defaults=data)
                     else:
-                        start_period, end_period = reshuffle.swap_time, end
-                    orders = FleetOrder.objects.filter(
-                        driver=driver,
-                        state=FleetOrder.COMPLETED,
-                        accepted_time__range=(start_period, end_period)).order_by('accepted_time')
-                    parameters.extend(self.get_order_parameters(orders, end)[0])
-                    batch_size = 25
-                    batches = [parameters[i:i + batch_size] for i in range(0, len(parameters), batch_size)]
-                    for batch in batches:
-                        road_distance += self.generate_batch_report(batch)[0]
-                    total_km = self.total_per_day(reshuffle.swap_vehicle.gps.gps_id, start_period, end_period)
-                    rent_distance = total_km - road_distance
-                    data = {"report_from": start_period,
-                            "report_to": end_period,
-                            "rent_distance": rent_distance,
-                            "vehicle": reshuffle.swap_vehicle,
-                            "driver": driver,
-                            "partner": self.partner}
-                    VehicleRent.objects.get_or_create(report_from=start_period,
-                                                      report_to=end_period,
-                                                      vehicle=reshuffle.swap_vehicle,
-                                                      defaults=data)
-                else:
-                    if reshuffle.swap_vehicle not in no_vehicle_gps:
-                        no_vehicle_gps.append(reshuffle.swap_vehicle)
-                    continue
+                        if reshuffle.swap_vehicle not in no_vehicle_gps:
+                            no_vehicle_gps.append(reshuffle.swap_vehicle)
+                        continue
 
         if no_vehicle_gps:
             result_string = ', '.join([str(obj) for obj in no_vehicle_gps])
@@ -337,7 +353,7 @@ class UaGpsSynchronizer(Fleet):
                                                driver=driver,
                                                partner=self.partner,
                                                rent_distance=rent_distance)
-            # self.get_vehicle_rent(start, end, schema)
+            self.get_vehicle_rent(start, end, schema)
 
     def check_today_rent(self):
         if not redis_instance().exists(f"{self.partner.id}_remove_gps"):
@@ -378,10 +394,10 @@ class UaGpsSynchronizer(Fleet):
                             f"Скасовано замовлень: {canceled_orders}\n"\
                             f"Пробіг під замовленням: {mileage}\n"\
                             f"Ефективність: {round(kasa / mileage, 2)}\n"\
-                            f"Холостий пробіг: {rent_distance}\n"
+                            f"Холостий пробіг: {rent_distance}\n\n"
                 else:
                     text += f"Водій {driver_obj} ще не виконав замовлень\n" \
-                           f"Холостий пробіг: {rent_distance}\n"
+                            f"Холостий пробіг: {rent_distance}\n\n"
             if timezone.localtime().time() > time(7, 0):
                 send_long_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"), text=text)
 
