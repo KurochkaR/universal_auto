@@ -281,7 +281,7 @@ def download_daily_report(self, schemas, day=None):
                 for driver in Driver.objects.get_active(schema=schema):
                     driver_id = driver.get_driver_external_id(fleet)
                     if driver_id:
-                        fleet.save_custom_report(start, end, driver)
+                        fleet.save_custom_report(start, end, driver_id)
     except Exception as e:
         logger.error(e)
         retry_delay = retry_logic(e, self.request.retries + 1)
