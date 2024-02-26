@@ -2920,7 +2920,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	text-transform: uppercase;
 }
 
-.analytics-box ul li {
+.analytics-box ul li, .control-box ul li {
 	margin-top: 20px;
 	color: #53785E;
 	font-size: 25px;
@@ -2929,34 +2929,25 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	line-height: normal;
 }
 
-.analytics-box ul {
+.analytics-box ul, .control-box ul {
 	list-style: none;
 	padding: 0;
 }
 
-.analytics-box ul li::before {
+.analytics-box ul li::before, .control-box ul li::before {
 	content: "";
 	display: inline-block;
 	width: 50px;
 	height: 50px;
+	min-width: 50px;
 	background-image: url("/static/app/images/app-check-mark.webp");
 	background-size: cover;
 	margin-right: 5px;
 	vertical-align: middle;
+	}
 }
 
-.analytics-box .buttons-box button {
-	margin-top: 15px;
-	font-size: 16px;
-	text-align: left;
-	text-decoration: none;
-	cursor: pointer;
-	font-style: normal;
-	font-weight: 700;
-	line-height: normal;
-}
-
-.analytics-box .buttons-box .get-price-button {
+.buttons-box .get-price-button {
 	background-color: #EC6323;
 	color: #fff;
 	padding: 15px 20px;
@@ -2965,7 +2956,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	border: 2px solid #EC6323;
 }
 
-.analytics-box .buttons-box .consult-button {
+.buttons-box .consult-button {
 	margin-left: 20px;
 	background-color: #fff;
 	color: #EC6323;
@@ -2991,7 +2982,6 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	flex: 0 0 585px;
 	display: flex;
 	justify-content: center;
-	align-items: center;
 }
 
 .auto-park-four-section .img-box {
@@ -3012,8 +3002,14 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	z-index: -1;
 }
 
-.spending-box {
+.spending-box .buttons-box {
+	display: flex;
 	flex-direction: column;
+	align-items: start;
+}
+
+.spending-box {
+    flex-direction: column;
 }
 
 .spending-description h2 {
@@ -3036,8 +3032,8 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	line-height: normal;
 }
 
-.spending-box .buttons-box button {
-	margin-right: 40px;
+.buttons-box button {
+	margin-top: 15px;
 	padding: 15px 20px;
 	border: none;
 	border-radius: 20px;
@@ -3049,30 +3045,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	line-height: normal;
 }
 
-.spending-box .buttons-box button {
-	margin-top: 15px;
-}
-
-.spending-box .buttons-box button {
-	margin-top: 15px;
-	font-size: 16px;
-	text-decoration: none;
-	cursor: pointer;
-	font-style: normal;
-	font-weight: 700;
-	line-height: normal;
-}
-
-.spending-box .buttons-box .get-price-button {
-	background-color: #EC6323;
-	color: #fff;
-	padding: 15px 20px;
-	border-radius: 20px;
-	border-color: #EC6323;
-	border: 2px solid #EC6323;
-}
-
-.spending-box .buttons-box .free-access-button {
+.buttons-box .free-access-button {
 	background-color: #fff;
 	color: #EC6323;
 	padding: 15px 20px;
@@ -3097,10 +3070,6 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	right: 135px;
 }
 
-.auto-park-adaptive {
-	display: none;
-}
-
 .auto-park-five-section .control-box h2 {
 	width: 675px;
 	margin-top: 25px;
@@ -3112,62 +3081,13 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	text-transform: uppercase;
 }
 
-.auto-park-five-section .control-box ul {
-	list-style: none;
-	padding: 0;
-}
-
-.auto-park-five-section .control-box ul li {
-	margin-top: 15px;
-	color: #53785E;
-	font-size: 25px;
-	font-style: normal;
-	font-weight: 400;
-	line-height: normal;
-}
-
-.auto-park-five-section .control-box ul li::before {
-	content: "";
-	display: inline-block;
-	width: 50px;
-	height: 50px;
-	background-image: url("/static/app/images/app-check-mark.webp");
-	background-size: cover;
-	margin-right: 5px;
-	vertical-align: middle;
-}
-
 .auto-park-five-section .img-box {
 	position: relative;
 	left: 35px;
 }
 
-.auto-park-five-section .control-box .buttons-box {
-	display: flex;
-	align-items: center;
-}
 
-.control-box .buttons-box button {
-	margin-top: 15px;
-	margin-right: 50px;
-	font-size: 16px;
-	text-decoration: none;
-	cursor: pointer;
-	font-style: normal;
-	font-weight: 700;
-	line-height: normal;
-}
-
-.control-box .buttons-box .get-price-button {
-	background-color: #EC6323;
-	color: #fff;
-	padding: 15px 20px;
-	border: none;
-	border-radius: 20px;
-	border: 2px solid #EC6323;
-}
-
-.control-box .buttons-box .consult-button {
+.buttons-box .consult-button {
 	background-color: #fff;
 	color: #EC6323;
 	padding: 15px 20px;
@@ -3599,19 +3519,16 @@ span.error-name {
     font-size: 20px;
   }
 
-  .analytics-box ul li {
+  .analytics-box ul li, .control-box ul li {
+    display: flex;
+    align-items: center;
     margin-top: 10px;
     font-size: 15px;
   }
 
-  .analytics-box .buttons-box {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-  }
-
- 	.analytics-box .buttons-box .get-price-button,
- 	.analytics-box .buttons-box .consult-button {
+.buttons-box .consult-button,
+.buttons-box .get-price-button,
+.buttons-box .free-access-button{
 		width: 100%;
 		text-align: center;
 		font-size: 12px;
@@ -3619,6 +3536,11 @@ span.error-name {
 		margin-left: 0;
 		margin-top: 10px;
 	}
+
+.buttons-box .get-price-button {
+    background-color: #EC6323;
+    color: #fff;
+}
 
   /*block 4*/
 
@@ -3661,10 +3583,6 @@ span.error-name {
 		display: none;
   }
 
-  .spending-box {
-    flex-direction: column;
-  }
-
   .spending-description h2 {
     margin-top: 20px;
     font-size: 20px;
@@ -3674,30 +3592,6 @@ span.error-name {
     width: 100%;
     margin-top: 10px;
     font-size: 15px;
-  }
-
-  .spending-box .buttons-box button {
-    margin-top: 10px;
-    font-size: 12px;
-  }
-
-  .spending-box .buttons-box .get-price-button {
-    width: 100%;
-    background-color: #EC6323;
-    color: #fff;
-    padding: 10px 10px;
-    border-radius: 20px;
-    border-color: #EC6323;
-  }
-
-  .spending-box .buttons-box .free-access-button {
-    width: 100%;
-    background-color: #fff;
-    color: #EC6323;
-    padding: 10px 10px;
-    border-color: #EC6323;
-    border-radius: 20px;
-    outline: 2px auto #EC6323;
   }
 
   /*block 5*/
@@ -3726,37 +3620,6 @@ span.error-name {
 		font-size: 20px;
 	}
 
-	.auto-park-text {
-		display: none;
-	}
-
-	.auto-park-adaptive {
-		display: flex;
-    align-items: center;
-	}
-
-	.auto-park-adaptive-img {
-		margin-bottom: 35px;
-		display: flex;
-    flex-direction: column;
-    width: 50px;
-    height: 50px;
-	}
-
-	.auto-park-adaptive-text {
-		display: flex;
-    flex-direction: column;
-	}
-
-	.auto-park-adaptive-text span {
-		margin-top: 20px;
-		color: #53785E;
-		font-size: 15px;
-		font-style: normal;
-		font-weight: 400;
-		line-height: normal;
-	}
-
 	.auto-park-five-section .img-box {
 		width: 100%;
 		height: auto;
@@ -3780,41 +3643,7 @@ span.error-name {
     z-index: -1;
 	}
 
-	.auto-park-five-section .control-box .buttons-box {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-	}
-
-	.control-box .buttons-box button {
-		margin-top: 10px;
-		font-size: 12px;
-	}
-
-	.control-box .buttons-box .get-price-button {
-		width: 100%;
-		background-color: #EC6323;
-		color: #fff;
-		padding: 10px 10px;
-		border: none;
-		cursor: pointer;
-		transition: background-color 0.3s;
-		border-radius: 62px;
-		margin-right: 0;
-	}
-
-	.control-box .buttons-box .consult-button {
-		width: 100%;
-		background-color: #fff;
-		color: #EC6323;
-		padding: 10px 10px;
-		border-color: #EC6323;
-		border-radius: 62px;
-		outline: 2px auto #EC6323;
-		margin-right: 0;
-	}
-
-	.control-box .buttons-box .get-price-button:hover {
+	.buttons-box .get-price-button:hover {
 		background-color: #FF8C24;
 	}
 
@@ -4241,30 +4070,14 @@ span.error-name {
 		margin-top: -335px;
 	}
 
-	.analytics-box h2 {
+	.analytics-box h2, .control-box h2 {
 		margin-top: 0;
 		font-size: 30px;
 	}
 
-	.analytics-box ul li {
+	.analytics-box ul li, control-box ul li {
 		margin-top: 10px;
 		font-size: 25px;
-	}
-
-	.analytics-box .buttons-box {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-	}
-
-	.analytics-box .buttons-box .get-price-button,
-	.analytics-box .buttons-box .consult-button {
-		width: 100%;
-		text-align: center;
-		font-size: 16px;
-		padding: 10px 10px;
-		margin-left: 0;
-		margin-top: 10px;
 	}
 
 	/*block 4*/
@@ -4308,10 +4121,6 @@ span.error-name {
 		display: none;
 	}
 
-	.spending-box {
-		flex-direction: column;
-	}
-
 	.spending-description h2 {
 		margin-top: 20px;
 		font-size: 30px;
@@ -4321,34 +4130,6 @@ span.error-name {
 		width: 100%;
 		margin-top: 10px;
 		font-size: 25px;
-	}
-
-	.auto-park-four-section .spending-box .buttons-box {
-    width: 100%;
-	}
-
-	.spending-box .buttons-box button {
-		margin-top: 10px;
-		font-size: 16px;
-	}
-
-	.spending-box .buttons-box .get-price-button {
-		width: 100%;
-		background-color: #EC6323;
-		color: #fff;
-		padding: 10px 10px;
-		border-radius: 20px;
-		border-color: #EC6323;
-	}
-
-	.spending-box .buttons-box .free-access-button {
-		width: 100%;
-		background-color: #fff;
-		color: #EC6323;
-		padding: 10px 10px;
-		border-color: #EC6323;
-		border-radius: 20px;
-		outline: 2px auto #EC6323;
 	}
 
 	/*block 5*/
@@ -4377,37 +4158,6 @@ span.error-name {
 		font-size: 30px;
 	}
 
-	.auto-park-text {
-		display: none;
-	}
-
-	.auto-park-adaptive {
-		display: flex;
-		align-items: center;
-	}
-
-	.auto-park-adaptive-img {
-		margin-bottom: 35px;
-		display: flex;
-		flex-direction: column;
-		width: 50px;
-		height: 50px;
-	}
-
-	.auto-park-adaptive-text {
-		display: flex;
-		flex-direction: column;
-	}
-
-	.auto-park-adaptive-text span {
-		margin-top: 20px;
-		color: #53785E;
-		font-size: 25px;
-		font-style: normal;
-		font-weight: 400;
-		line-height: normal;
-	}
-
 	.auto-park-five-section .img-box {
 		width: 100%;
 		height: auto;
@@ -4431,44 +4181,21 @@ span.error-name {
     z-index: -1;
 	}
 
-	.auto-park-five-section .control-box .buttons-box {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-	}
-
-	.control-box .buttons-box button {
-		margin-top: 10px;
+.buttons-box .consult-button,
+.buttons-box .get-price-button,
+.buttons-box .free-access-button{
+		width: 100%;
+		text-align: center;
 		font-size: 16px;
-	}
-
-	.control-box .buttons-box .get-price-button {
-		width: 100%;
-		background-color: #EC6323;
-		color: #fff;
 		padding: 10px 10px;
-		border: none;
-		cursor: pointer;
-		transition: background-color 0.3s;
-		border-radius: 62px;
-		margin-right: 0;
+		margin-left: 0;
+		margin-top: 10px;
 	}
 
-	.control-box .buttons-box .consult-button {
-		width: 100%;
-		background-color: #fff;
-		color: #EC6323;
-		padding: 10px 10px;
-		border-color: #EC6323;
-		border-radius: 62px;
-		outline: 2px auto #EC6323;
-		margin-right: 0;
-	}
-
-	.control-box .buttons-box .get-price-button:hover {
-		background-color: #FF8C24;
-	}
-
+.buttons-box .get-price-button {
+    background-color: #EC6323;
+    color: #fff;
+}
 	/*block 6*/
 
 	.auto-park-six-section {
