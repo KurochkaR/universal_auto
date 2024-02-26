@@ -27,7 +27,7 @@ class UklonRequest(Fleet, Synchronizer):
         }
         return headers
 
-    def park_payload(self, login, password) -> dict:
+    def park_payload(self, password, login) -> dict:
         if self.partner and not self.deleted_at:
             login = CredentialPartner.get_value(key='UKLON_NAME', partner=self.partner)
             password = CredentialPartner.get_value(key='UKLON_PASSWORD', partner=self.partner)
@@ -47,8 +47,8 @@ class UklonRequest(Fleet, Synchronizer):
             redis_instance().set(f"{self.partner.id}_park_id", response['fleets'][0]['id'])
         return redis_instance().get(f"{self.partner.id}_park_id")
 
-    def create_session(self, partner, password, login):
-        payload = self.park_payload(login, password)
+    def create_session(self, partner, password=None, login=None):
+        payload = self.park_payload(password, login)
         response = requests.post(f"{self.base_url}auth", json=payload)
         if response.status_code == 201:
             token = response.json()["access_token"]
