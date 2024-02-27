@@ -326,18 +326,9 @@ def send_into_group(sender=None, **kwargs):
         messages, drivers_messages = kwargs.get('retval')
         for partner, message in messages.items():
             if message:
-                try:
-                    bot.send_message(chat_id=ParkSettings.get_value('DRIVERS_CHAT',
-                                                                    default=Partner.objects.get(pk=partner).chat_id,
-                                                                    partner=partner), text=message)
-                except BadRequest as e:
-                    if e.message == 'Message is too long':
-                        send_long_message(chat_id=ParkSettings.get_value('DRIVERS_CHAT',
-                                                                         default=Partner.objects.get(
-                                                                             pk=partner).chat_id,
-                                                                         partner=partner), text=message)
-                    else:
-                        pass
+                send_long_message(chat_id=ParkSettings.get_value('DRIVERS_CHAT',
+                                  default=Partner.objects.get(pk=partner).chat_id,
+                                  partner=partner), text=message)
         for pk, message in drivers_messages.items():
             driver = Driver.objects.get(pk=pk)
             vehicle = check_vehicle(driver, yesterday)
@@ -355,17 +346,10 @@ def send_vehicle_efficiency(sender=None, **kwargs):
         messages = kwargs.get('retval')
         for partner, message in messages.items():
             if message:
-                try:
-                    bot.send_message(chat_id=ParkSettings.get_value('DRIVERS_CHAT',
-                                                                    default=Partner.objects.get(pk=partner).chat_id,
-                                                                    partner=partner), text=message)
-                except BadRequest as e:
-                    if e.message == 'Message is too long':
-                        send_long_message(chat_id=ParkSettings.get_value('DRIVERS_CHAT',
-                                          default=Partner.objects.get(pk=partner).chat_id,
-                                          partner=partner), text=message)
-                    else:
-                        pass
+                send_long_message(chat_id=ParkSettings.get_value('DRIVERS_CHAT',
+                                  default=Partner.objects.get(pk=partner).chat_id,
+                                  partner=partner), text=message)
+
 
 
 @task_postrun.connect
