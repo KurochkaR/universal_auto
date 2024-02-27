@@ -1309,10 +1309,15 @@ class OrderAdmin(admin.ModelAdmin):
 
 @admin.register(FleetOrder)
 class FleetOrderAdmin(admin.ModelAdmin):
-    list_filter = ('fleet', FleetOrderFilter)
     list_per_page = 25
     raw_id_fields = ['vehicle', 'driver', 'partner']
     list_select_related = ['vehicle', 'driver', 'partner']
+
+    def get_list_filter(self, request):
+        list_filter = ['fleet', FleetOrderFilter]
+        if request.user.is_superuser:
+            list_filter.append('partner')
+        return list_filter
 
     def get_list_display(self, request):
         if request.user.is_superuser:

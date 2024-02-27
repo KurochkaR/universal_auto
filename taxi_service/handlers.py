@@ -285,9 +285,11 @@ class PostRequestHandler:
                     bonus_data["driver_payments"] = driver_payments.first()
                     bonus_data["driver"] = driver_payments.first().driver
                     if operation_type == 'add-bonus':
-                        driver_payments.update(earning=F('earning') + Decimal(bonus_data['amount']))
+                        driver_payments.update(earning=F('earning') + Decimal(bonus_data['amount']),
+                                               salary=F('salary') + Decimal(bonus_data['amount']))
                     else:
-                        driver_payments.update(earning=F('earning') - Decimal(bonus_data['amount']))
+                        driver_payments.update(earning=F('earning') - Decimal(bonus_data['amount']),
+                                               salary=F('salary') + Decimal(bonus_data['amount']))
             else:
                 bonus_data["driver_id"] = int(driver_id)
             model_instance.objects.create(**bonus_data)
@@ -335,7 +337,7 @@ class PostRequestHandler:
                         driver_payments.earning += old_amount
                         driver_payments.earning -= instance.amount
 
-                    driver_payments.save(update_fields=['earning'])
+                    driver_payments.save(update_fields=['earning', 'salary'])
 
                 return JsonResponse({'data': 'success'})
             else:
@@ -356,7 +358,7 @@ class PostRequestHandler:
                     driver_payments.earning -= instance.amount
                 else:
                     driver_payments.earning += instance.amount
-                driver_payments.save(update_fields=['earning'])
+                driver_payments.save(update_fields=['earning', 'salary'])
             instance.delete()
             return JsonResponse({'data': 'success'})
         else:

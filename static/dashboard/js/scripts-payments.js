@@ -112,6 +112,11 @@ $(document).ready(function () {
 	});
 
 	$(this).on('click', '.bonus-table .delete-bonus-penalty-btn', function () {
+	   	var $button = $(this);
+        if ($button.hasClass('disabled')) {
+        return;
+        }
+        $button.addClass('disabled');
 		itemId = $(this).data('bonus-penalty-id');
 		dataToSend = {
 			action: "delete_bonus_penalty",
@@ -131,14 +136,14 @@ $(document).ready(function () {
 
 	$(this).on('click', '.bonus-table .edit-bonus-btn, .bonus-table .edit-penalty-btn', function () {
 	    itemId = $(this).data('bonus-penalty-id');
+	    paymentId = $(this).closest('.tr-driver-payments').data('id');
 		if ($(this).hasClass('edit-bonus-btn')) {
 			itemType = 'bonus';
-		} else if ($(this).hasClass('edit-penalty-btn')){
+		} else if ($(this).hasClass('edit-penalty-btn')) {
 			itemType = 'penalty';
-		}
-		openForm(paymentId=null, bonusId=itemId, itemType, driverId=null);
-		$('#modal-add-bonus').data('bonus-penalty-id', itemId);
-		$('#modal-add-bonus').show();
+		};
+		openForm(paymentId=paymentId, bonusId=itemId, itemType, driverId=null);
+ 		$('#modal-add-bonus').show();
 	});
 
 	driverPayment(null, null, null, paymentStatus="on_inspection");
