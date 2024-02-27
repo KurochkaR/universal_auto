@@ -278,10 +278,7 @@ def download_daily_report(self, schemas, day=None):
             start, end = get_time_for_task(schema, day)[:2]
             fleets = Fleet.objects.filter(partner=schema_obj.partner, deleted_at=None).exclude(name='Gps')
             for fleet in fleets:
-                for driver in Driver.objects.get_active(schema=schema):
-                    driver_id = driver.get_driver_external_id(fleet)
-                    if driver_id:
-                        fleet.save_custom_report(start, end, driver_id)
+                fleet.save_custom_report(start, end, schema)
     except Exception as e:
         logger.error(e)
         retry_delay = retry_logic(e, self.request.retries + 1)
@@ -295,13 +292,11 @@ def download_weekly_report(self, partner_pk):
         end = timezone.make_aware(today - timedelta(days=today.weekday() + 1))
         start = timezone.make_aware(datetime.combine(end - timedelta(days=6), time.min))
         fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name='Gps')
+        for fleet in fleets:
+            reports = fleet.save_weekly_report(start, end)
+            for report in reports:
+                compare_reports(fleet, start, end, report.driver, report, CustomReport, partner_pk)
         for driver in Driver.objects.get_active(partner=partner_pk):
-            for fleet in fleets:
-                driver_id = driver.get_driver_external_id(fleet)
-                if driver_id:
-                    report = fleet.save_weekly_report(start, end, driver)
-                    if report:
-                        compare_reports(fleet, start, end, driver, report, CustomReport, partner_pk)
             get_corrections(start, end, driver)
     except Exception as e:
         logger.error(e)
@@ -322,13 +317,11 @@ def check_daily_report(self, partner_pk, start=None, end=None):
                 redis_instance().delete(f"check_daily_report_error_{partner_pk}")
                 start = timezone.make_aware(datetime.strptime(start_str, '%Y-%m-%d %H:%M:%S'))
             fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name='Gps')
+            for fleet in fleets:
+                reports = fleet.save_daily_report(start, end)
+                for report in reports:
+                    compare_reports(fleet, start, end, report.driver, report, CustomReport, partner_pk)
             for driver in Driver.objects.get_active(partner=partner_pk):
-                for fleet in fleets:
-                    driver_id = driver.get_driver_external_id(fleet)
-                    if driver_id:
-                        report = fleet.save_daily_report(start, end, driver)
-                        if report:
-                            compare_reports(fleet, start, end, driver, report, CustomReport, partner_pk)
                 get_corrections(start, end, driver)
             start += timedelta(days=1)
     except Exception as e:
@@ -346,13 +339,10 @@ def download_nightly_report(self, partner_pk, day=None):
             start, end = get_time_for_task(schema.pk, day)[2:]
             fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name='Gps')
             for fleet in fleets:
-                for driver in Driver.objects.get_active(schema=schema):
-                    driver_id = driver.get_driver_external_id(fleet)
-                    if driver_id:
-                        if isinstance(fleet, UberRequest):
-                            fleet.save_custom_report(start, end, driver)
-                        else:
-                            fleet.save_custom_report(start, end, driver, custom=True)
+                if isinstance(fleet, UberRequest):
+                    fleet.save_custom_report(start, end, schema)
+                else:
+                    fleet.save_custom_report(start, end, schema, custom=True)
     except Exception as e:
         logger.error(e)
         retry_delay = retry_logic(e, self.request.retries + 1)
@@ -472,6 +462,7 @@ def update_driver_status(self, partner_pk, photo=None):
                 driver.save()
                 if current_status != Driver.OFFLINE:
                     vehicle = check_vehicle(driver)
+                    print(vehicle, driver)
                     if not work_ninja and vehicle and driver.chat_id:
                         UseOfCars.objects.create(user_vehicle=driver,
                                                  partner_id=partner_pk,

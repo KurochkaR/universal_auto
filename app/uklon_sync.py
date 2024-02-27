@@ -47,7 +47,7 @@ class UklonRequest(Fleet, Synchronizer):
             redis_instance().set(f"{self.partner.id}_park_id", response['fleets'][0]['id'])
         return redis_instance().get(f"{self.partner.id}_park_id")
 
-    def create_session(self, partner, password, login):
+    def create_session(self, partner, password=None, login=None):
         payload = self.park_payload(login, password)
         response = requests.post(f"{self.base_url}auth", json=payload)
         if response.status_code == 201:
@@ -186,14 +186,12 @@ class UklonRequest(Fleet, Synchronizer):
         while True:
             param['offset'] = offset
             data = self.generate_report(param)
-            if offset > data['total_count']:
-                break
             for driver_report in data['items']:
                 if driver_report['driver']['id'] in driver_ids:
                     driver = FleetsDriversVehiclesRate.objects.get(
                         driver_external_id=driver_report['driver']['id'],
                         fleet=self, partner=self.partner).driver
-                    report, distance = self.parse_json_report(start, end, driver, driver_report)
+                    report, distance = self.parse_json_report(start_time, end, driver, driver_report)
                     if custom:
                         start_day = timezone.make_aware(datetime.combine(start, time.min))
                         uklon_custom = CustomReport.objects.filter(report_from=start_day,
@@ -219,22 +217,31 @@ class UklonRequest(Fleet, Synchronizer):
                                             self.find_value(driver_report, *('profit', 'total', 'amount')) -
                                             uklon_custom.total_amount_without_fee),
                             })
-                    db_report = CustomReport.objects.filter(report_from=start,
+                    db_report = CustomReport.objects.filter(report_from=start_time,
                                                             driver=driver,
                                                             fleet=self,
                                                             partner=self.partner)
                     db_report.update(**report) if db_report else CustomReport.objects.create(**report)
-            offset += limit
+            if offset + limit < data['total_count']:
+                offset += limit
+            else:
+                break
 
-
-    def save_report(self, start, end, driver, model):
+    def save_report(self, start, end, model):
         param = {'dateFrom': self.report_interval(start),
                  'dateTo': self.report_interval(end),
                  'limit': 50,
                  }
-        data = self.generate_report(driver, start, end)
-        if data:
-            for driver_report in data:
+        offset = 0
+        limit = param["limit"]
+        reports = []
+        while True:
+            param['offset'] = offset
+            data = self.generate_report(param)
+            for driver_report in data['items']:
+                driver = FleetsDriversVehiclesRate.objects.get(
+                    driver_external_id=driver_report['driver']['id'],
+                    fleet=self, partner=self.partner).driver
                 report = self.parse_json_report(start, end, driver, driver_report)[0]
                 db_report, created = model.objects.get_or_create(report_from=start,
                                                                  driver=driver,
@@ -245,13 +252,18 @@ class UklonRequest(Fleet, Synchronizer):
                     for key, value in report.items():
                         setattr(db_report, key, value)
                     db_report.save()
-                return db_report
+                reports.append(db_report)
+            if offset + limit < data['total_count']:
+                offset += limit
+            else:
+                break
+        return reports
 
     def save_weekly_report(self, start, end):
-        return self.save_report(start, endWeeklyReport)
+        return self.save_report(start, end, WeeklyReport)
 
-    def save_daily_report(self, start, end, driver):
-        return self.save_report(start, end, driver, DailyReport)
+    def save_daily_report(self, start, end):
+        return self.save_report(start, end, DailyReport)
 
     def get_earnings_per_driver(self, driver, start, end):
         total_amount_without_fee = total_amount_cash = 0
@@ -294,7 +306,7 @@ class UklonRequest(Fleet, Synchronizer):
     def get_drivers_table(self):
         drivers = []
         param = {'status': 'All',
-                 'limit': '30'}
+                 'limit': 30}
         url = f"{Service.get_value('UKLON_1')}{self.uklon_id()}"
         url_1 = url + Service.get_value('UKLON_6')
         offset = 0
@@ -303,8 +315,6 @@ class UklonRequest(Fleet, Synchronizer):
         while True:
             param["offset"] = offset
             all_drivers = self.response_data(url=url_1, params=param)
-            if offset > all_drivers['total_count']:
-                break
             for driver in all_drivers['items']:
                 email = self.response_data(url=f"{url_1}/{driver['id']}")
                 driver_data = self.response_data(
@@ -319,7 +329,11 @@ class UklonRequest(Fleet, Synchronizer):
                     'driver_external_id': driver['id'],
                     'photo': driver_data["driver_avatar_photo"]["url"],
                 })
-            offset += int(limit)
+
+            if offset + limit < all_drivers['total_count']:
+                offset += limit
+            else:
+                break
         return drivers
 
     def get_fleet_orders(self, start, end):
@@ -433,7 +447,7 @@ class UklonRequest(Fleet, Synchronizer):
         base_url = f"{Service.get_value('UKLON_1')}{self.uklon_id()}"
         url = base_url + Service.get_value('UKLON_2')
         params = {
-            'limit': '30',
+            'limit': 30,
         }
         vehicles = self.response_data(url=url, params=params)
         matching_object = next((item for item in vehicles["data"]
@@ -445,7 +459,7 @@ class UklonRequest(Fleet, Synchronizer):
 
     def get_vehicles(self):
         vehicles = []
-        param = {'limit': '30'}
+        param = {'limit': 30}
         offset = 0
         limit = param["limit"]
 
@@ -454,8 +468,6 @@ class UklonRequest(Fleet, Synchronizer):
             url = f"{Service.get_value('UKLON_1')}{self.uklon_id()}"
             url += Service.get_value('UKLON_2')
             all_vehicles = self.response_data(url=url, params=param)
-            if offset > all_vehicles['total']:
-                break
             for vehicle in all_vehicles['data']:
                 response = self.response_data(url=f"{url}/{vehicle['id']}")
                 vehicles.append({
@@ -463,5 +475,9 @@ class UklonRequest(Fleet, Synchronizer):
                     'vehicle_name': f"{vehicle['about']['maker']['name']} {vehicle['about']['model']['name']}",
                     'vin_code': response.get('vin_code', '')
                 })
-            offset += int(limit)
+
+            if offset + limit < all_vehicles['total']:
+                offset += limit
+            else:
+                break
         return vehicles

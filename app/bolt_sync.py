@@ -14,7 +14,6 @@ from django.db import models
 from app.models import BoltService, Driver, FleetsDriversVehiclesRate, FleetOrder, \
     CredentialPartner, Vehicle, PaymentTypes, Fleet, CustomReport, WeeklyReport, DailyReport
 from auto import settings
-from auto_bot.main import bot
 
 from auto_bot.handlers.order.utils import check_vehicle, normalized_plate
 from scripts.redis_conn import redis_instance, get_logger
@@ -24,7 +23,7 @@ from selenium_ninja.synchronizer import Synchronizer, AuthenticationError
 class BoltRequest(Fleet, Synchronizer):
     base_url = models.URLField(default=BoltService.get_value('REQUEST_BOLT_LOGIN_URL'))
 
-    def create_session(self, partner, password, login):
+    def create_session(self, partner=None, password=None, login=None):
         partner_id = partner if partner else self.partner.id
         if self.partner and not self.deleted_at:
             login = CredentialPartner.get_value("BOLT_NAME", partner=partner_id)
@@ -151,10 +150,8 @@ class BoltRequest(Fleet, Synchronizer):
                               "end_date": format_end
                               })
                 reports = self.get_target_url(f'{self.base_url}getDriverEarnings/dateRange', param)
-            if offset > reports['data']['total_rows']:
-                break
             for driver_report in reports['data']['drivers']:
-                if not driver_report['total_amount_without_fee'] or str(driver_report['id']) not in driver_ids:
+                if not driver_report['net_earnings'] or str(driver_report['id']) not in driver_ids:
                     continue
                 report = self.parse_json_report(start, end, driver_report)
                 if custom:
@@ -182,72 +179,89 @@ class BoltRequest(Fleet, Synchronizer):
                                                         fleet=self,
                                                         partner=self.partner)
                 db_report.update(**report) if db_report else CustomReport.objects.create(**report)
-            offset += limit
+            if limit + offset < reports['data']['total_rows']:
+                offset += limit
+            else:
+                break
 
-    def save_weekly_report(self, start, end, driver):
-        tm.sleep(0.5)
+    def save_weekly_report(self, start, end):
         week_number = start.strftime('%GW%V')
         param = self.param()
-        param.update({"week": week_number,
-                      "search": f"{driver.name} {driver.second_name}",
-                      "offset": 0,
-                      "limit": 50})
-        reports = self.get_target_url(f'{self.base_url}getDriverEarnings/week', param)
-        for driver_report in reports['data']['drivers']:
-            report = self.parse_json_report(start, end, driver, driver_report)
-            db_report, created = WeeklyReport.objects.get_or_create(report_from=start,
-                                                                    driver=driver,
-                                                                    fleet=self,
-                                                                    partner=self.partner,
-                                                                    defaults=report)
-            if not created:
-                for key, value in report.items():
-                    setattr(db_report, key, value)
-                db_report.save()
-            return db_report
+        param["limit"] = 50
+        param["week"] = week_number
+        offset = 0
+        limit = param["limit"]
+        bolt_reports = []
+        while True:
+            param["offset"] = offset
+            reports = self.get_target_url(f'{self.base_url}getDriverEarnings/week', param)
+            for driver_report in reports['data']['drivers']:
+                report = self.parse_json_report(start, end, driver_report)
+                db_report, created = WeeklyReport.objects.get_or_create(report_from=start,
+                                                                        driver=report['driver'],
+                                                                        fleet=self,
+                                                                        partner=self.partner,
+                                                                        defaults=report)
+                if not created:
+                    for key, value in report.items():
+                        setattr(db_report, key, value)
+                    db_report.save()
+                bolt_reports.append(db_report)
+            if limit + offset < reports['data']['total_rows']:
+                offset += limit
+            else:
+                break
+        return bolt_reports
 
     def save_daily_report(self, start, end, driver):
-        tm.sleep(0.5)
         format_start = start.strftime("%Y-%m-%d")
         format_end = end.strftime("%Y-%m-%d")
         param = self.param()
         param.update({"start_date": format_start,
                       "end_date": format_end,
-                      "search": f"{driver.name} {driver.second_name}",
-                      "offset": 0,
                       "limit": 50})
-        reports = self.get_target_url(f'{self.base_url}getDriverEarnings/dateRange', param)
-        for driver_report in reports['data']['drivers']:
-            report = self.parse_json_report(start, end, driver, driver_report)
-            db_report, created = DailyReport.objects.get_or_create(report_from=start,
-                                                                   driver=driver,
-                                                                   fleet=self,
-                                                                   partner=self.partner,
-                                                                   defaults=report)
-            if not created:
-                for key, value in report.items():
-                    setattr(db_report, key, value)
-                db_report.save()
-            return db_report
+        offset = 0
+        limit = param['limit']
+        bolt_reports = []
+        while True:
+            param["offset"] = offset
+            reports = self.get_target_url(f'{self.base_url}getDriverEarnings/dateRange', param)
+            for driver_report in reports['data']['drivers']:
+                report = self.parse_json_report(start, end, driver_report)
+                db_report, created = DailyReport.objects.get_or_create(report_from=start,
+                                                                       driver=driver,
+                                                                       fleet=self,
+                                                                       partner=self.partner,
+                                                                       defaults=report)
+                if not created:
+                    for key, value in report.items():
+                        setattr(db_report, key, value)
+                    db_report.save()
+                bolt_reports.append(db_report)
+            if limit + offset < reports['data']['total_rows']:
+                offset += limit
+            else:
+                break
+        return bolt_reports
 
-    def get_bonuses_info(self, driver, start, end):
-        tm.sleep(0.5)
-        bonuses = 0
-        compensations = 0
-        format_start = start.strftime("%Y-%m-%d")
-        format_end = end.strftime("%Y-%m-%d")
-        param = self.param()
-        param.update({"start_date": format_start,
-                      "end_date": format_end,
-                      "offset": 0,
-                      "search": f"{driver.name} {driver.second_name}",
-                      "limit": 50})
-        reports = self.get_target_url(f'{self.base_url}getDriverEarnings/dateRange', param)
-        if reports['data']['drivers']:
-            report_driver = reports['data']['drivers'][0]
-            bonuses = report_driver['bonuses']
-            compensations = report_driver['compensations']
-        return bonuses, compensations
+    # def get_bonuses_info(self, driver, start, end):
+    #     tm.sleep(0.5)
+    #     bonuses = 0
+    #     compensations = 0
+    #     format_start = start.strftime("%Y-%m-%d")
+    #     format_end = end.strftime("%Y-%m-%d")
+    #     param = self.param()
+    #     param.update({"start_date": format_start,
+    #                   "end_date": format_end,
+    #                   "offset": 0,
+    #                   "search": f"{driver.name} {driver.second_name}",
+    #                   "limit": 50})
+    #     reports = self.get_target_url(f'{self.base_url}getDriverEarnings/dateRange', param)
+    #     if reports['data']['drivers']:
+    #         report_driver = reports['data']['drivers'][0]
+    #         bonuses = report_driver['bonuses']
+    #         compensations = report_driver['compensations']
+    #     return bonuses, compensations
 
     def get_drivers_table(self):
         driver_list = []
@@ -260,8 +274,6 @@ class BoltRequest(Fleet, Synchronizer):
             params["offset"] = offset
             params.update(self.param())
             report = self.get_target_url(f'{self.base_url}getDriverEngagementData/dateRange', params)
-            if offset > report['data']['total_rows']:
-                break
             drivers = report['data']['rows']
             for driver in drivers:
                 driver_params = self.param().copy()
@@ -284,7 +296,10 @@ class BoltRequest(Fleet, Synchronizer):
                     'phone_number': driver_info['data']['phone'],
                     'driver_external_id': driver_info['data']['id'],
                 })
-            offset += limit
+            if offset + limit < report['data']['total_rows']:
+                offset += limit
+            else:
+                break
         return driver_list
 
     def get_fleet_orders(self, start, end):
@@ -315,7 +330,7 @@ class BoltRequest(Fleet, Synchronizer):
         while True:
             payload["offset"] = offset
             report = self.get_target_url(f'{self.base_url}getOrdersHistory', self.param(), payload, method="POST")
-            if report.get('data') and report['data']['total_rows'] > offset:
+            if report.get('data'):
                 for order in report['data']['rows']:
                     driver_qs = Driver.objects.filter(fleetsdriversvehiclesrate__driver_external_id=order['driver_id'],
                                                       fleetsdriversvehiclesrate__fleet=self, partner=self.partner)
@@ -358,7 +373,10 @@ class BoltRequest(Fleet, Synchronizer):
                         if check_vehicle(driver) != vehicle:
                             redis_instance().hset(f"wrong_vehicle_{driver.partner.pk}", driver.pk,
                                                   vehicle.licence_plate)
-                offset += limit
+                if offset + limit < report['data']['total_rows']:
+                    offset += limit
+                else:
+                    break
             else:
                 break
 
