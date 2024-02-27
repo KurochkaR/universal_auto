@@ -10,7 +10,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.core.files import File
 from django.utils import timezone
 
-from django.db import models
+from django.db import models, transaction
 from app.models import BoltService, Driver, FleetsDriversVehiclesRate, FleetOrder, \
     CredentialPartner, Vehicle, PaymentTypes, Fleet, CustomReport, WeeklyReport, DailyReport
 from auto import settings
@@ -327,6 +327,7 @@ class BoltRequest(Fleet, Synchronizer):
         }
         offset = 0
         limit = payload["limit"]
+        batch_data = []
         while True:
             payload["offset"] = offset
             report = self.get_target_url(f'{self.base_url}getOrdersHistory', self.param(), payload, method="POST")
@@ -369,8 +370,10 @@ class BoltRequest(Fleet, Synchronizer):
                                 "partner": self.partner,
                                 "date_order": date_order
                                 }
-                        FleetOrder.objects.create(**data)
-                        if check_vehicle(driver) != vehicle:
+                        fleet_order = FleetOrder(**data)
+                        batch_data.append(fleet_order)
+                        calendar_vehicle = check_vehicle(driver)
+                        if calendar_vehicle != vehicle:
                             redis_instance().hset(f"wrong_vehicle_{driver.partner.pk}", driver.pk,
                                                   vehicle.licence_plate)
                 if offset + limit < report['data']['total_rows']:
@@ -378,6 +381,8 @@ class BoltRequest(Fleet, Synchronizer):
                 else:
                     break
             else:
+                with transaction.atomic():
+                    FleetOrder.objects.bulk_create(batch_data)
                 break
 
     def get_drivers_status(self, photo=None):

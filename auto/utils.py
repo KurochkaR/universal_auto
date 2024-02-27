@@ -71,10 +71,8 @@ def get_corrections(start, end, driver, driver_reports=None):
                            "driver": driver,
                            "description": description
                            }
-        if correction > 0:
-            Bonus.objects.create(**correction_data)
-        if correction < 0:
-            Penalty.objects.create(**correction_data)
+
+        Bonus.objects.create(**correction_data) if correction > 0 else Penalty.objects.create(**correction_data)
 
 
 def payment_24hours_create(start, end, fleet, driver, partner_pk):
