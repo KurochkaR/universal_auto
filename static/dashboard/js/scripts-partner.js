@@ -301,7 +301,6 @@ function fetchSummaryReportData(period, start, end) {
 		type: 'GET',
 		dataType: 'json',
 		success: function (data) {
-			console.log(data[0]["kasa"]);
 			$(".apply-filter-button").prop("disabled", false);
 			let startDate = data[0]['start'];
 			let endDate = data[0]['end'];
