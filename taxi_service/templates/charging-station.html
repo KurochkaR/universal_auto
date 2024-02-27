@@ -6,18 +6,19 @@
 
 <section class="charging-station-section">
   <div class="container">
-    <div class="left_images">
-      <div class="one-background-img">
-        <img class="image-map" src="{% static 'app/images/charging-station/charging-block-1.webp' %}" alt="one image">
-      </div>
+    <div class="charging-left-images">
+      <img class="image-map" src="{% static 'app/images/charging-station/charging-block-1.webp' %}" alt="one image">
     </div>
-    <div class="right_content">
-      <div class="one-info">
-        <h2>{% trans "ninja ЗАРЯДКИ" %}</h2>
-        <p class="text-1">{% trans "Не зволікай та заряджай на швидких зарядних станціях by NINJA TAXI" %}</p>
-        <div class="contact-me-btn" id="open-form">
-          <button class="contact-me">{% trans "Дізнатись більше" %}</button>
+    <div class="charging-right-content">
+      <div class="decorate-img">
+        <img src="{% static 'app/images/index-one-block-3.webp' %}" alt="three image">
+        <div class="one-info">
+          <h2>{% trans "ninja ЗАРЯДКИ" %}</h2>
+          <p class="text-1">{% trans "Не зволікай та заряджай на швидких зарядних станціях by NINJA TAXI" %}</p>
         </div>
+      </div>
+      <div class="contact-me-btn" id="open-form">
+        <button class="contact-me">{% trans "Дізнатись більше" %}</button>
       </div>
     </div>
   </div>

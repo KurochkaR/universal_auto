@@ -3476,7 +3476,7 @@ span.error-name {
   }
 
   .auto-park-right .decorate-img {
-    weight: 100%;
+    wight: 100%;
     height: auto;
     margin-top: 20px;
     margin-bottom: 0;
@@ -6378,34 +6378,63 @@ end Drivers page*/
 }
 
 .charging-station-section .container {
-	display: grid;
-  grid-template-columns: 1fr 1fr;
-}
-
-.charging-station-section .left_images {
 	display: flex;
+	align-items: center;
 	justify-content: space-between;
 }
 
-.charging-station-section .left_images .one-background-img {
-	width: 100%;
-	height: 100%;
-}
-
-.charging-station-section .right_content {
+.charging-station-section .charging-left-images {
 	position: relative;
 	width: 100%;
-	height: 550px;
+	height: auto;
+	left: -27px;
+	top: 65px;
+	z-index: -1;
 }
 
-.charging-station-section .right_content .one-info {
-	width: 388px;
+.charging-station-section .charging-right-content .decorate-img {
+	right: 140px;
+	position: relative;
+	z-index: -1;
+}
+
+.charging-station-section .charging-right-content .decorate-img img {
+	width: 180%;
+	height: auto;
+}
+
+.charging-right-content .one-info {
 	position: relative;
 	padding: 10px;
 	z-index: 1022;
-	margin-top: 100px;
-	right: -175px;
+	margin-top: -515px;
+	right: -100px;
 }
+
+.charging-right-content .one-info h2 {
+	color: #fff;
+	text-align: center;
+	font-size: 62px;
+	font-style: normal;
+	font-weight: 700;
+	line-height: normal;
+	text-transform: uppercase;
+}
+
+.charging-right-content .one-info p {
+	color: #fff;
+	text-align: center;
+	font-size: 30px;
+	font-style: normal;
+	font-weight: 400;
+	line-height: normal;
+	margin-top: 15px;
+}
+
+.charging-station-section .contact-me-btn button {
+	margin-left: 18% !important;
+}
+
 
 /* block 2 */
 
@@ -6639,42 +6668,87 @@ end Drivers page*/
 
 	.charging-station-section .container {
 		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
 	}
 
-	.charging-station-section .left_images {
+	.charging-station-section .charging-left-images {
+		position: relative;
+    width: 100%;
+    height: auto;
+    left: 0;
+    top: 0;
+	}
+
+	.charging-station-section .charging-left-images img {
+		margin-top: 110px;
+    width: 100%;
+    height: auto;
+	}
+
+	.charging-station-section .charging-right-content {
+		position: relative;
+    width: 109%;
+    height: 265px;
+    left: 0;
+    top: 0;
+	}
+
+	.charging-station-section .charging-right-content .decorate-img {
+		wight: 100%;
+    height: 265px;
+    margin-top: 20px;
+    margin-bottom: 0;
+    right: 0;
+    position: relative;
+	}
+
+
+	.charging-station-section .charging-right-content .decorate-img img {
 		width: 100%;
-		margin-bottom: 20px;
+    height: auto;
 	}
 
-	.charging-station-section .left_images .one-background-img {
-		width: 100%;
-		height: 100%;
+	.charging-station-section .charging-right-content .one-info {
+		width: 63%;
+    position: relative;
+    padding: 10px;
+    z-index: 1022;
+    margin-top: -250px;
+    margin-left: 85px;
+    right: 0;
 	}
 
-	.charging-station-section .right_content {
-		width: 100%;
-		height: auto;
+	.charging-station-section .charging-right-content .one-info h2 {
+		font-size: 20px;
 	}
 
-	.charging-station-section .right_content .one-info h2 {
-		width: 350px;
+	.charging-station-section .charging-right-content .one-info p {
+		font-size: 15px;
 	}
 
-	.charging-station-section .right_content .one-info {
-		width: 100%;
-		position: static;
-		padding: 10px;
-		margin-top: 0;
-		right: 0;
+	.charging-station-section .contact-me-btn {
+		position: relative;
+    width: 100%;
+    margin-top: 0;
+    margin-bottom: 0;
+    left: 10px;
+    top: -110px;
 	}
+
+	.charging-station-section .contact-me-btn button {
+		margin-left: 26% !important;
+		padding: 10px 0;
+		font-size: 12px;
+	}
+
+
 
 	/* block 2 */
 
 	.charging-station-section-2 {
-		margin-top: 30px;
+		margin-top: 60px;
 	}
 
 	.charging-station-section-2 .container h2 {
@@ -6712,7 +6786,7 @@ end Drivers page*/
 	/* block 3 */
 
 	.charging-station-section-3 {
-		margin-top: 30px;
+		margin-top: 50px;
 	}
 
 	.charging-station-section-3 .container {
@@ -6722,21 +6796,43 @@ end Drivers page*/
     gap: 0;
 	}
 
+	.charging-station-section-3 .container .charging-station {
+    order: 1;
+	}
+
 	.charging-station-section-3 .container h2 {
 		font-size: 20px;
+		text-align: center;
 	}
 
 	.charging-station-section-3 .container p {
 		font-size: 15px;
 		margin-top: 15px;
+		text-align: center;
 	}
 
 	.charging-station-section-3 .container .buttons-box button {
-		font-size: 12px;
+		font-size: 15px;
 		padding: 10px 35px;
+		width: 100%;
+	}
+
+	.charging-station-section-3 .container .img-box {
+		width: 100%;
+		height: auto;
+	}
+
+	.charging-station-section-3 .container .img-box img {
+		width: 100%;
+		height: auto;
+		margin-top: 0 !important
 	}
 
 	/* block 4 */
+
+	.charging-station-section-4 {
+		margin-top: 50px;
+	}
 
 	.charging-station-section-4 .container {
 		margin-top: 30px;
@@ -6744,10 +6840,6 @@ end Drivers page*/
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
-	}
-
-	.charging-station-section-4 .container .charging-station-map {
-    order: -1;
 	}
 
 	.charging-station-section-4 .container .img-box {
@@ -6764,17 +6856,19 @@ end Drivers page*/
 	.charging-station-section-4 .charging-station-description h2 {
 		font-size: 20px;
 		margin-top: 15px;
+		text-align: center;
 	}
 
 	.charging-station-section-4 .charging-station-description p {
 		font-size: 15px;
 		margin-top: 15px;
+		text-align: center;
 	}
 
 	/* block 5 */
 
 	.charging-station-section-5 {
-		margin-top: 30px;
+		margin-top: 50px;
 	}
 
 	.charging-station-section-5 .container {
@@ -6783,6 +6877,10 @@ end Drivers page*/
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
+	}
+
+	.charging-station-section-5 .container .img-box {
+		order: -1;
 	}
 
 	.charging-station-section-5 .container .how-to-charge h2 {
@@ -6820,5 +6918,235 @@ end Drivers page*/
 	.charging-station-section-5 .container .img-box img {
 		width: 100%;
 		height: auto;
+		margin-top: 0 !important;
+	}
+}
+
+/* adaptive horizontal for phone */
+
+@media screen and (min-width: 768px) and (max-width: 1199px) {
+	/* block 1 */
+
+	.charging-station-section {
+		height: auto;
+	}
+
+	.charging-station-section .container {
+		display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+	}
+
+	.charging-station-section .charging-left-images {
+		position: relative;
+    width: 100%;
+    height: auto;
+    left: 20px;
+    top: 0;
+	}
+
+	.charging-station-section .charging-left-images img {
+		margin-top: 110px;
+		width: 100%;
+		height: auto;
+	}
+
+	.charging-station-section .charging-right-content {
+		position: relative;
+    width: 100%;
+    height: 460px;
+    left: 0;
+    top: 0;
+	}
+
+	.charging-station-section .charging-right-content .decorate-img {
+		wight: 100%;
+		height: auto;
+		margin-top: 20px;
+		margin-bottom: 0;
+		right: 0;
+		position: relative;
+	}
+
+	.charging-station-section .charging-right-content .decorate-img img {
+		width: 100%;
+		height: 460px;
+	}
+
+	.charging-station-section .charging-right-content .one-info {
+		width: 72%;
+    position: relative;
+    padding: 10px;
+    z-index: 1022;
+    margin-top: -395px;
+    margin-left: 145px;
+    right: 0;
+	}
+
+	.charging-station-section .contact-me-btn button {
+    margin-left: 26% !important;
+    font-size: 20px;
+    margin-top: 0;
+	}
+
+	/* block 2 */
+
+	.charging-station-section-2 .container h2 {
+		width: 378px;
+    text-align: center;
+    font-size: 23px;
+	}
+
+	.charging-station-section-2 .container .charging-cards {
+    grid-template-columns: 1fr;
+	}
+
+	.charging-station-section-2 .container .charging-card {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+	}
+
+	.charging-station-section-2 .container .charging-card img {
+		width: 98px;
+		height: 94px;
+	}
+
+	.charging-station-section-2 .container .charging-card h3 {
+		font-size: 20px;
+		margin-top: 20px;
+	}
+
+	.charging-station-section-2 .container .charging-card p {
+		font-size: 15px;
+		margin-top: 10px;
+		margin-bottom: 50px;
+	}
+
+	/* block 3 */
+
+	.charging-station-section-3 .container {
+		margin-top: 30px;
+		display: flex;
+		flex-direction: column;
+		gap: 0;
+	}
+
+	.charging-station-section-3 .container .charging-station {
+		order: 1;
+	}
+
+	.charging-station-section-3 .container h2 {
+		font-size: 20px;
+		text-align: center;
+	}
+
+	.charging-station-section-3 .container p {
+		font-size: 15px;
+		margin-top: 15px;
+		text-align: center;
+	}
+
+	.charging-station-section-3 .container .buttons-box button {
+		font-size: 15px;
+		padding: 10px 35px;
+		width: 100%;
+	}
+
+	.charging-station-section-3 .container .img-box {
+		width: 100%;
+		height: auto;
+	}
+
+	.charging-station-section-3 .container .img-box img {
+		width: 100%;
+		height: auto;
+		margin-top: 0 !important;
+	}
+
+	/* block 4 */
+
+	.charging-station-section-4 .container {
+		margin-top: 30px;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.charging-station-section-4 .container .img-box {
+		width: 100%;
+		height: auto;
+	}
+
+	.charging-station-section-4 .container .img-box img {
+		width: 100%;
+		height: auto;
+		margin-top: 0 !important;
+	}
+
+	.charging-station-section-4 .charging-station-description h2 {
+		font-size: 20px;
+		margin-top: 15px;
+		text-align: center;
+	}
+
+	.charging-station-section-4 .charging-station-description p {
+		font-size: 15px;
+		margin-top: 15px;
+		text-align: center;
+	}
+
+	/* block 5 */
+
+	.charging-station-section-5 .container {
+		margin-top: 30px;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.charging-station-section-5 .container .img-box {
+		order: -1;
+	}
+
+	.charging-station-section-5 .container .how-to-charge h2 {
+		font-size: 20px;
+	}
+
+	.charging-station-section-5 .container .how-to-charge ul li {
+		font-size: 15px;
+		margin-top: 0;
+	}
+
+	charging-station-section-5 .container .how-to-charge ul li::before {
+		width: 30px;
+		height: 30px;
+		margin-right: 5px;
+	}
+
+	.charging-station-section-5 .container .how-to-charge .images-box {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.charging-station-section-5 .container .how-to-charge .images-box img {
+		margin-right: 0;
+		margin-bottom: 20px;
+	}
+
+	.charging-station-section-5 .container .img-box {
+		width: 100%;
+		height: auto;
+	}
+
+	.charging-station-section-5 .container .img-box img {
+		width: 100%;
+		height: auto;
+		margin-top: 0 !important;
 	}
 }
