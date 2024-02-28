@@ -36,12 +36,9 @@ def check_reshuffle(driver, start, end):
 def check_vehicle(driver, date_time=timezone.localtime()):
     reshuffle = DriverReshuffle.objects.filter(swap_time__lt=date_time,
                                                swap_time__date=date_time.date(),
-                                               driver_start=driver).order_by("-swap_time")
-    reshuffle = reshuffle._clone()
-    reshuffle._for_write = True
-    reshuffle._prefetch_done = False
-    reshuffle = reshuffle[:1]
-    return reshuffle.first().swap_vehicle if reshuffle else None
+                                               driver_start=driver).order_by("-swap_time").first()
+
+    return reshuffle.swap_vehicle if reshuffle else None
 
 
 def buttons_addresses(address):

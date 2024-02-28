@@ -24,7 +24,7 @@ from selenium_ninja.synchronizer import Synchronizer, AuthenticationError
 class BoltRequest(Fleet, Synchronizer):
     base_url = models.URLField(default=BoltService.get_value('REQUEST_BOLT_LOGIN_URL'))
 
-    def create_session(self, partner, password, login):
+    def create_session(self, partner=None, password=None, login=None):
         partner_id = partner if partner else self.partner.id
         if self.partner and not self.deleted_at:
             login = CredentialPartner.get_value("BOLT_NAME", partner=partner_id)
@@ -251,8 +251,6 @@ class BoltRequest(Fleet, Synchronizer):
             params["offset"] = offset
             params.update(self.param())
             report = self.get_target_url(f'{self.base_url}getDriverEngagementData/dateRange', params)
-            if offset > report['data']['total_rows']:
-                break
             drivers = report['data']['rows']
             for driver in drivers:
                 driver_params = self.param().copy()
@@ -274,8 +272,12 @@ class BoltRequest(Fleet, Synchronizer):
                     'email': driver_info['data']['email'],
                     'phone_number': driver_info['data']['phone'],
                     'driver_external_id': driver_info['data']['id'],
+                    'pay_cash': driver['has_cash_payment']
                 })
-            offset += limit
+            if offset + limit < report['data']['total_rows']:
+                offset += limit
+            else:
+                break
         return driver_list
 
     def get_fleet_orders(self, start, end):
@@ -284,6 +286,7 @@ class BoltRequest(Fleet, Synchronizer):
             "finished": FleetOrder.COMPLETED,
             "client_cancelled": FleetOrder.CLIENT_CANCEL,
             "driver_cancelled_after_accept": FleetOrder.DRIVER_CANCEL,
+            "driver_did_not_respond": FleetOrder.DRIVER_CANCEL,
             "driver_rejected": FleetOrder.DRIVER_CANCEL
         }
         format_start = start.strftime("%Y-%m-%d")
@@ -297,6 +300,7 @@ class BoltRequest(Fleet, Synchronizer):
                 "client_did_not_show",
                 "finished",
                 "client_cancelled",
+                "driver_did_not_respond"
                 "driver_cancelled_after_accept",
                 "driver_rejected"
             ]
@@ -350,8 +354,10 @@ class BoltRequest(Fleet, Synchronizer):
                         batch_data.append(fleet_order)
                         calendar_vehicle = check_vehicle(driver)
                         if calendar_vehicle != vehicle:
-                            redis_instance().hset(f"wrong_vehicle_{driver.partner.pk}", driver.pk,
+                            redis_instance().hset(f"wrong_vehicle_{self.partner.pk}", driver.pk,
                                                   vehicle.licence_plate)
+                            redis_instance().expire(f"wrong_vehicle_{self.partner.pk}", 600)
+
                 offset += limit
             else:
                 with transaction.atomic():

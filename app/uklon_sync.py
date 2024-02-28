@@ -27,7 +27,7 @@ class UklonRequest(Fleet, Synchronizer):
         }
         return headers
 
-    def park_payload(self, password, login) -> dict:
+    def park_payload(self, login, password) -> dict:
         if self.partner and not self.deleted_at:
             login = CredentialPartner.get_value(key='UKLON_NAME', partner=self.partner)
             password = CredentialPartner.get_value(key='UKLON_PASSWORD', partner=self.partner)
@@ -48,7 +48,7 @@ class UklonRequest(Fleet, Synchronizer):
         return redis_instance().get(f"{self.partner.id}_park_id")
 
     def create_session(self, partner, password=None, login=None):
-        payload = self.park_payload(password, login)
+        payload = self.park_payload(login, password)
         response = requests.post(f"{self.base_url}auth", json=payload)
         if response.status_code == 201:
             token = response.json()["access_token"]
@@ -74,6 +74,7 @@ class UklonRequest(Fleet, Synchronizer):
         if response.status_code == 201:
             token = response.json()['access_token']
         else:
+            print("error")
             bot.send_message(chat_id=515224934,
                              text=f"{self.partner} {response.status_code} create_session")
             token = self.create_session(self.partner.id)
@@ -279,7 +280,7 @@ class UklonRequest(Fleet, Synchronizer):
     def get_drivers_table(self):
         drivers = []
         param = {'status': 'All',
-                 'limit': '30'}
+                 'limit': 30}
         url = f"{Service.get_value('UKLON_1')}{self.uklon_id()}"
         url_1 = url + Service.get_value('UKLON_6')
         offset = 0
@@ -288,13 +289,12 @@ class UklonRequest(Fleet, Synchronizer):
         while True:
             param["offset"] = offset
             all_drivers = self.response_data(url=url_1, params=param)
-            if offset > all_drivers['total_count']:
-                break
             for driver in all_drivers['items']:
                 email = self.response_data(url=f"{url_1}/{driver['id']}")
                 driver_data = self.response_data(
                     url=f"{Service.get_value('UKLON_1')}{Service.get_value('UKLON_6')}/{driver['id']}/images",
                     params={'image_size': 'sm'})
+                pay_cash = False if driver['restrictions'] else True
                 drivers.append({
                     'fleet_name': self.name,
                     'name': driver['first_name'].split()[0],
@@ -303,8 +303,13 @@ class UklonRequest(Fleet, Synchronizer):
                     'phone_number': f"+{driver['phone']}",
                     'driver_external_id': driver['id'],
                     'photo': driver_data["driver_avatar_photo"]["url"],
+                    'pay_cash': pay_cash
                 })
-            offset += int(limit)
+            if offset + limit < all_drivers['total_count']:
+                offset += limit
+            else:
+                break
+
         return drivers
 
     def get_fleet_orders(self, start, end):
@@ -366,6 +371,7 @@ class UklonRequest(Fleet, Synchronizer):
                         if calendar_vehicle != vehicle:
                             redis_instance().hset(f"wrong_vehicle_{self.partner.pk}", driver.pk,
                                                   vehicle.licence_plate)
+                            redis_instance().expire(f"wrong_vehicle_{self.partner.pk}", 600)
                         fleet_order = FleetOrder(**data)
                         batch_data.append(fleet_order)
 

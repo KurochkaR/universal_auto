@@ -228,7 +228,7 @@ def check_card_cash_value(self, partner_pk):
         today = timezone.localtime()
         yesterday = timezone.make_aware(datetime.combine(today, time.min)) - timedelta(days=1)
         start_week = timezone.make_aware(datetime.combine(today, time.min)) - timedelta(days=today.weekday())
-        for driver in Driver.objects.get_active(partner=partner_pk, schema__isnull=False):
+        for driver in Driver.objects.get_active(partner=partner_pk, schema__isnull=False, cash_control=True):
             start = start_week if driver.schema.is_weekly() else get_time_for_task(driver.schema_id)[2]
             rent = calculate_rent(start_week, today, driver) if driver.schema.is_weekly() else (
                 calculate_rent(yesterday, today, driver))
@@ -236,11 +236,13 @@ def check_card_cash_value(self, partner_pk):
             kasa, card = get_today_statistic(partner_pk, start, today, driver)[:2]
             if kasa > driver.schema.cash:
                 ratio = (card - rent_payment) / kasa
+                without_rent = card / kasa
                 if driver.schema.is_rent():
                     rate = float(ParkSettings.get_value("RENT_CASH_RATE", partner=partner_pk))
                 else:
                     rate = driver.schema.rate
-                enable = int(ratio > rate)
+                enable = int(ratio > (1-rate))
+                rent_enable = int(without_rent > (1-rate))
                 fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name='Gps')
                 disabled = []
                 for fleet in fleets:
@@ -251,9 +253,15 @@ def check_card_cash_value(self, partner_pk):
                         disabled.append(result)
                 if disabled:
                     if enable:
-                        text = f"Готівка {driver} \U0001F7E2"
+                        text = f"\U0001F7E2 {driver} система увімкнула отримання замовлень за готівку. " \
+                               f"Готівка {int(kasa - card)}/{int(kasa)} = {int((1-ratio)*100)}%"
+                    elif rent_enable:
+                        text = f"\U0001F534 {driver} системою вимкнено готівкові замовлення. Причина: холостий пробіг" \
+                               f"Готівка {int(kasa - card)}/{int(kasa)} = {int((1-ratio)*100)}%, перепробіг {int(rent)} км"
                     else:
-                        text = f"Готівка {driver} \U0001F534"
+                        text = f"\U0001F534 {driver} системою вимкнено готівкові замовлення." \
+                               f" Причина: високий рівень готівки (Готівка {(1 - ratio) * 100}%)"
+                    text += f"Дозволений % готівки {rate}"
                     bot.send_message(chat_id=ParkSettings.get_value("DRIVERS_CHAT", partner=partner_pk),
                                      text=text)
     except Exception as e:
@@ -266,18 +274,19 @@ def check_card_cash_value(self, partner_pk):
 def send_notify_to_check_car(self, partner_pk):
     if redis_instance().exists(f"wrong_vehicle_{partner_pk}"):
         wrong_cars = redis_instance().hgetall(f"wrong_vehicle_{partner_pk}")
+        print(wrong_cars)
+        text = ""
         for driver, car in wrong_cars.items():
             driver_obj = Driver.objects.get(pk=int(driver))
             vehicle = check_vehicle(driver_obj)
             if not vehicle or vehicle.licence_plate != car:
-                chat_id = driver_obj.manager.chat_id if driver_obj.manager else driver_obj.partner.chat_id
-                try:
-                    bot.send_message(chat_id=chat_id, text=f"Водій {driver_obj} працює на {car},"
-                                                           f" перевірте машину яка закріплена за водієм")
-                except BadRequest:
-                    bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"),
-                                     text=f"Не відправилось повідомлення про зміну авто для водія {driver_obj},"
-                                          f" партнер {driver_obj.partner}(неправильний чат ід?)")
+                text += f"{driver_obj} працює на {car}\n"
+        if text:
+            text += "перевірте будь ласка зміни водіїв"
+            try:
+                bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"), text=text)
+            except BadRequest as e:
+                logger.error(e)
         redis_instance().delete(f"wrong_vehicle_{partner_pk}")
 
 

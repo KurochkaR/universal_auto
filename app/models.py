@@ -345,6 +345,7 @@ class Driver(User):
     photo = models.ImageField(blank=True, null=True, upload_to='drivers', verbose_name='Фото водія',
                               default='drivers/default-driver.png')
     driver_status = models.CharField(max_length=35, default=OFFLINE, verbose_name='Статус водія')
+    cash_control = models.BooleanField(default=True, verbose_name='Контроль готівки')
 
     schema = models.ForeignKey(Schema, null=True, on_delete=models.SET_NULL, verbose_name='Схема роботи')
     partner = models.ForeignKey(Partner, on_delete=models.CASCADE, verbose_name='Партнер')
@@ -700,7 +701,7 @@ class StatusChange(models.Model):
 
 
 class FleetsDriversVehiclesRate(models.Model):
-    pay_cash = models.BooleanField(default=False, verbose_name='Оплата готівкою')
+    pay_cash = models.BooleanField(default=True, verbose_name='Оплата готівкою')
     driver_external_id = models.CharField(max_length=255, verbose_name='Унікальний ідентифікатор по автопарку')
 
     created_at = models.DateTimeField(editable=False, auto_now_add=True, verbose_name='Створено')

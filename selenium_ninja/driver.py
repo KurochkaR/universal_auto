@@ -382,8 +382,10 @@ class SeleniumTools:
                         FleetOrder.objects.create(**data)
                         calendar_vehicle = check_vehicle(driver.driver)
                         if calendar_vehicle != vehicle:
-                            redis_instance().hset(f"wrong_vehicle_{driver.partner.pk}", driver.driver.id,
+                            redis_instance().hset(f"wrong_vehicle_{self.partner.pk}", driver.driver.id,
                                                   vehicle.licence_plate)
+                            redis_instance().expire(f"wrong_vehicle_{self.partner.pk}", 600)
+
                 os.remove(file_path)
 
     def add_driver(self, job_application):
