@@ -400,6 +400,16 @@ function fetchCarEfficiencyData(period, vehicleId, vehicle_lc, start, end) {
 				let averageEff = data['vehicles'].average_eff;
 				let vehicleNames = Object.keys(averageEff);
 				let vehicleEff = Object.values(averageEff);
+				let vehicleNumbers = Object.keys(averageEff);
+				console.log('vehicleNumbers', vehicleNumbers);
+				$("#vehicle-options li").each(function() {
+					let vehicleNumber = $(this).text().trim();
+					if (!vehicleNumbers.includes(vehicleNumber)) {
+						$(this).hide();
+					} else {
+						$(this).show();
+					}
+				});
 
 				threeChartOptions.series[0].data = vehicleEff;
 				threeChartOptions.xAxis.data = vehicleNames;
@@ -480,12 +490,8 @@ $(document).ready(function () {
 			customSelect.removeClass("active");
 
 			if (clickedValue !== "custom") {
-				if (vehicle_lc) {
-					fetchSummaryReportData(clickedValue);
-					fetchCarEfficiencyData(clickedValue, vehicleId, vehicle_lc);
-				} else {
-					fetchDriverEfficiencyData(clickedValue);
-				}
+				fetchSummaryReportData(clickedValue);
+				fetchCarEfficiencyData(clickedValue, vehicleId, vehicle_lc);
 			}
 
 			if (clickedValue === "custom") {
