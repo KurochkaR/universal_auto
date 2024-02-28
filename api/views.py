@@ -198,6 +198,7 @@ def get_dynamic_fleet():
         'full_name': Concat(F("driver__user_ptr__name"),
                             Value(" "),
                             F("driver__user_ptr__second_name"), output_field=CharField()),
+        'total_orders': Sum('total_orders'),
         'total_orders_accepted': Sum('total_orders_accepted'),
         'total_orders_rejected': Sum('total_orders_rejected'),
         'average_price': Avg('average_price'),
@@ -257,7 +258,8 @@ class DriverEfficiencyFleetListView(CombinedPermissionsMixin,
                 fleet_data = {
                     item['fleet_name']: {
                         'driver_id': item['driver_id'],
-                        'driver_total_kasa': item['total_kasa'],
+                        'total_kasa': item['total_kasa'],
+                        'total_orders': item['total_orders'],
                         'total_orders_accepted': item['total_orders_accepted'],
                         'total_orders_rejected': item['total_orders_rejected'],
                         'average_price': item['average_price'],

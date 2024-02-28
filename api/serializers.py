@@ -33,6 +33,7 @@ class FleetEfficiencySerializer(serializers.ModelSerializer):
         model = DriverEfficiencyPolymorphic
         fields = (
             "total_kasa",
+            "total_orders",
             "total_orders_rejected",
             "total_orders_accepted",
             "accept_percent",
@@ -62,6 +63,7 @@ class DriverEfficiencySerializer(FleetEfficiencySerializer):
         fields = (
             "full_name",
             "total_kasa",
+            "total_orders",
             "total_orders_accepted",
             "total_orders_rejected",
             "average_price",

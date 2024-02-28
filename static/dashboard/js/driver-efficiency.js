@@ -44,7 +44,7 @@ function fetchDriverEfficiencyData(period, start, end) {
 
 					row.append('<td class="driver">' + item.full_name + '</td>');
 					row.append('<td class="kasa">' + Math.round(item.total_kasa) + '</td>');
-					row.append('<td class="orders">' + item.orders + '</td>');
+					row.append('<td class="orders">' + item.total_orders + '</td>');
 					row.append('<td class="order_accepted">' + item.total_orders_accepted + '</td>');
 					row.append('<td class="order_rejected">' + item.total_orders_rejected + '</td>');
 					row.append('<td class="price">' + Math.round(item.average_price) + '</td>');
@@ -75,7 +75,7 @@ function fetchDriverEfficiencyData(period, start, end) {
 					});
 
 					driverInfo.append('<p>' + gettext("Каса: ") + Math.round(driver.total_kasa) + gettext(" грн") + '</p>');
-					driverInfo.append('<p>' + gettext("Кількість замовлень: ") + driver.orders + '</p>');
+					driverInfo.append('<p>' + gettext("Кількість замовлень: ") + driver.total_orders + '</p>');
 					driverInfo.append('<p>' + gettext("Виконано замовлень: ") + driver.total_orders_accepted + '</p>');
 					driverInfo.append('<p>' + gettext("Скасованих замовлень: ") + driver.total_orders_rejected + '</p>');
 					driverInfo.append('<p>' + gettext("Середній чек, грн: ") + Math.round(driver.average_price) + '</p>');
@@ -203,7 +203,7 @@ function fetchDriverFleetEfficiencyData(period, start, end, aggregators) {
 								let driverInfo = $('<div class="driver-info "></div>');
 								driverInfo.append('<p>' + gettext("Флот: ") + Object.keys(fleet)[0] + '</p>');
 								driverInfo.append('<p>' + gettext("Каса: ") + Math.round(fleet[Object.keys(fleet)[0]].total_kasa) + gettext(" грн") + '</p>');
-								driverInfo.append('<p>' + gettext("Кількість замовлень: ") + fleet[Object.keys(fleet)[0]].orders + '</p>');
+								driverInfo.append('<p>' + gettext("Кількість замовлень: ") + fleet[Object.keys(fleet)[0]].total_orders + '</p>');
 								driverInfo.append('<p>' + gettext("Виконано замовлень: ") + fleet[Object.keys(fleet)[0]].total_orders_accepted + '</p>');
 								driverInfo.append('<p>' + gettext("Кількість відмов: ") + fleet[Object.keys(fleet)[0]].total_orders_rejected + '</p>');
 								driverInfo.append('<p>' + gettext("Середній чек, грн: ") + Math.round(fleet[Object.keys(fleet)[0]].driver_average_price) + '</p>');
