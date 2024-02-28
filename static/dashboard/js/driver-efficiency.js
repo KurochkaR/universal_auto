@@ -44,9 +44,8 @@ function fetchDriverEfficiencyData(period, start, end) {
 
 					row.append('<td class="driver">' + item.full_name + '</td>');
 					row.append('<td class="kasa">' + Math.round(item.total_kasa) + '</td>');
-					row.append('<td class="orders">' + item.orders + '</td>');
-					row.append('<td class="order_rejected">' + item.orders_rejected + '</td>');
-					row.append('<td class="accept">' + Math.round(item.accept_percent) + '</td>');
+					row.append('<td class="order_accepted">' + item.total_orders_accepted + '</td>');
+					row.append('<td class="order_rejected">' + item.total_orders_rejected + '</td>');
 					row.append('<td class="price">' + Math.round(item.average_price) + '</td>');
 					row.append('<td class="mileage">' + Math.round(item.mileage) + '</td>');
 					row.append('<td class="efficiency">' + item.efficiency + '</td>');
@@ -75,8 +74,8 @@ function fetchDriverEfficiencyData(period, start, end) {
 					});
 
 					driverInfo.append('<p>' + gettext("Каса: ") + Math.round(driver.total_kasa) + gettext(" грн") + '</p>');
-					driverInfo.append('<p>' + gettext("Кількість замовлень: ") + driver.orders + '</p>');
-					driverInfo.append('<p>' + gettext("% прийнятих замовлень: ") + Math.round(driver.accept_percent) + '</p>');
+					driverInfo.append('<p>' + gettext("Виконаних замовлень: ") + driver.total_orders_accepted + '</p>');
+					driverInfo.append('<p>' + gettext("Скасованих замовлень: ") + driver.total_orders_rejected + '</p>');
 					driverInfo.append('<p>' + gettext("Середній чек, грн: ") + Math.round(driver.average_price) + '</p>');
 					driverInfo.append('<p>' + gettext("Пробіг, км: ") + Math.round(driver.mileage) + '</p>');
 					driverInfo.append('<p>' + gettext("Ефективність, грн/км: ") + driver.efficiency + '</p>');
@@ -96,6 +95,7 @@ function fetchDriverEfficiencyData(period, start, end) {
 			}
 		},
 		error: function (error) {
+		    $(".apply-filter-button_driver").prop("disabled", false);
 			console.error(error);
 		}
 	});
@@ -141,14 +141,13 @@ function fetchDriverFleetEfficiencyData(period, start, end, aggregators) {
 							}
 
 							row.append('<td class="fleet">' + Object.keys(fleet)[0] + '</td>');
-							row.append('<td class="kasa">' + Math.round(fleet[Object.keys(fleet)[0]].driver_total_kasa) + '</td>');
-							row.append('<td class="orders">' + fleet[Object.keys(fleet)[0]].orders + '</td>');
-							row.append('<td class="order_rejected">' + fleet[Object.keys(fleet)[0]].orders_rejected + '</td>');
-							row.append('<td class="accept">' + Math.round(fleet[Object.keys(fleet)[0]].driver_accept_percent) + '</td>');
-							row.append('<td class="price">' + Math.round(fleet[Object.keys(fleet)[0]].driver_average_price) + '</td>');
-							row.append('<td class="mileage">' + Math.round(fleet[Object.keys(fleet)[0]].driver_mileage) + '</td>');
-							row.append('<td class="efficiency">' + fleet[Object.keys(fleet)[0]].driver_efficiency + '</td>');
-							row.append('<td class="time">' + formatTime(fleet[Object.keys(fleet)[0]].driver_road_time) + '</td>');
+							row.append('<td class="kasa">' + Math.round(fleet[Object.keys(fleet)[0]].total_kasa) + '</td>');
+							row.append('<td class="order_accepted">' + fleet[Object.keys(fleet)[0]].total_orders_accepted + '</td>');
+							row.append('<td class="order_rejected">' + fleet[Object.keys(fleet)[0]].total_orders_rejected + '</td>');
+							row.append('<td class="price">' + Math.round(fleet[Object.keys(fleet)[0]].average_price) + '</td>');
+							row.append('<td class="mileage">' + Math.round(fleet[Object.keys(fleet)[0]].mileage) + '</td>');
+							row.append('<td class="efficiency">' + fleet[Object.keys(fleet)[0]].efficiency + '</td>');
+							row.append('<td class="time">' + formatTime(fleet[Object.keys(fleet)[0]].road_time) + '</td>');
 
 							table.append(row);
 						});
@@ -200,14 +199,13 @@ function fetchDriverFleetEfficiencyData(period, start, end, aggregators) {
 								// Create an information block for each fleet and add it to the corresponding driver block
 								let driverInfo = $('<div class="driver-info "></div>');
 								driverInfo.append('<p>' + gettext("Флот: ") + Object.keys(fleet)[0] + '</p>');
-								driverInfo.append('<p>' + gettext("Каса: ") + Math.round(fleet[Object.keys(fleet)[0]].driver_total_kasa) + gettext(" грн") + '</p>');
-								driverInfo.append('<p>' + gettext("Кількість замовлень: ") + fleet[Object.keys(fleet)[0]].orders + '</p>');
-								driverInfo.append('<p>' + gettext("Кількість відмов: ") + fleet[Object.keys(fleet)[0]].orders_rejected + '</p>');
-								driverInfo.append('<p>' + gettext("% прийнятих замовлень: ") + Math.round(fleet[Object.keys(fleet)[0]].driver_accept_percent) + '</p>');
+								driverInfo.append('<p>' + gettext("Каса: ") + Math.round(fleet[Object.keys(fleet)[0]].total_kasa) + gettext(" грн") + '</p>');
+								driverInfo.append('<p>' + gettext("Кількість замовлень: ") + fleet[Object.keys(fleet)[0]].total_orders_accepted + '</p>');
+								driverInfo.append('<p>' + gettext("Кількість відмов: ") + fleet[Object.keys(fleet)[0]].total_orders_rejected + '</p>');
 								driverInfo.append('<p>' + gettext("Середній чек, грн: ") + Math.round(fleet[Object.keys(fleet)[0]].driver_average_price) + '</p>');
-								driverInfo.append('<p>' + gettext("Пробіг, км: ") + Math.round(fleet[Object.keys(fleet)[0]].driver_mileage) + '</p>');
-								driverInfo.append('<p>' + gettext("Ефективність, грн/км: ") + fleet[Object.keys(fleet)[0]].driver_efficiency + '</p>');
-								driverInfo.append('<p>' + gettext("Час в дорозі: ") + formatTime(fleet[Object.keys(fleet)[0]].driver_road_time) + '</p><br>');
+								driverInfo.append('<p>' + gettext("Пробіг, км: ") + Math.round(fleet[Object.keys(fleet)[0]].mileage) + '</p>');
+								driverInfo.append('<p>' + gettext("Ефективність, грн/км: ") + fleet[Object.keys(fleet)[0]].efficiency + '</p>');
+								driverInfo.append('<p>' + gettext("Час в дорозі: ") + formatTime(fleet[Object.keys(fleet)[0]].road_time) + '</p><br>');
 
 								driversMap[driverName].driverInfoContainer.append(driverInfo);
 							});

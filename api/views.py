@@ -7,7 +7,7 @@ from operator import itemgetter
 
 from django.contrib.postgres.aggregates import ArrayAgg
 from django.db.models import Sum, F, OuterRef, Subquery, DecimalField, Avg, Value, CharField, ExpressionWrapper, Case, \
-    When, Func, FloatField, Exists, Prefetch, Q
+    When, Func, FloatField, Exists, Prefetch, Q, IntegerField
 from django.db.models.functions import Concat, Round, Coalesce
 from django.utils import timezone
 from rest_framework import generics
@@ -198,8 +198,8 @@ def get_dynamic_fleet():
         'full_name': Concat(F("driver__user_ptr__name"),
                             Value(" "),
                             F("driver__user_ptr__second_name"), output_field=CharField()),
-        'orders': Sum('total_orders'),
-        'orders_rejected': Sum('total_orders_rejected'),
+        'total_orders_accepted': Sum('total_orders_accepted'),
+        'total_orders_rejected': Sum('total_orders_rejected'),
         'average_price': Avg('average_price'),
         'accept_percent': Avg('accept_percent'),
         'road_time': Coalesce(Sum('road_time'), timedelta()),
@@ -208,9 +208,9 @@ def get_dynamic_fleet():
             Case(
                 When(mileage__gt=0, then=F('total_kasa') / F('mileage')),
                 default=Value(0),
-                output_field=FloatField()
+                output_field=DecimalField()
             ),
-            output_field=FloatField()
+            output_field=DecimalField()
         )
     }
 
@@ -258,13 +258,13 @@ class DriverEfficiencyFleetListView(CombinedPermissionsMixin,
                     item['fleet_name']: {
                         'driver_id': item['driver_id'],
                         'driver_total_kasa': item['total_kasa'],
-                        'orders': item['orders'],
-                        'orders_rejected': item['orders_rejected'],
-                        'driver_average_price': item['average_price'],
-                        'driver_accept_percent': item['accept_percent'],
-                        'driver_road_time': item['road_time'],
-                        'driver_mileage': item['mileage'],
-                        'driver_efficiency': item['efficiency']
+                        'total_orders_accepted': item['total_orders_accepted'],
+                        'total_orders_rejected': item['total_orders_rejected'],
+                        'average_price': item['average_price'],
+                        'accept_percent': item['accept_percent'],
+                        'road_time': item['road_time'],
+                        'mileage': item['mileage'],
+                        'efficiency': item['efficiency']
                     }
                 }
                 driver_data['fleets'].append(fleet_data)

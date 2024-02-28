@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from app.models import DriverPayments, Bonus, Penalty, Driver
+from app.models import DriverPayments, Bonus, Penalty, Driver, DriverEfficiencyPolymorphic
 
 
 class AggregateReportSerializer(serializers.Serializer):
@@ -28,50 +28,19 @@ class CarDetailSerializer(serializers.Serializer):
         )
 
 
-class DriverEfficiencySerializer(serializers.Serializer):
-    full_name = serializers.CharField()
-    total_kasa = serializers.DecimalField(max_digits=10, decimal_places=2)
-    orders = serializers.IntegerField()
-    orders_rejected = serializers.IntegerField()
-    accept_percent = serializers.IntegerField()
-    road_time = serializers.DurationField()
-    efficiency = serializers.DecimalField(max_digits=10, decimal_places=2)
-    mileage = serializers.DecimalField(max_digits=10, decimal_places=2)
-    average_price = serializers.DecimalField(max_digits=10, decimal_places=2)
-    rent_amount = serializers.DecimalField(
-        max_digits=10, decimal_places=2, read_only=True
-    )
-
+class FleetEfficiencySerializer(serializers.ModelSerializer):
     class Meta:
+        model = DriverEfficiencyPolymorphic
         fields = (
-            "full_name",
             "total_kasa",
-            "total_orders",
             "total_orders_rejected",
+            "total_orders_accepted",
             "accept_percent",
             "average_price",
             "road_time",
             "efficiency",
             "mileage",
-            "rent_amount",
         )
-
-
-class DriverEfficiencyRentSerializer(serializers.Serializer):
-    start = serializers.CharField()
-    end = serializers.CharField()
-    drivers_efficiency = DriverEfficiencySerializer(many=True)
-
-
-class FleetEfficiencySerializer(serializers.Serializer):
-    driver_total_kasa = serializers.DecimalField(max_digits=10, decimal_places=2)
-    orders = serializers.IntegerField()
-    orders_rejected = serializers.IntegerField()
-    driver_average_price = serializers.DecimalField(max_digits=10, decimal_places=2)
-    driver_accept_percent = serializers.DecimalField(max_digits=5, decimal_places=2)
-    driver_road_time = serializers.DurationField()
-    driver_mileage = serializers.DecimalField(max_digits=10, decimal_places=2)
-    driver_efficiency = serializers.DecimalField(max_digits=10, decimal_places=2)
 
 
 class DriverEfficiencyFleetSerializer(serializers.Serializer):
@@ -83,6 +52,29 @@ class DriverEfficiencyFleetRentSerializer(serializers.Serializer):
     start = serializers.CharField()
     end = serializers.CharField()
     drivers_efficiency = serializers.ListField(child=DriverEfficiencyFleetSerializer())
+
+
+class DriverEfficiencySerializer(FleetEfficiencySerializer):
+    full_name = serializers.CharField()
+
+    class Meta:
+        model = DriverEfficiencyPolymorphic
+        fields = (
+            "full_name",
+            "total_kasa",
+            "total_orders_accepted",
+            "total_orders_rejected",
+            "average_price",
+            "road_time",
+            "efficiency",
+            "mileage",
+        )
+
+
+class DriverEfficiencyRentSerializer(serializers.Serializer):
+    start = serializers.CharField()
+    end = serializers.CharField()
+    drivers_efficiency = DriverEfficiencySerializer(many=True)
 
 
 class VehiclesEfficiencySerializer(serializers.Serializer):
