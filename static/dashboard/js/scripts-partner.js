@@ -400,15 +400,13 @@ function fetchCarEfficiencyData(period, vehicleId, vehicle_lc, start, end) {
 				let averageEff = data['vehicles'].average_eff;
 				let vehicleNames = Object.keys(averageEff);
 				let vehicleEff = Object.values(averageEff);
-				let vehicleNumbers = Object.keys(averageEff);
-				console.log('vehicleNumbers', vehicleNumbers);
-				$("#vehicle-options li").each(function() {
-					let vehicleNumber = $(this).text().trim();
-					if (!vehicleNumbers.includes(vehicleNumber)) {
-						$(this).hide();
-					} else {
-						$(this).show();
-					}
+				var keys = Object.keys(data['vehicle_numbers_eff']).sort();
+				var dropdown = $('#vehicle-options');
+				dropdown.empty();
+
+				keys.forEach(function(key) {
+					var value = data['vehicle_numbers_eff'][key];
+					dropdown.append($('<li></li>').attr('data-value', value).text(key));
 				});
 
 				threeChartOptions.series[0].data = vehicleEff;
@@ -522,7 +520,7 @@ $(document).ready(function () {
 		$(".custom-dropdown .dropdown-options").toggle();
 	});
 
-	$(".custom-dropdown .dropdown-options li").click(function () {
+    $(this).on('click', '.custom-dropdown .dropdown-options li', function() {
 		var selectedValue = $(this).data('value');
 		var selectedText = $(this).text();
 		let startDate = $("#start_report").val();
