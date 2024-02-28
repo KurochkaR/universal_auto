@@ -240,7 +240,7 @@ def check_card_cash_value(self, partner_pk):
                     rate = float(ParkSettings.get_value("RENT_CASH_RATE", partner=partner_pk))
                 else:
                     rate = driver.schema.rate
-                enable = int(ratio > rate)
+                enable = int(ratio > (1-rate))
                 fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name='Gps')
                 disabled = []
                 for fleet in fleets:

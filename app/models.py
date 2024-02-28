@@ -340,11 +340,12 @@ class Driver(User):
     WITH_CLIENT = 'В дорозі'
     GET_ORDER = 'Приймаю замовлення'
     WAIT_FOR_CLIENT = 'Очікую клієнта'
-    OFFLINE = 'Не працюю'
+    OFFLINE = 'Оффлайн'
 
     photo = models.ImageField(blank=True, null=True, upload_to='drivers', verbose_name='Фото водія',
                               default='drivers/default-driver.png')
     driver_status = models.CharField(max_length=35, default=OFFLINE, verbose_name='Статус водія')
+    control_cash = models.BooleanField(default=False, verbose_name='Контроль готівки')
 
     schema = models.ForeignKey(Schema, null=True, on_delete=models.SET_NULL, verbose_name='Схема роботи')
     partner = models.ForeignKey(Partner, on_delete=models.CASCADE, verbose_name='Партнер')
@@ -1060,7 +1061,6 @@ class CarEfficiency(models.Model):
     report_from = models.DateTimeField(verbose_name='Звіт з')
     report_to = models.DateTimeField(null=True, verbose_name='Звіт по')
     total_kasa = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Каса')
-    total_orders = models.IntegerField(default=0, verbose_name='Кількість замовлень')
     clean_kasa = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Чистий дохід')
     total_spending = models.DecimalField(null=True, decimal_places=2, max_digits=10, default=0, verbose_name='Витрати')
     mileage = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Пробіг, км')
