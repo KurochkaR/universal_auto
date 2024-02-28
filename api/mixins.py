@@ -24,7 +24,7 @@ class ManagerFilterMixin:
             CarEfficiency: (Q(vehicle__manager=user) | Q(partner=user)),
             DriverEfficiency: (Q(driver__manager=user) | Q(partner=user)),
             DriverEfficiencyFleet: (Q(driver__manager=user) | Q(partner=user)),
-            Vehicle: (Q(manager=user, deleted_at=None) | Q(partner=user, deleted_at=None)),
+            Vehicle: (Q(manager=user) | Q(partner=user)),
             DriverPayments: (Q(driver__manager=user) | Q(partner=user)),
             Driver: (Q(manager=user) | Q(partner=user)),
         }
