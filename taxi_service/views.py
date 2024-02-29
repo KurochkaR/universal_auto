@@ -2,7 +2,7 @@ import os
 
 import jwt
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import Q
+from django.db.models import Q, F
 
 from django.urls import reverse
 from django.shortcuts import render, redirect
@@ -154,11 +154,15 @@ class BaseDashboardView(LoginRequiredMixin, TemplateView):
             context["get_active_vehicle"] = Vehicle.objects.get_active(manager=user).order_by("licence_plate")
             context["get_all_driver"] = Driver.objects.get_active(manager=user).order_by("second_name")
             context["get_all_vehicle"] = Vehicle.objects.filter(manager=user).order_by("licence_plate")
+            context["get_vehicle_eff"] = Vehicle.objects.filter(carefficiency__vehicle_id=F('id'),
+                                                                manager=user).distinct()
 
         elif user.is_partner():
             context["get_all_vehicle"] = Vehicle.objects.filter(partner=user).order_by("licence_plate")
             context["get_all_driver"] = Driver.objects.get_active(partner=user).order_by("second_name")
             context["get_active_vehicle"] = Vehicle.objects.get_active(partner=user).order_by("licence_plate")
+            context["get_vehicle_eff"] = Vehicle.objects.filter(carefficiency__vehicle_id=F('id'),
+                                                                partner=user).distinct()
 
         context["investor_group"] = user.is_investor()
         context["partner_group"] = user.is_partner()

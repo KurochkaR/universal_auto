@@ -108,7 +108,7 @@
         <div class="shift-vehicle">
           <label for="shift-vehicle">{% trans "Автомобіль" %}</label>
           <select id="shift-vehicle">
-            {% for vehicle in get_all_vehicle %}
+            {% for vehicle in get_active_vehicle %}
             <option value="{{ vehicle.id }}">{{ vehicle }}</option>
             {% endfor %}
           </select>
