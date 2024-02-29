@@ -40,6 +40,11 @@ $(document).ready(function(){
 	});
 
 	$(this).on('click', '.delete-bonus-penalty-btn', function () {
+	    var $button = $(this);
+        if ($button.hasClass('disabled')) {
+        return;
+        }
+        $button.addClass('disabled');
 		itemId = $(this).data('id');
 		dataToSend = {
 			action: "delete_bonus_penalty",

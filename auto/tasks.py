@@ -209,6 +209,19 @@ def get_today_orders(self, partner_pk):
         raise self.retry(exc=e, countdown=retry_delay)
 
 
+@app.task(bind=True, retry_backoff=30, max_retries=3)
+def add_distance_for_order(self, partner_pk, day=None):
+    gps_query = UaGpsSynchronizer.objects.filter(partner=partner_pk)
+    end = datetime.strptime(day, "%Y-%m-%d") if day else timezone.localtime()
+    start = end - timedelta(days=1)
+    if gps_query.exists():
+        orders = FleetOrder.objects.filter(partner=partner_pk, vehicle__isnull=False,
+                                           distance__isnull=True, finish_time__isnull=False,
+                                           vehicle__gps__isnull=False, date_order__range=(start, end))
+        gps = gps_query.first()
+        gps.get_order_distance(orders)
+
+
 @app.task(bind=True, retry_backoff=30, max_retries=4)
 def check_card_cash_value(self, partner_pk):
     try:
@@ -378,8 +391,9 @@ def generate_summary_report(self, schemas, day=None):
 
 
 @app.task(bind=True)
-def get_car_efficiency(self, partner_pk):
-    start = timezone.make_aware(datetime.combine(timezone.localtime() - timedelta(days=1), time.min))
+def get_car_efficiency(self, partner_pk, day=None):
+    date = datetime.strptime(day, "%Y-%m-%d") if day else timezone.localtime()
+    start = timezone.make_aware(datetime.combine(date - timedelta(days=1), time.min))
     end = timezone.make_aware(datetime.combine(start, time.max))
     for vehicle in Vehicle.objects.get_active(partner=partner_pk, gps__isnull=False).select_related('gps'):
         efficiency = CarEfficiency.objects.filter(report_from=start,
@@ -1095,7 +1109,7 @@ def save_report_to_ninja_payment(start, end, partner_pk, schema, fleet_name='Nin
                 pass
 
 
-@app.task(bind=True, queue='beat_tasks')
+@app.task(bind=True)
 def calculate_driver_reports(self, schemas, day=None):
     for schema in schemas:
         schema_obj = Schema.objects.get(pk=schema)
@@ -1123,19 +1137,19 @@ def calculate_driver_reports(self, schemas, day=None):
                     Penalty.objects.filter(driver=driver, driver_payments__isnull=True).update(driver_payments=payment)
                     payment.earning = Decimal(payment.earning) + payment.get_bonuses() - payment.get_penalties()
                     payment.save(update_fields=['earning'])
-            elif not reshuffles and report_kasa:
-                last_payment = DriverPayments.objects.filter(driver=driver).last()
-                if last_payment:
-                    driver_reports = SummaryReport.objects.filter(report_from__range=(last_payment.report_from, end),
-                                                                  driver=driver).aggregate(
-                        cash=Coalesce(Sum('total_amount_cash'), 0, output_field=DecimalField()),
-                        kasa=Coalesce(Sum('total_amount_without_fee'), 0, output_field=DecimalField()))
-                    get_corrections(last_payment.report_from, last_payment.report_to, driver, driver_reports)
-                else:
-                    get_corrections(start, end, driver)
+            # elif not reshuffles and report_kasa:
+            #     last_payment = DriverPayments.objects.filter(driver=driver).last()
+            #     if last_payment:
+            #         driver_reports = SummaryReport.objects.filter(report_from__range=(last_payment.report_from, end),
+            #                                                       driver=driver).aggregate(
+            #             cash=Coalesce(Sum('total_amount_cash'), 0, output_field=DecimalField()),
+            #             kasa=Coalesce(Sum('total_amount_without_fee'), 0, output_field=DecimalField()))
+            #         get_corrections(last_payment.report_from, last_payment.report_to, driver, driver_reports)
+            #     else:
+            #         get_corrections(start, end, driver)
 
 
-@app.task(bind=True, queue='bot_tasks')
+@app.task(bind=True)
 def calculate_vehicle_earnings(self, payment_pk):
     payment = DriverPayments.objects.get(pk=payment_pk)
     driver = payment.driver
@@ -1190,7 +1204,7 @@ def calculate_vehicle_earnings(self, payment_pk):
         )
 
 
-@app.task(bind=True, queue='bot_tasks')
+@app.task(bind=True)
 def calculate_vehicle_spending(self, payment_pk):
     payment = InvestorPayments.objects.get(pk=payment_pk)
     spending = -payment.earning
@@ -1205,7 +1219,7 @@ def calculate_vehicle_spending(self, payment_pk):
     )
 
 
-@app.task(bind=True, queue='beat_tasks')
+@app.task(bind=True)
 def calculate_failed_earnings(self, payment_pk):
     payment = DriverPayments.objects.get(pk=payment_pk)
     vehicle_income = get_failed_income(payment)
@@ -1226,6 +1240,7 @@ def calculate_failed_earnings(self, payment_pk):
 @app.task(bind=True)
 def check_cash_and_vehicle(self, partner_pk):
     tasks = chain(get_today_orders.si(partner_pk).set(queue=f'beat_tasks_{partner_pk}'),
+                  add_distance_for_order.si(partner_pk).set(queue=f'beat_tasks_{partner_pk}'),
                   send_notify_to_check_car.si(partner_pk).set(queue=f'beat_tasks_{partner_pk}'),
                   check_card_cash_value.si(partner_pk).set(queue=f'beat_tasks_{partner_pk}')
                   )
@@ -1237,11 +1252,12 @@ def get_information_from_fleets(self, partner_pk, schemas, day=None):
     task_chain = chain(
         download_daily_report.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
         get_orders_from_fleets.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
+        add_distance_for_order.si(partner_pk, day).set(queue=f'beat_tasks_{partner_pk}'),
         generate_payments.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
         generate_summary_report.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
-        get_rent_information.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
         get_driver_efficiency.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
         get_driver_efficiency_fleet.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
+        get_rent_information.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
         calculate_driver_reports.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
         send_daily_statistic.si(schemas).set(queue=f'beat_tasks_{partner_pk}'),
         send_driver_efficiency.si(schemas).set(queue=f'beat_tasks_{partner_pk}'),

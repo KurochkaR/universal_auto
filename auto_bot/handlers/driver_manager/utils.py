@@ -69,6 +69,9 @@ def create_driver_payments(start, end, driver, schema, driver_report=None, delet
         rent_value = rent * schema.rent_price
         salary = '%.2f' % (driver_report['kasa'] * schema.rate -
                            driver_report['cash'] - schema.rental - rent_value)
+    elif schema.is_float():
+        rate = get_driver_salary_rate(driver, driver_report['kasa'], driver.partner_id)
+        salary = '%.2f' % (driver_report['kasa'] * rate - driver_report['cash'] - rent_value)
     else:
         salary = '%.2f' % (driver_report['kasa'] * schema.rate - driver_report['cash'] - (
             (schema.plan - driver_report['kasa']) * Decimal(1 - schema.rate)
@@ -156,6 +159,15 @@ def calculate_by_rate(driver, kasa, partner):
     return driver_spending
 
 
+def get_driver_salary_rate(driver, kasa, partner):
+    rate_tiers = DriverSchemaRate.get_rate_tier(period=driver.schema.salary_calculation,
+                                                partner=partner)
+    for tier_kasa, rate in rate_tiers:
+        if kasa < tier_kasa:
+            return rate
+    return driver.schema.rate
+
+
 def get_daily_report(manager_id, schema_obj=None):
     drivers = get_drivers_vehicles_list(manager_id, Driver)[0]
     if schema_obj:
@@ -187,7 +199,7 @@ def generate_message_report(chat_id, schema_id=None, daily=None):
     if schema_id:
         schema = Schema.objects.get(pk=schema_id)
         if schema.salary_calculation == SalaryCalculation.WEEK:
-            if timezone.localtime().weekday() == 1:
+            if not timezone.localtime().weekday():
                 end = timezone.localtime() - timedelta(days=timezone.localtime().weekday() + 1)
                 start = end - timedelta(days=6)
             else:
@@ -239,6 +251,10 @@ def message_driver_report(driver, payment):
     elif driver.schema.is_dynamic():
         driver_message += 'Зарплата {0} - Готівка {1}'.format(
             payment.earning + payment.cash + payment.rent, payment.cash)
+    elif driver.schema.is_float():
+        rate = get_driver_salary_rate(driver, payment.kasa, driver.partner.id)
+        driver_message += 'Зарплата {0} * {1} - Готівка {2}'.format(
+            payment.kasa, rate, payment.cash, payment.rent)
     else:
         driver_message += 'Зарплата {0} * {1} - Готівка {2}'.format(
             payment.kasa, driver.schema.rate, payment.cash)
@@ -251,7 +267,7 @@ def message_driver_report(driver, payment):
     driver_message += " + Бонуси: {0} - Штрафи: {1}".format(bonuses, penalties)
 
     if payment.rent:
-        driver_message += f" - Оренда {payment.rent}"
+        driver_message += f" - Холостий пробіг {payment.rent}"
     driver_message += f" = {payment.earning}\n"
 
     return driver_message

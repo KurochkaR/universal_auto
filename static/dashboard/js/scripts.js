@@ -310,6 +310,11 @@ $(document).ready(function() {
 
 	$(this).on('click', '#add-bonus-btn, #add-penalty-btn', function (e) {
 		e.preventDefault();
+		var $button = $(this);
+        if ($button.hasClass('disabled')) {
+            return;
+        }
+        $button.addClass('disabled');
 		$('#amount-bonus-error, #category-bonus-error, #vehicle-bonus-error').hide();
 		var idPayments = $('#modal-add-bonus').data('id');
 		var driverId = $('#modal-add-bonus').data('driver-id');
@@ -337,6 +342,7 @@ $(document).ready(function() {
 			success: function (data) {
 				$('#modal-add-bonus')[0].reset();
 				$('#modal-add-bonus').hide();
+				$button.removeClass('disabled');
 				if (idPayments === null) {
 					window.location.reload();
 				} else {
@@ -352,17 +358,24 @@ $(document).ready(function() {
 			} else {
 				console.error('Помилка запиту: ' + textStatus);
 			}
+			$button.removeClass('disabled');
 			},
 		});
 	});
 
 	$(this).on('click', '#edit-button-bonus-penalty', function (e) {
 		e.preventDefault();
+		var $button = $(this);
+        if ($button.hasClass('disabled')) {
+            return;
+        }
+        $button.addClass('disabled');
 		$('#amount-bonus-error, #category-bonus-error, #vehicle-bonus-error').hide();
 		var idBonus = $('#modal-add-bonus').data('bonus-penalty-id');
 		var category = $('#modal-add-bonus').data('category-type');
 		var driverId = $('#modal-add-bonus').data('driver-id');
-		var paymentId = $('.tr-driver-payments').data('id');
+		var paymentId = $('#modal-add-bonus').data('payment-id');
+		console.log(paymentId)
 		var formDataArray = $('#modal-add-bonus :input').serializeArray();
 		var formData = {};
 		$.each(formDataArray, function(i, field){
@@ -382,6 +395,7 @@ $(document).ready(function() {
 			success: function (data) {
 				$('#modal-add-bonus')[0].reset();
 				$('#modal-add-bonus').hide();
+				$button.removeClass('disabled');
 				if (paymentId === undefined) {
 					window.location.reload();
 				} else {
@@ -397,6 +411,7 @@ $(document).ready(function() {
 				} else {
 					console.error('Помилка запиту: ' + textStatus);
 				}
+			$button.removeClass('disabled');
 			},
 		});
 	});
@@ -475,6 +490,7 @@ function openForm(paymentId, bonusPenaltyId, itemType, driverId) {
 			$('#modal-add-bonus').data('bonus-penalty-id', bonusPenaltyId);
 			$('#modal-add-bonus').data('category-type', itemType);
 			$('#modal-add-bonus').data('driver-id', driverId);
+			$('#modal-add-bonus').data('payment-id', paymentId);
 			var headingText = itemType === 'bonus' ? (bonusPenaltyId ? 'Редагування бонуса' : 'Додавання бонуса') :
 																							 (bonusPenaltyId ? 'Редагування штрафа' : 'Додавання штрафа');
 			var buttonText = bonusPenaltyId ? 'Редагувати' : 'Додати';

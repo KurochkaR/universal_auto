@@ -155,6 +155,9 @@ class Schema(models.Model):
     def is_dynamic(self):
         return True if self.schema == "DYNAMIC" else False
 
+    def is_float(self):
+        return True if self.schema == "FLOAT" else False
+
     class Meta:
         verbose_name = 'Схему роботи'
         verbose_name_plural = 'Схеми роботи'

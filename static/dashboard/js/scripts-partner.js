@@ -301,7 +301,6 @@ function fetchSummaryReportData(period, start, end) {
 		type: 'GET',
 		dataType: 'json',
 		success: function (data) {
-			console.log(data[0]["kasa"]);
 			$(".apply-filter-button").prop("disabled", false);
 			let startDate = data[0]['start'];
 			let endDate = data[0]['end'];
@@ -401,6 +400,14 @@ function fetchCarEfficiencyData(period, vehicleId, vehicle_lc, start, end) {
 				let averageEff = data['vehicles'].average_eff;
 				let vehicleNames = Object.keys(averageEff);
 				let vehicleEff = Object.values(averageEff);
+				var keys = Object.keys(data['vehicle_numbers_eff']).sort();
+				var dropdown = $('#vehicle-options');
+				dropdown.empty();
+
+				keys.forEach(function(key) {
+					var value = data['vehicle_numbers_eff'][key];
+					dropdown.append($('<li></li>').attr('data-value', value).text(key));
+				});
 
 				threeChartOptions.series[0].data = vehicleEff;
 				threeChartOptions.xAxis.data = vehicleNames;
@@ -409,7 +416,7 @@ function fetchCarEfficiencyData(period, vehicleId, vehicle_lc, start, end) {
 				$(".noDataMessage2").show();
 				$('#area-chart').hide();
 				$('#bar-three-chart').hide();
-				$('.car-select').css('display', 'contents');
+				$('.car-select').css('display', 'none');
 			};
 			$('.weekly-clean-amount').text(data["earning"].toFixed(2));
 			$('.income-km').text(data["total_mileage"].toFixed(2));
@@ -481,12 +488,8 @@ $(document).ready(function () {
 			customSelect.removeClass("active");
 
 			if (clickedValue !== "custom") {
-				if (vehicle_lc) {
-					fetchSummaryReportData(clickedValue);
-					fetchCarEfficiencyData(clickedValue, vehicleId, vehicle_lc);
-				} else {
-					fetchDriverEfficiencyData(clickedValue);
-				}
+				fetchSummaryReportData(clickedValue);
+				fetchCarEfficiencyData(clickedValue, vehicleId, vehicle_lc);
 			}
 
 			if (clickedValue === "custom") {
@@ -517,7 +520,7 @@ $(document).ready(function () {
 		$(".custom-dropdown .dropdown-options").toggle();
 	});
 
-	$(".custom-dropdown .dropdown-options li").click(function () {
+    $(this).on('click', '.custom-dropdown .dropdown-options li', function() {
 		var selectedValue = $(this).data('value');
 		var selectedText = $(this).text();
 		let startDate = $("#start_report").val();
