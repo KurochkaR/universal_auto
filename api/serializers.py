@@ -165,6 +165,7 @@ class DriverPaymentsSerializer(serializers.ModelSerializer):
     status = serializers.SerializerMethodField()
     report_from = serializers.DateTimeField(format='%d.%m.%Y %H:%M')
     report_to = serializers.DateTimeField(format='%d.%m.%Y %H:%M')
+    rate = serializers.IntegerField()
     bonuses = serializers.DecimalField(max_digits=10, decimal_places=2)
     penalties = serializers.DecimalField(max_digits=10, decimal_places=2)
     bonuses_list = serializers.SerializerMethodField()
@@ -183,8 +184,8 @@ class DriverPaymentsSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = DriverPayments
-        fields = ('full_name', 'driver_vehicles', 'kasa', 'cash', 'rent', 'earning', 'salary', 'status', 'report_from',
-                  'report_to', 'id', 'bonuses', 'penalties', 'bonuses_list', 'penalties_list')
+        fields = ('full_name', 'driver_vehicles', 'kasa', 'cash', 'rent', 'rate', 'earning', 'salary', 'status',
+                  'report_from', 'report_to', 'id', 'bonuses', 'penalties', 'bonuses_list', 'penalties_list')
 
 
 class DriverInformationSerializer(serializers.ModelSerializer):

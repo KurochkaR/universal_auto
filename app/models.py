@@ -417,6 +417,7 @@ class DriverPayments(Earnings):
     rent_distance = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Орендована дистанція')
     rent_price = models.IntegerField(default=6, verbose_name='Ціна оренди')
     rent = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Оренда авто')
+    rate = models.IntegerField(default=0, verbose_name='Відсоток водія')
 
     driver = models.ForeignKey(Driver, on_delete=models.CASCADE, verbose_name="Водій")
 

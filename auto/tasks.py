@@ -259,10 +259,10 @@ def check_card_cash_value(self, partner_pk):
 
                     elif rent_enable:
                         text = f"\U0001F534 {driver} системою вимкнено готівкові замовлення.\n" \
-                               f" Причина: холостий пробіг\n" + calc_text + ", перепробіг {int(rent)} км\n"
+                               f"Причина: холостий пробіг\n" + calc_text + ", перепробіг {int(rent)} км\n"
                     else:
                         text = f"\U0001F534 {driver} системою вимкнено готівкові замовлення.\n" \
-                               f" Причина: високий рівень готівки\n" + calc_text
+                               f"Причина: високий рівень готівки\n" + calc_text
                     text += f"Дозволено готівки {rate*100}%"
                     bot.send_message(chat_id=ParkSettings.get_value("DRIVERS_CHAT", partner=partner_pk),
                                      text=text)
@@ -276,7 +276,6 @@ def check_card_cash_value(self, partner_pk):
 def send_notify_to_check_car(self, partner_pk):
     if redis_instance().exists(f"wrong_vehicle_{partner_pk}"):
         wrong_cars = redis_instance().hgetall(f"wrong_vehicle_{partner_pk}")
-        print(wrong_cars)
         text = ""
         for driver, car in wrong_cars.items():
             driver_obj = Driver.objects.get(pk=int(driver))
@@ -604,20 +603,11 @@ def fleets_cash_trips(self, partner_pk, pk, enable):
     try:
         driver = Driver.objects.get(pk=pk)
         fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name='Gps')
-        disabled = []
+
         for fleet in fleets:
             driver_rate = FleetsDriversVehiclesRate.objects.filter(
                 driver=driver, fleet=fleet).first()
-            if driver_rate and int(driver_rate.pay_cash) != enable:
-                result = fleet.disable_cash(driver_rate.driver_external_id, enable)
-                disabled.append(result)
-        if disabled:
-            if enable:
-                text = f"Готівка {driver} \U0001F7E2"
-            else:
-                text = f"Готівка {driver} \U0001F534"
-            bot.send_message(chat_id=ParkSettings.get_value("DRIVERS_CHAT", partner=partner_pk),
-                             text=text)
+            fleet.disable_cash(driver_rate.driver_external_id, enable)
 
     except Exception as e:
         logger.error(e)

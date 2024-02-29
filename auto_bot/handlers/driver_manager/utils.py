@@ -55,11 +55,13 @@ def create_driver_payments(start, end, driver, schema, driver_report=None, delet
             kasa=Coalesce(Sum('total_amount_without_fee'), 0, output_field=DecimalField()))
     rent = calculate_rent(start, end, driver)
     rent_value = rent * schema.rent_price
+    rate = schema.rate
     if delete:
-        salary = '%.2f' % (driver_report['kasa'] * schema.rate - driver_report['cash'] - rent_value)
+        salary = '%.2f' % (driver_report['kasa'] * rate - driver_report['cash'] - rent_value)
     elif schema.is_dynamic():
         driver_spending = calculate_by_rate(driver, driver_report['kasa'], driver.partner_id)
         salary = '%.2f' % (driver_spending - driver_report['cash'] - rent_value)
+        rate = driver_spending / driver_report['kasa'] if driver_report['kasa'] else 0
     elif schema.is_rent():
         overall_distance = DriverEfficiency.objects.filter(
             report_from__range=(start, end),
@@ -67,13 +69,13 @@ def create_driver_payments(start, end, driver, schema, driver_report=None, delet
             distance=Coalesce(Sum('mileage'), 0, output_field=DecimalField()))['distance']
         rent = max((overall_distance - schema.limit_distance), 0)
         rent_value = rent * schema.rent_price
-        salary = '%.2f' % (driver_report['kasa'] * schema.rate -
+        salary = '%.2f' % (driver_report['kasa'] * rate -
                            driver_report['cash'] - schema.rental - rent_value)
     elif schema.is_float():
         rate = get_driver_salary_rate(driver, driver_report['kasa'], driver.partner_id)
         salary = '%.2f' % (driver_report['kasa'] * rate - driver_report['cash'] - rent_value)
     else:
-        salary = '%.2f' % (driver_report['kasa'] * schema.rate - driver_report['cash'] - (
+        salary = '%.2f' % (driver_report['kasa'] * rate - driver_report['cash'] - (
             (schema.plan - driver_report['kasa']) * Decimal(1 - schema.rate)
             if driver_report['kasa'] < schema.plan else 0) - rent_value
         )
@@ -83,6 +85,7 @@ def create_driver_payments(start, end, driver, schema, driver_report=None, delet
             "cash": driver_report['cash'],
             "earning": salary,
             "rent": rent_value,
+            "rate": rate * 100,
             "payment_type": schema.salary_calculation,
             "partner": schema.partner}
     return data

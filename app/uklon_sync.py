@@ -299,8 +299,12 @@ class UklonRequest(Fleet, Synchronizer):
                     url=f"{Service.get_value('UKLON_1')}{Service.get_value('UKLON_6')}/{driver['id']}/images",
                     params={'image_size': 'sm'})
                 if driver['restrictions']:
-                    result = [item for item in driver['restrictions'] if item.get('restricted_by') == 'Manager']
-                    pay_cash = not bool(result)
+                    manager_restrictions = next((item for item in driver["restrictions"] if item["restricted_by"] == "Manager"), None)
+                    if manager_restrictions:
+                        cash_result = next((item for item in manager_restrictions['restriction_items'] if item.get('fleet_id') == self.uklon_id()), None)
+                        pay_cash = not bool(cash_result)
+                    else:
+                        pay_cash = True
                 else:
                     pay_cash = True
                 drivers.append({

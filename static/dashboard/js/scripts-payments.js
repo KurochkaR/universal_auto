@@ -51,14 +51,11 @@ function driverPayment(period = null, start = null, end = null, paymentStatus = 
 					rowBonus += generateRow(response[i].bonuses_list, 'bonus', 'edit-bonus-btn', 'delete-bonus-penalty-btn');
 					rowBonus += generateRow(response[i].penalties_list, 'penalty', 'edit-penalty-btn', 'delete-bonus-penalty-btn');
 					rowBonus += '</table></td></tr>';
-					var salary = response[i].salary;
-					if (response[i].salary <= 0) {
-						salary = "0.00";
-					}
 					var row = $('<tr class="tr-driver-payments">');
 					row.attr('data-id', response[i].id);
 					row.append('<td>' + response[i].report_from + ' <br> ' + response[i].report_to + '</td>');
 					row.append('<td class="driver-name cell-with-triangle" title="Натиснути для огляду бонусів та штрафів">' + response[i].full_name + ' <i class="fa fa-caret-down"></i></td>');
+					row.append('<td class="driver-rate" title="Натиснути для зміни відсотка"><div style="display: flex;justify-content: space-evenly; align-items: center;"><span class="rate-payment" >'+ response[i].rate +' </span><input type="text" class="driver-rate-input" placeholder="100" style="display: none;"><i class="fa fa-pencil-alt"></i></div></td>')
 					row.append('<td>' + response[i].kasa + '</td>');
 					row.append('<td>' + response[i].cash + '</td>');
 					row.append('<td>' + response[i].rent + '</td>');
@@ -69,8 +66,7 @@ function driverPayment(period = null, start = null, end = null, paymentStatus = 
 						row.append('<td>' + '<div style="display: flex;justify-content: space-evenly; align-items: center;">' + response[i].bonuses + '</div>' + '</td>');
 						row.append('<td>' + '<div style="display: flex;justify-content: space-evenly; align-items: center;">' + response[i].penalties + '</div>' + '</td>');
 					}
-					row.append('<td>' + response[i].earning + '</td>');
-					row.append('<td>' + salary + '</td>');
+					row.append('<td class="payment-earning">' + response[i].earning + '</td>');
 					row.append('<td>' + response[i].status + '</td>');
 					var showAllButton = $('.send-all-button');
 					showAllButton.hide(0);
@@ -99,7 +95,14 @@ function driverPayment(period = null, start = null, end = null, paymentStatus = 
 	var clickedDate = sessionStorage.getItem('clickedDate');
 	var clickedId = sessionStorage.getItem('clickedId');
 }
-
+$(document).on('click', function (event){
+if (!$(event.target).closest('.driver-rate').length) {
+    // Hide the input and show the text
+    $('.driver-rate .rate-payment').show();
+    $('.driver-rate .driver-rate-input').hide();
+    $('.driver-rate i').show();
+  }
+ });
 $(document).ready(function () {
 
 	var itemId, actionType, itemType;
@@ -161,6 +164,71 @@ $(document).ready(function () {
       driverPayment(null, null, null, paymentStatus=$(this).val());
       $('.filter-driver-payments').hide();
       $('#datePickerDriver').hide();
+    }
+  });
+
+  $(this).on('click', ".driver-rate", function() {
+      var rateText = $(this).find(".rate-payment");
+      var rateInput = $(this).find(".driver-rate-input");
+      $('.driver-rate .driver-rate-input').not(rateInput).hide();
+      $('.driver-rate .rate-payment').not(rateText).show();
+
+      // Toggle visibility
+      rateText.toggle();
+      rateInput.toggle();
+
+      if (rateInput.is(":visible")) {
+        rateInput.focus();
+        $('.driver-rate i').hide();
+      } else {
+    rateInput.blur();
+    $('.driver-rate i').show();
+  }
+    });
+
+  $(this).on("input", ".driver-rate-input", function () {
+        var inputValue = $(this).val();
+        var sanitizedValue = inputValue.replace(/[^0-9]/g, '');
+
+        var floatValue = parseFloat(sanitizedValue);
+        if (floatValue < 0) {
+            sanitizedValue = '0';
+        } else if (floatValue > 100) {
+            sanitizedValue = '100';
+        }
+
+        $(this).val(sanitizedValue);
+    });
+  $(this).on("keypress", ".driver-rate-input", function (e) {
+    if (e.which === 13) {
+        e.preventDefault();
+        $('.driver-rate i').show();
+        var rateInput = $(this)
+        var rate = rateInput.val()
+        var $row = $(this).closest('tr')
+        var payment_id = $row.data('id')
+        var earning = $row.find('td.payment-earning');
+
+        var rateText = rateInput.siblings(".rate-payment");
+        $.ajax({
+            url: ajaxPostUrl,
+		    type: 'POST',
+		    data: {
+			    rate: rate,
+			    payment: payment_id,
+			    action: 'calculate-payments',
+			    csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
+			    },
+            success: function (response) {
+                earning.text(response.earning)
+                rateText.text(response.rate)
+                rateInput.hide();
+                rateText.show();
+            },
+            error: function (error) {
+                console.error("Error:", error);
+            }
+        });
     }
   });
 
