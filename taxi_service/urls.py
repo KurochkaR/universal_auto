@@ -8,6 +8,7 @@ urlpatterns = [
     path('get-request/', GetRequestView.as_view(), name='get_request'),
     path('auto-park/', AutoParkView.as_view(), name='auto-park'),
     path('investment/', InvestmentView.as_view(), name='investment'),
+    path('charging-stations/', ChargingStationsView.as_view(), name='charging_stations'),
     path('dashboard/', DashboardView.as_view(), name='dashboard'),
     path('dashboard/drivers/', DriversView.as_view(), name='drivers'),
     path('dashboard/driver/<int:pk>/', DriverDetailView.as_view(), name='driver_detail'),
