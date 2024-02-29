@@ -5029,15 +5029,22 @@ span.error-name {
 
 .investment-in-numbers-section {
 	margin-top: 80px;
+	background: #A1E8B9;
+}
+
+.img-svg-phone {
+	display: none;
 }
 
 .investment-in-numbers-section .container {
 	width: 100%;
-	height: 535px;
+	height: auto;
+	padding: 10px;
 }
 
 .investment-in-numbers-section .container h2{
-	color: #141E17;
+	padding-top: 15px;
+	color: #FFF;
 	font-size: 32px;
 	font-style: normal;
 	font-weight: 600;
@@ -5045,69 +5052,86 @@ span.error-name {
 	text-transform: uppercase;
 }
 
-.investment-in-numbers-section .container .durations {
-	display: flex;
-	width: 100%;
-	justify-content: center;
-	margin-top: 24px;
+.investment-card {
+  margin-top: 73px;
+	padding: 16px 30px 30px 41px;
+	width: 360px;
+	height: 264px;
+	border-radius: 20px;
+	background: #FFF;
 }
 
-.investment-in-numbers-section .container .durations p {
-	flex: 0 0 calc(20% - 10px);
-	padding: 0 20px 0 20px;
-	border: 0px solid rgba(0, 0, 0, 0.125);
+.investment-in-numbers-section .investment-card h2 {
+	color: #141E17;
+	font-size: 32px;
+	font-style: normal;
+	font-weight: 600;
+	line-height: normal;
+}
+
+.investment-in-numbers-section .investment-card h3 {
 	color: #53785E;
-	text-align: center;
 	font-size: 20px;
 	font-style: normal;
 	font-weight: 400;
 	line-height: normal;
 }
 
-.investment-in-numbers-section .container .durations p:nth-child(1) {
+.investment-in-numbers-section .investment-card h3 span {
+	color: #EC6323;
+}
+
+.investment-card .img-svg {
 	position: relative;
-	top: 187px;
-	left: 100px;
-	flex: 0 0 200px;
+	left: 110%;
+	bottom: 35%;
 }
 
-.investment-in-numbers-section .container .durations p:nth-child(2) {
+
+.investment-in-numbers-section .container .investment-card:nth-child(3) {
+	margin-left: 52%;
+	margin-top: 1%;
+	height: 195px;
+}
+
+.investment-in-numbers-section .container .investment-card:nth-child(3) .img-svg svg:nth-child(1) {
 	position: relative;
-	left: 85px;
-	margin-top: 140px;
-	flex: 0 0 200px;
+	left: 1%;
+	margin-top: 15px;
 }
-
-.investment-in-numbers-section .container .durations p:nth-child(3) {
+.investment-in-numbers-section .container .investment-card:nth-child(3) .img-svg svg:nth-child(2) {
 	position: relative;
-	flex: 0 0 355px;
-	left: 53px;
+	right: 259%;
+	bottom: 97px;
 }
 
-.investment-in-numbers-section .container .durations p:nth-child(4) {
+.investment-cards {
+	display: flex;
+	justify-content: space-between;
+}
+
+.investment-cards .investment-card:nth-child(2) {
 	position: relative;
-	flex: 0 0 254px;
-	margin-top: 140px;
-	right: 97px;
+	right: 8%;
 }
 
-.investment-in-numbers-section .container .durations p:nth-child(5) {
+.investment-cards .investment-card:nth-child(1) .img-svg svg {
 	position: relative;
-	flex: 0 0 310px;
-	right: 50px;
+	right: 53%;
+	margin-top: 136px;
 }
 
-.investment-in-numbers-section .container .img-box {
+.investment-cards .investment-card:nth-child(2) .img-svg svg {
 	position: relative;
-	bottom: 205px;
+	right: 90%;
+	margin-top: 159px;
 }
 
-.investment-in-numbers-section .container .img-box img{
-	margin-top: 5%;
-}
-
-.investment-in-numbers-section .container .img-box .img-phone {
-	display: none;
+.investment-in-numbers-section .container .investment-card:nth-child(5) {
+	margin-left: 33%;
+	margin-top: 8%;
+	height: 320px;
+	margin-bottom: 77px;
 }
 
 /* block 5 */
@@ -5145,15 +5169,15 @@ span.error-name {
 
 .investment-park-slider h3.slider-title-1 {
   position: absolute;
-	margin-top: 110px;
-	left: 200px;
+	margin-top: 135px;
+	left: 230px;
 }
 
 .investment-park-slider h3.slider-title-2,
 .investment-park-slider h3.slider-title-3 {
   position: absolute;
-	margin-top: 110px;
-	left: 175px;
+	margin-top: 135px;
+	left: 214px;
 }
 
 .investment-park-slider h4 {
@@ -5166,17 +5190,21 @@ span.error-name {
 }
 
 .investment-park-slider h4.slider-description-1 {
+	text-align: left;
+	padding: 0px 50px 0px 0px;
   position: absolute;
-	margin-top: 180px;
-	left: 200px;
+	margin-top: 200px;
+	left: 230px;
 	width: 70%;
 }
 
 .investment-park-slider h4.slider-description-2,
 .investment-park-slider h4.slider-description-3 {
+	text-align: left;
+	padding: 0px 50px 0px 0px;
 	position: absolute;
-	margin-top: 180px;
-	left: 180px;
+	margin-top: 200px;
+	left: 215px;
 	width: 70%;
 }
 
@@ -5190,6 +5218,78 @@ span.error-name {
 
 .investment-park-slider .img-box .slid-img-phone {
 	display: none;
+}
+
+
+/* park-block-electro-car */
+
+.owners-electric-cars {
+	margin-top: 80px;
+}
+
+.owners-electric-cars .title-block h2 {
+	color: #141E17;
+	font-size: 32px;
+	font-style: normal;
+	font-weight: 700;
+	line-height: normal;
+	text-transform: uppercase;
+}
+
+.owners-cars{
+	display: flex;
+	justify-content: space-between;
+}
+
+.owners-car-description h3 {
+	margin: 25px 0 25px 0px;
+	color: #53785E;
+	font-size: 25px;
+	font-style: normal;
+	font-weight: 400;
+	line-height: normal;
+}
+
+.owners-car-description span {
+	color: #EC6323;
+	font-size: 25px;
+	font-style: normal;
+	font-weight: 700;
+	line-height: normal;
+}
+
+.be-responsible h2 {
+	margin: 25px 0 23px 0;
+	color: #53785E;
+	font-size: 25px;
+	font-style: normal;
+	font-weight: 400;
+	line-height: normal;
+}
+
+.be-responsible ul {
+	list-style: none;
+	padding: 0;
+}
+
+.be-responsible ul li {
+	margin-top: 10px;
+	color: #53785E;
+	font-size: 25px;
+	font-style: normal;
+	font-weight: 400;
+	line-height: normal;
+}
+
+.be-responsible ul li::before {
+	content: "";
+	display: inline-block;
+	width: 50px;
+	height: 50px;
+	background-image: url(/static/app/images/app-check-mark.webp);
+	background-size: cover;
+	margin-right: 5px;
+	vertical-align: middle;
 }
 
 
@@ -5400,92 +5500,81 @@ span.error-name {
 		margin-top: 30px;
 	}
 
+	.img-svg {
+		display: none;
+	}
+
+	.img-svg-phone {
+		display: block;
+	}
+
+	.investment-card .img-svg-phone {
+    position: relative;
+    left: 98%;
+    bottom: 42%;
+	}
+
+	.investment-in-numbers-section .container .investment-card:nth-child(3) .img-svg-phone svg:nth-child(1) {
+    position: relative;
+    right: 119%;
+    margin-top: -11px;
+	}
+
+	.investment-cards .investment-card:nth-child(1) .img-svg-phone svg:nth-child(1) {
+    position: relative;
+    right: 0;
+    margin-top: 20px;
+	}
+
+	.investment-cards .investment-card:nth-child(2) .img-svg-phone svg:nth-child(1) {
+    position: relative;
+    right: 200px;
+    margin-top: 50px;
+	}
+
 	.investment-in-numbers-section .container {
-		margin-left: 20px;
     height: auto;
 	}
 
 	.investment-in-numbers-section .container h2 {
 		text-align: left;
 		font-size: 15px;
+		padding-top: 5px;
 	}
 
-	.investment-in-numbers-section .container .durations {
-		counter-reset: paragraph-counter;
+	.investment-card {
+		width: 297px;
+    margin-top: 25px;
+    padding: 15px 15px 15px 10px;
+    height: 152px;
 	}
 
-	.investment-in-numbers-section .container .durations p {
-		font-size: 12px;
-		position: relative;
+	.investment-in-numbers-section .investment-card h3 {
+		font-size: 15px;
 	}
 
-	.investment-in-numbers-section .container .durations p::before {
-    content: counter(paragraph-counter);
-    counter-increment: paragraph-counter;
-    display: inline-block;
-    width: 20px;
-    height: 20px;
-    background-color: #A1E8B9;
-    color: #141E17;
-    border-radius: 50%;
-    text-align: center;
-    line-height: 20px;
-    position: absolute;
-    left: 30px;
+	.investment-in-numbers-section .container .investment-card:nth-child(3) {
+    margin-left: 75px;
+    margin-top: 65px;
+    height: 124px;
+    padding: 13px 13px 13px 7px;
 	}
 
-	.investment-in-numbers-section .container .durations {
+	.investment-cards {
 		flex-direction: column;
 	}
 
-	.investment-in-numbers-section .container .durations p:nth-child(1) {
-    position: static;
-    flex: 0 0 0;
-    text-align: left;
-	}
-
-	.investment-in-numbers-section .container .durations p:nth-child(2) {
-    position: static;
-    text-align: left;
-    flex: 0 0 0;
-    margin-top: 0;
-	}
-
-	.investment-in-numbers-section .container .durations p:nth-child(3) {
-    position: static;
-    flex: 0;
-    text-align: left;
-    flex: 0 0 0;
-	}
-
-	.investment-in-numbers-section .container .durations p:nth-child(4) {
-		position: static;
-		flex: 0;
-		text-align: left;
-		flex: 0 0 0;
-		margin-top: 0;
-	}
-
-	.investment-in-numbers-section .container .durations p:nth-child(5) {
-		position: static;
-		flex: 0;
-		text-align: left;
-		flex: 0 0 0;
-	}
-
-	.investment-in-numbers-section .container .img-box {
-		position: static;
-	}
-
-	.investment-in-numbers-section .container .img-box .img-laptop {
-		display: none;
-	}
-
-	.investment-in-numbers-section .container .img-box .img-phone {
-		display: block;
-    width: 200% !important;
+	.investment-cards .investment-card:nth-child(2) {
     position: relative;
-    right: 270px;
+    left: 75px;
+    height: 120px;
+	}
+
+	.investment-in-numbers-section .container .investment-card:nth-child(5) {
+    margin-left: 35px;
+    margin-top: 54px;
+    height: 180px;
+    margin-bottom: 64px;
 	}
 
 	/*block 5*/
@@ -5544,6 +5633,45 @@ span.error-name {
     width: 100%;
 	}
 
+	/* park-block-electro-car */
+
+	.owners-electric-cars .title-block h2 {
+		font-size: 15px;
+		text-align: left;
+	}
+
+	.owners-cars {
+		flex-direction: column;
+	}
+
+	.owners-car-img img {
+		width: 100%;
+		height: auto;
+	}
+
+	.owners-car-description h3 {
+		font-size: 15px;
+    margin: 15px 0 10px 0px;
+	}
+
+	.owners-car-description span {
+		font-size: 15px;
+	}
+
+	.be-responsible h2 {
+		font-size: 15px;
+		margin: 10px 0 10px 0;
+	}
+
+	.be-responsible ul li {
+		margin-top: 0px;
+		font-size: 15px;
+	}
+
+	.be-responsible ul li::before {
+		width: 30px;
+		height: 30px;
+	}
 
 	/* modal */
 
