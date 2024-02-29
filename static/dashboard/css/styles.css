@@ -2549,3 +2549,7 @@ span#vehicle-bonus-error {
 	margin: 0;
 }
 
+.not-closed-payments-table {
+	max-height: 350px;
+	overflow-y: auto;
+}

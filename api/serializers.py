@@ -96,6 +96,7 @@ class CarEfficiencySerializer(serializers.Serializer):
     total_mileage = serializers.DecimalField(max_digits=10, decimal_places=2)
     average_efficiency = serializers.DecimalField(max_digits=10, decimal_places=2)
     earning = serializers.DecimalField(max_digits=10, decimal_places=2)
+    vehicle_numbers_eff = serializers.ListField(child=serializers.CharField())
 
 
 class SummaryReportSerializer(serializers.Serializer):
