@@ -5166,15 +5166,15 @@ span.error-name {
 
 .investment-park-slider h3.slider-title-1 {
   position: absolute;
-	margin-top: 110px;
-	left: 200px;
+	margin-top: 135px;
+	left: 230px;
 }
 
 .investment-park-slider h3.slider-title-2,
 .investment-park-slider h3.slider-title-3 {
   position: absolute;
-	margin-top: 110px;
-	left: 175px;
+	margin-top: 135px;
+	left: 214px;
 }
 
 .investment-park-slider h4 {
@@ -5187,17 +5187,21 @@ span.error-name {
 }
 
 .investment-park-slider h4.slider-description-1 {
+	text-align: left;
+	padding: 0px 50px 0px 0px;
   position: absolute;
-	margin-top: 180px;
-	left: 200px;
+	margin-top: 200px;
+	left: 230px;
 	width: 70%;
 }
 
 .investment-park-slider h4.slider-description-2,
 .investment-park-slider h4.slider-description-3 {
+	text-align: left;
+	padding: 0px 50px 0px 0px;
 	position: absolute;
-	margin-top: 180px;
-	left: 180px;
+	margin-top: 200px;
+	left: 215px;
 	width: 70%;
 }
 
