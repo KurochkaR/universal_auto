@@ -998,7 +998,7 @@ class DriverAdmin(SoftDeleteAdmin):
         else:
             return ['name', 'second_name',
                     'chat_id', 'schema',
-                    'driver_status'
+                    'driver_status', 'cash_control'
                     ]
 
     def get_fieldsets(self, request, obj=None):
@@ -1107,6 +1107,7 @@ class DeletedVehicleAdmin(admin.ModelAdmin):
 @admin.register(FiredDriver)
 class FiredDriverAdmin(admin.ModelAdmin):
     readonly_fields = ('name', 'second_name')
+    search_fields = ('name', 'second_name')
 
     def get_list_display(self, request):
         if request.user.is_superuser:

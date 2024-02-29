@@ -5,7 +5,8 @@ from datetime import datetime, date, time
 from decimal import Decimal
 
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
-from django.core.validators import MaxLengthValidator, EmailValidator, RegexValidator
+from django.core.validators import MaxLengthValidator, EmailValidator, RegexValidator, MinValueValidator, \
+    MaxValueValidator
 from django.db.models import Sum, F, Q
 from django.db.models.signals import post_delete
 from django.utils import timezone
@@ -346,7 +347,11 @@ class Driver(User):
                               default='drivers/default-driver.png')
     driver_status = models.CharField(max_length=35, default=OFFLINE, verbose_name='Статус водія')
     cash_control = models.BooleanField(default=True, verbose_name='Контроль готівки')
-
+    cash_rate = models.DecimalField(decimal_places=2, max_digits=3, default=0, verbose_name='Дозволено готівки',
+                                    validators=[
+                                        MinValueValidator(0, message='Число повинно бути не менше 0.00'),
+                                        MaxValueValidator(1, message='Число повинно бути не більше 1.00'),
+                                    ])
     schema = models.ForeignKey(Schema, null=True, on_delete=models.SET_NULL, verbose_name='Схема роботи')
     partner = models.ForeignKey(Partner, on_delete=models.CASCADE, verbose_name='Партнер')
     manager = models.ForeignKey(Manager, on_delete=models.SET_NULL, null=True, blank=True,

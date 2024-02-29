@@ -28,14 +28,17 @@ class UklonRequest(Fleet, Synchronizer):
         return headers
 
     def park_payload(self, login, password) -> dict:
+        device_id = "6648039b-0839-4588-9ead-57bdf63a6209"
         if self.partner and not self.deleted_at:
             login = CredentialPartner.get_value(key='UKLON_NAME', partner=self.partner)
             password = CredentialPartner.get_value(key='UKLON_PASSWORD', partner=self.partner)
+            device_id = ParkSettings.get_value(f'DEVICE_UKLON_{self.partner.id}',
+                                               "6648039b-0839-4588-9ead-57bdf63a6209")
         payload = {
             'client_id': ParkSettings.get_value('CLIENT_ID_UKLON'),
             'client_secret': ParkSettings.get_value('CLIENT_SECRET_UKLON'),
             'contact': login,
-            'device_id': "6648039b-0839-4588-9ead-57bdf63a6209",
+            'device_id': device_id,
             'grant_type': "password_mfa",
             'password': password,
         }
@@ -63,19 +66,20 @@ class UklonRequest(Fleet, Synchronizer):
 
     def get_access_token(self):
         refresh = redis_instance().get(f"{self.partner.id}_{self.name}_refresh")
+        device_id = ParkSettings.get_value(f'DEVICE_UKLON_{self.partner.id}',
+                                           "6648039b-0839-4588-9ead-57bdf63a6209")
         data = {
             'grant_type': 'refresh_token',
             'refresh_token': refresh,
             'client_id': ParkSettings.get_value('CLIENT_ID_UKLON'),
-            'device_id': "6648039b-0839-4588-9ead-57bdf63a6209",
+            'device_id': device_id,
             "client_secret": ParkSettings.get_value('CLIENT_SECRET_UKLON')
         }
         response = requests.post(f"{self.base_url}auth", data=data)
         if response.status_code == 201:
             token = response.json()['access_token']
         else:
-            print("error")
-            bot.send_message(chat_id=515224934,
+            bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"),
                              text=f"{self.partner} {response.status_code} create_session")
             token = self.create_session(self.partner.id)
         redis_instance().set(f"{self.partner.id}_{self.name}_token", token)
@@ -294,7 +298,11 @@ class UklonRequest(Fleet, Synchronizer):
                 driver_data = self.response_data(
                     url=f"{Service.get_value('UKLON_1')}{Service.get_value('UKLON_6')}/{driver['id']}/images",
                     params={'image_size': 'sm'})
-                pay_cash = False if driver['restrictions'] else True
+                if driver['restrictions']:
+                    result = [item for item in driver['restrictions'] if item.get('restricted_by') == 'Manager']
+                    pay_cash = not bool(result)
+                else:
+                    pay_cash = True
                 drivers.append({
                     'fleet_name': self.name,
                     'name': driver['first_name'].split()[0],

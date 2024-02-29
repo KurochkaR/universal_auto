@@ -300,7 +300,7 @@ class BoltRequest(Fleet, Synchronizer):
                 "client_did_not_show",
                 "finished",
                 "client_cancelled",
-                "driver_did_not_respond"
+                "driver_did_not_respond",
                 "driver_cancelled_after_accept",
                 "driver_rejected"
             ]

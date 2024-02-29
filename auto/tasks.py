@@ -237,10 +237,7 @@ def check_card_cash_value(self, partner_pk):
             if kasa > driver.schema.cash:
                 ratio = (card - rent_payment) / kasa
                 without_rent = card / kasa
-                if driver.schema.is_rent():
-                    rate = float(ParkSettings.get_value("RENT_CASH_RATE", partner=partner_pk))
-                else:
-                    rate = driver.schema.rate
+                rate = driver.cash_rate if driver.cash_rate else driver.schema.rate
                 enable = int(ratio > (1-rate))
                 rent_enable = int(without_rent > (1-rate))
                 fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name='Gps')
@@ -252,16 +249,21 @@ def check_card_cash_value(self, partner_pk):
                         result = fleet.disable_cash(driver_rate.driver_external_id, enable)
                         disabled.append(result)
                 if disabled:
-                    if enable:
-                        text = f"\U0001F7E2 {driver} система увімкнула отримання замовлень за готівку. " \
-                               f"Готівка {int(kasa - card)}/{int(kasa)} = {int((1-ratio)*100)}%"
-                    elif rent_enable:
-                        text = f"\U0001F534 {driver} системою вимкнено готівкові замовлення. Причина: холостий пробіг" \
-                               f"Готівка {int(kasa - card)}/{int(kasa)} = {int((1-ratio)*100)}%, перепробіг {int(rent)} км"
+                    if rent_payment:
+                        calc_text = f"Готівка {int(kasa - card)} + холостий пробіг {int(rent_payment)}/{int(kasa)} =" \
+                                    f" {int((1-ratio)*100)}%\n"
                     else:
-                        text = f"\U0001F534 {driver} системою вимкнено готівкові замовлення." \
-                               f" Причина: високий рівень готівки (Готівка {(1 - ratio) * 100}%)"
-                    text += f"Дозволений % готівки {rate}"
+                        calc_text = f"Готівка {int(kasa - card)} /{int(kasa)} = {int((1-ratio)*100)}%\n"
+                    if enable:
+                        text = f"\U0001F7E2 {driver} система увімкнула отримання замовлень за готівку.\n" + calc_text
+
+                    elif rent_enable:
+                        text = f"\U0001F534 {driver} системою вимкнено готівкові замовлення.\n" \
+                               f" Причина: холостий пробіг\n" + calc_text + ", перепробіг {int(rent)} км\n"
+                    else:
+                        text = f"\U0001F534 {driver} системою вимкнено готівкові замовлення.\n" \
+                               f" Причина: високий рівень готівки\n" + calc_text
+                    text += f"Дозволено готівки {rate*100}%"
                     bot.send_message(chat_id=ParkSettings.get_value("DRIVERS_CHAT", partner=partner_pk),
                                      text=text)
     except Exception as e:
