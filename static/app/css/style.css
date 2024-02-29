@@ -2247,10 +2247,10 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 
 	.left_images .one-background-img {
 		margin-top: 100px;
-		position: relative;
-		left: 195px;
-		width: 36%;
-		z-index: -1;
+    position: relative;
+    top: 0;
+    width: 100%;
+    z-index: -1;
 	}
 
 	.left_images .one-background-img img {
@@ -3144,6 +3144,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 
 .auto-park-five-section .img-box {
 	position: relative;
+	top: 25px;
 	left: 35px;
 }
 
@@ -3765,6 +3766,7 @@ span.error-name {
 	.auto-park-five-section .img-box {
 		width: 100%;
 		height: auto;
+		top: 0;
 		left: 0;
 		margin-top: 0;
 	}
@@ -6647,10 +6649,6 @@ end Drivers page*/
 
 .charging-station-section-5 .container .how-to-charge .images-box img {
     margin-right: 29px;
-}
-
-.charging-station-section-5 .container .how-to-charge .images-box img:last-child {
-    margin-right: 0;
 }
 
 .charging-station-section-5 .container .img-box {
