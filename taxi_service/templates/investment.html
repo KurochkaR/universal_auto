@@ -47,8 +47,10 @@
                 <li>{% trans '3.Електромобіль придбається на території України.' %}</li>
               </ul>
               <h3>{% trans 'Строк: 3 - 4 роки' %}</h3>
-              <p>{% trans 'Технічне обслуговування та ремонти на рахунок управлінської компанії<br>Ризик простою 50/50'
-                %}</p>
+              <p>
+                {% trans 'Технічне обслуговування та ремонти на рахунок управлінської компанії' %}<br>
+                {% trans 'Ризик простою 50/50' %}
+              </p>
               <ul>
                 <h3>{% trans 'Переваги:' %}</h3>
                 <li>{% trans 'Фіксований дохід' %}</li>
@@ -66,8 +68,10 @@
                 <li>{% trans '3.Електромобіль придбається закордоном.' %}</li>
               </ul>
               <h3>{% trans 'Строк: 3 роки' %}</h3>
-              <p>{% trans 'Технічне обслуговування та ремонти на рахунок управлінської компанії<br>Ризик простою 50/50'
-                %}</p>
+              <p>
+                {% trans 'Технічне обслуговування та ремонти на рахунок управлінської компанії' %}<br>
+                {% trans 'Ризик простою 50/50' %}
+              </p>
               <ul>
                 <h3>{% trans 'Переваги:' %}</h3>
                 <li>{% trans 'Фіксований дохід' %}</li>
@@ -110,41 +114,39 @@
   <div class="container">
     <h2>{% trans "Що ми пропонуємо" %}</h2>
 
-    <div class="cards">
-      <div class="card">
-        <img src="{% static 'app/images/invest-img/invest-offer-1.webp' %}" alt="img 1">
-        <div class="card-description">
-          <h3>{% trans "Ремонт і обслуговування машини" %}</h3>
-          <p>
-            {% trans "Ми несемо повну відповідальність за їх обслуговування та ремонт." %}
-          </p>
-        </div>
-      </div>
-
-      <div class="card">
-        <img src="{% static 'app/images/invest-img/invest-offer-2.webp' %}" alt="img 2">
-        <div class="card-description">
-          <h3>{% trans "Власні підзарядні станції" %}</h3>
-          <p>
-            {% trans "Ми маємо власну мережу підзарядних станцій." %}
-            {% trans "Ви можете бути впевнені, що ваші автомобілі завжди будуть готові до роботи" %}
-          </p>
-        </div>
-      </div>
-
-      <div class="card">
-        <img src="{% static 'app/images/invest-img/invest-offer-3.webp' %}" alt="img 3">
-        <div class="card-description">
-          <h3>{% trans "Досвідчені і кваліфіковані водії" %}</h3>
-          <p>
-            {% trans "Наша компанія має досвід у підборі та навчанні водіїв." %}
-            {% trans "Ви не будете турбуватися про пошук або найм водіїв, організацію графіків." %}
-            {% trans "Всі ці питання лежать на наших плечах." %}
-          </p>
-        </div>
+    <div class="card">
+      <img src="{% static 'app/images/invest-img/invest-offer-3.webp' %}" alt="img 3">
+      <div class="card-description">
+        <h3>{% trans "Досвідчені і кваліфіковані водії" %}</h3>
+        <p>
+          {% trans "Наша компанія має досвід у підборі та навчанні водіїв." %}
+          {% trans "Ви не будете турбуватися про пошук або найм водіїв, організацію графіків." %}
+        </p>
       </div>
     </div>
-    <button>{% trans "Дізнатися як стати інвестором" %}</button>
+  </div>
+
+  <div class="cards">
+    <div class="card">
+      <img src="{% static 'app/images/invest-img/invest-offer-1.webp' %}" alt="img 1">
+      <div class="card-description">
+        <h3>{% trans "Ремонт і обслуговування машини" %}</h3>
+        <p>
+          {% trans "Ми несемо повну відповідальність за їх обслуговування та ремонт." %}
+        </p>
+      </div>
+    </div>
+
+    <div class="card">
+      <img src="{% static 'app/images/invest-img/invest-offer-2.webp' %}" alt="img 2">
+      <div class="card-description">
+        <h3>{% trans "Власні підзарядні станції" %}</h3>
+        <p>
+          {% trans "Ми маємо власну мережу підзарядних станцій." %}
+          {% trans "Ви можете бути впевнені, що ваші автомобілі завжди будуть готові до роботи" %}
+        </p>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -164,8 +166,8 @@
             <div class="investment-park-slider">
               <h3 class="slider-title-1">{% trans "BYD E2" %}</h3>
               <h4 class="slider-description-1">
-                {% trans "Міський електромобіль. Він має дальність на одному заряді до 305 км." %}
-                {% trans "Акумулятор літій-залізо-фосфатний та вміщує до 5 пасажирів." %}
+                {% trans "BYD E2 -міський електромобіль, який може проїхати до 305 км на одному заряді батареї і " %}
+                {% trans "вміщує до 4 пасажирів." %}
               </h4>
               <div class="img-box">
                 <img class="slid-img-laptop" src="{% static 'app/images/invest-img/invest-car-1.webp' %}" alt="img">
@@ -177,9 +179,8 @@
             <div class="investment-park-slider">
               <h3 class="slider-title-2">{% trans "BYD Yuan Pro" %}</h3>
               <h4 class="slider-description-2">
-                {% trans "Міський компактний електрокросовер." %}
-                {% trans "Завдяки літій-залізо-фосфатному акумулятору, " %}
-                {% trans "він пропонує дальність до 400 км на одному заряді." %}
+                {% trans "BYD Yuan Pro - міський компактний електрокросовер." %}
+                {% trans "Автомобіль проїзджає до 400 км на одному заряді." %}
               </h4>
               <div class="img-box">
                 <img class="slid-img-laptop" src="{% static 'app/images/invest-img/invest-car-2.webp' %}" alt="img">
@@ -191,7 +192,8 @@
             <div class="investment-park-slider">
               <h3 class="slider-title-3">{% trans "Changan Eado EV300" %}</h3>
               <h4 class="slider-description-3">
-                {% trans " Міський середньорозмірний електричний седан. З акумулятором літій-залізо-фосфатного типу." %}
+                {% trans "Changan Eado EV300 - міський середньорозмірний електричний седан може подолати 300 км " %}
+                {% trans "на одному заряді батареї і вміщує до 5 пасажирівю" %}
               </h4>
               <div class="img-box">
                 <img class="slid-img-laptop" src="{% static 'app/images/invest-img/invest-car-3.webp' %}" alt="img">
@@ -327,10 +329,9 @@
       </div>
       <div class="durations">
         <h3>
-          {% trans "Протягом всього часу автомобіль генеруватиме прибуток, і ви будете отримувати " %}
-          <span>{% trans "30% прибутку" %}</span>
-          {% trans "від загального прибутку, що складається з щотижневого доходу в розмірі " %}
-          <span>{% trans "4 500 грн." %}</span>
+          {% trans "Протягом всього часу автомобіль генеруватиме прибуток - інвестор буде отримувати " %}
+          <span>{% trans "30%," %}</span>
+          {% trans "що складається з щотижневого доходу." %}
         </h3>
       </div>
     </div>
@@ -355,7 +356,7 @@
           {% trans 'Власники електрокарів, Ви можете передати ваші автівки в оренду компанії NINJA TAXI і ' %}
           {% trans 'отримувати пасивний прибуток без непотрібних турбот.' %}
         </h3>
-        <span>{% trans 'Беремо під свій контроль електрокари BYD 2022.' %}</span>
+        <span>{% trans 'Беремо під свій контроль електрокари BYD від 2022.' %}</span>
         <div class="be-responsible">
           <h2>{% trans "NINJA TAXI бере на себе відповідальніть за:" %}</h2>
           <ul>
@@ -365,7 +366,7 @@
             <li>{% trans "Ходові запчастини" %}</li>
             <li>{% trans "ДТП" %}</li>
           </ul>
-          <span>{% trans "Результат для власника автопарка- кожного тижня отримує 30% від каси" %}</span>
+          <span>{% trans "Результат для власника електрокара - кожного тижня отримує 30% від каси" %}</span>
         </div>
       </div>
     </div>
