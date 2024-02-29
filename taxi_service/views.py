@@ -54,6 +54,7 @@ class PostRequestView(View):
             "upd-status-payment": handler.handler_upd_payment_status,
             "upd_bonus_penalty": handler.handler_upd_bonus_penalty,
             "delete_bonus_penalty": handler.handler_delete_bonus_penalty,
+            "calculate-payments": handler.handler_calculate_payments
         }
 
         if action in method:

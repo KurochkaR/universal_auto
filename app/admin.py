@@ -968,6 +968,13 @@ class DriverAdmin(SoftDeleteAdmin):
     list_per_page = 20
     readonly_fields = ('name', 'second_name', 'email', 'phone_number', 'driver_status')
 
+    def get_list_editable(self, request):
+        return ('cash_control',)
+
+    def changelist_view(self, request, extra_context=None):
+        self.list_editable = self.get_list_editable(request)
+        return super().changelist_view(request, extra_context)
+
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         if request.user.is_partner():
@@ -985,13 +992,13 @@ class DriverAdmin(SoftDeleteAdmin):
         elif request.user.is_partner():
             return ['name', 'second_name',
                     'manager', 'chat_id',
-                    'driver_status', 'schema',
+                    'driver_status', 'schema', 'cash_control',
                     'created_at',
                     ]
         else:
             return ['name', 'second_name',
                     'chat_id', 'schema',
-                    'driver_status'
+                    'driver_status', 'cash_control'
                     ]
 
     def get_fieldsets(self, request, obj=None):
@@ -1002,7 +1009,7 @@ class DriverAdmin(SoftDeleteAdmin):
                                                      ]}),
                 ('Тарифний план', {'fields': ('schema',
                                               )}),
-                ('Додатково', {'fields': ['partner', 'manager', 'driver_status'
+                ('Додатково', {'fields': ['cash_control', 'partner', 'manager', 'driver_status'
                                           ]}),
             )
 
@@ -1013,7 +1020,7 @@ class DriverAdmin(SoftDeleteAdmin):
                                                      ]}),
                 ('Тарифний план', {'fields': ('schema',
                                               )}),
-                ('Додатково', {'fields': ['driver_status', 'manager',
+                ('Додатково', {'fields': ['cash_control', 'driver_status', 'manager',
                                           ]}),
             )
         else:
@@ -1023,7 +1030,7 @@ class DriverAdmin(SoftDeleteAdmin):
                                                      ]}),
                 ('Тарифний план', {'fields': ('schema',
                                               )}),
-                ('Додатково', {'fields': ['driver_status',
+                ('Додатково', {'fields': ['cash_control', 'driver_status',
                                           ]}),
             )
         return fieldsets
@@ -1100,6 +1107,7 @@ class DeletedVehicleAdmin(admin.ModelAdmin):
 @admin.register(FiredDriver)
 class FiredDriverAdmin(admin.ModelAdmin):
     readonly_fields = ('name', 'second_name')
+    search_fields = ('name', 'second_name')
 
     def get_list_display(self, request):
         if request.user.is_superuser:

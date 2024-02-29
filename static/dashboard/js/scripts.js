@@ -84,15 +84,6 @@ $(document).ready(function() {
 	const partnerLoginField = $("#partnerLogin");
 	const partnerRadioButtons = $("input[name='partner']");
 
-	let uklonStatus = localStorage.getItem('Uklon');
-	let boltStatus = localStorage.getItem('Bolt');
-	let uberStatus = localStorage.getItem('Uber');
-
-	if ((uklonStatus === 'success' || boltStatus === 'success' || uberStatus === 'success')) {
-		$("#updateDatabaseContainer").show();
-	} else {
-		$("#updateDatabaseContainer").hide();
-	}
 
 	partnerRadioButtons.change(function () {
 		const selectedPartner = $("input[name='partner']:checked").val();
