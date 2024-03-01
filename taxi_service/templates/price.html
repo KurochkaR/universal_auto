@@ -67,4 +67,83 @@
       </div>
     </div>
   </section>
+
+  <section class="price-progress-section">
+    <div class="container">
+      <h2 class="price-progress-title">{% trans "Розвиток вашого бізнесу. Щодня." %}</h2>
+      <div class="price-progress-cards">
+        <div class="price-progress-card">
+          <div class="price-progress-img">
+            <img src="/static/app/images/price-img/price-block-3-1.png" alt="two image">
+          </div>
+          <div class="price-progress-text">
+            <h3 class="price-progress-card-title">{% trans "Безпека" %}</h3>
+            <p class="price-progress-card-description">
+              {% trans "Протоколи шифрування за галузевим стандартом і сумісні з GDPR" %}
+            </p>
+          </div>
+        </div>
+
+        <div class="price-progress-card">
+          <div class="price-progress-img">
+            <img src="/static/app/images/price-img/price-block-3-2.png" alt="two image">
+          </div>
+          <div class="price-progress-text">
+            <h3 class="price-progress-card-title">{% trans "Прозорість" %}</h3>
+            <p class="price-progress-card-description">
+              {% trans "Співпрацюємо без прихованих комісій." %}
+            </p>
+          </div>
+        </div>
+
+        <div class="price-progress-card">
+          <div class="price-progress-img">
+            <img src="/static/app/images/price-img/price-block-3-3.png" alt="two image">
+          </div>
+          <div class="price-progress-text">
+            <h3 class="price-progress-card-title">{% trans "Швидкість" %}</h3>
+            <p class="price-progress-card-description">
+              {% trans "Оптимізація роботи менеджерів - розширення  автопарку" %}
+            </p>
+          </div>
+        </div>
+
+        <div class="price-progress-card">
+          <div class="price-progress-img">
+            <img src="/static/app/images/price-img/price-block-3-4.png" alt="two image">
+          </div>
+          <div class="price-progress-text">
+            <h3 class="price-progress-card-title">{% trans "Ми тут для Вас" %}</h3>
+            <p class="price-progress-card-description">
+              {% trans "Ми пропонуємо необмежену підтримку під час співпраці" %}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="price-free-section">
+    <div class="container">
+      <div class="price-free">
+        <h3>{% trans "Спробуйте безкоштовно" %}</h3>
+        <span>
+          {% trans "Почніть приймати справедливі рішення, маючи доступ до даних, " %}
+          {% trans "доходів, профілів і історії роботи Ваших водіїв." %}
+        </span>
+        <ul>
+          <li>{% trans "Додайте агрегатори" %}</li>
+          <li>{% trans "Підключіть GPS" %}</li>
+          <li>{% trans "Оновіть базу водіїв" %}</li>
+          <li>{% trans "Розпочніть роботу" %}</li>
+        </ul>
+        <div class="btn-box">
+          <button class="free-access-button">{% trans "Отримати безкоштовнйи доступ на місяць " %}</button>
+        </div>
+      </div>
+      <div class="img-box">
+        <img class="img-1" src="{% static 'app/images/price-img/price-block-4.png' %}" alt="" loading="lazy">
+      </div>
+    </div>
+  </section>
 {% endblock %}
