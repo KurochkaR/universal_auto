@@ -3,16 +3,68 @@
 {% load i18n %}
 <!-- charging-station -->
 {% block content %}
-<section class="price-header-section">
-  <div class="container">
-    <div class="price-header-left">
-      <img class="price-header-img" src="/static/app/images/invest-img/invest-img-1.webp" alt="one image">
-    </div>
-    <div class="price-header-right">
-      <div class="decorate-img">
-        <img src="/static/app/images/index-one-block-3.webp" alt="three image">
+  <section class="price-header-section">
+    <div class="container">
+      <div class="price-header-left">
+        <img class="price-header-img" src="/static/app/images/price-img/price-block-1.png" alt="one image">
+      </div>
+      <div class="price-header-right">
+        <div class="decorate-img">
+          <img src="/static/app/images/index-one-block-3.webp" alt="three image">
+        </div>
       </div>
     </div>
-  </div>
-</section>
+  </section>
+
+  <section class="price-package-section">
+    <div class="container">
+      <div class="price-packages">
+        <div class="package">
+          <div class="package-header">
+            <h3 class="package-title">{% trans "“Професійний Керівник”" %}</h3>
+            <p class="package-parcent">{% trans "0.99%" %}</p>
+          </div>
+          <ul class="package-list">
+            <li class="package-item">{% trans "Автоматична звітність по агрегаторам за день, тиждень, місяць, рік" %}</li>
+            <li class="package-item">{% trans "Автозняття грошей з гаманців водіїв в агрегаторі Uklon" %}</li>
+            <li class="package-item">{% trans "Встановлення ліміту готівки у водія під час роботи" %}</li>
+            <li class="package-item">{% trans "Автоматичний розрахунок заробітної плати водієві" %}</li>
+            <li class="package-item">{% trans "Візуалізація позмінного графіку роботи водіїв" %}</li>
+            <li class="package-item">{% trans "Повідомлення менеджеру про початок роботи водія" %}</li>
+            <li class="package-item">{% trans "Автоматичний розрахунок холостого пробігу" %}</li>
+            <li class="package-item">{% trans "Автоматична зведена звітність" %}</li>
+            <li class="package-item">{% trans "Статистика по водію" %}</li>
+            <li class="package-item">{% trans "Статистика по автомобілю" %}</li>
+          </ul>
+          <div class="package-btn">
+            <button class="consult-button">{% trans "Проконсультуватися" %}</button>
+            <button class="free-access-button">{% trans "Отримати безкоштовнйи доступ на місяць" %}</button>
+          </div>
+        </div>
+
+        <div class="package">
+          <div class="package-header">
+            <h3 class="package-title">{% trans "“Оптимізований автопарк”" %}</h3>
+            <p class="package-parcent">{% trans "1.99%" %}</p>
+          </div>
+          <ul class="package-list">
+            <li class="package-item">{% trans "Автоматична звітність по агрегаторам за день, тиждень, місяць, рік" %}</li>
+            <li class="package-item">{% trans "Автозняття грошей з гаманців водіїв в агрегаторі Uklon" %}</li>
+            <li class="package-item">{% trans "Встановлення ліміту готівки у водія під час роботи" %}</li>
+            <li class="package-item">{% trans "Автоматичний розрахунок заробітної плати водієві" %}</li>
+            <li class="package-item">{% trans "Візуалізація позмінного графіку роботи водіїв" %}</li>
+            <li class="package-item">{% trans "Повідомлення менеджеру про початок роботи водія" %}</li>
+            <li class="package-item">{% trans "Автоматичний розрахунок холостого пробігу" %}</li>
+            <li class="package-item">{% trans "Автоматична зведена звітність" %}</li>
+            <li class="package-item">{% trans "Статистика по водію" %}</li>
+            <li class="package-item">{% trans "Статистика по автомобілю" %}</li>
+          </ul>
+          <div class="package-btn">
+            <button class="consult-button">{% trans "Проконсультуватися" %}</button>
+            <button class="free-access-button">{% trans "Отримати безкоштовнйи доступ на місяць" %}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
 {% endblock %}
