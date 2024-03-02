@@ -27,11 +27,11 @@ def get_time_for_task(schema, day=None):
         date = datetime.strptime(day, "%Y-%m-%d") if day else timezone.localtime()
         yesterday = date - timedelta(days=1)
     else:
-        shift_time = time.max
+        shift_time = time.max.replace(microsecond=0)
         date = datetime.strptime(day, "%Y-%m-%d") - timedelta(days=1) if day else timezone.localtime() - timedelta(days=1)
         yesterday = date
     start = timezone.make_aware(datetime.combine(date, time.min))
-    previous_end = timezone.make_aware(datetime.combine(yesterday, time.max))
+    previous_end = timezone.make_aware(datetime.combine(yesterday, time.max.replace(microsecond=0)))
     end = timezone.make_aware(datetime.combine(date, shift_time))
     previous_start = timezone.make_aware(datetime.combine(yesterday, schema_obj.shift_time))
     return start, end, previous_start, previous_end
@@ -511,7 +511,7 @@ def calculate_income_partner(driver, start, end, spending_rate, rent, driver_ren
                 partner=driver.partner).get_bonuses_info(driver, start, start)
             checked = True
         rent_vehicle = VehicleRent.objects.filter(
-            vehicle=vehicle, driver=driver, report_from__range=(start_period, end_period),
+            vehicle=vehicle, driver=driver,
             report_to__range=(start_period, end_period)).aggregate(
             vehicle_distance=Coalesce(Sum('rent_distance'), Decimal(0)))['vehicle_distance']
 

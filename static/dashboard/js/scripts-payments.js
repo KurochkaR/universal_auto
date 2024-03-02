@@ -55,16 +55,18 @@ function driverPayment(period = null, start = null, end = null, paymentStatus = 
 					row.attr('data-id', response[i].id);
 					row.append('<td>' + response[i].report_from + ' <br> ' + response[i].report_to + '</td>');
 					row.append('<td class="driver-name cell-with-triangle" title="Натиснути для огляду бонусів та штрафів">' + response[i].full_name + ' <i class="fa fa-caret-down"></i></td>');
-					row.append('<td class="driver-rate" title="Натиснути для зміни відсотка"><div style="display: flex;justify-content: space-evenly; align-items: center;"><span class="rate-payment" >'+ response[i].rate +' </span><input type="text" class="driver-rate-input" placeholder="100" style="display: none;"><i class="fa fa-pencil-alt"></i></div></td>')
 					row.append('<td>' + response[i].kasa + '</td>');
 					row.append('<td>' + response[i].cash + '</td>');
 					row.append('<td>' + response[i].rent + '</td>');
 					if (response[i].status === 'Перевіряється') {
 						row.append('<td>' + '<div style="display: flex;justify-content: space-evenly; align-items: center;">' + response[i].bonuses  + addButtonBonus + '</div>' + '</td>');
 						row.append('<td>' + '<div style="display: flex;justify-content: space-evenly; align-items: center;">' + response[i].penalties + addButtonPenalty + '</div>' + '</td>');
+						row.append('<td class="driver-rate" title="Натиснути для зміни відсотка"><div style="display: flex;justify-content: space-evenly; align-items: center;"><span class="rate-payment" >'+ response[i].rate +' </span><input type="text" class="driver-rate-input" placeholder="100" style="display: none;"><i class="fa fa-pencil-alt"></i></div></td>')
 					} else {
 						row.append('<td>' + '<div style="display: flex;justify-content: space-evenly; align-items: center;">' + response[i].bonuses + '</div>' + '</td>');
 						row.append('<td>' + '<div style="display: flex;justify-content: space-evenly; align-items: center;">' + response[i].penalties + '</div>' + '</td>');
+						row.append('<td><div style="display: flex;justify-content: space-evenly; align-items: center;"><span class="rate-payment" >'+ response[i].rate +' </span></div></td>')
+
 					}
 					row.append('<td class="payment-earning">' + response[i].earning + '</td>');
 					row.append('<td>' + response[i].status + '</td>');
@@ -190,13 +192,12 @@ $(document).ready(function () {
         var inputValue = $(this).val();
         var sanitizedValue = inputValue.replace(/[^0-9]/g, '');
 
-        var floatValue = parseFloat(sanitizedValue);
-        if (floatValue < 0) {
-            sanitizedValue = '0';
-        } else if (floatValue > 100) {
-            sanitizedValue = '100';
-        }
+        var integerValue = parseInt(sanitizedValue, 10);
 
+        if (isNaN(integerValue) || integerValue < 0) {
+            integerValue = 0;
+        }
+        sanitizedValue = Math.min(Math.max(integerValue, 0), 100);
         $(this).val(sanitizedValue);
     });
   $(this).on("keypress", ".driver-rate-input", function (e) {
@@ -204,7 +205,10 @@ $(document).ready(function () {
         e.preventDefault();
         $('.driver-rate i').show();
         var rateInput = $(this)
-        var rate = rateInput.val()
+        var rate = 0
+        if (rateInput.val() !== '') {
+            rate = rateInput.val()
+        }
         var $row = $(this).closest('tr')
         var payment_id = $row.data('id')
         var earning = $row.find('td.payment-earning');

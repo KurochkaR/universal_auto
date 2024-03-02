@@ -8,7 +8,7 @@ from telegram.error import BadRequest
 
 from app.models import (Driver, GPSNumber, RentInformation, FleetOrder, CredentialPartner, ParkSettings, Fleet,
                         Partner, VehicleRent, Vehicle, DriverReshuffle, Schema)
-from auto_bot.handlers.driver_manager.utils import get_today_statistic
+from auto_bot.handlers.driver_manager.utils import get_today_statistic, find_reshuffle_period
 from auto_bot.handlers.order.utils import check_reshuffle
 from auto_bot.main import bot
 from auto_bot.utils import send_long_message
@@ -169,12 +169,7 @@ class UaGpsSynchronizer(Fleet):
             reshuffles = check_reshuffle(driver, start, end)
             for reshuffle in reshuffles:
                 completed = []
-                start_report = timezone.localtime(reshuffle.swap_time)
-                end_report = timezone.localtime(reshuffle.end_time)
-                if start_report < start:
-                    start_report = start
-                if end_report > end:
-                    end_report = end
+                start_report, end_report = find_reshuffle_period(reshuffle, start, end)
                 completed += FleetOrder.objects.filter(driver=driver,
                                                        state=FleetOrder.COMPLETED,
                                                        accepted_time__gte=start_report,
@@ -262,25 +257,20 @@ class UaGpsSynchronizer(Fleet):
                                                                report_to=end,
                                                                driver=driver).first().rent_distance
                 data = {"report_from": start,
-                        "report_to": end,
+                        "report_to": reshuffles.first().end_time,
                         "rent_distance": rent_distance,
                         "vehicle": reshuffles.first().swap_vehicle,
-                        "driver": driver,
                         "partner": self.partner}
                 VehicleRent.objects.get_or_create(report_from=start,
-                                                  report_to=end,
+                                                  report_to=reshuffles.first().end_time,
                                                   vehicle=reshuffles.first().swap_vehicle,
+                                                  driver=driver,
                                                   defaults=data)
             else:
                 for reshuffle in reshuffles:
                     if reshuffle.swap_vehicle.gps:
                         road_distance = 0
-                        if start > reshuffle.swap_time:
-                            start_period, end_period = start, reshuffle.end_time
-                        elif reshuffle.end_time <= end:
-                            start_period, end_period = reshuffle.swap_time, reshuffle.end_time
-                        else:
-                            start_period, end_period = reshuffle.swap_time, end
+                        start_period, end_period = find_reshuffle_period(reshuffle, start, end)
                         orders = FleetOrder.objects.filter(
                             driver=driver,
                             state=FleetOrder.COMPLETED,
@@ -296,11 +286,11 @@ class UaGpsSynchronizer(Fleet):
                                 "report_to": end_period,
                                 "rent_distance": rent_distance,
                                 "vehicle": reshuffle.swap_vehicle,
-                                "driver": driver,
                                 "partner": self.partner}
                         VehicleRent.objects.get_or_create(report_from=start_period,
                                                           report_to=end_period,
                                                           vehicle=reshuffle.swap_vehicle,
+                                                          driver=driver,
                                                           defaults=data)
                     else:
                         if reshuffle.swap_vehicle not in no_vehicle_gps:
@@ -325,12 +315,7 @@ class UaGpsSynchronizer(Fleet):
         reshuffles = check_reshuffle(driver, start, end)
         for reshuffle in reshuffles:
             driver_vehicles.append(reshuffle.swap_vehicle)
-            start_report = reshuffle.swap_time
-            end_report = reshuffle.end_time
-            if reshuffle.swap_time < start:
-                start_report = start
-            if reshuffle.end_time > end:
-                end_report = end
+            start_report, end_report = find_reshuffle_period(reshuffle, start, end)
             try:
                 total_km += self.total_per_day(reshuffle.swap_vehicle.gps.gps_id,
                                                start_report,

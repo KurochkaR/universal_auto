@@ -18,10 +18,10 @@ from telegram.error import BadRequest
 from app.models import (RawGPS, Vehicle, Order, Driver, JobApplication, ParkSettings, UseOfCars, CarEfficiency,
                         Payments, SummaryReport, Manager, Partner, DriverEfficiency, FleetOrder, ReportTelegramPayments,
                         InvestorPayments, VehicleSpending, DriverReshuffle, DriverPayments,
-                        PaymentTypes, TaskScheduler, DriverEffVehicleKasa, Schema, CustomReport, Fleet,
+                        TaskScheduler, DriverEffVehicleKasa, Schema, CustomReport, Fleet,
                         VehicleGPS, PartnerEarnings, Investor, Bonus, Penalty, PaymentsStatus,
                         FleetsDriversVehiclesRate, DriverEfficiencyFleet)
-from django.db.models import Sum, IntegerField, FloatField, Value, DecimalField, Q
+from django.db.models import Sum, IntegerField, FloatField, DecimalField, Q
 from django.db.models.functions import Cast, Coalesce
 from app.utils import get_schedule, create_task
 from auto.utils import payment_24hours_create, summary_report_create, compare_reports, get_corrections, \
@@ -212,7 +212,7 @@ def get_today_orders(self, partner_pk):
 @app.task(bind=True, retry_backoff=30, max_retries=3)
 def add_distance_for_order(self, partner_pk, day=None):
     gps_query = UaGpsSynchronizer.objects.filter(partner=partner_pk)
-    end = datetime.strptime(day, "%Y-%m-%d") if day else timezone.localtime()
+    end = timezone.make_aware(datetime.strptime(day, "%Y-%m-%d")) if day else timezone.localtime()
     start = end - timedelta(days=1)
     if gps_query.exists():
         orders = FleetOrder.objects.filter(partner=partner_pk, vehicle__isnull=False,
@@ -276,10 +276,13 @@ def check_card_cash_value(self, partner_pk):
 def send_notify_to_check_car(self, partner_pk):
     if redis_instance().exists(f"wrong_vehicle_{partner_pk}"):
         wrong_cars = redis_instance().hgetall(f"wrong_vehicle_{partner_pk}")
+        print(wrong_cars)
         text = ""
         for driver, car in wrong_cars.items():
             driver_obj = Driver.objects.get(pk=int(driver))
+            print(driver_obj)
             vehicle = check_vehicle(driver_obj)
+            print(vehicle)
             if not vehicle or vehicle.licence_plate != car:
                 text += f"{driver_obj} працює на {car}\n"
         if text:
@@ -288,7 +291,6 @@ def send_notify_to_check_car(self, partner_pk):
                 bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"), text=text)
             except BadRequest as e:
                 logger.error(e)
-        redis_instance().delete(f"wrong_vehicle_{partner_pk}")
 
 
 @app.task(bind=True, retry_backoff=30, max_retries=4)
@@ -1156,7 +1158,7 @@ def calculate_vehicle_earnings(self, payment_pk):
     driver = payment.driver
     start = timezone.localtime(payment.report_from)
     end = timezone.localtime(payment.report_to)
-    driver_value = payment.earning + payment.cash + payment.rent
+    driver_value = payment.earning + payment.cash + payment.rent - payment.get_bonuses() + payment.get_penalties()
     if payment.kasa:
         spending_rate = 1 - round(driver_value / payment.kasa, 6) if driver_value > 0 else 1
         if payment.is_weekly():
@@ -1187,11 +1189,11 @@ def calculate_vehicle_earnings(self, payment_pk):
         else:
             vehicles_income = reshuffles_income
     for vehicle, income in vehicles_income.items():
-        # vehicle_bonus = Penalty.objects.filter(vehicle=vehicle, driver_payments=payment).aggregate(
-        #     total_amount=Coalesce(Sum('amount'), Decimal(0)))['total_amount']
-        # vehicle_penalty = Bonus.objects.filter(vehicle=vehicle, driver_payments=payment).aggregate(
-        #     total_amount=Coalesce(Sum('amount'), Decimal(0)))['total_amount']
-        # earning = income + vehicle_bonus - vehicle_penalty
+        vehicle_bonus = Penalty.objects.filter(vehicle=vehicle, driver_payments=payment).aggregate(
+            total_amount=Coalesce(Sum('amount'), Decimal(0)))['total_amount']
+        vehicle_penalty = Bonus.objects.filter(vehicle=vehicle, driver_payments=payment).aggregate(
+            total_amount=Coalesce(Sum('amount'), Decimal(0)))['total_amount']
+        earning = income + vehicle_bonus - vehicle_penalty
         PartnerEarnings.objects.get_or_create(
             report_from=payment.report_from,
             report_to=payment.report_to,
@@ -1200,7 +1202,7 @@ def calculate_vehicle_earnings(self, payment_pk):
             partner=driver.partner,
             defaults={
                 "status": PaymentsStatus.COMPLETED,
-                "earning": income,
+                "earning": earning,
             }
         )
 
