@@ -365,6 +365,17 @@ class PostRequestHandler:
             return JsonResponse({'error': 'Bonus not found'}, status=404)
 
     @staticmethod
+    def handler_calculate_payments(request):
+        data = request.POST
+        payment = DriverPayments.objects.get(pk=int(data.get('payment')))
+        payment.earning = round(payment.kasa * Decimal(int(data.get('rate'))/100) - payment.cash
+                           - payment.rent + payment.get_bonuses() - payment.get_penalties(), 2)
+        payment.rate = Decimal(data.get('rate'))
+        payment.save(update_fields=['earning', 'salary', 'rate'])
+        response = {"earning": payment.earning, "rate": payment.rate}
+        return JsonResponse(response)
+
+    @staticmethod
     def handle_unknown_action():
         return JsonResponse({}, status=400)
 

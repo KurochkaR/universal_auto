@@ -17,7 +17,7 @@ def inline_driver_paid_kb(pk):
 def inline_func_with_driver_kb():
     keyboard = [
         [InlineKeyboardButton(manager_buttons[0], callback_data="Update_drivers")],
-        [InlineKeyboardButton(manager_buttons[1], callback_data="Pin_vehicle_to_driver")],
+        # [InlineKeyboardButton(manager_buttons[1], callback_data="Pin_vehicle_to_driver")],
         [InlineKeyboardButton(order_inline_buttons[6], callback_data="Back_to_main")]
     ]
     return InlineKeyboardMarkup(keyboard)

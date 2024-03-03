@@ -108,7 +108,7 @@ def get_drivers_from_fleets(update, context):
     query = update.callback_query
     manager = Manager.get_by_chat_id(query.from_user.id)
     partner_id = manager.managers_partner_id if manager else Partner.get_by_chat_id(query.from_user.id).pk
-    update_driver_data.delay(partner_id, query.from_user.id)
+    update_driver_data.apply_async(args=[partner_id, query.from_user.id], queue=f"beat_tasks_{partner_id}")
     query.edit_message_text(get_drivers_text)
 
 
