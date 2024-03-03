@@ -3417,18 +3417,18 @@ span.error-name {
 	transform: translate(-50%, -50%);
 	border-radius: 62px;
 	width: 940px;
-	height: 650px;
+	height: auto;
 	z-index: 99999;
 }
 
 .existing-you-message {
-	height: 600px;
+	height: auto;
 }
 
 .message-box {
 	background-color: white;
 	padding: 20px;
-	margin: 103px 86px;
+	margin: 55px 55px;
 	border-radius: 62px;
 }
 
@@ -7500,7 +7500,7 @@ end Drivers page*/
 	text-transform: uppercase;
 }
 
-.price-free-section .price-free span {
+.price-free-section .price-free p {
 	color: #53785E;
 	font-size: 25px;
 	font-style: normal;
@@ -7616,6 +7616,7 @@ end Drivers page*/
 	}
 
 	.package .package-header p {
+		width: 100%;
 		font-size: 36px;
 		padding: 5px 50px;
 	}
@@ -7721,7 +7722,7 @@ end Drivers page*/
 		font-size: 20px;
 	}
 
-	.price-free-section .price-free span {
+	.price-free-section .price-free p {
 		font-size: 15px;
 		margin-top: 15px;
 	}
@@ -7739,6 +7740,205 @@ end Drivers page*/
 		width: 100%;
 		font-size: 10px;
 		padding: 10px 35px;
+		color: #EC6323;
+		background-color: #fff;
+		border-radius: 25px;
+		border: 3px solid #EC6323;
+		text-decoration: none;
+		cursor: pointer;
+		font-style: normal;
+		font-weight: 700;
+		line-height: normal;
+		margin-top: 15px;
+	}
+
+	.price-free-section .img-box img {
+		width: 100%;
+		height: auto;
+	}
+
+	.price-free-section .price-free ul li::before {
+		width: 30px;
+		height: 30px;
+		margin-right: 5px;
+	}
+}
+
+
+/* adaptive horizontal for phone */
+
+@media screen and (min-width: 768px) and (max-width: 1199px) {
+	/* block 1 */
+	.price-header-section {
+		height: auto;
+	}
+
+	.price-header-section .container {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: space-between;
+	}
+
+	.price-header-left {
+		position: relative;
+		width: 100%;
+		height: auto;
+		margin: 100px auto 0 auto;
+		z-index: 1;
+	}
+
+	.price-header-left img {
+		width: 100%;
+		height: auto;
+	}
+
+	.price-header-right .decorate-img {
+		display: none;
+	}
+
+	/* block 2 */
+	.price-package-section {
+		margin-top: 60px;
+	}
+
+	.price-package-section .container .price-packages {
+		display: flex;
+		flex-direction: column;
+	}
+
+	.package .package-header h3 {
+		width: 100%;
+		font-size: 20px;
+	}
+
+	.package .package-header p {
+		width: 100%;
+		font-size: 36px;
+		padding: 5px 50px;
+	}
+
+	.package ul li {
+		font-size: 12px;
+		margin-top: 15px;
+		padding-left: 35px;
+	}
+
+	.package ul li::before {
+		width: 30px;
+		height: 30px;
+	}
+
+	.package:nth-child(1) ul li:nth-child(7)::before,
+	.package:nth-child(1) ul li:nth-child(8)::before,
+	.package:nth-child(1) ul li:nth-child(9)::before,
+	.package:nth-child(1) ul li:nth-child(10)::before {
+		background-image: url(/static/app/images/app-cross-mark.png);
+		width: 17px;
+		height: 17px;
+		left: 6px;
+	}
+
+	.package .package-btn .consult-button {
+		font-size: 10px;
+		padding: 10px 35px;
+	}
+
+	.package .package-btn .free-access-button {
+		font-size: 10px;
+		padding: 6px 35px;
+	}
+
+	/* block 3 */
+	.price-progress-section {
+		margin-top: 60px;
+	}
+
+	.price-progress-section .container h2 {
+		font-size: 20px;
+		text-align: center;
+	}
+
+	.price-progress-cards {
+		grid-template-columns: 1fr;
+	}
+
+	.price-progress-cards .price-progress-card {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		align-items: center;
+		justify-items: center;
+	}
+
+	.price-progress-text h3 {
+		font-size: 20px;
+		margin-top: 20px;
+	}
+
+	.price-progress-text p {
+		font-size: 15px;
+		text-align: center;
+		margin: 0;
+	}
+
+	.price-progress-card:nth-child(2) .price-progress-text p {
+		margin-top: 0;
+	}
+
+	.price-progress-card:nth-child(2) .price-progress-img img {
+		margin-top: 35px;
+	}
+
+	/* block 4 */
+	.price-free-section {
+		margin-top: 60px;
+	}
+
+	.price-free-section .container {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.price-free-section .img-box {
+		order: -1;
+	}
+
+	.price-free-section .price-free h3 {
+		font-size: 20px;
+		text-align: center;
+	}
+
+	.price-free-section .price-free p {
+		font-size: 15px;
+		margin-top: 15px;
+		text-align: center;
+	}
+
+	.price-free-section .price-free ul li {
+		font-size: 15px;
+		margin-top: 15px;
+	}
+
+	.price-free-section .price-free .btn-box {
+		margin-top: 20px;
+	}
+
+	.price-free-section .price-free .btn-box button {
+		width: 100%;
+		font-size: 10px;
+		padding: 10px 35px;
+		color: #EC6323;
+		background-color: #fff;
+		border-radius: 25px;
+		border: 3px solid #EC6323;
+		text-decoration: none;
+		cursor: pointer;
+		font-style: normal;
+		font-weight: 700;
+		line-height: normal;
+		margin-top: 15px;
 	}
 
 	.price-free-section .img-box img {

@@ -127,10 +127,10 @@
     <div class="container">
       <div class="price-free">
         <h3>{% trans "Спробуйте безкоштовно" %}</h3>
-        <span>
+        <p>
           {% trans "Почніть приймати справедливі рішення, маючи доступ до даних, " %}
           {% trans "доходів, профілів і історії роботи Ваших водіїв." %}
-        </span>
+        </p>
         <ul>
           <li>{% trans "Додайте агрегатори" %}</li>
           <li>{% trans "Підключіть GPS" %}</li>
@@ -146,4 +146,8 @@
       </div>
     </div>
   </section>
+
+  {% include '_free-access-form.html' %}
+  {% include '_thank-you-message.html' %}
+  {% include '_existing-you-message.html' %}
 {% endblock %}

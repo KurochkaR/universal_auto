@@ -4,138 +4,142 @@
 <!-- charging-station -->
 {% block content %}
 
-<section class="charging-station-section">
-  <div class="container">
-    <div class="charging-left-images">
-      <img class="image-map" src="{% static 'app/images/charging-station/charging-block-1.webp' %}" alt="one image">
-    </div>
-    <div class="charging-right-content">
-      <div class="decorate-img">
-        <img src="{% static 'app/images/index-one-block-3.webp' %}" alt="three image">
-        <div class="one-info">
-          <h2>{% trans "ninja ЗАРЯДКИ" %}</h2>
-          <p class="text-1">{% trans "Не зволікай та заряджай на швидких зарядних станціях by NINJA TAXI" %}</p>
+  <section class="charging-station-section">
+    <div class="container">
+      <div class="charging-left-images">
+        <img class="image-map" src="{% static 'app/images/charging-station/charging-block-1.webp' %}" alt="one image">
+      </div>
+      <div class="charging-right-content">
+        <div class="decorate-img">
+          <img src="{% static 'app/images/index-one-block-3.webp' %}" alt="three image">
+          <div class="one-info">
+            <h2>{% trans "ninja ЗАРЯДКИ" %}</h2>
+            <p class="text-1">{% trans "Не зволікай та заряджай на швидких зарядних станціях by NINJA TAXI" %}</p>
+          </div>
+        </div>
+        <div class="contact-me-btn" id="open-form">
+          <button class="contact-me-button">{% trans "Дізнатись більше" %}</button>
         </div>
       </div>
-      <div class="contact-me-btn" id="open-form">
-        <button class="contact-me">{% trans "Дізнатись більше" %}</button>
+    </div>
+  </section>
+
+  <section class="charging-station-section-2">
+    <div class="container">
+      <h2>{% trans "прямуй прямо до цілі. Вже сьогодні" %}</h2>
+
+      <div class="charging-cards">
+        <div class="charging-card">
+          <img src="{% static 'app/images/charging-station/charging-block-2.webp' %}" alt="img 1">
+          <div class="card-description">
+            <h3>{% trans "Безпека" %}</h3>
+            <p>
+              {% trans "Наші зарядні станції мають захист від перенапруги та системи ізоляції," %}
+              {% trans "що запобігають пошкодженню електроніки електромобіля." %}
+            </p>
+          </div>
+        </div>
+
+        <div class="charging-card">
+          <img src="{% static 'app/images/charging-station/charging-block-2.webp' %}" alt="img 2">
+          <div class="card-description">
+            <h3>{% trans "Швидкість" %}</h3>
+            <p>
+              {% trans "Наші швидкісні зарядні станції можуть зарядити Ваш електрокар з 0 до 80 за 60 хвилин" %}
+            </p>
+          </div>
+        </div>
+
+        <div class="charging-card">
+          <img src="{% static 'app/images/charging-station/charging-block-2.webp' %}" alt="img 3">
+          <div class="card-description">
+            <h3>{% trans "Вид зарядної станції" %}</h3>
+            <p>
+              {% trans "Наша зарядна станція - 40 kWt GBT/DC" %}
+            </p>
+          </div>
+        </div>
+
+        <div class="charging-card">
+          <img src="{% static 'app/images/charging-station/charging-block-2.webp' %}" alt="img 1">
+          <div class="card-description">
+            <h3>{% trans "Ми завжди на зв’язку" %}</h3>
+            <p>
+              {% trans "Якщо у Вас виникнуть питання - ми завжди з Вами на зв’язку" %}
+            </p>
+          </div>
+        </div>
       </div>
     </div>
-  </div>
-</section>
+  </section>
 
-<section class="charging-station-section-2">
-  <div class="container">
-    <h2>{% trans "прямуй прямо до цілі. Вже сьогодні" %}</h2>
-
-    <div class="charging-cards">
-      <div class="charging-card">
-        <img src="{% static 'app/images/charging-station/charging-block-2.webp' %}" alt="img 1">
-        <div class="card-description">
-          <h3>{% trans "Безпека" %}</h3>
+  <section class="charging-station-section-3">
+    <div class="container">
+      <div class="charging-station">
+        <div class="charging-station-description">
+          <h2>{% trans "Ninja Зарядні станції" %}</h2>
           <p>
-            {% trans "Наші зарядні станції мають захист від перенапруги та системи ізоляції," %}
-            {% trans "що запобігають пошкодженню електроніки електромобіля." %}
+            {% trans "NINJA TAXI пропонує інвестувати в зарядні станції." %}
+            {% trans "Це вигідна інвестиція, яка не потребує багато вкладень та зусиль." %}
           </p>
         </div>
-      </div>
-
-      <div class="charging-card">
-        <img src="{% static 'app/images/charging-station/charging-block-2.webp' %}" alt="img 2">
-        <div class="card-description">
-          <h3>{% trans "Швидкість" %}</h3>
-          <p>
-            {% trans "Наші швидкісні зарядні станції можуть зарядити Ваш електрокар з 0 до 80 за 60 хвилин" %}
-          </p>
+        <div class="buttons-box">
+          <button class="contact-me-button">{% trans "Дізнатися подробиці" %}</button>
         </div>
       </div>
-
-      <div class="charging-card">
-        <img src="{% static 'app/images/charging-station/charging-block-2.webp' %}" alt="img 3">
-        <div class="card-description">
-          <h3>{% trans "Вид зарядної станції" %}</h3>
-          <p>
-            {% trans "Наша зарядна станція - 40 kWt GBT/DC" %}
-          </p>
-        </div>
+      <div class="img-box">
+        <img class="img-1" src="{% static 'app/images/charging-station/charging-block-3.webp' %}" alt="" loading="lazy">
       </div>
+    </div>
+  </section>
 
-      <div class="charging-card">
-        <img src="{% static 'app/images/charging-station/charging-block-2.webp' %}" alt="img 1">
-        <div class="card-description">
-          <h3>{% trans "Ми завжди на зв’язку" %}</h3>
-          <p>
-            {% trans "Якщо у Вас виникнуть питання - ми завжди з Вами на зв’язку" %}
-          </p>
+  <section class="charging-station-section-4">
+    <div class="container">
+      <div class="img-box">
+        <img class="img-1" src="{% static 'app/images/charging-station/charging-block-4.webp' %}" alt="" loading="lazy">
+      </div>
+      <div class="charging-station-map">
+        <div class="charging-station-description">
+          <h2>{% trans "Розташування NINJA ЗАРЯДОК" %}</h2>
+          <p>{% trans "Зарядні станції NINJA розташовані в Києві. Ви можете знайти наші зарядні станції на карті" %}</p>
         </div>
       </div>
     </div>
-  </div>
-</section>
+  </section>
 
-<section class="charging-station-section-3">
-  <div class="container">
-    <div class="charging-station">
-      <div class="charging-station-description">
-        <h2>{% trans "Ninja Зарядні станції" %}</h2>
-        <p>
-          {% trans "NINJA TAXI пропонує інвестувати в зарядні станції." %}
-          {% trans "Це вигідна інвестиція, яка не потребує багато вкладень та зусиль." %}
-        </p>
-      </div>
-      <div class="buttons-box">
-        <button class="contact-me-button">{% trans "Дізнатися подробиці" %}</button>
-      </div>
-    </div>
-    <div class="img-box">
-      <img class="img-1" src="{% static 'app/images/charging-station/charging-block-3.webp' %}" alt="" loading="lazy">
-    </div>
-  </div>
-</section>
-
-<section class="charging-station-section-4">
-  <div class="container">
-    <div class="img-box">
-      <img class="img-1" src="{% static 'app/images/charging-station/charging-block-4.webp' %}" alt="" loading="lazy">
-    </div>
-    <div class="charging-station-map">
-      <div class="charging-station-description">
-        <h2>{% trans "Розташування NINJA ЗАРЯДОК" %}</h2>
-        <p>{% trans "Зарядні станції NINJA розташовані в Києві. Ви можете знайти наші зарядні станції на карті" %}</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section class="charging-station-section-5">
-  <div class="container">
-    <div class="how-to-charge">
-      <div>
-        <h2>{% trans "Як зарядити Електрокар" %}</h2>
-        <ul>
-          <li>{% trans "Завантажити застосунок CHARGEX" %}</li>
-          <li>{% trans "Обрати зарядну станцію NINJA TAXI" %}</li>
-          <li>{% trans "Поповнити гаманець в застосунку" %}</li>
-          <li>{% trans "Розпочати зарядку" %}</li>
-        </ul>
-        <div class="images-box">
-          <a href="https://play.google.com/store/apps/details?id=net.chargex.mobile&pli=1">
-            <img class="img-1" src="{% static 'app/images/charging-station/charging-block-5-1.webp' %}" alt=""
-                 loading="lazy">
-          </a>
-          <a href="https://apps.apple.com/us/app/chargex/id1464414292#?platform=iphone">
-            <img class="img-1" src="{% static 'app/images/charging-station/charging-block-5-2.webp' %}" alt=""
-                 loading="lazy">
-          </a>
+  <section class="charging-station-section-5">
+    <div class="container">
+      <div class="how-to-charge">
+        <div>
+          <h2>{% trans "Як зарядити Електрокар" %}</h2>
+          <ul>
+            <li>{% trans "Завантажити застосунок CHARGEX" %}</li>
+            <li>{% trans "Обрати зарядну станцію NINJA TAXI" %}</li>
+            <li>{% trans "Поповнити гаманець в застосунку" %}</li>
+            <li>{% trans "Розпочати зарядку" %}</li>
+          </ul>
+          <div class="images-box">
+            <a href="https://play.google.com/store/apps/details?id=net.chargex.mobile&pli=1">
+              <img class="img-1" src="{% static 'app/images/charging-station/charging-block-5-1.webp' %}" alt=""
+                   loading="lazy">
+            </a>
+            <a href="https://apps.apple.com/us/app/chargex/id1464414292#?platform=iphone">
+              <img class="img-1" src="{% static 'app/images/charging-station/charging-block-5-2.webp' %}" alt=""
+                   loading="lazy">
+            </a>
+          </div>
         </div>
       </div>
+      <div class="img-box">
+        <img class="img-1" src="{% static 'app/images/charging-station/charging-block-5-3.webp' %}" alt=""
+             loading="lazy">
+      </div>
     </div>
-    <div class="img-box">
-      <img class="img-1" src="{% static 'app/images/charging-station/charging-block-5-3.webp' %}" alt="" loading="lazy">
-    </div>
-  </div>
-</section>
+  </section>
 
-{% include '_blog_box.html' %}
+  {% include '_blog_box.html' %}
+  {% include '_contact-me-form.html' %}
+  {% include '_thank-you-message.html' %}
+  {% include '_existing-you-message.html' %}
 
 {% endblock %}
