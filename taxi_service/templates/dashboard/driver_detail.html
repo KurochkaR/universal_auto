@@ -4,16 +4,8 @@
 {% include 'dashboard/dashboard-header-sidebar.html' %}
 
 <main class="main-container">
-  <div class="driver-header">
-    <button class="back-page">
-      <svg width="100%" height="100%" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"
-           preserveAspectRatio="xMidYMid meet" focusable="false">
-        <path
-          d="M15.8335 9.16683H6.16682L10.5835 4.75016C10.9168 4.41683 10.9168 3.91683 10.5835 3.5835C10.2502 3.25016 9.75016 3.25016 9.41683 3.5835L3.5835 9.41683C3.25017 9.75016 3.25017 10.2502 3.5835 10.5835L9.41683 16.4168C9.5835 16.5835 9.8335 16.6668 10.0002 16.6668C10.1668 16.6668 10.4168 16.5835 10.5835 16.4168C10.9168 16.0835 10.9168 15.5835 10.5835 15.2502L6.16682 10.8335H15.8335C16.3335 10.8335 16.6668 10.5002 16.6668 10.0002C16.6668 9.50016 16.3335 9.16683 15.8335 9.16683Z"
-          fill="currentColor"></path>
-      </svg>
-      Назад
-    </button>
+  <div class="driver-detail-header">
+    <button class="back-page">{% trans "Назад" %}</button>
     <h1>{{ object.second_name }} {{ object.name }}</h1>
   </div>
 
@@ -24,26 +16,26 @@
         <span>{{ object.second_name }} {{ object.name }}</span>
       </div>
       <div class="driver-data">
-        <h2 class="driver-data-item">Особисті дані</h2>
+        <h2 class="driver-data-item">{% trans "Особисті дані" %}</h2>
         <div class="driver-flex">
-          <h3 class="driver-phone-number">Номер телефону: </h3>
+          <h3 class="driver-phone-number">{% trans "Номер телефону: " %}</h3>
           <p>{{ object.phone_number }}</p>
         </div>
         <div class="driver-flex">
-          <h3 class="driver-email">Електронна пошта: </h3>
+          <h3 class="driver-email">{% trans "Електронна пошта: " %}</h3>
           <p>{{ object.email }}</p>
         </div>
         <div class="driver-flex">
-          <h3 class="driver-schema">Схема роботи: </h3>
+          <h3 class="driver-schema">{% trans "Схема роботи: " %}</h3>
           <p>{{ object.schema }}</p>
         </div>
         <div class="driver-flex">
-          <h3 class="driver-create">Дата додавання: </h3>
+          <h3 class="driver-create">{% trans "Дата початку роботи в автопарку: " %}</h3>
           <p>{{ object.created_at }}</p>
         </div>
       </div>
       <div class="driver-vehicle">
-        <h2 class="driver-vehicle-item">Поточне авто</h2>
+        <h2 class="driver-vehicle-item">{% trans "Поточне авто" %}</h2>
         <div class="driver-vehicle-info driver-flex">
           <img src="{% static 'app/images/index-one-block-2.webp' %}" alt="car">
           <h3 class="driver-car">{{ vehicle.number }}</h3>
@@ -51,7 +43,36 @@
         </div>
       </div>
 
+      <div class="cash-control">
+        <h2 class="cash-control-item">{% trans "Контроль готівки" %}</h2>
+        <div class="cash-control-info">
+          <div class="switch-control">
+            <label class="switch">
+              <span class="switch-text-left">ON</span>
+              <input type="checkbox">
+              <span class="slider round"></span>
+              <span class="switch-text-right">OFF</span>
+            </label>
+          </div>
+
+          <div class="cash-control-auto">
+            <label class="switch-auto">
+              <input type="checkbox">
+              <span class="slider-auto round"></span>
+              <span class="switch-text-right">AUTO</span>
+            </label>
+          </div>
+
+          <div class="percent-control-cash">
+            <label for="cash-percent"> % відключення готівки</label>
+            <input type="text" id="cash-percent" name="cash-percent">
+            <span class="edit-icon">&#9998;</span>
+          </div>
+        </div>
+      </div>
     </div>
+
+    <div class=""
     <div class="driver-statistics">
       <div class="driver-radio-buttons">
         <input type="radio" id="driver-bonus-radio" name="driver-statistics" value="driver-bonus">
@@ -73,24 +94,24 @@
             <h3 class="bonus-description">Опис</h3>
           </div>
           {% for bonus in driver_bonus %}
-          <div class="driver-bonus-penalty-info">
-            <div class="bonus-category">
-              <span>{{ bonus.category }}</span>
+            <div class="driver-bonus-penalty-info">
+              <div class="bonus-category">
+                <span>{{ bonus.category }}</span>
+              </div>
+              <div class="bonus-amount">
+                <span>{{ bonus.amount }}</span>
+              </div>
+              <div class="bonus-car">
+                <span>{{ bonus.vehicle }}</span>
+              </div>
+              <div class="bonus-description">
+                <span>{{ bonus.description|default_if_none:"&nbsp;" }}</span>
+              </div>
+              <div class="btns">
+                <button class="edit-bonus-btn fa fa-pencil-alt" data-id="{{ bonus.id }}"></button>
+                <button class="delete-bonus-penalty-btn fa fa-times" data-id="{{ bonus.id }}"></button>
+              </div>
             </div>
-            <div class="bonus-amount">
-              <span>{{ bonus.amount }}</span>
-            </div>
-            <div class="bonus-car">
-              <span>{{ bonus.vehicle }}</span>
-            </div>
-            <div class="bonus-description">
-              <span>{{ bonus.description|default_if_none:"&nbsp;" }}</span>
-            </div>
-            <div class="btns">
-              <button class="edit-bonus-btn fa fa-pencil-alt" data-id="{{ bonus.id }}"></button>
-              <button class="delete-bonus-penalty-btn fa fa-times" data-id="{{ bonus.id }}"></button>
-            </div>
-          </div>
           {% endfor %}
         </div>
         <div class="driver-penalty-item penalty">
@@ -105,24 +126,24 @@
             <h3 class="bonus-description">Опис</h3>
           </div>
           {% for penalty in driver_penalty %}
-          <div class="driver-bonus-penalty-info">
-            <div class="penalty-category">
-              <span>{{ penalty.category }}</span>
+            <div class="driver-bonus-penalty-info">
+              <div class="penalty-category">
+                <span>{{ penalty.category }}</span>
+              </div>
+              <div class="penalty-amount">
+                <span>{{ penalty.amount }}</span>
+              </div>
+              <div class="penalty-car">
+                <span>{{ penalty.vehicle }}</span>
+              </div>
+              <div class="penalty-description">
+                <span>{{ penalty.description|default_if_none:"&nbsp;" }}</span>
+              </div>
+              <div class="btns">
+                <button class="edit-penalty-btn fa fa-pencil-alt" data-id="{{ penalty.id }}"></button>
+                <button class="delete-bonus-penalty-btn fa fa-times" data-id="{{ penalty.id }}"></button>
+              </div>
             </div>
-            <div class="penalty-amount">
-              <span>{{ penalty.amount }}</span>
-            </div>
-            <div class="penalty-car">
-              <span>{{ penalty.vehicle }}</span>
-            </div>
-            <div class="penalty-description">
-              <span>{{ penalty.description|default_if_none:"&nbsp;" }}</span>
-            </div>
-            <div class="btns">
-              <button class="edit-penalty-btn fa fa-pencil-alt" data-id="{{ penalty.id }}"></button>
-              <button class="delete-bonus-penalty-btn fa fa-times" data-id="{{ penalty.id }}"></button>
-            </div>
-          </div>
           {% endfor %}
         </div>
       </div>
@@ -141,10 +162,10 @@
 </main>
 
 <script>
-  const VehicleImg = "{% static 'app/images/index-one-block-2.webp' %}";
-  const logoImageUrl = "{% static 'app/images/logo-2.svg' %}";
-  let ajaxPostUrl = "{% url 'post_request' %}";
-  let ajaxGetUrl = "{% url 'get_request' %}";
+	const VehicleImg = "{% static 'app/images/index-one-block-2.webp' %}";
+	const logoImageUrl = "{% static 'app/images/logo-2.svg' %}";
+	let ajaxPostUrl = "{% url 'post_request' %}";
+	let ajaxGetUrl = "{% url 'get_request' %}";
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.3/dist/jquery.min.js" defer></script>
