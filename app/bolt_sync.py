@@ -295,6 +295,7 @@ class BoltRequest(Fleet, Synchronizer):
                     'email': driver_info['data']['email'],
                     'phone_number': driver_info['data']['phone'],
                     'driver_external_id': driver_info['data']['id'],
+                    'pay_cash': driver['has_cash_payment']
                 })
             if offset + limit < report['data']['total_rows']:
                 offset += limit
@@ -308,6 +309,7 @@ class BoltRequest(Fleet, Synchronizer):
             "finished": FleetOrder.COMPLETED,
             "client_cancelled": FleetOrder.CLIENT_CANCEL,
             "driver_cancelled_after_accept": FleetOrder.DRIVER_CANCEL,
+            "driver_did_not_respond": FleetOrder.DRIVER_CANCEL,
             "driver_rejected": FleetOrder.DRIVER_CANCEL
         }
         format_start = start.strftime("%Y-%m-%d")
@@ -321,6 +323,7 @@ class BoltRequest(Fleet, Synchronizer):
                 "client_did_not_show",
                 "finished",
                 "client_cancelled",
+                "driver_did_not_respond",
                 "driver_cancelled_after_accept",
                 "driver_rejected"
             ]
@@ -374,8 +377,10 @@ class BoltRequest(Fleet, Synchronizer):
                         batch_data.append(fleet_order)
                         calendar_vehicle = check_vehicle(driver)
                         if calendar_vehicle != vehicle:
-                            redis_instance().hset(f"wrong_vehicle_{driver.partner.pk}", driver.pk,
+                            redis_instance().hset(f"wrong_vehicle_{self.partner.pk}", driver.pk,
                                                   vehicle.licence_plate)
+                            redis_instance().expire(f"wrong_vehicle_{self.partner.pk}", 600)
+
                 if offset + limit < report['data']['total_rows']:
                     offset += limit
                 else:

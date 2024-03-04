@@ -2,7 +2,7 @@ import os
 
 import jwt
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import Q
+from django.db.models import Q, F
 
 from django.urls import reverse
 from django.shortcuts import render, redirect
@@ -54,6 +54,7 @@ class PostRequestView(View):
             "upd-status-payment": handler.handler_upd_payment_status,
             "upd_bonus_penalty": handler.handler_upd_bonus_penalty,
             "delete_bonus_penalty": handler.handler_delete_bonus_penalty,
+            "calculate-payments": handler.handler_calculate_payments
         }
 
         if action in method:
@@ -122,6 +123,17 @@ class InvestmentView(BaseContextView, TemplateView):
         return context
 
 
+class ChargingStationsView(BaseContextView, TemplateView):
+    template_name = "charging-station.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # context["seo_keywords"] = seo_charging_stations_page
+        # context["seo_title"] = seo_charging_stations_page_title
+        # context["seo_description"] = seo_description_charging_stations_page
+        return context
+
+
 # DASHBOARD VIEWS ->
 
 
@@ -143,11 +155,15 @@ class BaseDashboardView(LoginRequiredMixin, TemplateView):
             context["get_active_vehicle"] = Vehicle.objects.get_active(manager=user).order_by("licence_plate")
             context["get_all_driver"] = Driver.objects.get_active(manager=user).order_by("second_name")
             context["get_all_vehicle"] = Vehicle.objects.filter(manager=user).order_by("licence_plate")
+            context["get_vehicle_eff"] = Vehicle.objects.filter(carefficiency__vehicle_id=F('id'),
+                                                                manager=user).distinct()
 
         elif user.is_partner():
             context["get_all_vehicle"] = Vehicle.objects.filter(partner=user).order_by("licence_plate")
             context["get_all_driver"] = Driver.objects.get_active(partner=user).order_by("second_name")
             context["get_active_vehicle"] = Vehicle.objects.get_active(partner=user).order_by("licence_plate")
+            context["get_vehicle_eff"] = Vehicle.objects.filter(carefficiency__vehicle_id=F('id'),
+                                                                partner=user).distinct()
 
         context["investor_group"] = user.is_investor()
         context["partner_group"] = user.is_partner()

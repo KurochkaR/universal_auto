@@ -150,7 +150,7 @@
               <i class="fas fa-angle-down"></i>
             </div>
             <ul class="dropdown-options" id="vehicle-options">
-              {% for vehicle in get_all_vehicle %}
+              {% for vehicle in get_vehicle_eff %}
               <li data-value="{{ vehicle.id }}">{{ vehicle }}</li>
               {% endfor %}
             </ul>

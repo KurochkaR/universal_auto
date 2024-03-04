@@ -23,8 +23,7 @@ from app.models import SummaryReport, CarEfficiency, Vehicle, DriverEfficiency, 
 from taxi_service.utils import get_start_end
 
 
-class SummaryReportListView(CombinedPermissionsMixin,
-                            generics.ListAPIView):
+class SummaryReportListView(CombinedPermissionsMixin, generics.ListAPIView):
     serializer_class = SummaryReportSerializer
 
     @staticmethod
@@ -36,7 +35,7 @@ class SummaryReportListView(CombinedPermissionsMixin,
 
     def get_queryset(self):
         start, end, format_start, format_end = get_start_end(self.kwargs['period'])
-        queryset = ManagerFilterMixin.get_queryset(SummaryReport, self.request.user)
+        queryset = ManagerFilterMixin.get_queryset(SummaryReport, self.request.user).select_related('driver__user_ptr')
         filtered_qs = queryset.filter(report_from__range=(start, end))
         kasa = filtered_qs.aggregate(kasa=Coalesce(Sum('total_amount_without_fee'), Decimal(0)))['kasa']
 
@@ -45,15 +44,19 @@ class SummaryReportListView(CombinedPermissionsMixin,
         ).values('driver_id').annotate(
             rent_amount=Sum('rent_distance')
         )
+
         payment_amount_subquery = DriverPayments.objects.filter(
             report_from__range=(start, end),
+        )
+
+        payment_amount = payment_amount_subquery.filter(
             status__in=[PaymentsStatus.CHECKING, PaymentsStatus.PENDING]
         ).values('driver_id').annotate(
             payment_amount=Sum('kasa'),
             rent_distance=Sum('rent_distance')
         )
 
-        driver_payments_list = DriverPayments.objects.filter(
+        driver_payments_list = payment_amount_subquery.filter(
             report_from__range=(start, end),
             status__in=[PaymentsStatus.COMPLETED],
             partner=self.request.user
@@ -92,9 +95,9 @@ class SummaryReportListView(CombinedPermissionsMixin,
             total_card=Sum('total_amount_without_fee') - Sum('total_amount_cash'),
             rent_amount=Subquery(rent_amount_subquery.filter(
                 driver_id=OuterRef('driver_id')).values('rent_amount'), output_field=DecimalField()),
-            payment_amount=Subquery(payment_amount_subquery.filter(
+            payment_amount=Subquery(payment_amount.filter(
                 driver_id=OuterRef('driver_id')).values('payment_amount'), output_field=DecimalField()),
-            rent_distance=Subquery(payment_amount_subquery.filter(
+            rent_distance=Subquery(payment_amount.filter(
                 driver_id=OuterRef('driver_id')).values('rent_distance'), output_field=DecimalField())
         )
         rent_earnings = sum_rent - total_compensation_bonus
@@ -144,8 +147,7 @@ class InvestorCarsEarningsView(CombinedPermissionsMixin,
         return [{'start': format_start, 'end': format_end, 'car_earnings': qs, 'totals': total}]
 
 
-class CarEfficiencyListView(CombinedPermissionsMixin,
-                            generics.ListAPIView):
+class CarEfficiencyListView(CombinedPermissionsMixin, generics.ListAPIView):
     serializer_class = CarEfficiencySerializer
 
     def get_queryset(self):
@@ -157,10 +159,20 @@ class CarEfficiencyListView(CombinedPermissionsMixin,
             partner=self.request.user,
             report_from__range=(start, end)
         ).aggregate(earning=Coalesce(Sum('earning'), Decimal(0)))['earning']
-        return filtered_qs, earning
+
+        efficient_vehicles = Vehicle.objects.filter(
+            Q(carefficiency__report_from__gte=start),
+            Q(carefficiency__report_from__lte=end),
+            Q(carefficiency__vehicle_id=F('id')),
+            Q(partner=self.request.user)
+        ).distinct()
+
+        vehicle_numbers = {vehicle.licence_plate: vehicle.id for vehicle in efficient_vehicles}
+
+        return filtered_qs, earning, vehicle_numbers
 
     def list(self, request, *args, **kwargs):
-        queryset, earning = self.get_queryset()
+        queryset, earning, vehicle_numbers = self.get_queryset()
         aggregated_data = queryset.aggregate(
             total_kasa=Coalesce(Sum('total_kasa'), Decimal(0)),
             total_mileage=Coalesce(Sum('mileage'), Decimal(0))
@@ -187,7 +199,8 @@ class CarEfficiencyListView(CombinedPermissionsMixin,
             "dates": format_dates,
             "total_mileage": total_mileage,
             "earning": earning,
-            "average_efficiency": average
+            "average_efficiency": average,
+            "vehicle_numbers_eff": vehicle_numbers
         }
         return Response(response_data)
 
@@ -282,12 +295,16 @@ class CarsInformationListView(CombinedPermissionsMixin, generics.ListAPIView):
         start, end, format_start, format_end = get_start_end(period)
 
         if InvestorFilterMixin.get_queryset(Vehicle, self.request.user):
-            queryset = InvestorFilterMixin.get_queryset(Vehicle, self.request.user).only('licence_plate',
-                                                                                         'purchase_price')
+            queryset = InvestorFilterMixin.get_queryset(Vehicle, self.request.user).filter(deleted_at=None).only(
+                'licence_plate',
+                'purchase_price'
+            )
             earnings_query_all = InvestorPayments.objects.all()
         else:
-            queryset = ManagerFilterMixin.get_queryset(Vehicle, self.request.user).only('licence_plate',
-                                                                                        'purchase_price')
+            queryset = ManagerFilterMixin.get_queryset(Vehicle, self.request.user).filter(deleted_at=None).only(
+                'licence_plate',
+                'purchase_price'
+            )
             earnings_query_all = PartnerEarnings.objects.all()
 
         earning_annotate = {'vehicle_earning': Coalesce(Sum('earning'), Decimal(0), output_field=DecimalField())}

@@ -5,7 +5,8 @@ from datetime import datetime, date, time
 from decimal import Decimal
 
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
-from django.core.validators import MaxLengthValidator, EmailValidator, RegexValidator
+from django.core.validators import MaxLengthValidator, EmailValidator, RegexValidator, MinValueValidator, \
+    MaxValueValidator
 from django.db.models import Sum, F, Q
 from django.db.models.signals import post_delete
 from django.utils import timezone
@@ -345,8 +346,12 @@ class Driver(User):
     photo = models.ImageField(blank=True, null=True, upload_to='drivers', verbose_name='Фото водія',
                               default='drivers/default-driver.png')
     driver_status = models.CharField(max_length=35, default=OFFLINE, verbose_name='Статус водія')
-    control_cash = models.BooleanField(default=False, verbose_name='Контроль готівки')
-
+    cash_control = models.BooleanField(default=True, verbose_name='Контроль готівки')
+    cash_rate = models.DecimalField(decimal_places=2, max_digits=3, default=0, verbose_name='Дозволено готівки',
+                                    validators=[
+                                        MinValueValidator(0, message='Число повинно бути не менше 0.00'),
+                                        MaxValueValidator(1, message='Число повинно бути не більше 1.00'),
+                                    ])
     schema = models.ForeignKey(Schema, null=True, on_delete=models.SET_NULL, verbose_name='Схема роботи')
     partner = models.ForeignKey(Partner, on_delete=models.CASCADE, verbose_name='Партнер')
     manager = models.ForeignKey(Manager, on_delete=models.SET_NULL, null=True, blank=True,
@@ -412,6 +417,7 @@ class DriverPayments(Earnings):
     rent_distance = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Орендована дистанція')
     rent_price = models.IntegerField(default=6, verbose_name='Ціна оренди')
     rent = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Оренда авто')
+    rate = models.IntegerField(default=0, verbose_name='Відсоток водія')
 
     driver = models.ForeignKey(Driver, on_delete=models.CASCADE, verbose_name="Водій")
 
@@ -701,7 +707,7 @@ class StatusChange(models.Model):
 
 
 class FleetsDriversVehiclesRate(models.Model):
-    pay_cash = models.BooleanField(default=False, verbose_name='Оплата готівкою')
+    pay_cash = models.BooleanField(default=True, verbose_name='Оплата готівкою')
     driver_external_id = models.CharField(max_length=255, verbose_name='Унікальний ідентифікатор по автопарку')
 
     created_at = models.DateTimeField(editable=False, auto_now_add=True, verbose_name='Створено')

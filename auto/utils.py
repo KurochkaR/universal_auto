@@ -191,3 +191,8 @@ def polymorphic_efficiency_create(create_model, partner_pk, driver, start, end, 
     result, created = create_model.objects.get_or_create(**efficiency_filter)
     if created:
         result.vehicles.add(*vehicles)
+    if not created and (total_kasa != result.total_kasa or total_orders != result.total_orders):
+        for key, value in data.items():
+            setattr(result, key, value)
+
+        result.save()

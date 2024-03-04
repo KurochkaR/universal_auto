@@ -5,8 +5,9 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.core.files import File
 from django.db.models import Q
 
-from app.models import Fleet, FleetsDriversVehiclesRate, Driver, Vehicle, Role, JobApplication
+from app.models import Fleet, FleetsDriversVehiclesRate, Driver, Vehicle, Role, JobApplication, ParkSettings, Manager
 from auto_bot.handlers.order.utils import normalized_plate
+from auto_bot.main import bot
 
 
 class AuthenticationError(Exception):
@@ -48,6 +49,11 @@ class Synchronizer:
                                                      driver=self.get_or_create_driver(**kwargs),
                                                      partner=self.partner)
         else:
+            if kwargs.get('pay_cash') is not None and driver.pay_cash != kwargs.get('pay_cash'):
+                driver.pay_cash = kwargs.get('pay_cash')
+                driver.save(update_fields=['pay_cash'])
+                bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"),
+                                 text=f"{driver.fleet} {driver.driver} оновлено поле оплата готівкою")
             self.update_driver_fields(driver.driver, **kwargs)
 
     def get_or_create_driver(self, **kwargs):
@@ -69,6 +75,9 @@ class Synchronizer:
                 data.update({"phone_number": phone_number,
                              "email": kwargs['email']
                              })
+            managers = Manager.objects.filter(managers_partner=self.partner)
+            if managers.count() == 1:
+                data['manager'] = managers.first()
             driver = Driver.objects.create(**data)
             try:
                 client = JobApplication.objects.get(first_name=kwargs['name'], last_name=kwargs['second_name'])

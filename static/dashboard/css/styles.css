@@ -1961,6 +1961,21 @@ span#vehicle-bonus-error {
 	color: #EC6323;
 }
 
+td.driver-rate {
+    cursor: pointer;
+}
+
+input.driver-rate-input:focus {
+    outline: none;
+}
+
+input.driver-rate-input {
+    width: 40px;
+    border-radius: 25px;
+    padding: 5px;
+    border: 2px solid #EC6323;
+}
+
 /* Загальні стилі для контейнера радіокнопок */
 .radio-btn-box {
   display: flex;
@@ -2549,3 +2564,7 @@ span#vehicle-bonus-error {
 	margin: 0;
 }
 
+.not-closed-payments-table {
+	max-height: 350px;
+	overflow-y: auto;
+}

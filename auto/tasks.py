@@ -18,10 +18,10 @@ from telegram.error import BadRequest
 from app.models import (RawGPS, Vehicle, Order, Driver, JobApplication, ParkSettings, UseOfCars, CarEfficiency,
                         Payments, SummaryReport, Manager, Partner, DriverEfficiency, FleetOrder, ReportTelegramPayments,
                         InvestorPayments, VehicleSpending, DriverReshuffle, DriverPayments,
-                        PaymentTypes, TaskScheduler, DriverEffVehicleKasa, Schema, CustomReport, Fleet,
+                        TaskScheduler, DriverEffVehicleKasa, Schema, CustomReport, Fleet,
                         VehicleGPS, PartnerEarnings, Investor, Bonus, Penalty, PaymentsStatus,
                         FleetsDriversVehiclesRate, DriverEfficiencyFleet)
-from django.db.models import Sum, IntegerField, FloatField, Value, DecimalField, Q
+from django.db.models import Sum, IntegerField, FloatField, DecimalField, Q
 from django.db.models.functions import Cast, Coalesce
 from app.utils import get_schedule, create_task
 from auto.utils import payment_24hours_create, summary_report_create, compare_reports, get_corrections, \
@@ -212,7 +212,7 @@ def get_today_orders(self, partner_pk):
 @app.task(bind=True, retry_backoff=30, max_retries=3)
 def add_distance_for_order(self, partner_pk, day=None):
     gps_query = UaGpsSynchronizer.objects.filter(partner=partner_pk)
-    end = datetime.strptime(day, "%Y-%m-%d") if day else timezone.localtime()
+    end = timezone.make_aware(datetime.strptime(day, "%Y-%m-%d")) if day else timezone.localtime()
     start = end - timedelta(days=1)
     if gps_query.exists():
         orders = FleetOrder.objects.filter(partner=partner_pk, vehicle__isnull=False,
@@ -228,7 +228,7 @@ def check_card_cash_value(self, partner_pk):
         today = timezone.localtime()
         yesterday = timezone.make_aware(datetime.combine(today, time.min)) - timedelta(days=1)
         start_week = timezone.make_aware(datetime.combine(today, time.min)) - timedelta(days=today.weekday())
-        for driver in Driver.objects.get_active(partner=partner_pk, schema__isnull=False):
+        for driver in Driver.objects.get_active(partner=partner_pk, schema__isnull=False, cash_control=True):
             start = start_week if driver.schema.is_weekly() else get_time_for_task(driver.schema_id)[2]
             rent = calculate_rent(start_week, today, driver) if driver.schema.is_weekly() else (
                 calculate_rent(yesterday, today, driver))
@@ -236,11 +236,10 @@ def check_card_cash_value(self, partner_pk):
             kasa, card = get_today_statistic(partner_pk, start, today, driver)[:2]
             if kasa > driver.schema.cash:
                 ratio = (card - rent_payment) / kasa
-                if driver.schema.is_rent():
-                    rate = float(ParkSettings.get_value("RENT_CASH_RATE", partner=partner_pk))
-                else:
-                    rate = driver.schema.rate
+                without_rent = card / kasa
+                rate = driver.cash_rate if driver.cash_rate else driver.schema.rate
                 enable = int(ratio > (1-rate))
+                rent_enable = int(without_rent > (1-rate))
                 fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name='Gps')
                 disabled = []
                 for fleet in fleets:
@@ -250,10 +249,21 @@ def check_card_cash_value(self, partner_pk):
                         result = fleet.disable_cash(driver_rate.driver_external_id, enable)
                         disabled.append(result)
                 if disabled:
-                    if enable:
-                        text = f"Готівка {driver} \U0001F7E2"
+                    if rent_payment:
+                        calc_text = f"Готівка {int(kasa - card)} + холостий пробіг {int(rent_payment)}/{int(kasa)} =" \
+                                    f" {int((1-ratio)*100)}%\n"
                     else:
-                        text = f"Готівка {driver} \U0001F534"
+                        calc_text = f"Готівка {int(kasa - card)} /{int(kasa)} = {int((1-ratio)*100)}%\n"
+                    if enable:
+                        text = f"\U0001F7E2 {driver} система увімкнула отримання замовлень за готівку.\n" + calc_text
+
+                    elif rent_enable:
+                        text = f"\U0001F534 {driver} системою вимкнено готівкові замовлення.\n" \
+                               f"Причина: холостий пробіг\n" + calc_text + ", перепробіг {int(rent)} км\n"
+                    else:
+                        text = f"\U0001F534 {driver} системою вимкнено готівкові замовлення.\n" \
+                               f"Причина: високий рівень готівки\n" + calc_text
+                    text += f"Дозволено готівки {rate*100}%"
                     bot.send_message(chat_id=ParkSettings.get_value("DRIVERS_CHAT", partner=partner_pk),
                                      text=text)
     except Exception as e:
@@ -266,19 +276,21 @@ def check_card_cash_value(self, partner_pk):
 def send_notify_to_check_car(self, partner_pk):
     if redis_instance().exists(f"wrong_vehicle_{partner_pk}"):
         wrong_cars = redis_instance().hgetall(f"wrong_vehicle_{partner_pk}")
+        print(wrong_cars)
+        text = ""
         for driver, car in wrong_cars.items():
             driver_obj = Driver.objects.get(pk=int(driver))
+            print(driver_obj)
             vehicle = check_vehicle(driver_obj)
+            print(vehicle)
             if not vehicle or vehicle.licence_plate != car:
-                chat_id = driver_obj.manager.chat_id if driver_obj.manager else driver_obj.partner.chat_id
-                try:
-                    bot.send_message(chat_id=chat_id, text=f"Водій {driver_obj} працює на {car},"
-                                                           f" перевірте машину яка закріплена за водієм")
-                except BadRequest:
-                    bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"),
-                                     text=f"Не відправилось повідомлення про зміну авто для водія {driver_obj},"
-                                          f" партнер {driver_obj.partner}(неправильний чат ід?)")
-        redis_instance().delete(f"wrong_vehicle_{partner_pk}")
+                text += f"{driver_obj} працює на {car}\n"
+        if text:
+            text += "перевірте будь ласка зміни водіїв"
+            try:
+                bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"), text=text)
+            except BadRequest as e:
+                logger.error(e)
 
 
 @app.task(bind=True, retry_backoff=30, max_retries=4)
@@ -476,7 +488,6 @@ def update_driver_status(self, partner_pk, photo=None):
                 driver.save()
                 if current_status != Driver.OFFLINE:
                     vehicle = check_vehicle(driver)
-                    print(vehicle, driver)
                     if not work_ninja and vehicle and driver.chat_id:
                         UseOfCars.objects.create(user_vehicle=driver,
                                                  partner_id=partner_pk,
@@ -584,20 +595,11 @@ def fleets_cash_trips(self, partner_pk, pk, enable):
     try:
         driver = Driver.objects.get(pk=pk)
         fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name='Gps')
-        disabled = []
+
         for fleet in fleets:
             driver_rate = FleetsDriversVehiclesRate.objects.filter(
                 driver=driver, fleet=fleet).first()
-            if driver_rate and int(driver_rate.pay_cash) != enable:
-                result = fleet.disable_cash(driver_rate.driver_external_id, enable)
-                disabled.append(result)
-        if disabled:
-            if enable:
-                text = f"Готівка {driver} \U0001F7E2"
-            else:
-                text = f"Готівка {driver} \U0001F534"
-            bot.send_message(chat_id=ParkSettings.get_value("DRIVERS_CHAT", partner=partner_pk),
-                             text=text)
+            fleet.disable_cash(driver_rate.driver_external_id, enable)
 
     except Exception as e:
         logger.error(e)
@@ -1146,7 +1148,7 @@ def calculate_vehicle_earnings(self, payment_pk):
     driver = payment.driver
     start = timezone.localtime(payment.report_from)
     end = timezone.localtime(payment.report_to)
-    driver_value = payment.earning + payment.cash + payment.rent
+    driver_value = payment.earning + payment.cash + payment.rent - payment.get_bonuses() + payment.get_penalties()
     if payment.kasa:
         spending_rate = 1 - round(driver_value / payment.kasa, 6) if driver_value > 0 else 1
         if payment.is_weekly():
@@ -1177,11 +1179,11 @@ def calculate_vehicle_earnings(self, payment_pk):
         else:
             vehicles_income = reshuffles_income
     for vehicle, income in vehicles_income.items():
-        # vehicle_bonus = Penalty.objects.filter(vehicle=vehicle, driver_payments=payment).aggregate(
-        #     total_amount=Coalesce(Sum('amount'), Decimal(0)))['total_amount']
-        # vehicle_penalty = Bonus.objects.filter(vehicle=vehicle, driver_payments=payment).aggregate(
-        #     total_amount=Coalesce(Sum('amount'), Decimal(0)))['total_amount']
-        # earning = income + vehicle_bonus - vehicle_penalty
+        vehicle_bonus = Penalty.objects.filter(vehicle=vehicle, driver_payments=payment).aggregate(
+            total_amount=Coalesce(Sum('amount'), Decimal(0)))['total_amount']
+        vehicle_penalty = Bonus.objects.filter(vehicle=vehicle, driver_payments=payment).aggregate(
+            total_amount=Coalesce(Sum('amount'), Decimal(0)))['total_amount']
+        earning = income + vehicle_bonus - vehicle_penalty
         PartnerEarnings.objects.get_or_create(
             report_from=payment.report_from,
             report_to=payment.report_to,
@@ -1190,7 +1192,7 @@ def calculate_vehicle_earnings(self, payment_pk):
             partner=driver.partner,
             defaults={
                 "status": PaymentsStatus.COMPLETED,
-                "earning": income,
+                "earning": earning,
             }
         )
 
