@@ -197,6 +197,7 @@ class BoltRequest(Fleet, Synchronizer):
             reports = self.get_target_url(f'{self.base_url}getDriverEarnings/week', param)
             for driver_report in reports['data']['drivers']:
                 report = self.parse_json_report(start, end, driver_report)
+                report['total_amount_without_fee'] = driver_report['net_earnings']
                 db_report, created = WeeklyReport.objects.get_or_create(report_from=start,
                                                                         driver=report['driver'],
                                                                         fleet=self,
@@ -244,24 +245,25 @@ class BoltRequest(Fleet, Synchronizer):
                 break
         return bolt_reports
 
-    # def get_bonuses_info(self, driver, start, end):
-    #     tm.sleep(0.5)
-    #     bonuses = 0
-    #     compensations = 0
-    #     format_start = start.strftime("%Y-%m-%d")
-    #     format_end = end.strftime("%Y-%m-%d")
-    #     param = self.param()
-    #     param.update({"start_date": format_start,
-    #                   "end_date": format_end,
-    #                   "offset": 0,
-    #                   "search": f"{driver.name} {driver.second_name}",
-    #                   "limit": 50})
-    #     reports = self.get_target_url(f'{self.base_url}getDriverEarnings/dateRange', param)
-    #     if reports['data']['drivers']:
-    #         report_driver = reports['data']['drivers'][0]
-    #         bonuses = report_driver['bonuses']
-    #         compensations = report_driver['compensations']
-    #     return bonuses, compensations
+    def get_bonuses_info(self, driver, start, end):
+        tm.sleep(0.5)
+        driver_ids = Driver.objects.get_active(fleetsdriversvehiclesrate__fleet=self).values_list(
+            'fleetsdriversvehiclesrate__driver_external_id', flat=True)
+        compensations = 0
+        format_start = start.strftime("%Y-%m-%d")
+        format_end = end.strftime("%Y-%m-%d")
+        param = self.param()
+        param.update({"start_date": format_start,
+                      "end_date": format_end,
+                      "offset": 0,
+                      "search": f"{driver.name} {driver.second_name}",
+                      "limit": 50})
+        reports = self.get_target_url(f'{self.base_url}getDriverEarnings/dateRange', param)
+        if reports['data']['drivers']:
+            for report in reports['data']['drivers']:
+                if report['id'] in driver_ids:
+                    compensations = report['compensations']
+        return compensations
 
     def get_drivers_table(self):
         driver_list = []

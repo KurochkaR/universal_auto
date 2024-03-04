@@ -125,6 +125,7 @@ class UberRequest(Fleet, Synchronizer):
         return drivers
 
     def generate_report(self, start, end, schema=None, driver=None):
+        results = []
         if schema:
             driver_ids = Driver.objects.get_active(schema=schema, fleetsdriversvehiclesrate__fleet=self).values_list(
                 'fleetsdriversvehiclesrate__driver_external_id', flat=True)
@@ -136,7 +137,7 @@ class UberRequest(Fleet, Synchronizer):
         format_start = self.report_interval(start) * 1000
         format_end = self.report_interval(end) * 1000
         if format_start >= format_end or not driver_ids:
-            return
+            return results
         query = '''query GetPerformanceReport($performanceReportRequest: PerformanceReportRequest__Input!) {
                   getPerformanceReport(performanceReportRequest: $performanceReportRequest) {
                     uuid
@@ -157,7 +158,7 @@ class UberRequest(Fleet, Synchronizer):
                           {
                             "dimensionName": "vs:driver",
                             "operator": "OPERATOR_IN",
-                            "expressions": driver_ids
+                            "expressions": list(driver_ids)
                           }
                         ],
                         "metrics": [
@@ -182,7 +183,6 @@ class UberRequest(Fleet, Synchronizer):
             results = response.json()['data']['getPerformanceReport']
         else:
             get_logger().error(f"Failed save uber report {self.partner} {response.json()}")
-            results = []
         return results
 
     def parse_json_report(self, start, end, report):

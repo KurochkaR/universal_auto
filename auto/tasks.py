@@ -20,7 +20,7 @@ from app.models import (RawGPS, Vehicle, Order, Driver, JobApplication, ParkSett
                         InvestorPayments, VehicleSpending, DriverReshuffle, DriverPayments,
                         TaskScheduler, DriverEffVehicleKasa, Schema, CustomReport, Fleet,
                         VehicleGPS, PartnerEarnings, Investor, Bonus, Penalty, PaymentsStatus,
-                        FleetsDriversVehiclesRate, DriverEfficiencyFleet)
+                        FleetsDriversVehiclesRate, DriverEfficiencyFleet, WeeklyReport, SalaryCalculation)
 from django.db.models import Sum, IntegerField, FloatField, DecimalField, Q
 from django.db.models.functions import Cast, Coalesce
 from app.utils import get_schedule, create_task
@@ -28,7 +28,8 @@ from auto.utils import payment_24hours_create, summary_report_create, compare_re
     get_currency_rate, polymorphic_efficiency_create
 from auto_bot.handlers.driver_manager.utils import get_daily_report, get_efficiency, generate_message_report, \
     get_driver_efficiency_report, calculate_rent, get_vehicle_income, get_time_for_task, \
-    create_driver_payments, calculate_income_partner, get_failed_income, find_reshuffle_period, get_today_statistic
+    create_driver_payments, calculate_income_partner, get_failed_income, find_reshuffle_period, get_today_statistic, \
+    calculate_bolt_kasa
 from auto_bot.handlers.order.keyboards import inline_markup_accept, inline_search_kb, inline_client_spot, \
     inline_spot_keyboard, inline_second_payment_kb, inline_reject_order, personal_order_end_kb, \
     personal_driver_end_kb
@@ -318,11 +319,12 @@ def download_weekly_report(self, partner_pk):
         start = timezone.make_aware(datetime.combine(end - timedelta(days=6), time.min))
         fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name='Gps')
         for fleet in fleets:
-            reports = fleet.save_weekly_report(start, end)
-            for report in reports:
-                compare_reports(fleet, start, end, report.driver, report, CustomReport, partner_pk)
-        for driver in Driver.objects.get_active(partner=partner_pk):
-            get_corrections(start, end, driver)
+            print(fleet)
+            fleet.save_weekly_report(start, end)
+        #     for report in reports:
+        #         compare_reports(fleet, start, end, report.driver, report, CustomReport, partner_pk)
+        # for driver in Driver.objects.get_active(partner=partner_pk):
+        #     get_corrections(start, end, driver)
     except Exception as e:
         logger.error(e)
         retry_delay = retry_logic(e, self.request.retries + 1)
@@ -1107,10 +1109,13 @@ def calculate_driver_reports(self, schemas, day=None):
     for schema in schemas:
         schema_obj = Schema.objects.get(pk=schema)
         today = datetime.combine(timezone.localtime(), time.max)
+        end_week = timezone.make_aware(datetime.combine(today - timedelta(days=today.weekday() + 1),
+                                                        time.max.replace(microsecond=0)))
+        start_week = timezone.make_aware(datetime.combine(end_week - timedelta(days=6), time.min))
         if schema_obj.is_weekly():
             if not today.weekday():
-                end = timezone.make_aware(datetime.combine(today - timedelta(days=today.weekday() + 1), time.max))
-                start = timezone.make_aware(datetime.combine(end - timedelta(days=6), time.min))
+                start = start_week
+                end = end_week
             else:
                 return
         else:
@@ -1120,7 +1125,28 @@ def calculate_driver_reports(self, schemas, day=None):
             report_kasa = SummaryReport.objects.filter(driver=driver, report_from__range=(start, end)).aggregate(
                     kasa=Coalesce(Sum('total_amount_without_fee'), 0, output_field=DecimalField()))['kasa']
             if reshuffles:
-                data = create_driver_payments(start, end, driver, schema_obj)
+                bolt_weekly = WeeklyReport.objects.filter(report_from=start_week, report_to=end_week,
+                                                          driver=driver, fleet__name="Bolt").aggregate(
+                    bonuses=Coalesce(Sum('bonuses'), 0, output_field=DecimalField()),
+                    kasa=Coalesce(Sum('total_amount_without_fee'), 0, output_field=DecimalField()),
+                )
+                bonus = bolt_weekly['bonuses'] if schema_obj.is_weekly() and not today.weekday() else None
+
+                data = create_driver_payments(start, end, driver, schema_obj, bonuses=bonus)
+                if not schema_obj.is_weekly() and not today.weekday():
+                    vehicle_bonus = {}
+                    weekly_reshuffles = check_reshuffle(driver, start, end)
+                    for shift in weekly_reshuffles:
+                        start_period, end_period = find_reshuffle_period(shift, start, end)
+                        shift_bolt_kasa = calculate_bolt_kasa(driver, shift.swap_vehicle, start_period, end_period)
+                        reshuffle_bonus = shift_bolt_kasa / bolt_weekly['kasa'] * bolt_weekly['bonuses']
+                        if not vehicle_bonus.get(shift.swap_vehicle):
+                            vehicle_bonus[shift.swap_vehicle] = reshuffle_bonus
+                        else:
+                            vehicle_bonus[shift.swap_vehicle] += reshuffle_bonus
+                    for car, bonus in vehicle_bonus.items():
+                        amount = bonus * driver.schema.rate
+                        Bonus.objects.create(driver=driver, vehicle_id=car, amount=amount)
                 payment, created = DriverPayments.objects.get_or_create(report_from=start,
                                                                         report_to=end,
                                                                         driver=driver,
