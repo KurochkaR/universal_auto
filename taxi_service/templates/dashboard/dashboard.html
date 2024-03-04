@@ -3,40 +3,40 @@
 {% load i18n %}
 {% include 'dashboard/dashboard-header-sidebar.html' %}
 
-  <!-- Main Manager-->
-  <main class="main-container">
-    <div class="main-title">
-      <h2>{% trans 'Інформаційна панель' %}</h2>
+<!-- Main Manager-->
+<main class="main-container">
+  <div class="main-title">
+    <h2>{% trans 'Інформаційна панель' %}</h2>
+  </div>
+  <div class="common-period" id="period-window">
+    <label for="period-common">{% trans 'Виберіть період:' %}</label>
+    <div class="custom-select" id="period-common">
+      <span class="selected-option">{% trans 'Вчора' %}</span>
+      <i class="fas fa-angle-down"></i>
+      <ul class="options">
+        <li data-value="yesterday">{% trans 'Вчора' %}</li>
+        <li data-value="current_week">{% trans 'Поточний тиждень' %}</li>
+        <li data-value="last_week">{% trans 'Минулий тиждень' %}</li>
+        <li data-value="current_month">{% trans 'Поточний місяць' %}</li>
+        <li data-value="last_month">{% trans 'Минулий місяць' %}</li>
+        <li data-value="current_quarter">{% trans 'Поточний квартал' %}</li>
+        <li data-value="last_quarter">{% trans 'Минулий квартал' %}</li>
+        <li data-value="custom">{% trans 'Вибрати період >' %}</li>
+      </ul>
     </div>
-    <div class="common-period" id="period-window">
-      <label for="period-common">{% trans 'Виберіть період:' %}</label>
-      <div class="custom-select" id="period-common">
-        <span class="selected-option">{% trans 'Вчора' %}</span>
-        <i class="fas fa-angle-down"></i>
-        <ul class="options">
-          <li data-value="yesterday">{% trans 'Вчора' %}</li>
-          <li data-value="current_week">{% trans 'Поточний тиждень' %}</li>
-          <li data-value="last_week">{% trans 'Минулий тиждень' %}</li>
-          <li data-value="current_month">{% trans 'Поточний місяць' %}</li>
-          <li data-value="last_month">{% trans 'Минулий місяць' %}</li>
-          <li data-value="current_quarter">{% trans 'Поточний квартал' %}</li>
-          <li data-value="last_quarter">{% trans 'Минулий квартал' %}</li>
-          <li data-value="custom">{% trans 'Вибрати період >' %}</li>
-        </ul>
-      </div>
-      <span class="weekly-income-dates"></span>
-    </div>
-    <div id="datePicker" style="display: none;">
-      <label for="start_report">{% trans 'Початкова дата:' %}</label>
-      <input type="date" id="start_report" name="start_date">
-      <label for="end_report">{% trans 'Кінцева дата:' %}</label>
-      <input type="date" id="end_report" name="end_date">
-      <input class="apply-filter-button" type="button" onclick="applyDateRange()"
-             value="{% trans 'Фільтрувати' %}">
-      <div id="error_message" style="display: none; color: red;"></div>
-    </div>
-    <div class="main-cards">
-      {% if investor_group %}
+    <span class="weekly-income-dates"></span>
+  </div>
+  <div id="datePicker" style="display: none;">
+    <label for="start_report">{% trans 'Початкова дата:' %}</label>
+    <input type="date" id="start_report" name="start_date">
+    <label for="end_report">{% trans 'Кінцева дата:' %}</label>
+    <input type="date" id="end_report" name="end_date">
+    <input class="apply-filter-button" type="button" onclick="applyDateRange()"
+           value="{% trans 'Фільтрувати' %}">
+    <div id="error_message" style="display: none; color: red;"></div>
+  </div>
+  <div class="main-cards">
+    {% if investor_group %}
       <div class="card">
         <h2>{% trans 'Загальний дохід' %}</h2>
         <span class="weekly-income-amount"></span>
@@ -49,48 +49,49 @@
         <h2>{% trans 'Загальні витрати на авто' %}</h2>
         <span class="spending-all"></span>
       </div>
-      {% else %}
+    {% else %}
       <div class="card">
         {% if partner_group %}
-        <div class="title-card">
-          <h2>{% trans 'Дохід ' %}<i class="fas fa-hryvnia"></i></h2>
-        </div>
-        <div class="custom-dropdown-card">
-          <h3>{% trans 'Загальний' %}</h3>
-          <span class="weekly-income-amount"></span>
-        </div>
-        <div class="custom-dropdown-card">
-          <h3>{% trans 'Чистий' %}</h3>
-          <span class="weekly-clean-amount"></span>
-        </div>
-        <div class="custom-dropdown-card">
-          <h3>{% trans 'За холостий пробіг' %}</h3>
-          <span class="rent-earning"></span>
-        </div>
-        <div class="custom-dropdown-card">
-          <h3 class="not-closed">{% trans 'Не закриті виплати' %}<i class="fas fa-eye" style="margin-left: 10px;"></i></h3>
-          <span class="not-closed-payments"></span>
-        </div>
+          <div class="title-card">
+            <h2>{% trans 'Дохід ' %}<i class="fas fa-hryvnia"></i></h2>
+          </div>
+          <div class="custom-dropdown-card">
+            <h3>{% trans 'Загальний' %}</h3>
+            <span class="weekly-income-amount"></span>
+          </div>
+          <div class="custom-dropdown-card">
+            <h3>{% trans 'Чистий' %}</h3>
+            <span class="weekly-clean-amount"></span>
+          </div>
+          <div class="custom-dropdown-card">
+            <h3>{% trans 'За холостий пробіг' %}</h3>
+            <span class="rent-earning"></span>
+          </div>
+          <div class="custom-dropdown-card">
+            <h3 class="not-closed">{% trans 'Не закриті виплати' %}<i class="fas fa-eye" style="margin-left: 10px;"></i>
+            </h3>
+            <span class="not-closed-payments"></span>
+          </div>
         {% else %}
-        <div class="custom-dropdown-card">
-          <h3>{% trans 'Загальний' %}</h3>
-          <span class="weekly-income-amount"></span>
-        </div>
+          <div class="custom-dropdown-card">
+            <h3>{% trans 'Загальний' %}</h3>
+            <span class="weekly-income-amount"></span>
+          </div>
         {% endif %}
       </div>
-           <div class="card">
+      <div class="card">
         {% if partner_group %}
-        <div class="title-card">
-          <h2>{% trans 'Витрати ' %}<i class="fas fa-hryvnia"></i></h2>
-        </div>
-        <div class="custom-dropdown-card">
-          <h3>{% trans 'Витрати водія' %}</h3>
-          <span class="weekly-spending-driver"></span>
-        </div>
-        <div class="custom-dropdown-card">
-          <h3>{% trans 'Витрати автомобіля' %}</h3>
-          <span class="weekly-spending-vehicle"></span>
-        </div>
+          <div class="title-card">
+            <h2>{% trans 'Витрати ' %}<i class="fas fa-hryvnia"></i></h2>
+          </div>
+          <div class="custom-dropdown-card">
+            <h3>{% trans 'Витрати водія' %}</h3>
+            <span class="weekly-spending-driver"></span>
+          </div>
+          <div class="custom-dropdown-card">
+            <h3>{% trans 'Витрати автомобіля' %}</h3>
+            <span class="weekly-spending-vehicle"></span>
+          </div>
         {% endif %}
       </div>
       <div class="card">
@@ -119,10 +120,10 @@
           <span class="income-efficiency"></span>
         </div>
       </div>
-      {% endif %}
-    </div>
-    <div class="charts">
-      {% if investor_group %}
+    {% endif %}
+  </div>
+  <div class="charts">
+    {% if investor_group %}
       <div class="charts-card">
         <h2 class="chart-title">{% trans 'Дохід' %}</h2>
         <div class="noDataMessage1" style="display: none;">{% trans "За обраний період відсутні дані." %}</div>
@@ -133,7 +134,7 @@
         <div class="noDataMessage2" style="display: none;">{% trans "За обраний період відсутні дані." %}</div>
         <div id="investor-area-chart" style="width: 100%; height: 600px;"></div>
       </div>
-      {% else %}
+    {% else %}
       <div class="charts-card">
         <h2 class="chart-title">{% trans 'Доходи водіїв' %}</h2>
         <span class="weekly-income-dates"></span>
@@ -151,7 +152,7 @@
             </div>
             <ul class="dropdown-options" id="vehicle-options">
               {% for vehicle in get_vehicle_eff %}
-              <li data-value="{{ vehicle.id }}">{{ vehicle }}</li>
+                <li data-value="{{ vehicle.id }}">{{ vehicle }}</li>
               {% endfor %}
             </ul>
           </div>
@@ -166,58 +167,58 @@
         <div class="noDataMessage1" style="display: none;">{% trans "За обраний період відсутні дані." %}</div>
         <div id="bar-three-chart" style="width: 100%; height: 600px;"></div>
       </div>
-      {% endif %}
-    </div>
+    {% endif %}
+  </div>
 
-    <div class="modal-not-closed-payments">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h2>{% trans 'Не закриті виплати' %}</h2>
-          <span class="shift-close-btn">
+  <div class="modal-not-closed-payments">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>{% trans 'Не закриті виплати' %}</h2>
+        <span class="shift-close-btn">
             <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28" fill="none">
               <path d="M26.5 2L14.25 14.25M2 26.5L14.25 14.25M14.25 14.25L2 2L26.5 26.5" stroke="white" stroke-width="3"
-                    stroke-linejoin="round"/>
+                    stroke-linejoin="round"></path>
             </svg>
           </span>
-        </div>
-        <div class="modal-body">
-          <div class="not-closed-payments-table">
-            <table class="driver-table">
-              <thead>
-              <tr class="tr-driver-title">
-                <th class="sortable" data-sort="driver">{% trans 'Водій' %}</th>
-                <th class="sortable" data-sort="amount">{% trans 'Сума' %}</th>
-              </tr>
-              </thead>
-              <tr>
-                <td></td>
-                <td></td>
-              </tr>
-            </table>
-          </div>
+      </div>
+      <div class="modal-body">
+        <div class="not-closed-payments-table">
+          <table class="driver-table">
+            <thead>
+            <tr class="tr-driver-title">
+              <th class="sortable" data-sort="driver">{% trans 'Водій' %}</th>
+              <th class="sortable" data-sort="amount">{% trans 'Сума' %}</th>
+            </tr>
+            </thead>
+            <tr>
+              <td></td>
+              <td></td>
+            </tr>
+          </table>
         </div>
       </div>
     </div>
-    {% include 'dashboard/_confirmation-update-database.html' %}
-  </main>
-  <!-- End Main Manager-->
+  </div>
+  {% include 'dashboard/_confirmation-update-database.html' %}
+</main>
+<!-- End Main Manager-->
 </div>
 
 <!-- Scripts -->
 <script>
-  const VehicleImg = "{% static 'app/images/index-one-block-2.webp' %}";
-  const logoImageUrl = "{% static 'app/images/logo-2.svg' %}";
-  let ajaxPostUrl = "{% url 'post_request' %}";
-  let ajaxGetUrl = "{% url 'get_request' %}";
+	const VehicleImg = "{% static 'app/images/index-one-block-2.webp' %}";
+	const logoImageUrl = "{% static 'app/images/logo-2.svg' %}";
+	let ajaxPostUrl = "{% url 'post_request' %}";
+	let ajaxGetUrl = "{% url 'get_request' %}";
 </script>
 <!-- ApexCharts -->
 <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.41.0/dist/apexcharts.min.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.3/dist/jquery.min.js" defer></script>
 {% if investor_group %}
-<script src="{% static 'dashboard/js/scripts-investor.js' %}" defer></script>
+  <script src="{% static 'dashboard/js/scripts-investor.js' %}" defer></script>
 {% else %}
-<script src="{% static 'dashboard/js/scripts-partner.js' %}" defer></script>
+  <script src="{% static 'dashboard/js/scripts-partner.js' %}" defer></script>
 {% endif %}
 <script src="{% static 'dashboard/js/header-sidebar.js' %}" defer></script>
 <script src="{% static 'dashboard/js/scripts.js' %}" defer></script>
