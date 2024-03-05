@@ -132,10 +132,9 @@ class UberRequest(Fleet, Synchronizer):
         else:
             driver_ids = Driver.objects.get_active(fleetsdriversvehiclesrate__fleet=self).values_list(
                 'fleetsdriversvehiclesrate__driver_external_id', flat=True)
-        if driver:
-            driver_ids = driver.get_driver_external_id(self)
         format_start = self.report_interval(start) * 1000
         format_end = self.report_interval(end) * 1000
+        driver_ids = list(driver_ids) if not driver else driver.get_driver_external_id(self)
         if format_start >= format_end or not driver_ids:
             return results
         query = '''query GetPerformanceReport($performanceReportRequest: PerformanceReportRequest__Input!) {
@@ -158,7 +157,7 @@ class UberRequest(Fleet, Synchronizer):
                           {
                             "dimensionName": "vs:driver",
                             "operator": "OPERATOR_IN",
-                            "expressions": list(driver_ids)
+                            "expressions": driver_ids
                           }
                         ],
                         "metrics": [

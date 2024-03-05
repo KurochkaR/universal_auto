@@ -54,7 +54,7 @@ def create_driver_payments(start, end, driver, schema, bonuses=None, driver_repo
                                                      driver=driver).aggregate(
             cash=Coalesce(Sum('total_amount_cash'), 0, output_field=DecimalField()),
             kasa=Coalesce(Sum('total_amount_without_fee'), 0, output_field=DecimalField()))
-    kasa = driver_report['kasa'] + bonuses
+    kasa = driver_report['kasa'] + bonuses if bonuses else driver_report['kasa']
     rent = calculate_rent(start, end, driver)
     rent_value = rent * schema.rent_price
     rate = schema.rate

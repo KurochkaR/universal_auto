@@ -314,7 +314,7 @@ def download_daily_report(self, schemas, day=None):
 @app.task(bind=True, retry_backoff=30, max_retries=4)
 def download_weekly_report(self, partner_pk):
     try:
-        today = datetime.combine(timezone.localtime(), time.max)
+        today = datetime.combine(timezone.localtime(), time.max.replace(microsecond=0))
         end = timezone.make_aware(today - timedelta(days=today.weekday() + 1))
         start = timezone.make_aware(datetime.combine(end - timedelta(days=6), time.min))
         fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name='Gps')
@@ -362,7 +362,7 @@ def check_daily_report(self, partner_pk, start=None, end=None):
 @app.task(bind=True, retry_backoff=30, max_retries=4)
 def download_nightly_report(self, partner_pk, day=None):
     try:
-        for schema in Schema.objects.all():
+        for schema in Schema.objects.filter(partner=partner_pk):
             start, end = get_time_for_task(schema.pk, day)[2:]
             fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name='Gps')
             for fleet in fleets:
@@ -1113,7 +1113,7 @@ def calculate_driver_reports(self, schemas, day=None):
                                                         time.max.replace(microsecond=0)))
         start_week = timezone.make_aware(datetime.combine(end_week - timedelta(days=6), time.min))
         if schema_obj.is_weekly():
-            if not today.weekday():
+            if today.weekday() == 1:
                 start = start_week
                 end = end_week
             else:
@@ -1130,15 +1130,17 @@ def calculate_driver_reports(self, schemas, day=None):
                     bonuses=Coalesce(Sum('bonuses'), 0, output_field=DecimalField()),
                     kasa=Coalesce(Sum('total_amount_without_fee'), 0, output_field=DecimalField()),
                 )
-                bonus = bolt_weekly['bonuses'] if schema_obj.is_weekly() and not today.weekday() else None
+                print(bolt_weekly['kasa'])
+                bonus = bolt_weekly['bonuses'] if schema_obj.is_weekly() and today.weekday() == 1 else None
 
                 data = create_driver_payments(start, end, driver, schema_obj, bonuses=bonus)
-                if not schema_obj.is_weekly() and not today.weekday():
+                if not schema_obj.is_weekly() and today.weekday() == 1:
                     vehicle_bonus = {}
-                    weekly_reshuffles = check_reshuffle(driver, start, end)
+                    weekly_reshuffles = check_reshuffle(driver, start_week, end_week)
                     for shift in weekly_reshuffles:
                         start_period, end_period = find_reshuffle_period(shift, start, end)
-                        shift_bolt_kasa = calculate_bolt_kasa(driver, shift.swap_vehicle, start_period, end_period)
+                        shift_bolt_kasa = calculate_bolt_kasa(driver, shift.swap_vehicle,
+                                                              shift.swap_time, shift.end_time)
                         reshuffle_bonus = shift_bolt_kasa / bolt_weekly['kasa'] * bolt_weekly['bonuses']
                         if not vehicle_bonus.get(shift.swap_vehicle):
                             vehicle_bonus[shift.swap_vehicle] = reshuffle_bonus
@@ -1146,7 +1148,7 @@ def calculate_driver_reports(self, schemas, day=None):
                             vehicle_bonus[shift.swap_vehicle] += reshuffle_bonus
                     for car, bonus in vehicle_bonus.items():
                         amount = bonus * driver.schema.rate
-                        Bonus.objects.create(driver=driver, vehicle_id=car, amount=amount)
+                        Bonus.objects.create(driver=driver, vehicle=car, amount=amount)
                 payment, created = DriverPayments.objects.get_or_create(report_from=start,
                                                                         report_to=end,
                                                                         driver=driver,

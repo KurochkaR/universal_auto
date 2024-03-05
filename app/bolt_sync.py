@@ -35,6 +35,7 @@ class BoltRequest(Fleet, Synchronizer):
             'device_os_version': "NT 10.0",
             "device_uid": "6439b6c1-37c2-4736-b898-cb2a8608e6e2"
         }
+        print(payload)
         response = requests.post(url=f'{self.base_url}startAuthentication',
                                  params=self.param(),
                                  json=payload)
@@ -150,6 +151,8 @@ class BoltRequest(Fleet, Synchronizer):
                               "end_date": format_end
                               })
                 reports = self.get_target_url(f'{self.base_url}getDriverEarnings/dateRange', param)
+                print(reports)
+                tm.sleep(2)
             for driver_report in reports['data']['drivers']:
                 if not driver_report['net_earnings'] or str(driver_report['id']) not in driver_ids:
                     continue
@@ -185,6 +188,8 @@ class BoltRequest(Fleet, Synchronizer):
                 break
 
     def save_weekly_report(self, start, end):
+        driver_ids = Driver.objects.get_active(fleetsdriversvehiclesrate__fleet=self).values_list(
+            'fleetsdriversvehiclesrate__driver_external_id', flat=True)
         week_number = start.strftime('%GW%V')
         param = self.param()
         param["limit"] = 50
@@ -195,7 +200,10 @@ class BoltRequest(Fleet, Synchronizer):
         while True:
             param["offset"] = offset
             reports = self.get_target_url(f'{self.base_url}getDriverEarnings/week', param)
+            tm.sleep(2)
             for driver_report in reports['data']['drivers']:
+                if str(driver_report['id']) not in driver_ids:
+                    continue
                 report = self.parse_json_report(start, end, driver_report)
                 report['total_amount_without_fee'] = driver_report['net_earnings']
                 db_report, created = WeeklyReport.objects.get_or_create(report_from=start,
