@@ -1115,7 +1115,7 @@ def calculate_driver_reports(self, schemas, day=None):
                                                         time.max.replace(microsecond=0)))
         start_week = timezone.make_aware(datetime.combine(end_week - timedelta(days=6), time.min))
         if schema_obj.is_weekly():
-            if today.weekday() == 1:
+            if not today.weekday():
                 start = start_week
                 end = end_week
             else:
@@ -1133,7 +1133,7 @@ def calculate_driver_reports(self, schemas, day=None):
                     kasa=Coalesce(Sum('total_amount_without_fee'), 0, output_field=DecimalField()),
                     compensations=Coalesce(Sum('compensations'), 0, output_field=DecimalField()),
                 )
-                bonus = bolt_weekly['bonuses'] if schema_obj.is_weekly() and today.weekday() == 1 else None
+                bonus = bolt_weekly['bonuses'] if schema_obj.is_weekly() and not today.weekday() else None
 
                 data = create_driver_payments(start, end, driver, schema_obj, bonuses=bonus)
                 if not schema_obj.is_weekly() and today.weekday() == 1:

@@ -564,7 +564,7 @@ def calculate_income_partner(driver, start, end, spending_rate, rent, driver_ren
     if compensations:
         vehicles = len(vehicle_income.values())
         for key in vehicle_income:
-            vehicle_income[key] += compensations / vehicles
+            vehicle_income[key] += compensations / vehicles * (1-driver.schema.rate)
     return vehicle_income
 
 
