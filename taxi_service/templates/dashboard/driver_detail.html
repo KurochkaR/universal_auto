@@ -49,10 +49,14 @@
           <div class="switch-control">
             <label class="switch">
               <span class="switch-text-left">ON</span>
-              <input type="checkbox">
+              <input type="checkbox" id="switch-cash">
               <span class="slider round"></span>
               <span class="switch-text-right">OFF</span>
             </label>
+          </div>
+
+          <div class="status-cash">
+            {% trans "Статус готівки:" %} <span class="circle"></span>
           </div>
 
           <div class="cash-control-auto">
@@ -250,6 +254,28 @@
   </div>
 
   {% include 'dashboard/_confirmation-update-database.html' %}
+
+  <div class="confirmation-cash-control" style="display: none;">
+    <div class="container">
+      <div class="confirmation-box">
+        <h2>{% trans "Ви точно бажаєте вимкнути готівку та автоматичне слідкування за нею?" %}</h2>
+        <div class="btn-box">
+          <button class="confirmation-btn-on" id="confirmation-btn-on">{% trans "Так" %}</button>
+          <button class="confirmation-btn-off" id="confirmation-btn-off">{% trans "Ні" %}</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="loader-confirmation-cash" class="modal">
+    <div class="modal-content">
+      <div class="loading-content">
+        <p id="loadingMessage">{% trans 'Зачекайте поки відключиться готівка' %}</p>
+        <div id="loader" class="loader"></div>
+        <div id="checkmark" class="checkmark"></div>
+      </div>
+    </div>
+  </div>
 </main>
 
 <script>

@@ -238,8 +238,8 @@ def check_card_cash_value(self, partner_pk):
                 ratio = (card - rent_payment) / kasa
                 without_rent = card / kasa
                 rate = driver.cash_rate if driver.cash_rate else driver.schema.rate
-                enable = int(ratio > (1-rate))
-                rent_enable = int(without_rent > (1-rate))
+                enable = int(ratio > (1 - rate))
+                rent_enable = int(without_rent > (1 - rate))
                 fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name='Gps')
                 disabled = []
                 for fleet in fleets:
@@ -251,9 +251,9 @@ def check_card_cash_value(self, partner_pk):
                 if disabled:
                     if rent_payment:
                         calc_text = f"Готівка {int(kasa - card)} + холостий пробіг {int(rent_payment)}/{int(kasa)} =" \
-                                    f" {int((1-ratio)*100)}%\n"
+                                    f" {int((1 - ratio) * 100)}%\n"
                     else:
-                        calc_text = f"Готівка {int(kasa - card)} /{int(kasa)} = {int((1-ratio)*100)}%\n"
+                        calc_text = f"Готівка {int(kasa - card)} /{int(kasa)} = {int((1 - ratio) * 100)}%\n"
                     if enable:
                         text = f"\U0001F7E2 {driver} система увімкнула отримання замовлень за готівку.\n" + calc_text
 
@@ -263,7 +263,7 @@ def check_card_cash_value(self, partner_pk):
                     else:
                         text = f"\U0001F534 {driver} системою вимкнено готівкові замовлення.\n" \
                                f"Причина: високий рівень готівки\n" + calc_text
-                    text += f"Дозволено готівки {rate*100}%"
+                    text += f"Дозволено готівки {rate * 100}%"
                     bot.send_message(chat_id=ParkSettings.get_value("DRIVERS_CHAT", partner=partner_pk),
                                      text=text)
     except Exception as e:
@@ -479,7 +479,8 @@ def update_driver_status(self, partner_pk, photo=None):
             status_with_client = set()
             fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name='Gps')
             for fleet in fleets:
-                statuses = fleet.get_drivers_status(photo) if isinstance(fleet, BoltRequest) else fleet.get_drivers_status()
+                statuses = fleet.get_drivers_status(photo) if isinstance(fleet,
+                                                                         BoltRequest) else fleet.get_drivers_status()
                 logger.info(f"{fleet} {statuses}")
                 status_online = status_online.union(set(statuses['wait']))
                 status_with_client = status_with_client.union(set(statuses['with_client']))
@@ -600,7 +601,7 @@ def get_today_rent(self, partner_pk):
         raise self.retry(exc=e, countdown=retry_delay)
 
 
-@app.task(bind=True, retry_backoff=30, max_retries=4)
+@app.task(bind=True, retry_backoff=30, max_retries=4, ignore_result=False)
 def fleets_cash_trips(self, partner_pk, pk, enable):
     try:
         driver = Driver.objects.get(pk=pk)
@@ -615,6 +616,8 @@ def fleets_cash_trips(self, partner_pk, pk, enable):
         logger.error(e)
         retry_delay = retry_logic(e, self.request.retries + 1)
         raise self.retry(exc=e, countdown=retry_delay)
+    tm.sleep(6)
+    return partner_pk, "success"
 
 
 @app.task(bind=True, retry_backoff=30, max_retries=4)
@@ -668,7 +671,8 @@ def send_daily_statistic(self, schemas):
                 for num, key in enumerate(result[0], 1):
                     if result[0][key]:
                         driver_msg = "{} {}\nКаса: {:.2f} (+{:.2f})\n Оренда: {:.2f}км (+{:.2f})\n\n".format(
-                            key, schema_obj.title, result[0][key], result[1].get(key, 0), result[2].get(key, 0), result[3].get(key, 0))
+                            key, schema_obj.title, result[0][key], result[1].get(key, 0), result[2].get(key, 0),
+                            result[3].get(key, 0))
                         driver_dict_msg[key.pk] = driver_msg
                         message += f"{num}.{driver_msg}"
                 if schema_obj.partner.pk in dict_msg:
@@ -1128,7 +1132,7 @@ def calculate_driver_reports(self, schemas, day=None):
         for driver in Driver.objects.get_active(schema=schema):
             reshuffles = check_reshuffle(driver, start, end)
             report_kasa = SummaryReport.objects.filter(driver=driver, report_from__range=(start, end)).aggregate(
-                    kasa=Coalesce(Sum('total_amount_without_fee'), 0, output_field=DecimalField()))['kasa']
+                kasa=Coalesce(Sum('total_amount_without_fee'), 0, output_field=DecimalField()))['kasa']
             if reshuffles:
                 data = create_driver_payments(start, end, driver, schema_obj)
                 payment, created = DriverPayments.objects.get_or_create(report_from=start,

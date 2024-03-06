@@ -4,7 +4,7 @@ from decimal import Decimal
 from celery.result import AsyncResult
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.serializers.json import DjangoJSONEncoder
-from django.db.models import F
+from django.db.models import F, Q
 from django.http import JsonResponse, HttpResponse
 from django.forms.models import model_to_dict
 from django.contrib.auth import logout, authenticate
@@ -12,7 +12,7 @@ from django.shortcuts import render
 from django.template.loader import render_to_string
 
 from app.models import SubscribeUsers, Manager, CustomUser, DriverPayments, Bonus, Penalty, Vehicle, PenaltyBonus, \
-    BonusCategory, PenaltyCategory
+    BonusCategory, PenaltyCategory, Driver, FleetsDriversVehiclesRate
 from taxi_service.forms import MainOrderForm, CommentForm, BonusForm
 from taxi_service.utils import (update_order_sum_or_status, restart_order,
                                 partner_logout, login_in_investor,
@@ -20,7 +20,7 @@ from taxi_service.utils import (update_order_sum_or_status, restart_order,
                                 active_vehicles_gps, order_confirm,
                                 check_aggregators, add_shift, delete_shift, upd_shift)
 
-from auto.tasks import update_driver_data, get_session
+from auto.tasks import update_driver_data, get_session, fleets_cash_trips
 
 
 class PostRequestHandler:
@@ -368,12 +368,35 @@ class PostRequestHandler:
     def handler_calculate_payments(request):
         data = request.POST
         payment = DriverPayments.objects.get(pk=int(data.get('payment')))
-        payment.earning = round(payment.kasa * Decimal(int(data.get('rate'))/100) - payment.cash
-                           - payment.rent + payment.get_bonuses() - payment.get_penalties(), 2)
+        payment.earning = round(payment.kasa * Decimal(int(data.get('rate')) / 100) - payment.cash
+                                - payment.rent + payment.get_bonuses() - payment.get_penalties(), 2)
         payment.rate = Decimal(data.get('rate'))
         payment.save(update_fields=['earning', 'salary', 'rate'])
         response = {"earning": payment.earning, "rate": payment.rate}
         return JsonResponse(response)
+
+    @staticmethod
+    def handler_switch_cash(request):
+        partner_pk = request.user.manager.managers_partner.pk if request.user.is_manager() else request.user.pk
+        driver_id = request.POST.get('driver_id')
+        enable = int(request.POST.get('pay_cash'))
+
+        enable_cash = fleets_cash_trips.apply_async(args=[partner_pk, driver_id, enable],
+                                                    queue=f'beat_tasks_{partner_pk}')
+
+        json_data = JsonResponse({'task_id': enable_cash.id}, safe=False)
+        response = HttpResponse(json_data, content_type='application/json')
+        return response
+
+    @staticmethod
+    def handler_switch_auto_cash(request):
+        driver_id = request.POST.get('driver_id')
+        enable = bool(int(request.POST.get('pay_cash')))
+        driver = Driver.objects.get(pk=driver_id)
+        driver.cash_control = enable
+        driver.save(update_fields=['cash_control'])
+
+        return JsonResponse({'data': 'success', 'cash_control': driver.cash_control})
 
     @staticmethod
     def handle_unknown_action():
@@ -408,6 +431,9 @@ class GetRequestHandler:
     @staticmethod
     def handle_check_task(request):
         upd = AsyncResult(request.GET.get('task_id'))
+        print("%" * 100)
+        print(upd.ready())
+        print(upd.state)
         answer = upd.get()[1] if upd.ready() else 'in progress'
         json_data = JsonResponse({'data': answer}, safe=False)
         response = HttpResponse(json_data, content_type='application/json')
@@ -430,12 +456,29 @@ class GetRequestHandler:
                 bonus_form = BonusForm(user, payment_id=payment_id, category=category_type, driver_id=driver_id)
         except ValidationError:
             return JsonResponse({
-                                    "data": "За водієм не закріплено жодного автомобіля! Для додавання бонусу або штрафу створіть зміну водію!"},
-                                status=404)
+                "data": "За водієм не закріплено жодного автомобіля! Для додавання бонусу або штрафу створіть зміну водію!"},
+                status=404)
 
         form_html = render_to_string('dashboard/_bonus-penalty-form.html', {'bonus_form': bonus_form})
 
         return JsonResponse({"data": form_html})
+
+    @staticmethod
+    def handle_check_cash(request):
+        driver_id = request.GET.get('driver_id')
+        driver = Driver.objects.get(pk=driver_id)
+
+        fleet_driver_rate = FleetsDriversVehiclesRate.objects.filter(Q(driver=driver) & ~Q(fleet__name='Ninja'))
+        driver_pay_cash = all(rate.pay_cash for rate in fleet_driver_rate)
+
+        driver_cash_control = driver.cash_control
+        driver_cash_rate = driver.cash_rate
+
+        return JsonResponse({
+            'cash_control': driver_cash_control,
+            'cash_rate': driver_cash_rate,
+            'pay_cash': driver_pay_cash
+        })
 
     @staticmethod
     def handle_unknown_action():

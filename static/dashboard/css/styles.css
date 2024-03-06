@@ -1862,7 +1862,8 @@ span#vehicle-bonus-error {
 
 /* confirmation update database */
 
-.confirmation-update-database {
+.confirmation-update-database,
+.confirmation-cash-control {
 	display: none;
 	background-color: #A1E8B9;
 	padding: 20px;
@@ -2579,10 +2580,11 @@ input:checked + .slider-auto:before {
 
 .percent-control-cash label {
 	margin-right: 10px;
+	font-size: 15px;
 }
 
 .percent-control-cash input[type="text"] {
-	width: 100%;
+	width: 171px;
 	flex-grow: 1;
 	padding: 5px;
 	border-radius: 62px;
@@ -2593,7 +2595,7 @@ input:checked + .slider-auto:before {
 .percent-control-cash .edit-icon {
 	position: relative;
 	top: -25px;
-	left: 115px;
+	left: 60px;
 	cursor: pointer;
 	margin-left: 5px;
 	font-size: 16px;
@@ -2632,6 +2634,24 @@ input:checked + .slider-auto:before {
 	border-bottom: 3px solid #A1E8B9;
 }
 
+span.circle {
+	display: block;
+	width: 35px;
+	height: 35px;
+	border-radius: 50%;
+	background: darkgray;
+	margin-left: 15px;
+}
+
+.status-cash {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-weight: 700;
+	font-size: 20px;
+	color: #141e17;
+}
+
 .cash-info .cash-info-item {
 	display: flex;
 	align-items: center;
@@ -2666,7 +2686,6 @@ input:checked + .slider-auto:before {
 	color: rgba(20, 30, 23, 0.48);
 }
 
-/* Стилі для вертикальних рисок Штраф та Бонус */
 .cash-actions {
 	width: 100%;
 	display: flex;

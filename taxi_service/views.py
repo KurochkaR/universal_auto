@@ -54,7 +54,9 @@ class PostRequestView(View):
             "upd-status-payment": handler.handler_upd_payment_status,
             "upd_bonus_penalty": handler.handler_upd_bonus_penalty,
             "delete_bonus_penalty": handler.handler_delete_bonus_penalty,
-            "calculate-payments": handler.handler_calculate_payments
+            "calculate-payments": handler.handler_calculate_payments,
+            "switch_cash": handler.handler_switch_cash,
+            "switch_auto_cash": handler.handler_switch_auto_cash,
         }
 
         if action in method:
@@ -74,6 +76,7 @@ class GetRequestView(View):
             "check_task": handler.handle_check_task,
             "render_bonus": handler.handle_render_bonus_form,
             "render_bonus_driver": handler.handle_render_bonus_form,
+            "check_cash": handler.handle_check_cash,
         }
 
         if action in method:
