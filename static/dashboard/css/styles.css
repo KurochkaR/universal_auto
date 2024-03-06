@@ -2186,11 +2186,11 @@ input.driver-rate-input {
 	margin-right: 15px;
 	position: relative;
 	cursor: pointer;
-	color: #38423B;
-	font-size: 20px;
 	font-style: normal;
-	font-weight: 400;
 	line-height: normal;
+	font-weight: 700;
+	font-size: 20px;
+	color: #141e17;
 }
 
 .driver-radio-buttons input[type="radio"]#driver-list-radio:checked + label::before,
@@ -2343,6 +2343,7 @@ input.driver-rate-input {
 	display: grid;
 	grid-template-columns: 47% 53%;
 	height: -webkit-fill-available;
+	height: auto;
 }
 
 .detail-driver-info {
@@ -2354,6 +2355,7 @@ input.driver-rate-input {
 	padding: 20px;
 	border-radius: 20px;
 	margin-right: 27px;
+	height: 737px;
 }
 
 .detail-driver-info .driver-photo {
@@ -2432,11 +2434,19 @@ input.driver-rate-input {
 	width: 100%;
 }
 
-.cash-control-info {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
+.cash-control h2 {
+	font-weight: 700;
+	font-size: 20px;
+	color: #141e17;
 }
+
+.cash-control-info {
+	display: grid;
+	grid-template-columns: 1fr 1fr 1fr;
+	align-items: center;
+	justify-items: start;
+}
+
 
 .switch-control .switch {
 	position: relative;
@@ -2454,9 +2464,11 @@ input.driver-rate-input {
 }
 
 .switch-control .switch .slider {
+	width: 94px;
+	height: 27px;
 	position: absolute;
 	cursor: pointer;
-	top: 0;
+	top: 5px;
 	left: 34px;
 	right: -40px;
 	bottom: 0;
@@ -2467,13 +2479,14 @@ input.driver-rate-input {
 .switch-control .switch .slider:before {
 	position: absolute;
 	content: "";
-	height: 26px;
-	width: 26px;
 	left: 4px;
 	bottom: 4px;
 	background-color: white;
 	-webkit-transition: .4s;
 	transition: .4s;
+	border-radius: 39px;
+	width: 29px;
+	height: 19px;
 }
 
 .switch-control .switch input:checked + .slider {
@@ -2485,9 +2498,9 @@ input.driver-rate-input {
 }
 
 input:checked + .slider:before {
-	-webkit-transform: translateX(26px);
-	-ms-transform: translateX(26px);
-	transform: translateX(26px);
+	-webkit-transform: translateX(56px);
+	-ms-transform: translateX(56px);
+	transform: translateX(56px);
 }
 
 .slider.round {
@@ -2501,17 +2514,19 @@ input:checked + .slider:before {
 .switch-text-left,
 .switch-text-right {
 	font-size: 20px;
-	color: #141e17;
-	font-weight: 700;
+	color: #000;
+	font-weight: 400;
 }
 
 .switch-text-right {
-	margin-left: 67px;
+	margin-left: 95px;
 }
 
 .cash-control-auto {
 	display: flex;
 	align-items: center;
+	justify-self: end;
+	margin-right: 95px;
 }
 
 .switch-auto {
@@ -2666,8 +2681,8 @@ input:checked + .slider-auto:before {
 
 span.circle {
 	display: block;
-	width: 35px;
-	height: 35px;
+	width: 26px;
+	height: 26px;
 	border-radius: 50%;
 	background: darkgray;
 	margin-left: 15px;
@@ -2676,9 +2691,9 @@ span.circle {
 .status-cash {
 	display: flex;
 	align-items: center;
-	justify-content: center;
-	font-weight: 700;
-	font-size: 20px;
+	justify-content: flex-start;
+	font-weight: 600;
+	font-size: 15px;
 	color: #141e17;
 }
 
@@ -2893,10 +2908,12 @@ span.circle {
 .bonus-header h3,
 .penalty-header h3 {
 	color: #141E17;
-	font-size: 23px;
 	font-style: normal;
 	font-weight: 700;
 	line-height: normal;
+	font-size: 32px;
+	margin-top: 25px;
+	margin-bottom: 23px;
 }
 
 .bonus-header span,
@@ -2910,24 +2927,32 @@ span.circle {
 
 .bonus-header .add-button-bonus,
 .penalty-header .add-button-penalty {
+	width: 120px;
+	height: 39px;
 	display: flex;
 	align-items: center;
-	background-color: #EC6323;
-	color: #fff;
+	background-color: #A1E8B9;
 	border: none;
 	padding: 10px 20px;
-	font-size: 16px;
 	cursor: pointer;
-	border-radius: 5px;
 	transition: background-color 0.3s ease;
+	font-weight: 700;
+	font-size: 23px;
+	text-align: center;
+	color: #fff;
+	border-radius: 62px;
 }
 
 .driver-bonus-penalty-info,
 .driver-bonus-penalty-title {
 	display: grid;
 	grid-template-columns: repeat(5, 1fr);
-	margin: 20px 15px;
 	gap: 60px;
+}
+
+.driver-bonus-penalty-info {
+	background: #DEF7E7;
+	border-bottom: 3px solid #A1E8B9;
 }
 
 .driver-penalty-item {
@@ -2968,6 +2993,23 @@ span.circle {
 .btns {
 	max-width: 80px;
 	min-width: 80px;
+	font-weight: 400;
+	font-size: 25px;
+	color: #26392c;
+}
+
+.bonus-category span,
+.bonus-amount span,
+.bonus-description span,
+.bonus-car span,
+.btns span,
+.penalty-category span,
+.penalty-amount span,
+.penalty-description span,
+.penalty-car span {
+	font-weight: 400;
+	font-size: 20px;
+	color: #141e17;
 }
 
 .modal-not-closed-payments {

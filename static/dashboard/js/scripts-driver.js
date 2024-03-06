@@ -50,11 +50,13 @@ $(document).ready(function () {
 	bonusRadio.addEventListener('change', function () {
 		bonusBlock.style.display = 'block';
 		penaltyBlock.style.display = 'none';
+		$('.driver-bonus-penalty-info').css('background', '#DEF7E7');
 	});
 
 	penaltyRadio.addEventListener('change', function () {
 		penaltyBlock.style.display = 'block';
 		bonusBlock.style.display = 'none';
+		$('.driver-bonus-penalty-info').css('background', 'rgba(236, 99, 35, 0.2)');
 	});
 
 	$(this).on('click', '.back-page', function () {
