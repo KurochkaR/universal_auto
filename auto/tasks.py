@@ -20,7 +20,7 @@ from app.models import (RawGPS, Vehicle, Order, Driver, JobApplication, ParkSett
                         InvestorPayments, VehicleSpending, DriverReshuffle, DriverPayments,
                         TaskScheduler, DriverEffVehicleKasa, Schema, CustomReport, Fleet,
                         VehicleGPS, PartnerEarnings, Investor, Bonus, Penalty, PaymentsStatus,
-                        FleetsDriversVehiclesRate, DriverEfficiencyFleet, WeeklyReport, SalaryCalculation)
+                        FleetsDriversVehiclesRate, DriverEfficiencyFleet, WeeklyReport, SalaryCalculation, Category)
 from django.db.models import Sum, IntegerField, FloatField, DecimalField, Q
 from django.db.models.functions import Cast, Coalesce
 from app.utils import get_schedule, create_task
@@ -277,13 +277,15 @@ def check_card_cash_value(self, partner_pk):
 def send_notify_to_check_car(self, partner_pk):
     if redis_instance().exists(f"wrong_vehicle_{partner_pk}"):
         wrong_cars = redis_instance().hgetall(f"wrong_vehicle_{partner_pk}")
-        print(wrong_cars)
         text = ""
         for driver, car in wrong_cars.items():
+            ignore = ParkSettings.get_value("IGNORE_DRIVER", partner=self.partner)
+            if ignore:
+                name, second_name = ignore.split()
+                if driver == Driver.objects.filter(second_name=second_name, name=name).first():
+                    continue
             driver_obj = Driver.objects.get(pk=int(driver))
-            print(driver_obj)
             vehicle = check_vehicle(driver_obj)
-            print(vehicle)
             if not vehicle or vehicle.licence_plate != car:
                 text += f"{driver_obj} працює на {car}\n"
         if text:
@@ -1129,8 +1131,8 @@ def calculate_driver_reports(self, schemas, day=None):
                                                           driver=driver, fleet__name="Bolt").aggregate(
                     bonuses=Coalesce(Sum('bonuses'), 0, output_field=DecimalField()),
                     kasa=Coalesce(Sum('total_amount_without_fee'), 0, output_field=DecimalField()),
+                    compensations=Coalesce(Sum('compensations'), 0, output_field=DecimalField()),
                 )
-                print(bolt_weekly['kasa'])
                 bonus = bolt_weekly['bonuses'] if schema_obj.is_weekly() and today.weekday() == 1 else None
 
                 data = create_driver_payments(start, end, driver, schema_obj, bonuses=bonus)
@@ -1138,17 +1140,23 @@ def calculate_driver_reports(self, schemas, day=None):
                     vehicle_bonus = {}
                     weekly_reshuffles = check_reshuffle(driver, start_week, end_week)
                     for shift in weekly_reshuffles:
-                        start_period, end_period = find_reshuffle_period(shift, start, end)
                         shift_bolt_kasa = calculate_bolt_kasa(driver, shift.swap_vehicle,
                                                               shift.swap_time, shift.end_time)
-                        reshuffle_bonus = shift_bolt_kasa / bolt_weekly['kasa'] * bolt_weekly['bonuses']
+                        reshuffle_bonus = shift_bolt_kasa / (bolt_weekly['kasa'] - bolt_weekly['bonuses']) * bolt_weekly['bonuses']
                         if not vehicle_bonus.get(shift.swap_vehicle):
                             vehicle_bonus[shift.swap_vehicle] = reshuffle_bonus
                         else:
                             vehicle_bonus[shift.swap_vehicle] += reshuffle_bonus
                     for car, bonus in vehicle_bonus.items():
                         amount = bonus * driver.schema.rate
-                        Bonus.objects.create(driver=driver, vehicle=car, amount=amount)
+                        vehicle_amount = bonus * (1 - driver.schema.rate)
+                        PartnerEarnings.objects.get_or_create(report_from=start_week,
+                                                              report_to=end_week,
+                                                              vehicle=car,
+                                                              partner=driver.partner,
+                                                              defaults={"earning": vehicle_amount})
+                        bolt_category = Category.objects.get(title="Бонуси Bolt")
+                        Bonus.objects.create(driver=driver, vehicle=car, amount=amount, category=bolt_category)
                 payment, created = DriverPayments.objects.get_or_create(report_from=start,
                                                                         report_to=end,
                                                                         driver=driver,
@@ -1209,7 +1217,7 @@ def calculate_vehicle_earnings(self, payment_pk):
     for vehicle, income in vehicles_income.items():
         vehicle_bonus = Penalty.objects.filter(vehicle=vehicle, driver_payments=payment).aggregate(
             total_amount=Coalesce(Sum('amount'), Decimal(0)))['total_amount']
-        vehicle_penalty = Bonus.objects.filter(vehicle=vehicle, driver_payments=payment).aggregate(
+        vehicle_penalty = Bonus.objects.filter(vehicle=vehicle, driver_payments=payment).exclude(category__title="Бонуси Bolt").aggregate(
             total_amount=Coalesce(Sum('amount'), Decimal(0)))['total_amount']
         earning = income + vehicle_bonus - vehicle_penalty
         PartnerEarnings.objects.get_or_create(

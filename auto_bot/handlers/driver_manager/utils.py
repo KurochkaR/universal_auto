@@ -475,6 +475,7 @@ def get_driver_efficiency_report(manager_id, schema=None, start=None, end=None):
 def calculate_bolt_kasa(driver, vehicle, start_period, end_period):
     bolt_income = FleetOrder.objects.filter(
         fleet="Bolt",
+        state__in=[FleetOrder.COMPLETED, FleetOrder.CLIENT_CANCEL],
         accepted_time__range=(start_period, end_period),
         driver=driver,
         vehicle=vehicle).aggregate(total_price=Coalesce(Sum('price'), 0),
@@ -486,10 +487,13 @@ def calculate_bolt_kasa(driver, vehicle, start_period, end_period):
 
 def get_vehicle_income(driver, start, end, spending_rate, rent):
     vehicle_income = {}
+    start_week = start
+    end_week = end
     bolt_weekly = WeeklyReport.objects.filter(report_from=start, report_to=end,
                                               driver=driver, fleet__name="Bolt").aggregate(
         bonuses=Coalesce(Sum('bonuses'), 0, output_field=DecimalField()),
         kasa=Coalesce(Sum('total_amount_without_fee'), 0, output_field=DecimalField()),
+        compensations=Coalesce(Sum('compensations'), 0, output_field=DecimalField()),
     )
     driver_rent = RentInformation.objects.filter(
         driver=driver, report_from__range=(start, end)).aggregate(
@@ -505,20 +509,19 @@ def get_vehicle_income(driver, start, end, spending_rate, rent):
                 vehicle_income[vehicle] += income
         start += timedelta(days=1)
     driver_bonus = {}
-    weekly_reshuffles = check_reshuffle(driver, start, end)
+    weekly_reshuffles = check_reshuffle(driver, start_week, end_week)
     for shift in weekly_reshuffles:
-        start_period, end_period = find_reshuffle_period(shift, start, end)
-        shift_bolt_kasa = calculate_bolt_kasa(driver, shift.swap_vehicle, start_period, end_period)
-        reshuffle_bonus = shift_bolt_kasa / bolt_weekly['kasa'] * bolt_weekly['bonuses']
+        shift_bolt_kasa = calculate_bolt_kasa(driver, shift.swap_vehicle, shift.swap_time, shift.end_time)
+        reshuffle_bonus = shift_bolt_kasa / (bolt_weekly['kasa'] - bolt_weekly['compensations'] - bolt_weekly['bonuses']) * bolt_weekly['bonuses']
         if not driver_bonus.get(shift.swap_vehicle):
             driver_bonus[shift.swap_vehicle] = reshuffle_bonus
         else:
             driver_bonus[shift.swap_vehicle] += reshuffle_bonus
-    for car, bonus in driver_bonus:
+    for car, bonus in driver_bonus.items():
         if not vehicle_income.get(car):
-            vehicle_income[car] = -bonus
+            vehicle_income[car] = bonus * (1-driver.schema.rate)
         else:
-            vehicle_income[car] -= bonus
+            vehicle_income[car] += bonus * (1-driver.schema.rate)
 
     return vehicle_income
 
@@ -555,6 +558,13 @@ def calculate_income_partner(driver, start, end, spending_rate, rent, driver_ren
             vehicle_income[vehicle] = total_income
         else:
             vehicle_income[vehicle] += total_income
+    payment = Payments.objects.filter(report_from__range=(start, end), driver=driver, fleet__name="Bolt")
+    compensations = payment.aggregate(
+        compensations=Coalesce(Sum('compensations'), 0, output_field=DecimalField()))['compensations']
+    if compensations:
+        vehicles = len(vehicle_income.values())
+        for key in vehicle_income:
+            vehicle_income[key] += compensations / vehicles
     return vehicle_income
 
 

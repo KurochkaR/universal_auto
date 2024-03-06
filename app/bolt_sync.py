@@ -12,7 +12,7 @@ from django.utils import timezone
 
 from django.db import models, transaction
 from app.models import BoltService, Driver, FleetsDriversVehiclesRate, FleetOrder, \
-    CredentialPartner, Vehicle, PaymentTypes, Fleet, CustomReport, WeeklyReport, DailyReport
+    CredentialPartner, Vehicle, PaymentTypes, Fleet, CustomReport, WeeklyReport, DailyReport, ParkSettings
 from auto import settings
 
 from auto_bot.handlers.order.utils import check_vehicle, normalized_plate
@@ -35,7 +35,6 @@ class BoltRequest(Fleet, Synchronizer):
             'device_os_version': "NT 10.0",
             "device_uid": "6439b6c1-37c2-4736-b898-cb2a8608e6e2"
         }
-        print(payload)
         response = requests.post(url=f'{self.base_url}startAuthentication',
                                  params=self.param(),
                                  json=payload)
@@ -151,7 +150,6 @@ class BoltRequest(Fleet, Synchronizer):
                               "end_date": format_end
                               })
                 reports = self.get_target_url(f'{self.base_url}getDriverEarnings/dateRange', param)
-                print(reports)
                 tm.sleep(2)
             for driver_report in reports['data']['drivers']:
                 if not driver_report['net_earnings'] or str(driver_report['id']) not in driver_ids:
@@ -346,8 +344,9 @@ class BoltRequest(Fleet, Synchronizer):
             report = self.get_target_url(f'{self.base_url}getOrdersHistory', self.param(), payload, method="POST")
             if report.get('data'):
                 for order in report['data']['rows']:
-                    driver_qs = Driver.objects.filter(fleetsdriversvehiclesrate__driver_external_id=order['driver_id'],
-                                                      fleetsdriversvehiclesrate__fleet=self, partner=self.partner)
+                    driver_qs = Driver.objects.filter(
+                        fleetsdriversvehiclesrate__driver_external_id=str(order['driver_id']),
+                        fleetsdriversvehiclesrate__fleet=self, partner=self.partner)
                     if driver_qs.exists():
                         driver = driver_qs.first()
                         price = order.get('total_price', 0)
@@ -367,7 +366,7 @@ class BoltRequest(Fleet, Synchronizer):
                                 datetime.fromtimestamp(order['order_stops'][-1]['arrived_at']))
                         except TypeError:
                             finish = None
-                        vehicle = Vehicle.objects.get(licence_plate=normalized_plate(order['car_reg_number']))
+                        vehicle = Vehicle.objects.filter(licence_plate=normalized_plate(order['car_reg_number'])).first()
                         data = {"order_id": order['order_id'],
                                 "fleet": self.name,
                                 "driver": driver,
@@ -394,6 +393,8 @@ class BoltRequest(Fleet, Synchronizer):
                 if offset + limit < report['data']['total_rows']:
                     offset += limit
                 else:
+                    with transaction.atomic():
+                        FleetOrder.objects.bulk_create(batch_data)
                     break
             else:
                 with transaction.atomic():

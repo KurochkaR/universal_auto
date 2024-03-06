@@ -319,7 +319,7 @@ class UserAdmin(admin.ModelAdmin):
     list_display_links = ('name', 'second_name')
     list_filter = ['created_at', 'role']
     search_fields = ('name', 'second_name')
-    ordering = ('name', 'second_name')
+    ordering = ('second_name', 'name')
     list_per_page = 25
 
     fieldsets = [
@@ -726,7 +726,6 @@ class BaseReportAdmin(admin.ModelAdmin):
 class PaymentsOrderAdmin(BaseReportAdmin):
     search_fields = ('fleet',)
     list_filter = (FleetFilter, ReportUserFilter)
-    ordering = ('-report_from',)
 
     def get_list_display(self, request):
         base_list_display = super().get_list_display(request)
@@ -749,7 +748,6 @@ class PaymentsOrderAdmin(BaseReportAdmin):
 @admin.register(SummaryReport)
 class SummaryReportAdmin(BaseReportAdmin):
     list_filter = (SummaryReportUserFilter,)
-    ordering = ('-report_from', 'driver')
 
     def get_list_filter(self, request):
         list_filter = [SummaryReportUserFilter]
@@ -963,7 +961,7 @@ class ManagerAdmin(admin.ModelAdmin):
 @admin.register(Driver)
 class DriverAdmin(SoftDeleteAdmin):
     search_fields = ('name', 'second_name')
-    ordering = ('name', 'second_name')
+    ordering = ('second_name', 'name')
     list_display_links = ('name', 'second_name')
     list_per_page = 20
     readonly_fields = ('name', 'second_name', 'email', 'phone_number', 'driver_status')
@@ -1165,7 +1163,7 @@ class FiredDriverAdmin(admin.ModelAdmin):
 @admin.register(Vehicle)
 class VehicleAdmin(SoftDeleteAdmin):
     search_fields = ('name', 'licence_plate', 'vin_code',)
-    ordering = ('name',)
+    ordering = ('licence_plate',)
     exclude = ('deleted_at',)
     list_display_links = ('licence_plate',)
     list_per_page = 10
@@ -1422,25 +1420,25 @@ class CommentAdmin(admin.ModelAdmin):
         return fieldsets
 
 
-class ParkSettingsForm(forms.ModelForm):
-    class Meta:
-        model = ParkSettings
-        fields = ('value', 'description')
-
-    def clean_value(self):
-        value = self.cleaned_data.get('value')
-
-        try:
-            int_value = int(value)
-        except (ValueError, TypeError):
-            raise forms.ValidationError("Введіть, будь ласка, ціле число")
-
-        return int_value
+# class ParkSettingsForm(forms.ModelForm):
+#     class Meta:
+#         model = ParkSettings
+#         fields = ('value', 'description')
+#
+#     def clean_value(self):
+#         value = self.cleaned_data.get('value')
+#
+#         try:
+#             int_value = int(value)
+#         except (ValueError, TypeError):
+#             raise forms.ValidationError("Введіть, будь ласка, ціле число")
+#
+#         return int_value
 
 
 @admin.register(ParkSettings)
 class ParkSettingsAdmin(admin.ModelAdmin):
-    form = ParkSettingsForm
+    # form = ParkSettingsForm
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
