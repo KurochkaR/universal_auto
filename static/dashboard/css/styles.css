@@ -2592,16 +2592,46 @@ input:checked + .slider-auto:before {
 	border: 3px solid #fff;
 }
 
-.percent-control-cash .edit-icon {
+.percent-control-cash .edit-icon,
+.percent-control-cash .cansel-icon {
 	position: relative;
-	top: -25px;
-	left: 60px;
+	top: -26px;
+	left: 75px;
 	cursor: pointer;
 	margin-left: 5px;
 	font-size: 16px;
 	color: #A1E8B9;
 	transform: scaleX(-1);
 }
+
+.percent-control-cash .cansel-icon {
+	display: none;
+	color: #EC6323;
+}
+
+
+.percent-control-cash {
+	position: relative;
+}
+
+.confirm-button {
+	position: absolute;
+	right: 30px;
+	top: 30px;
+	display: none;
+	background: #A1E8B9;
+	font-weight: 400;
+	font-size: 9px;
+	text-align: center;
+	color: #26392c;
+	border-radius: 25px;
+	border: none;
+}
+
+#cash-percent:focus + .confirm-button {
+	display: block;
+}
+
 
 .graphic-cash {
 	display: flex;

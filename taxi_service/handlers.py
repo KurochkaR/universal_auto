@@ -399,6 +399,16 @@ class PostRequestHandler:
         return JsonResponse({'data': 'success', 'cash_control': driver.cash_control})
 
     @staticmethod
+    def handler_change_cash_percent(request):
+        driver_id = request.POST.get('driver_id')
+        driver = Driver.objects.get(pk=driver_id)
+        cash_rate = Decimal(int(request.POST.get('cash_percent')) / 100)
+        driver.cash_rate = cash_rate
+        driver.save(update_fields=['cash_rate'])
+
+        return JsonResponse({'data': 'success', 'cash_rate': driver.cash_rate})
+
+    @staticmethod
     def handle_unknown_action():
         return JsonResponse({}, status=400)
 
@@ -431,9 +441,6 @@ class GetRequestHandler:
     @staticmethod
     def handle_check_task(request):
         upd = AsyncResult(request.GET.get('task_id'))
-        print("%" * 100)
-        print(upd.ready())
-        print(upd.state)
         answer = upd.get()[1] if upd.ready() else 'in progress'
         json_data = JsonResponse({'data': answer}, safe=False)
         response = HttpResponse(json_data, content_type='application/json')
@@ -472,7 +479,7 @@ class GetRequestHandler:
         driver_pay_cash = all(rate.pay_cash for rate in fleet_driver_rate)
 
         driver_cash_control = driver.cash_control
-        driver_cash_rate = driver.cash_rate
+        driver_cash_rate = int(driver.cash_rate * 100)
 
         return JsonResponse({
             'cash_control': driver_cash_control,

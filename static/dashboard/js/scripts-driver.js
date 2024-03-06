@@ -1,45 +1,45 @@
-var circularChart = echarts.init(document.getElementById('graphic-cash'));
-
-var circularChartOptions = {
-	tooltip: {
-		trigger: 'item',
-		formatter: '{b}: {c} ({d}%)'
-	},
-	legend: {
-		show: false
-	},
-	series: [
-		{
-			type: 'pie',
-			radius: ['40%', '70%'],
-			avoidLabelOverlap: false,
-			padAngle: 5,
-			itemStyle: {
-				borderRadius: 50
-			},
-			label: {
-				show: false,
-				position: 'center'
-			},
-			emphasis: {
-				label: {
-					show: true,
-					fontSize: 40,
-					fontWeight: 'bold'
-				}
-			},
-			labelLine: {
-				show: false
-			},
-			data: [
-				{value: 1048, name: 'Готівка', itemStyle: {color: '#EC6323'}},
-				{value: 735, name: 'Безготівка', itemStyle: {color: '#A1E8B9'}}
-			],
-		}
-	]
-};
-
-circularChart.setOption(circularChartOptions);
+// var circularChart = echarts.init(document.getElementById('graphic-cash'));
+//
+// var circularChartOptions = {
+// 	tooltip: {
+// 		trigger: 'item',
+// 		formatter: '{b}: {c} ({d}%)'
+// 	},
+// 	legend: {
+// 		show: false
+// 	},
+// 	series: [
+// 		{
+// 			type: 'pie',
+// 			radius: ['40%', '70%'],
+// 			avoidLabelOverlap: false,
+// 			padAngle: 5,
+// 			itemStyle: {
+// 				borderRadius: 50
+// 			},
+// 			label: {
+// 				show: false,
+// 				position: 'center'
+// 			},
+// 			emphasis: {
+// 				label: {
+// 					show: true,
+// 					fontSize: 40,
+// 					fontWeight: 'bold'
+// 				}
+// 			},
+// 			labelLine: {
+// 				show: false
+// 			},
+// 			data: [
+// 				{value: 1048, name: 'Готівка', itemStyle: {color: '#EC6323'}},
+// 				{value: 735, name: 'Безготівка', itemStyle: {color: '#A1E8B9'}}
+// 			],
+// 		}
+// 	]
+// };
+//
+// circularChart.setOption(circularChartOptions);
 $(document).ready(function () {
 	checkCash();
 	const bonusRadio = document.getElementById('driver-bonus-radio');
@@ -174,8 +174,9 @@ $(document).ready(function () {
 			},
 			dataType: 'json',
 			success: function (response) {
-				let interval = setInterval(function () {
-					if (response.task_id) {
+
+				if (response.task_id) {
+					let interval = setInterval(function () {
 						$.ajax({
 							url: ajaxGetUrl,
 							type: 'GET',
@@ -192,12 +193,11 @@ $(document).ready(function () {
 								}
 							}
 						});
-					} else {
-						checkCash();
-						clearInterval(interval);
-						$('#loader-confirmation-cash').hide()
-					}
-				}, 5000);
+					}, 5000);
+				} else {
+					checkCash();
+					$('#loader-confirmation-cash').hide()
+				}
 			}
 		});
 	});
@@ -235,3 +235,52 @@ function checkCash() {
 		}
 	});
 }
+
+
+$(document).ready(function () {
+	var cashPercent = $('#cash-percent');
+	cashPercent.focus(function () {
+		$('.confirm-button').css('display', 'block');
+		$('.edit-icon').hide();
+		$('.cansel-icon').show().css('color', '#EC6323');
+	});
+
+	cashPercent.blur(function (event) {
+		setTimeout(function () {
+			if (!$(event.relatedTarget).hasClass('confirm-button')) {
+				$('.confirm-button').css('display', 'none');
+				$('.edit-icon').show().css('color', '#A1E8B9');
+				$('.cansel-icon').hide();
+				checkCash();
+			}
+		}, 100);
+	});
+
+	$(this).on('click', '.confirm-button', function () {
+		$.ajax({
+			url: ajaxPostUrl,
+			type: 'POST',
+			data: {
+				action: 'change_cash_percent',
+				driver_id: $('.detail-driver-info').data('id'),
+				cash_percent: cashPercent.val(),
+				csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
+			},
+			dataType: 'json',
+			success: function (response) {
+				$('.confirm-button').css('display', 'none');
+				$('.edit-icon').show()
+				$('.cansel-icon').hide();
+			}
+		});
+	});
+
+	$(this).on('click', '.cansel-icon', function () {
+		$('.confirm-button').css('display', 'none');
+		$('.edit-icon').html('&#9998;').css('color', '#A1E8B9');
+	});
+
+	$(document).on('click', '.edit-icon', function () {
+		cashPercent.focus();
+	});
+});
