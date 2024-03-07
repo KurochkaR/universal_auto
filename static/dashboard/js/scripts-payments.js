@@ -203,6 +203,7 @@ $(document).ready(function () {
 		sanitizedValue = Math.min(Math.max(integerValue, 0), 100);
 		$(this).val(sanitizedValue);
 	});
+
 	$(this).on("keypress", ".driver-rate-input", function (e) {
 		if (e.which === 13) {
 			e.preventDefault();

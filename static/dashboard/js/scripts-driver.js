@@ -278,6 +278,14 @@ $(document).ready(function () {
 		});
 	});
 
+	$(this).on("keypress", "#cash-percent", function (e) {
+		if (e.which === 13) {
+			$('.confirm-button').click();
+			cashPercent.blur();
+		}
+	});
+
+
 	$(this).on('click', '.cansel-icon', function () {
 		$('.confirm-button').css('display', 'none');
 		$('.edit-icon').html('&#9998;').css('color', '#A1E8B9');
