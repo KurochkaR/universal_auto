@@ -132,8 +132,8 @@ $(document).ready(function () {
 		var isChecked = $(this).prop('checked');
 		previousState = !isChecked;
 		previousAutoState = false
-		var confirmationText = isChecked ? "Ви точно бажаєте вимкнути готівку та автоматичне слідкування за нею?" :
-			"Ви точно бажаєте увімкнути готівку та вимкнути автоматичне слідкування за нею?";
+		var confirmationText = isChecked ? "Ви точно бажаєте вимкнути готівку?" :
+			"Ви точно бажаєте увімкнути готівку";
 
 		$('.confirmation-cash-control h2').text(confirmationText);
 		$('#loader-confirmation-cash p').text(isChecked ? "Зачекайти поки вимкнеться готівка" : "Зачекайти поки увімкнеться готівка");

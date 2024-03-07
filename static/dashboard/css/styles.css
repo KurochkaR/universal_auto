@@ -3366,6 +3366,18 @@ span.circle {
 		width: 20px;
 		height: 20px;
 	}
+
+	.confirmation-cash-control {
+		width: 75%;
+	}
+
+	.confirmation-box h2 {
+		font-size: 15px;
+	}
+
+	.confirmation-box .btn-box button {
+		font-size: 10px;
+	}
 }
 
 @media screen and (min-width: 768px) and (max-width: 1199px) {

@@ -616,7 +616,6 @@ def fleets_cash_trips(self, partner_pk, pk, enable):
         logger.error(e)
         retry_delay = retry_logic(e, self.request.retries + 1)
         raise self.retry(exc=e, countdown=retry_delay)
-    tm.sleep(6)
     return partner_pk, "success"
 
 
