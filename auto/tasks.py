@@ -279,12 +279,12 @@ def send_notify_to_check_car(self, partner_pk):
         wrong_cars = redis_instance().hgetall(f"wrong_vehicle_{partner_pk}")
         text = ""
         for driver, car in wrong_cars.items():
+            driver_obj = Driver.objects.get(pk=int(driver))
             ignore = ParkSettings.get_value("IGNORE_DRIVER", partner=partner_pk)
             if ignore:
                 name, second_name = ignore.split()
-                if driver == Driver.objects.filter(second_name=second_name, name=name).first():
+                if driver_obj == Driver.objects.filter(second_name=second_name, name=name).first():
                     continue
-            driver_obj = Driver.objects.get(pk=int(driver))
             vehicle = check_vehicle(driver_obj)
             if not vehicle or vehicle.licence_plate != car:
                 text += f"{driver_obj} працює на {car}\n"
