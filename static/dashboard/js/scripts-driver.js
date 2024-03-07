@@ -286,4 +286,17 @@ $(document).ready(function () {
 	$(document).on('click', '.edit-icon', function () {
 		cashPercent.focus();
 	});
+
+	$(this).on("input", "#cash-percent", function () {
+		var inputValue = $(this).val();
+		var sanitizedValue = inputValue.replace(/[^0-9]/g, '');
+
+		var integerValue = parseInt(sanitizedValue, 10);
+
+		if (isNaN(integerValue) || integerValue < 0) {
+			integerValue = 0;
+		}
+		sanitizedValue = Math.min(Math.max(integerValue, 0), 100);
+		$(this).val(sanitizedValue);
+	});
 });
