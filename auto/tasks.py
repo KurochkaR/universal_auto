@@ -265,7 +265,7 @@ def check_card_cash_value(self, partner_pk):
                         text = f"\U0001F534 {driver} системою вимкнено готівкові замовлення.\n" \
                                f"Причина: високий рівень готівки\n" + calc_text
                     text += f"Дозволено готівки {rate*100}%"
-                    bot.send_message(chat_id=ParkSettings.get_value("DRIVERS_CHAT", partner=partner_pk),
+                    bot.send_message(chat_id=ParkSettings.get_value("CASH_CHAT", partner=partner_pk),
                                      text=text)
     except Exception as e:
         logger.error(e)
@@ -289,11 +289,15 @@ def send_notify_to_check_car(self, partner_pk):
             if not vehicle or vehicle.licence_plate != car:
                 text += f"{driver_obj} працює на {car}\n"
         if text:
-            text += "перевірте будь ласка зміни водіїв"
-            try:
-                bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"), text=text)
-            except BadRequest as e:
-                logger.error(e)
+            text += "перевірте, будь ласка, зміни водіїв"
+            managers_chat_id = list(Manager.objects.filter(managers_partner=partner_pk, chat_id__isnull=False).exclude(
+                chat_id='').values_list('chat_id', flat=True))
+            managers_chat_id.append(ParkSettings.get_value("DEVELOPER_CHAT_ID"))
+            for chat_id in managers_chat_id:
+                try:
+                    bot.send_message(chat_id=chat_id, text=text)
+                except BadRequest as e:
+                    logger.error(e)
 
 
 @app.task(bind=True, retry_backoff=30, max_retries=4)
@@ -321,7 +325,6 @@ def download_weekly_report(self, partner_pk):
         start = timezone.make_aware(datetime.combine(end - timedelta(days=6), time.min))
         fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name='Gps')
         for fleet in fleets:
-            print(fleet)
             fleet.save_weekly_report(start, end)
         #     for report in reports:
         #         compare_reports(fleet, start, end, report.driver, report, CustomReport, partner_pk)
@@ -1136,13 +1139,13 @@ def calculate_driver_reports(self, schemas, day=None):
                 bonus = bolt_weekly['bonuses'] if schema_obj.is_weekly() and not today.weekday() else None
 
                 data = create_driver_payments(start, end, driver, schema_obj, bonuses=bonus)
-                if not schema_obj.is_weekly() and today.weekday() == 1:
+                if not schema_obj.is_weekly() and not today.weekday():
                     vehicle_bonus = {}
                     weekly_reshuffles = check_reshuffle(driver, start_week, end_week)
                     for shift in weekly_reshuffles:
                         shift_bolt_kasa = calculate_bolt_kasa(driver, shift.swap_vehicle,
                                                               shift.swap_time, shift.end_time)
-                        reshuffle_bonus = shift_bolt_kasa / (bolt_weekly['kasa'] - bolt_weekly['bonuses']) * bolt_weekly['bonuses']
+                        reshuffle_bonus = shift_bolt_kasa / (bolt_weekly['kasa'] - bolt_weekly['compensations'] - bolt_weekly['bonuses']) * bolt_weekly['bonuses']
                         if not vehicle_bonus.get(shift.swap_vehicle):
                             vehicle_bonus[shift.swap_vehicle] = reshuffle_bonus
                         else:
@@ -1154,7 +1157,9 @@ def calculate_driver_reports(self, schemas, day=None):
                                                               report_to=end_week,
                                                               vehicle=car,
                                                               partner=driver.partner,
-                                                              defaults={"earning": vehicle_amount})
+                                                              defaults={
+                                                                  "status": PaymentsStatus.COMPLETED,
+                                                                  "earning": vehicle_amount})
                         bolt_category = Category.objects.get(title="Бонуси Bolt")
                         Bonus.objects.create(driver=driver, vehicle=car, amount=amount, category=bolt_category)
                 payment, created = DriverPayments.objects.get_or_create(report_from=start,
