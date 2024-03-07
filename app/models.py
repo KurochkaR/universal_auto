@@ -341,7 +341,7 @@ class Driver(User):
     WITH_CLIENT = 'В дорозі'
     GET_ORDER = 'Приймаю замовлення'
     WAIT_FOR_CLIENT = 'Очікую клієнта'
-    OFFLINE = 'Не працюю'
+    OFFLINE = 'Оффлайн'
 
     photo = models.ImageField(blank=True, null=True, upload_to='drivers', verbose_name='Фото водія',
                               default='drivers/default-driver.png')
@@ -1069,7 +1069,7 @@ class CarEfficiency(models.Model):
     total_kasa = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Каса')
     clean_kasa = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Чистий дохід')
     total_spending = models.DecimalField(null=True, decimal_places=2, max_digits=10, default=0, verbose_name='Витрати')
-    mileage = models.DecimalField(decimal_places=2, max_digits=6, default=0, verbose_name='Пробіг, км')
+    mileage = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Пробіг, км')
     efficiency = models.DecimalField(decimal_places=2, max_digits=4, default=0, verbose_name='Ефективність, грн/км')
 
     drivers = models.ManyToManyField(Driver, through="DriverEffVehicleKasa", verbose_name='Водії', db_index=True)
@@ -1096,10 +1096,11 @@ class DriverEfficiencyPolymorphic(PolymorphicModel):
     report_to = models.DateTimeField(null=True, verbose_name='Звіт по')
     total_kasa = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Каса')
     total_orders = models.IntegerField(default=0, verbose_name="Замовлень за день")
-    total_orders_rejected = models.IntegerField(default=0, verbose_name="Відмовлено в замовленнях")
+    total_orders_rejected = models.IntegerField(default=0, verbose_name="Відмов в замовленнях")
+    total_orders_accepted = models.IntegerField(default=0, verbose_name="Прийнято замовлень")
     accept_percent = models.IntegerField(default=0, verbose_name="Відсоток прийнятих замовлень")
     average_price = models.DecimalField(decimal_places=2, max_digits=6, default=0, verbose_name='Середній чек, грн')
-    mileage = models.DecimalField(decimal_places=2, max_digits=6, default=0, verbose_name='Пробіг, км')
+    mileage = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Пробіг, км')
     efficiency = models.DecimalField(decimal_places=2, max_digits=6, default=0, verbose_name='Ефективність, грн/км')
     road_time = models.DurationField(null=True, blank=True, verbose_name='Час в дорозі')
 
