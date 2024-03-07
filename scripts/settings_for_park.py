@@ -43,6 +43,5 @@ standard_rates = {
 }
 
 settings_for_partner = {
-    "RENT_CASH_RATE": ('0.5', 'Відсоток оплат на карту при оренді'),
     "CALENDAR_RANGE": ('10', 'Період додавання змін водіям (днів)')
 }

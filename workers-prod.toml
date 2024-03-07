@@ -1,6 +1,6 @@
 app = "workers-prod"
 kill_signal = "SIGINT"
-primary_region = "otp"
+primary_region = "waw"
 kill_timeout = 5
 [experimental]
   auto_rollback = true
