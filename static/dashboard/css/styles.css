@@ -3063,10 +3063,15 @@ span.circle {
 
 /* adaptive for phone {page driver-detail} */
 
-@media (max-width: 768px) {
+@media screen and (max-width: 767px) {
 
 	.back-page {
 		font-size: 10px;
+	}
+
+	.driver-photo img {
+		width: 110px;
+		height: 110px;
 	}
 
 	.driver-detail-header h1 {
@@ -3260,5 +3265,296 @@ span.circle {
 
 	.btns {
 		justify-content: space-evenly;
+	}
+
+	/* adaptive form */
+	#modal-shift, #modal-add-bonus, #modal-add-penalty {
+		width: 300px;
+		height: 370px;
+		border-radius: 30px 30px 45px 45px;
+		padding: 15px;
+	}
+
+	.bonus-payments, .penalty-payments,
+	.bonus-vehicle, .penalty-vehicle {
+		width: 100%;
+		height: auto;
+		display: flex;
+		flex-direction: column;
+		justify-content: flex-start;
+		padding: 0;
+		gap: 5px;
+	}
+
+	.bonus-vehicle {
+		position: static;
+		top: 0;
+		left: 0;
+	}
+
+	.shift-close-btn svg {
+		width: 20px;
+		height: 20px;
+	}
+
+	.modal-shift-title, .title-add-bonus, .title-add-penalty {
+		font-size: 15px;
+		padding: 0;
+		width: 111%;
+		margin-top: -16px;
+		margin-left: -16px;
+	}
+
+	.modal-shift-title h2, .title-add-bonus h2, .title-add-penalty h2 {
+		font-size: 15px;
+	}
+
+	.bonus-field label,
+	.bonus-description-field label,
+	.penalty-field label,
+	.penalty-description-field label,
+	.bonus-category-field label,
+	.bonus-vehicle-licence-plate label,
+	.penalty-category-field label,
+	.penalty-vehicle-licence-plate label,
+	.new-category-field label {
+		font-size: 15px;
+	}
+
+	.bonus-field input,
+	.bonus-description-field input,
+	.penalty-field input,
+	.penalty-description-field input,
+	.bonus-category-field select,
+	.new-category input,
+	.bonus-vehicle-licence-plate select {
+		font-size: 10px !important;
+	}
+
+	.new-category {
+		display: flex;
+		gap: 5px;
+		margin: 0;
+		width: 100%;
+	}
+
+	.new-category-field {
+		display: none;
+		flex-direction: column;
+		margin-top: 5px;
+		margin-bottom: 5px;
+		width: 100%;
+	}
+
+	.bonus-btn-box, .penalty-btn-box {
+		width: 90%;
+		margin-top: 22px;
+		position: absolute;
+		right: 17px;
+		bottom: 36px;
+	}
+
+	#add-bonus-btn, #add-penalty-btn {
+		width: 100%;
+		font-size: 15px;
+	}
+}
+
+@media screen and (min-width: 768px) and (max-width: 1199px) {
+
+	.back-page {
+		font-size: 15px;
+	}
+
+	.driver-photo img {
+		width: 110px;
+		height: 110px;
+	}
+
+	.driver-detail-header h1 {
+		font-size: 23px;
+	}
+
+	.detail-driver-block {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+	}
+
+	.detail-driver-info {
+		margin-right: 0;
+		height: auto;
+		width: 100%;
+	}
+
+	.driver-photo span {
+		margin-top: 15px;
+		font-weight: 600;
+		font-size: 18px;
+		text-align: center;
+	}
+
+	.driver-data h2 {
+		font-weight: 700;
+		font-size: 20px;
+	}
+
+	.driver-flex h3 {
+		font-weight: 400;
+		font-size: 15px;
+	}
+
+	.driver-flex p {
+		font-weight: 400;
+		font-size: 15px;
+	}
+
+	.driver-vehicle {
+		margin-top: 0;
+	}
+
+	h2.driver-vehicle-item {
+		font-size: 20px;
+	}
+
+	.cash-control h2 {
+		font-size: 20px;
+	}
+
+	.cash-control-info {
+		display: flex;
+		align-items: flex-start;
+		margin-top: 10px;
+		width: 100%;
+		height: auto;
+		justify-content: space-between;
+	}
+
+	.switch-control .switch .slider {
+		left: 26px;
+	}
+
+	.switch-text-left, .switch-text-right {
+		font-size: 15px;
+	}
+
+	.switch-text-right {
+		margin-left: 62px;
+	}
+
+	span.circle {
+		width: 15px;
+		height: 15px;
+	}
+
+	.switch-control .switch .slider {
+		width: 63px;
+		height: 17px;
+		top: 8px;
+	}
+
+	.switch-control .switch .slider:before {
+		width: 19px;
+		height: 13px;
+		bottom: 2px;
+	}
+
+	input:checked + .slider:before {
+		-webkit-transform: translateX(36px);
+		-ms-transform: translateX(36px);
+		transform: translateX(36px);
+	}
+
+
+	input:checked + .slider-auto {
+		background-color: #A1E8B9;
+		width: 27px;
+		height: 27px;
+	}
+
+	.slider-auto {
+		width: 27px;
+		height: 27px;
+		top: 4px;
+	}
+
+	.slider-auto:before {
+		top: 4px;
+	}
+
+	input:checked + .slider-auto:before {
+		font-size: 12px;
+	}
+
+	.slider-auto:before {
+		left: 4px;
+	}
+
+	.percent-control-cash {
+		position: relative;
+		top: -15px;
+	}
+
+	.confirm-button {
+		top: 23px;
+	}
+
+	.percent-control-cash .cansel-icon {
+		top: -27px;
+	}
+
+	/* driver-statistics */
+	.driver-statistics {
+		width: 100%;
+		margin: 20px;
+	}
+
+	.driver-radio-buttons label {
+		font-size: 23px;
+	}
+
+	.bonus-header h3, .penalty-header h3 {
+		font-size: 20px;
+		margin: 0;
+	}
+
+	.bonus-header .add-button-bonus, .penalty-header .add-button-penalty {
+		font-size: 15px;
+		width: 94px;
+		height: 27px;
+	}
+
+	.bonus-category, .bonus-amount, .bonus-description, .bonus-car, .btns {
+		max-width: 110px;
+		min-width: 70px;
+		font-size: 15px;
+		margin: 10px 0 0 0;
+	}
+
+	.driver-bonus-penalty-info, .driver-bonus-penalty-title {
+		gap: 0;
+	}
+
+	.bonus-category span,
+	.bonus-amount span,
+	.bonus-description span,
+	.bonus-car span, .btns span,
+	.penalty-category span,
+	.penalty-amount span,
+	.penalty-description span,
+	.penalty-car span {
+		font-size: 15px;
+	}
+
+	.btns .edit-bonus-btn, .btns .edit-penalty-btn, .btns .delete-bonus-penalty-btn {
+		font-size: 15px;
+	}
+
+	.btns {
+		justify-content: space-evenly;
+	}
+
+	#modal-shift, #modal-add-bonus, #modal-add-penalty {
+		height: 404px;
 	}
 }
