@@ -385,17 +385,15 @@ def calculate_efficiency_driver(driver, start, end):
         total_distance=Sum('mileage', default=0),
         total_orders=Sum('total_orders', default=0),
         total_hours=Sum('road_time', default=timedelta()),
-        total_orders_rejected=Sum('total_orders_rejected', default=0),
         total_orders_accepted=Sum('total_orders_accepted', default=0)
     )
 
     total_orders = aggregations['total_orders']
-    rejected = aggregations['total_orders_rejected']
     completed_orders = aggregations['total_orders_accepted']
     total_distance = aggregations['total_distance']
     total_hours = aggregations['total_hours']
 
-    accept_percent = 100 if rejected == 0 else float('{:.2f}'.format(total_orders/completed_orders))
+    accept_percent = 100 if total_orders == 0 else float('{:.2f}'.format(completed_orders / total_orders))
     avg_price = 0 if completed_orders == 0 else float('{:.2f}'.format(aggregations['total_kasa'] / completed_orders))
     efficiency = 0 if total_distance == 0 else float('{:.2f}'.format(aggregations['total_kasa'] / total_distance))
 
