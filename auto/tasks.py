@@ -279,7 +279,7 @@ def send_notify_to_check_car(self, partner_pk):
         wrong_cars = redis_instance().hgetall(f"wrong_vehicle_{partner_pk}")
         text = ""
         for driver, car in wrong_cars.items():
-            ignore = ParkSettings.get_value("IGNORE_DRIVER", partner=self.partner)
+            ignore = ParkSettings.get_value("IGNORE_DRIVER", partner=partner_pk)
             if ignore:
                 name, second_name = ignore.split()
                 if driver == Driver.objects.filter(second_name=second_name, name=name).first():
