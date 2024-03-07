@@ -19,10 +19,11 @@ from selenium.webdriver import DesiredCapabilities
 from selenium.common import TimeoutException, NoSuchElementException, InvalidArgumentException
 
 from app.models import FleetOrder, Vehicle, FleetsDriversVehiclesRate, UberService, UberSession, \
-    UaGpsService, NewUklonService
+    UaGpsService, NewUklonService, ParkSettings
 from app.uklon_sync import UklonRequest
 from auto import settings
 from auto_bot.handlers.order.utils import check_vehicle
+from auto_bot.main import bot
 from scripts.redis_conn import get_logger, redis_instance
 from selenium_ninja.synchronizer import AuthenticationError, InfinityTokenError
 
@@ -187,7 +188,10 @@ class SeleniumTools:
                 self.password_form(password)
             except TimeoutException:
                 try:
-                    WebDriverWait(self.driver, self.sleep).until(
+                    bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"),
+                                     text=f"Solve Puzzle Uber {os.environ.get('SELENIUM_URL')}"
+                                     )
+                    WebDriverWait(self.driver, 600).until(
                         ec.presence_of_element_located((By.XPATH, UberService.get_value('UBER_LOGIN_5')))).click()
                     WebDriverWait(self.driver, self.sleep).until(
                         ec.presence_of_element_located((By.XPATH, UberService.get_value('UBER_LOGIN_6')))).click()
