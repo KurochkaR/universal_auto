@@ -184,6 +184,12 @@ class SchemaAdmin(admin.ModelAdmin):
     list_display = ('title', 'salary_calculation')
     search_fields = ('title',)
 
+    def get_list_filter(self, request):
+        list_filter = []
+        if request.user.is_superuser:
+            list_filter.append('partner')
+        return list_filter
+
     def save_model(self, request, obj, form, change):
         schema_field = form.cleaned_data.get('schema')
         calc_field = form.cleaned_data.get('salary_calculation')
@@ -272,6 +278,12 @@ class DriverRateLevelsAdmin(admin.ModelAdmin):
     list_per_page = 25
     list_filter = ("period",)
 
+    def get_list_filter(self, request):
+        list_filter = ["period"]
+        if request.user.is_superuser:
+            list_filter.insert(0, 'partner')
+        return list_filter
+
     def get_fieldsets(self, request, obj=None):
         fieldsets = [
             (None, {'fields': ['period', 'threshold', 'rate']}),
@@ -319,7 +331,7 @@ class UserAdmin(admin.ModelAdmin):
     list_display_links = ('name', 'second_name')
     list_filter = ['created_at', 'role']
     search_fields = ('name', 'second_name')
-    ordering = ('name', 'second_name')
+    ordering = ('second_name', 'name')
     list_per_page = 25
 
     fieldsets = [
@@ -537,14 +549,18 @@ class TransactionsConversationAdmin(admin.ModelAdmin):
 
 @admin.register(PartnerEarnings)
 class PartnerEarningsAdmin(admin.ModelAdmin):
-    list_filter = (PartnerPaymentFilter,)
 
     def get_list_display(self, request):
-        display = ['report_from', 'report_to', 'vehicle', 'earning',
-                   ]
+        display = ['report_from', 'report_to', 'driver', 'vehicle', 'earning']
         if request.user.is_superuser:
             display.append('partner')
         return display
+
+    def get_list_filter(self, request):
+        list_filter = [PartnerPaymentFilter]
+        if request.user.is_superuser:
+            list_filter = ['partner', 'driver'] + list_filter
+        return list_filter
 
 
 @admin.register(CarEfficiency)
@@ -557,7 +573,7 @@ class CarEfficiencyAdmin(admin.ModelAdmin):
     def get_list_filter(self, request):
         list_filter = [VehicleEfficiencyUserFilter]
         if request.user.is_superuser:
-            list_filter.append('partner')
+            list_filter.insert(0, 'partner')
         return list_filter
 
     def get_list_display(self, request):
@@ -594,12 +610,14 @@ class DriverEfficiencyAdmin(admin.ModelAdmin):
     def get_list_filter(self, request):
         list_filter = [DriverEfficiencyUserFilter]
         if request.user.is_superuser:
-            list_filter.append('partner')
+            list_filter.insert(0, 'partner')
         return list_filter
 
     def get_list_display(self, request):
         if request.user.is_superuser:
-            return [f.name for f in self.model._meta.fields]
+            return ['report_from', 'report_to', 'driver', 'total_kasa',
+                    'efficiency', 'average_price', 'mileage',
+                    'total_orders', 'total_orders_rejected', 'total_orders_accepted', 'accept_percent', 'road_time']
         else:
             return ['report_from', 'driver', 'total_kasa',
                     'efficiency', 'average_price', 'mileage',
@@ -644,7 +662,7 @@ class RentInformationAdmin(admin.ModelAdmin):
     def get_list_filter(self, request):
         list_filter = [RentInformationUserFilter, 'created_at']
         if request.user.is_superuser:
-            list_filter.append('partner')
+            list_filter.insert(0, 'partner')
         return list_filter
 
     def get_list_display(self, request):
@@ -725,8 +743,12 @@ class BaseReportAdmin(admin.ModelAdmin):
 @admin.register(CustomReport)
 class PaymentsOrderAdmin(BaseReportAdmin):
     search_fields = ('fleet',)
-    list_filter = (FleetFilter, ReportUserFilter)
-    ordering = ('-report_from',)
+
+    def get_list_filter(self, request):
+        list_filter = [ReportUserFilter]
+        if request.user.is_superuser:
+            list_filter.insert(0, 'partner')
+        return list_filter
 
     def get_list_display(self, request):
         base_list_display = super().get_list_display(request)
@@ -749,12 +771,11 @@ class PaymentsOrderAdmin(BaseReportAdmin):
 @admin.register(SummaryReport)
 class SummaryReportAdmin(BaseReportAdmin):
     list_filter = (SummaryReportUserFilter,)
-    ordering = ('-report_from', 'driver')
 
     def get_list_filter(self, request):
         list_filter = [SummaryReportUserFilter]
         if request.user.is_superuser:
-            list_filter.append('partner')
+            list_filter.insert(0, 'partner')
         return list_filter
 
     def get_queryset(self, request):
@@ -963,13 +984,19 @@ class ManagerAdmin(admin.ModelAdmin):
 @admin.register(Driver)
 class DriverAdmin(SoftDeleteAdmin):
     search_fields = ('name', 'second_name')
-    ordering = ('name', 'second_name')
+    ordering = ('second_name', 'name')
     list_display_links = ('name', 'second_name')
     list_per_page = 20
     readonly_fields = ('name', 'second_name', 'email', 'phone_number', 'driver_status')
 
     def get_list_editable(self, request):
         return ('cash_control',)
+
+    def get_list_filter(self, request):
+        list_filter = []
+        if request.user.is_superuser:
+            list_filter.append('partner')
+        return list_filter
 
     def changelist_view(self, request, extra_context=None):
         self.list_editable = self.get_list_editable(request)
@@ -1085,6 +1112,12 @@ class DeletedVehicleAdmin(admin.ModelAdmin):
         )
         return fieldsets
 
+    def get_list_filter(self, request):
+        list_filter = []
+        if request.user.is_superuser:
+            list_filter.append('partner')
+        return list_filter
+
     def change_view(self, request, object_id, form_url='', extra_context=None):
         extra_context = extra_context or {}
 
@@ -1108,6 +1141,12 @@ class DeletedVehicleAdmin(admin.ModelAdmin):
 class FiredDriverAdmin(admin.ModelAdmin):
     readonly_fields = ('name', 'second_name')
     search_fields = ('name', 'second_name')
+
+    def get_list_filter(self, request):
+        list_filter = []
+        if request.user.is_superuser:
+            list_filter.append('partner')
+        return list_filter
 
     def get_list_display(self, request):
         if request.user.is_superuser:
@@ -1165,12 +1204,17 @@ class FiredDriverAdmin(admin.ModelAdmin):
 @admin.register(Vehicle)
 class VehicleAdmin(SoftDeleteAdmin):
     search_fields = ('name', 'licence_plate', 'vin_code',)
-    ordering = ('name',)
+    ordering = ('licence_plate',)
     exclude = ('deleted_at',)
     list_display_links = ('licence_plate',)
     list_per_page = 10
-    list_filter = (VehicleManagerFilter,)
     readonly_fields = ('licence_plate', 'name')
+
+    def get_list_filter(self, request):
+        list_filter = [VehicleManagerFilter]
+        if request.user.is_superuser:
+            list_filter.insert(0, 'partner')
+        return list_filter
 
     def get_list_display(self, request):
         if request.user.is_superuser:
@@ -1349,11 +1393,11 @@ class FleetOrderAdmin(admin.ModelAdmin):
 
 @admin.register(FleetsDriversVehiclesRate)
 class FleetsDriversVehiclesRateAdmin(admin.ModelAdmin):
-    list_filter = (FleetDriverFilter,)
     list_per_page = 25
+    list_filter = ['partner', 'driver']
 
     def get_list_display(self, request):
-        return ('fleet', 'driver',
+        return ('fleet', 'driver', 'pay_cash',
                 'driver_external_id',
                 )
 
@@ -1422,25 +1466,25 @@ class CommentAdmin(admin.ModelAdmin):
         return fieldsets
 
 
-class ParkSettingsForm(forms.ModelForm):
-    class Meta:
-        model = ParkSettings
-        fields = ('value', 'description')
-
-    def clean_value(self):
-        value = self.cleaned_data.get('value')
-
-        try:
-            int_value = int(value)
-        except (ValueError, TypeError):
-            raise forms.ValidationError("Введіть, будь ласка, ціле число")
-
-        return int_value
+# class ParkSettingsForm(forms.ModelForm):
+#     class Meta:
+#         model = ParkSettings
+#         fields = ('value', 'description')
+#
+#     def clean_value(self):
+#         value = self.cleaned_data.get('value')
+#
+#         try:
+#             int_value = int(value)
+#         except (ValueError, TypeError):
+#             raise forms.ValidationError("Введіть, будь ласка, ціле число")
+#
+#         return int_value
 
 
 @admin.register(ParkSettings)
 class ParkSettingsAdmin(admin.ModelAdmin):
-    form = ParkSettingsForm
+    # form = ParkSettingsForm
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
@@ -1472,6 +1516,7 @@ class TaskSchedulerAdmin(admin.ModelAdmin):
 @admin.register(DriverReshuffle)
 class DriverReshuffle(admin.ModelAdmin):
     list_display = ['driver_start', 'swap_vehicle', 'swap_time', 'end_time']
+    list_filter = ['partner', 'driver_start', 'swap_vehicle']
     fieldsets = [
         ('Інформація', {'fields': ['driver_start', 'swap_vehicle', 'swap_time', 'end_time'
                                    ]}),
@@ -1489,16 +1534,17 @@ class DriverReshuffle(admin.ModelAdmin):
 
 @admin.register(DriverPayments)
 class DriverPaymentsAdmin(admin.ModelAdmin):
-    list_display = ['driver', 'status', 'earning']
+    list_display = ['report_from', 'report_to', 'driver', 'status', 'earning']
+    list_filter = ['partner', 'driver']
 
 
 @admin.register(DriverEfficiencyFleet)
 class DriverFleetEfficiencyAdmin(admin.ModelAdmin):
-    list_display = ['driver', 'efficiency', 'total_kasa', 'total_orders', 'mileage', 'fleet']
+    list_display = ['report_from', 'driver', 'efficiency', 'total_kasa', 'total_orders', 'mileage', 'fleet']
 
     def get_list_filter(self, request):
         if request.user.is_superuser:
-            return ['partner']
+            return ['partner', 'driver']
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)

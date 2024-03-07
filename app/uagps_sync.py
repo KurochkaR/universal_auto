@@ -177,8 +177,7 @@ class UaGpsSynchronizer(Fleet):
                 order_params, previous_finish_time = self.get_order_parameters(completed, end_report)
 
                 parameters.extend(order_params)
-
-                if (start_report.time() == time.min or
+                if (timezone.localtime(start_report).time() == time.min or
                         (schema and start_report.time() == Schema.objects.get(pk=schema).shift_time)):
                     yesterday_order = FleetOrder.objects.filter(driver=driver,
                                                                 finish_time__gt=start_report,

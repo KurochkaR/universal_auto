@@ -8,7 +8,7 @@ from django.utils import timezone
 from django.db import models, transaction
 from requests import JSONDecodeError
 from app.models import ParkSettings, FleetsDriversVehiclesRate, Service, FleetOrder, \
-    CredentialPartner, Vehicle, PaymentTypes, CustomReport, Fleet, WeeklyReport, DailyReport
+    CredentialPartner, Vehicle, PaymentTypes, CustomReport, Fleet, WeeklyReport, DailyReport, Driver
 from auto_bot.handlers.order.utils import check_vehicle, normalized_plate
 from auto_bot.main import bot
 from scripts.redis_conn import redis_instance
@@ -169,62 +169,84 @@ class UklonRequest(Fleet, Synchronizer):
         }
         return report, distance
 
-    def generate_report(self, driver, start, end):
-        driver_id = driver.get_driver_external_id(self)
-        param = {'dateFrom': self.report_interval(start),
-                 'dateTo': self.report_interval(end),
-                 'limit': '50', 'offset': '0',
-                 "driverId": driver_id
-                 }
+    def generate_report(self, param):
         url = f"{Service.get_value('UKLON_3')}{self.uklon_id()}"
         url += Service.get_value('UKLON_4')
         resp = self.response_data(url=url, params=param)
-        data = resp.get('items')
-        return data
+        return resp
 
-    def save_custom_report(self, start, end, driver, custom=None):
+    def save_custom_report(self, start, end, schema, custom=None):
+        driver_ids = Driver.objects.get_active(schema=schema, fleetsdriversvehiclesrate__fleet=self).values_list(
+            'fleetsdriversvehiclesrate__driver_external_id', flat=True)
         if custom:
             start_time = datetime.combine(start, time.min)
         else:
             start_time = start
-        data = self.generate_report(driver, start_time, end)
-        if data:
-            for driver_report in data:
-                report, distance = self.parse_json_report(start, end, driver, driver_report)
-                if custom:
-                    uklon_custom = CustomReport.objects.filter(report_from__date=start_time,
-                                                               driver=driver,
-                                                               fleet=self,
-                                                               partner=self.partner).last()
-                    if uklon_custom:
-                        report.update({
-                            "total_rides": driver_report.get('total_orders_count', 0) - uklon_custom.total_rides,
-                            "total_distance": self.to_float(distance, div=1000) - uklon_custom.total_distance,
-                            "total_amount_cash": (
-                                        self.find_value(driver_report, *('profit', 'order', 'cash', 'amount')) -
-                                        uklon_custom.total_amount_cash),
-                            "total_amount_on_card": (
-                                        self.find_value(driver_report, *('profit', 'order', 'wallet', 'amount')) -
-                                        uklon_custom.total_amount_on_card),
-                            "total_amount": (self.find_value(driver_report, *('profit', 'order', 'total', 'amount')) -
-                                             uklon_custom.total_amount),
-                            "tips": self.find_value(driver_report, *('profit', 'tips', 'amount')) - uklon_custom.tips,
-                            "fee": self.find_value(driver_report,
-                                                   *('loss', 'order', 'wallet', 'amount')) - uklon_custom.fee,
-                            "total_amount_without_fee": (
-                                        self.find_value(driver_report, *('profit', 'total', 'amount')) -
-                                        uklon_custom.total_amount_without_fee),
-                        })
-                db_report = CustomReport.objects.filter(report_from=start,
-                                                        driver=driver,
-                                                        fleet=self,
-                                                        partner=self.partner)
-                db_report.update(**report) if db_report else CustomReport.objects.create(**report)
+        param = {'dateFrom': self.report_interval(start_time),
+                 'dateTo': self.report_interval(end),
+                 'limit': 50,
+                 }
+        offset = 0
+        limit = param["limit"]
+        while True:
+            param['offset'] = offset
+            data = self.generate_report(param)
+            for driver_report in data['items']:
+                if driver_report['driver']['id'] in driver_ids:
+                    driver = FleetsDriversVehiclesRate.objects.get(
+                        driver_external_id=driver_report['driver']['id'],
+                        fleet=self, partner=self.partner).driver
+                    report, distance = self.parse_json_report(start_time, end, driver, driver_report)
+                    if custom:
+                        start_day = timezone.make_aware(datetime.combine(start, time.min))
+                        uklon_custom = CustomReport.objects.filter(report_from=start_day,
+                                                                   driver=driver,
+                                                                   fleet=self,
+                                                                   partner=self.partner).last()
+                        if uklon_custom:
+                            report.update({
+                                "total_rides": driver_report.get('total_orders_count', 0) - uklon_custom.total_rides,
+                                "total_distance": self.to_float(distance, div=1000) - uklon_custom.total_distance,
+                                "total_amount_cash": (
+                                            self.find_value(driver_report, *('profit', 'order', 'cash', 'amount')) -
+                                            uklon_custom.total_amount_cash),
+                                "total_amount_on_card": (
+                                            self.find_value(driver_report, *('profit', 'order', 'wallet', 'amount')) -
+                                            uklon_custom.total_amount_on_card),
+                                "total_amount": (self.find_value(driver_report, *('profit', 'order', 'total', 'amount')) -
+                                                 uklon_custom.total_amount),
+                                "tips": self.find_value(driver_report, *('profit', 'tips', 'amount')) - uklon_custom.tips,
+                                "fee": self.find_value(driver_report,
+                                                       *('loss', 'order', 'wallet', 'amount')) - uklon_custom.fee,
+                                "total_amount_without_fee": (
+                                            self.find_value(driver_report, *('profit', 'total', 'amount')) -
+                                            uklon_custom.total_amount_without_fee),
+                            })
+                    db_report = CustomReport.objects.filter(report_from=start_time,
+                                                            driver=driver,
+                                                            fleet=self,
+                                                            partner=self.partner)
+                    db_report.update(**report) if db_report else CustomReport.objects.create(**report)
+            if offset + limit < data['total_count']:
+                offset += limit
+            else:
+                break
 
-    def save_report(self, start, end, driver, model):
-        data = self.generate_report(driver, start, end)
-        if data:
-            for driver_report in data:
+    def save_report(self, start, end, model):
+        param = {'dateFrom': self.report_interval(start),
+                 'dateTo': self.report_interval(end),
+                 'limit': 50,
+                 }
+        offset = 0
+        limit = param["limit"]
+        reports = []
+        while True:
+            param['offset'] = offset
+            data = self.generate_report(param)
+            for driver_report in data['items']:
+                driver = FleetsDriversVehiclesRate.objects.get(
+                    driver_external_id=driver_report['driver']['id'],
+                    fleet=self, partner=self.partner).driver
                 report = self.parse_json_report(start, end, driver, driver_report)[0]
                 db_report, created = model.objects.get_or_create(report_from=start,
                                                                  driver=driver,
@@ -235,13 +257,18 @@ class UklonRequest(Fleet, Synchronizer):
                     for key, value in report.items():
                         setattr(db_report, key, value)
                     db_report.save()
-                return db_report
+                reports.append(db_report)
+            if offset + limit < data['total_count']:
+                offset += limit
+            else:
+                break
+        return reports
 
-    def save_weekly_report(self, start, end, driver):
-        return self.save_report(start, end, driver, WeeklyReport)
+    def save_weekly_report(self, start, end):
+        return self.save_report(start, end, WeeklyReport)
 
-    def save_daily_report(self, start, end, driver):
-        return self.save_report(start, end, driver, DailyReport)
+    def save_daily_report(self, start, end):
+        return self.save_report(start, end, DailyReport)
 
     def get_earnings_per_driver(self, driver, start, end):
         total_amount_without_fee = total_amount_cash = 0
@@ -317,11 +344,11 @@ class UklonRequest(Fleet, Synchronizer):
                     'photo': driver_data["driver_avatar_photo"]["url"],
                     'pay_cash': pay_cash
                 })
+
             if offset + limit < all_drivers['total_count']:
                 offset += limit
             else:
                 break
-
         return drivers
 
     def get_fleet_orders(self, start, end):
@@ -442,7 +469,7 @@ class UklonRequest(Fleet, Synchronizer):
         base_url = f"{Service.get_value('UKLON_1')}{self.uklon_id()}"
         url = base_url + Service.get_value('UKLON_2')
         params = {
-            'limit': '30',
+            'limit': 30,
         }
         vehicles = self.response_data(url=url, params=params)
         matching_object = next((item for item in vehicles["data"]
@@ -454,7 +481,7 @@ class UklonRequest(Fleet, Synchronizer):
 
     def get_vehicles(self):
         vehicles = []
-        param = {'limit': '30'}
+        param = {'limit': 30}
         offset = 0
         limit = param["limit"]
 
@@ -463,8 +490,6 @@ class UklonRequest(Fleet, Synchronizer):
             url = f"{Service.get_value('UKLON_1')}{self.uklon_id()}"
             url += Service.get_value('UKLON_2')
             all_vehicles = self.response_data(url=url, params=param)
-            if offset > all_vehicles['total']:
-                break
             for vehicle in all_vehicles['data']:
                 response = self.response_data(url=f"{url}/{vehicle['id']}")
                 vehicles.append({
@@ -472,5 +497,9 @@ class UklonRequest(Fleet, Synchronizer):
                     'vehicle_name': f"{vehicle['about']['maker']['name']} {vehicle['about']['model']['name']}",
                     'vin_code': response.get('vin_code', '')
                 })
-            offset += int(limit)
+
+            if offset + limit < all_vehicles['total']:
+                offset += limit
+            else:
+                break
         return vehicles
