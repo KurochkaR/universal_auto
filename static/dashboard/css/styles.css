@@ -1148,12 +1148,6 @@ th, td {
 	display: block;
 }
 
-@media (max-width: 900px) {
-	.driver-table {
-		display: none;
-	}
-}
-
 #reset-button {
 	padding: 8px 16px;
 	font-size: 16px;
