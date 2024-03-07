@@ -144,7 +144,7 @@ function fetchDriverFleetEfficiencyData(period, start, end, aggregators) {
 
 							row.append('<td class="fleet">' + Object.keys(fleet)[0] + '</td>');
 							row.append('<td class="kasa">' + Math.round(fleet[Object.keys(fleet)[0]].total_kasa) + '</td>');
-							row.append('<td class="orders">' + fleet[Object.keys(fleet)[0]].orders + '</td>');
+							row.append('<td class="orders">' + fleet[Object.keys(fleet)[0]].total_orders + '</td>');
 							row.append('<td class="order_accepted">' + fleet[Object.keys(fleet)[0]].total_orders_accepted + '</td>');
 							row.append('<td class="order_rejected">' + fleet[Object.keys(fleet)[0]].total_orders_rejected + '</td>');
 							row.append('<td class="price">' + Math.round(fleet[Object.keys(fleet)[0]].average_price) + '</td>');
