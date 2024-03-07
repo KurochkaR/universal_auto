@@ -186,7 +186,7 @@ class SchemaAdmin(admin.ModelAdmin):
 
     def get_list_filter(self, request):
         list_filter = []
-        if request.user.is_superuser():
+        if request.user.is_superuser:
             list_filter.append('partner')
         return list_filter
 
@@ -280,7 +280,7 @@ class DriverRateLevelsAdmin(admin.ModelAdmin):
 
     def get_list_filter(self, request):
         list_filter = ["period"]
-        if request.user.is_superuser():
+        if request.user.is_superuser:
             list_filter.insert(0, 'partner')
         return list_filter
 
@@ -615,7 +615,7 @@ class DriverEfficiencyAdmin(admin.ModelAdmin):
 
     def get_list_display(self, request):
         if request.user.is_superuser:
-            return ['report_from' 'report_to', 'driver', 'total_kasa',
+            return ['report_from', 'report_to', 'driver', 'total_kasa',
                     'efficiency', 'average_price', 'mileage',
                     'total_orders', 'total_orders_rejected', 'total_orders_accepted', 'accept_percent', 'road_time']
         else:
@@ -994,7 +994,7 @@ class DriverAdmin(SoftDeleteAdmin):
 
     def get_list_filter(self, request):
         list_filter = []
-        if request.user.is_superuser():
+        if request.user.is_superuser:
             list_filter.append('partner')
         return list_filter
 
@@ -1540,7 +1540,7 @@ class DriverPaymentsAdmin(admin.ModelAdmin):
 
 @admin.register(DriverEfficiencyFleet)
 class DriverFleetEfficiencyAdmin(admin.ModelAdmin):
-    list_display = ['driver', 'efficiency', 'total_kasa', 'total_orders', 'mileage', 'fleet']
+    list_display = ['report_from', 'driver', 'efficiency', 'total_kasa', 'total_orders', 'mileage', 'fleet']
 
     def get_list_filter(self, request):
         if request.user.is_superuser:
