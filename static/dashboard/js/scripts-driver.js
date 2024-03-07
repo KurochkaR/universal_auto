@@ -273,6 +273,7 @@ $(document).ready(function () {
 				$('.confirm-button').css('display', 'none');
 				$('.edit-icon').show()
 				$('.cansel-icon').hide();
+				checkCash();
 			}
 		});
 	});
