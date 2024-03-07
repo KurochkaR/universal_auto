@@ -1195,6 +1195,7 @@ select:focus {
 	align-items: center;
 	background-color: white;
 	border-radius: 62px;
+	padding: 20px;
 }
 
 .loading-content p {
@@ -3351,6 +3352,19 @@ span.circle {
 	#add-bonus-btn, #add-penalty-btn {
 		width: 100%;
 		font-size: 15px;
+	}
+
+	.modal-content p {
+		font-size: 10px;
+	}
+
+	.loading-content {
+		padding: 10px;
+	}
+
+	.loader {
+		width: 20px;
+		height: 20px;
 	}
 }
 

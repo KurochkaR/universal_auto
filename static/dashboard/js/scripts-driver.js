@@ -146,13 +146,13 @@ $(document).ready(function () {
 		if (isChecked) {
 			$('.switch-control').hide()
 			$('.status-cash').show();
-			$('.confirmation-cash-control h2').text("Ви точно бажаєте увімкнути автоматичне слібкування за готівкою?");
+			$('.confirmation-cash-control h2').text("Ви точно бажаєте увімкнути автоматичне слідкування за готівкою?");
 			$('#loader-confirmation-cash p').text("Зачекайти поки увімкнеться автоматичне слідкування за готівкою");
 			$('.confirmation-cash-control').attr('id', 'cash-auto').show();
 		} else {
 			$('.switch-control').show()
 			$('.status-cash').hide();
-			$('.confirmation-cash-control h2').text("Ви точно бажаєте вимкнути автоматичне слібкування за готівкою?");
+			$('.confirmation-cash-control h2').text("Ви точно бажаєте вимкнути автоматичне слідкування за готівкою?");
 			$('#loader-confirmation-cash p').text("Зачекайти поки вимкнеться автоматичне слідкування за готівкою");
 			$('.confirmation-cash-control').attr('id', 'cash-auto').show();
 		}
