@@ -252,9 +252,9 @@ def check_card_cash_value(self, partner_pk):
                 if disabled:
                     if rent_payment:
                         calc_text = f"Готівка {int(kasa - card)} + холостий пробіг {int(rent_payment)}/{int(kasa)} =" \
-                                    f" {int((1-ratio)*100)}%\n"
+                                    f" {int((1 - ratio) * 100)}%\n"
                     else:
-                        calc_text = f"Готівка {int(kasa - card)} /{int(kasa)} = {int((1-ratio)*100)}%\n"
+                        calc_text = f"Готівка {int(kasa - card)} /{int(kasa)} = {int((1 - ratio) * 100)}%\n"
                     if enable:
                         text = f"\U0001F7E2 {driver} система увімкнула отримання замовлень за готівку.\n" + calc_text
 
@@ -264,7 +264,7 @@ def check_card_cash_value(self, partner_pk):
                     else:
                         text = f"\U0001F534 {driver} системою вимкнено готівкові замовлення.\n" \
                                f"Причина: високий рівень готівки\n" + calc_text
-                    text += f"Дозволено готівки {rate*100}%"
+                    text += f"Дозволено готівки {rate * 100}%"
                     bot.send_message(chat_id=ParkSettings.get_value("CASH_CHAT", partner=partner_pk),
                                      text=text)
     except Exception as e:
@@ -310,11 +310,32 @@ def download_daily_report(self, schemas, day=None):
             start, end = get_time_for_task(schema, day)[:2]
             fleets = Fleet.objects.filter(partner=schema_obj.partner, deleted_at=None).exclude(name='Gps')
             for fleet in fleets:
-                fleet.save_custom_report(start, end, schema)
+                driver_ids = Driver.objects.get_active(
+                    schema=schema, fleetsdriversvehiclesrate__fleet=fleet).values_list(
+                    'fleetsdriversvehiclesrate__driver_external_id', flat=True)
+                fleet.save_daily_custom(start, end, driver_ids)
     except Exception as e:
         logger.error(e)
         retry_delay = retry_logic(e, self.request.retries + 1)
         raise self.retry(exc=e, countdown=retry_delay)
+
+
+@app.task(bind=True, retry_backoff=30, max_retries=4)
+def download_nightly_report(self, partner_pk, day=None):
+    try:
+        for schema in Schema.objects.filter(partner=partner_pk):
+            start, end = get_time_for_task(schema.pk, day)[2:]
+            fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name='Gps')
+            for fleet in fleets:
+                driver_ids = Driver.objects.get_active(
+                    schema=schema, fleetsdriversvehiclesrate__fleet=fleet).values_list(
+                    'fleetsdriversvehiclesrate__driver_external_id', flat=True)
+                fleet.save_custom_report(start, end, driver_ids)
+    except Exception as e:
+        logger.error(e)
+        retry_delay = retry_logic(e, self.request.retries + 1)
+        raise self.retry(exc=e, countdown=retry_delay)
+    # save_report_to_ninja_payment(start, end, partner_pk, schema)
 
 
 @app.task(bind=True, retry_backoff=30, max_retries=4)
@@ -325,7 +346,9 @@ def download_weekly_report(self, partner_pk):
         start = timezone.make_aware(datetime.combine(end - timedelta(days=6), time.min))
         fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name='Gps')
         for fleet in fleets:
-            fleet.save_weekly_report(start, end)
+            driver_ids = Driver.objects.get_active(fleetsdriversvehiclesrate__fleet=self).values_list(
+                'fleetsdriversvehiclesrate__driver_external_id', flat=True)
+            fleet.save_weekly_report(start, end, driver_ids)
         #     for report in reports:
         #         compare_reports(fleet, start, end, report.driver, report, CustomReport, partner_pk)
         # for driver in Driver.objects.get_active(partner=partner_pk):
@@ -364,22 +387,7 @@ def check_daily_report(self, partner_pk, start=None, end=None):
         raise self.retry(exc=e, countdown=retry_delay)
 
 
-@app.task(bind=True, retry_backoff=30, max_retries=4)
-def download_nightly_report(self, partner_pk, day=None):
-    try:
-        for schema in Schema.objects.filter(partner=partner_pk):
-            start, end = get_time_for_task(schema.pk, day)[2:]
-            fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name='Gps')
-            for fleet in fleets:
-                if isinstance(fleet, UberRequest):
-                    fleet.save_custom_report(start, end, schema)
-                else:
-                    fleet.save_custom_report(start, end, schema, custom=True)
-    except Exception as e:
-        logger.error(e)
-        retry_delay = retry_logic(e, self.request.retries + 1)
-        raise self.retry(exc=e, countdown=retry_delay)
-    # save_report_to_ninja_payment(start, end, partner_pk, schema)
+
 
 
 @app.task(bind=True)

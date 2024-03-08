@@ -10,7 +10,7 @@ from app.bolt_sync import BoltRequest
 from app.models import CarEfficiency, Driver, SummaryReport, \
     Vehicle, RentInformation, DriverEfficiency, DriverSchemaRate, SalaryCalculation, \
     DriverPayments, FleetOrder, VehicleRent, Schema, Fleet, CustomUser, CustomReport, PaymentTypes, Payments, \
-    WeeklyReport
+    WeeklyReport, PaymentsStatus
 from auto_bot.handlers.order.utils import check_reshuffle
 
 
@@ -94,7 +94,11 @@ def create_driver_payments(start, end, driver, schema, bonuses=None, driver_repo
     bolt_report = Payments.objects.filter(report_from__range=(start, end),
                                           driver=driver, fleet__name="Bolt").aggregate(
         kasa=Coalesce(Sum('total_amount_without_fee'), 0, output_field=DecimalField()),
+        compensations=Coalesce(Sum('compensations'), 0, output_field=DecimalField())
         )
+    if int(bolt_order_kasa) != int(bolt_report['kasa'] - bolt_report['compensations']):
+        print(f"orders {bolt_order_kasa} kasa {bolt_report['kasa']}")
+        data['status'] = PaymentsStatus.INCORRECT
     return data
 
 
