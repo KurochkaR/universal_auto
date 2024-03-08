@@ -62,11 +62,11 @@ function driverPayment(period = null, start = null, end = null, paymentStatus = 
 					if (response[i].status === 'Перевіряється') {
 						row.append('<td>' + '<div style="display: flex;justify-content: space-evenly; align-items: center;">' + response[i].bonuses + addButtonBonus + '</div>' + '</td>');
 						row.append('<td>' + '<div style="display: flex;justify-content: space-evenly; align-items: center;">' + response[i].penalties + addButtonPenalty + '</div>' + '</td>');
-						row.append('<td class="driver-rate" title="Натиснути для зміни відсотка"><div style="display: flex;justify-content: space-evenly; align-items: center;"><span class="rate-payment" >'+ response[i].rate +' </span><input type="text" class="driver-rate-input" placeholder="100" style="display: none;"><i class="fa fa-pencil-alt"></i></div></td>')
+						row.append('<td class="driver-rate" title="Натиснути для зміни відсотка"><div style="display: flex;justify-content: space-evenly; align-items: center;"><span class="rate-payment" >' + response[i].rate + ' </span><input type="text" class="driver-rate-input" placeholder="100" style="display: none;"><i class="fa fa-pencil-alt"></i></div></td>')
 					} else {
 						row.append('<td>' + '<div style="display: flex;justify-content: space-evenly; align-items: center;">' + response[i].bonuses + '</div>' + '</td>');
 						row.append('<td>' + '<div style="display: flex;justify-content: space-evenly; align-items: center;">' + response[i].penalties + '</div>' + '</td>');
-						row.append('<td><div style="display: flex;justify-content: space-evenly; align-items: center;"><span class="rate-payment" >'+ response[i].rate +' </span></div></td>')
+						row.append('<td><div style="display: flex;justify-content: space-evenly; align-items: center;"><span class="rate-payment" >' + response[i].rate + ' </span></div></td>')
 
 					}
 					row.append('<td class="payment-earning">' + response[i].earning + '</td>');
@@ -98,14 +98,15 @@ function driverPayment(period = null, start = null, end = null, paymentStatus = 
 	var clickedDate = sessionStorage.getItem('clickedDate');
 	var clickedId = sessionStorage.getItem('clickedId');
 }
-$(document).on('click', function (event){
-if (!$(event.target).closest('.driver-rate').length) {
-    // Hide the input and show the text
-    $('.driver-rate .rate-payment').show();
-    $('.driver-rate .driver-rate-input').hide();
-    $('.driver-rate i').show();
-  }
- });
+
+$(document).on('click', function (event) {
+	if (!$(event.target).closest('.driver-rate').length) {
+		// Hide the input and show the text
+		$('.driver-rate .rate-payment').show();
+		$('.driver-rate .driver-rate-input').hide();
+		$('.driver-rate i').show();
+	}
+});
 $(document).ready(function () {
 
 	var itemId, actionType, itemType;
@@ -135,7 +136,7 @@ $(document).ready(function () {
 			data: dataToSend,
 			dataType: 'json',
 			success: function (response) {
-				driverPayment(null, null, null, paymentStatus="on_inspection");
+				driverPayment(null, null, null, paymentStatus = "on_inspection");
 			}
 		});
 	});
@@ -170,75 +171,76 @@ $(document).ready(function () {
 		}
 	});
 
-  $(this).on('click', ".driver-rate", function() {
-      var rateText = $(this).find(".rate-payment");
-      var rateInput = $(this).find(".driver-rate-input");
-      $('.driver-rate .driver-rate-input').not(rateInput).hide();
-      $('.driver-rate .rate-payment').not(rateText).show();
+	$(this).on('click', ".driver-rate", function () {
+		var rateText = $(this).find(".rate-payment");
+		var rateInput = $(this).find(".driver-rate-input");
+		$('.driver-rate .driver-rate-input').not(rateInput).hide();
+		$('.driver-rate .rate-payment').not(rateText).show();
 
-      // Toggle visibility
-      rateText.toggle();
-      rateInput.toggle();
+		// Toggle visibility
+		rateText.toggle();
+		rateInput.toggle();
 
-      if (rateInput.is(":visible")) {
-        rateInput.focus();
-        $('.driver-rate i').hide();
-      } else {
-    rateInput.blur();
-    $('.driver-rate i').show();
-  }
-    });
+		if (rateInput.is(":visible")) {
+			rateInput.focus();
+			$('.driver-rate i').hide();
+		} else {
+			rateInput.blur();
+			$('.driver-rate i').show();
+		}
+	});
 
-  $(this).on("input", ".driver-rate-input", function () {
-        var inputValue = $(this).val();
-        var sanitizedValue = inputValue.replace(/[^0-9]/g, '');
+	$(this).on("input", ".driver-rate-input", function () {
+		var inputValue = $(this).val();
+		var sanitizedValue = inputValue.replace(/[^0-9]/g, '');
 
-        var integerValue = parseInt(sanitizedValue, 10);
+		var integerValue = parseInt(sanitizedValue, 10);
 
-        if (isNaN(integerValue) || integerValue < 0) {
-            integerValue = 0;
-        }
-        sanitizedValue = Math.min(Math.max(integerValue, 0), 100);
-        $(this).val(sanitizedValue);
-    });
-  $(this).on("keypress", ".driver-rate-input", function (e) {
-    if (e.which === 13) {
-        e.preventDefault();
-        $('.driver-rate i').show();
-        var rateInput = $(this)
-        var rate = 0
-        if (rateInput.val() !== '') {
-            rate = rateInput.val()
-        }
-        var $row = $(this).closest('tr')
-        var payment_id = $row.data('id')
-        var earning = $row.find('td.payment-earning');
+		if (isNaN(integerValue) || integerValue < 0) {
+			integerValue = 0;
+		}
+		sanitizedValue = Math.min(Math.max(integerValue, 0), 100);
+		$(this).val(sanitizedValue);
+	});
 
-        var rateText = rateInput.siblings(".rate-payment");
-        $.ajax({
-            url: ajaxPostUrl,
-		    type: 'POST',
-		    data: {
-			    rate: rate,
-			    payment: payment_id,
-			    action: 'calculate-payments',
-			    csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
-			    },
-            success: function (response) {
-                earning.text(response.earning)
-                rateText.text(response.rate)
-                rateInput.hide();
-                rateText.show();
-            },
-            error: function (error) {
-                console.error("Error:", error);
-            }
-        });
-    }
-  });
+	$(this).on("keypress", ".driver-rate-input", function (e) {
+		if (e.which === 13) {
+			e.preventDefault();
+			$('.driver-rate i').show();
+			var rateInput = $(this)
+			var rate = 0
+			if (rateInput.val() !== '') {
+				rate = rateInput.val()
+			}
+			var $row = $(this).closest('tr')
+			var payment_id = $row.data('id')
+			var earning = $row.find('td.payment-earning');
 
-  function initializeCustomPaymentsSelect(customSelect, selectedOption, optionsList, iconDown, datePicker) {
-		iconDown.click(function() {
+			var rateText = rateInput.siblings(".rate-payment");
+			$.ajax({
+				url: ajaxPostUrl,
+				type: 'POST',
+				data: {
+					rate: rate,
+					payment: payment_id,
+					action: 'calculate-payments',
+					csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
+				},
+				success: function (response) {
+					earning.text(response.earning)
+					rateText.text(response.rate)
+					rateInput.hide();
+					rateText.show();
+				},
+				error: function (error) {
+					console.error("Error:", error);
+				}
+			});
+		}
+	});
+
+	function initializeCustomPaymentsSelect(customSelect, selectedOption, optionsList, iconDown, datePicker) {
+		iconDown.click(function () {
 			customSelect.toggleClass("active");
 		});
 
@@ -281,6 +283,7 @@ $(document).ready(function () {
 			openForm(id, null, 'penalty', null);
 		}
 	});
+
 
 	$('.driver-table tbody').on('click', '.apply-btn', function () {
 		var id = $(this).closest('tr').data('id');

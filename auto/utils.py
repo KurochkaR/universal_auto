@@ -178,6 +178,7 @@ def polymorphic_efficiency_create(create_model, partner_pk, driver, start, end, 
     data = {
         'total_kasa': total_kasa,
         'total_orders': total_orders,
+        'total_orders_accepted': completed_orders,
         'total_orders_rejected': canceled_orders,
         'accept_percent': (total_orders - canceled_orders) / total_orders * 100 if total_orders else 0,
         'average_price': total_kasa / completed_orders if completed_orders else 0,
@@ -191,7 +192,9 @@ def polymorphic_efficiency_create(create_model, partner_pk, driver, start, end, 
     result, created = create_model.objects.get_or_create(**efficiency_filter)
     if created:
         result.vehicles.add(*vehicles)
-    if not created and (total_kasa != result.total_kasa or total_orders != result.total_orders):
+    if not created and any([total_kasa != result.total_kasa,
+                            total_orders != result.total_orders,
+                            mileage != result.mileage]):
         for key, value in data.items():
             setattr(result, key, value)
 
