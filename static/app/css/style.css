@@ -7351,8 +7351,6 @@ end Drivers page*/
 	left: 0;
 }
 
-.package:nth-child(1) ul li:nth-child(7)::before,
-.package:nth-child(1) ul li:nth-child(8)::before,
 .package:nth-child(1) ul li:nth-child(9)::before,
 .package:nth-child(1) ul li:nth-child(10)::before {
 	background-image: url(/static/app/images/app-cross-mark.png);
@@ -7632,8 +7630,6 @@ end Drivers page*/
 		height: 30px;
 	}
 
-	.package:nth-child(1) ul li:nth-child(7)::before,
-	.package:nth-child(1) ul li:nth-child(8)::before,
 	.package:nth-child(1) ul li:nth-child(9)::before,
 	.package:nth-child(1) ul li:nth-child(10)::before {
 		background-image: url(/static/app/images/app-cross-mark.png);
@@ -7829,8 +7825,6 @@ end Drivers page*/
 		height: 30px;
 	}
 
-	.package:nth-child(1) ul li:nth-child(7)::before,
-	.package:nth-child(1) ul li:nth-child(8)::before,
 	.package:nth-child(1) ul li:nth-child(9)::before,
 	.package:nth-child(1) ul li:nth-child(10)::before {
 		background-image: url(/static/app/images/app-cross-mark.png);
