@@ -384,6 +384,7 @@ class FiredDriver(Driver):
 
 
 class PaymentsStatus(models.TextChoices):
+    INCORRECT = 'incorrect', 'Потребує поправок'
     CHECKING = 'checking', 'Перевіряється'
     PENDING = 'pending', 'Очікується'
     COMPLETED = 'completed', 'Виплачений'

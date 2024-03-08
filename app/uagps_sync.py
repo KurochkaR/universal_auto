@@ -130,7 +130,7 @@ class UaGpsSynchronizer(Fleet):
                 clean_time = [int(i) for i in raw_time.split(':')]
                 raw_distance = item['reportResult']['stats'][11][1]
             except KeyError:
-                bot.send_message(chat_id=515224934, text=f"{item}")
+                bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"), text=f"{item}")
             result_list.append((Decimal(raw_distance.split(' ')[0]), timedelta(hours=clean_time[0],
                                                                                minutes=clean_time[1],
                                                                                seconds=clean_time[2])))

@@ -1143,8 +1143,8 @@ def calculate_driver_reports(self, schemas, day=None):
                     vehicle_bonus = {}
                     weekly_reshuffles = check_reshuffle(driver, start_week, end_week)
                     for shift in weekly_reshuffles:
-                        shift_bolt_kasa = calculate_bolt_kasa(driver, shift.swap_vehicle,
-                                                              shift.swap_time, shift.end_time)
+                        shift_bolt_kasa = calculate_bolt_kasa(driver, shift.swap_time, shift.end_time,
+                                                              vehicle=shift.swap_vehicle)
                         reshuffle_bonus = shift_bolt_kasa / (bolt_weekly['kasa'] - bolt_weekly['compensations'] - bolt_weekly['bonuses']) * bolt_weekly['bonuses']
                         if not vehicle_bonus.get(shift.swap_vehicle):
                             vehicle_bonus[shift.swap_vehicle] = reshuffle_bonus
