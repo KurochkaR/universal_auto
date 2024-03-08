@@ -30,18 +30,24 @@ function driverPayment(period = null, start = null, end = null, paymentStatus = 
 					var notPayByn = '<button class="not-pay-btn">Не отримано</button>';
 					var dataId = response[i].id;
 
-					var rowBonus = '<tr class="tr-driver-payments" data-id="' + dataId + '"><td colspan="11" class="bonus-table"><table class="bonus-penalty-table"><tr class="title-bonus-penalty"><th class="edit-bonus-penalty">Тип</th><th class="edit-bonus-penalty">Сума</th><th class="edit-bonus-penalty">Опис</th>' + (response[i].status === 'Перевіряється' ? '<th class="edit-bonus-penalty">Дії</th>' : '') + '</tr>';
+					var rowBonus = '<tr class="tr-driver-payments" data-id="' + dataId + '">' +
+						'<td colspan="11" class="bonus-table"><table class="bonus-penalty-table"><tr class="title-bonus-penalty">' +
+						'<th class="edit-bonus-penalty">Тип</th>' +
+						'<th class="edit-bonus-penalty">Сума</th>' +
+						'<th class="edit-bonus-penalty">Категорія</th>' +
+						'<th class="edit-bonus-penalty">Автомобіль</th>' +
+						(response[i].status === 'Перевіряється' ? '<th class="edit-bonus-penalty">Дії</th>' : '') + '</tr>';
 
 					function generateRow(items, type, editClass, deleteClass) {
 						var rowBon = '';
 						for (var j = 0; j < items.length; j++) {
 							var item = items[j];
-							var desc = item.description ? item.description : "";
 							rowBon += '<tr class="description-bonus-penalty">';
 							rowBon += '<td class="' + type + '-type" data-bonus-penalty-id="' + item.id + '">' + (type === 'bonus' ? 'Бонус' : 'Штраф') + '</td>';
 							rowBon += '<td class="' + type + '-amount">' + item.amount + '</td>';
-							rowBon += '<td class="' + type + '-description">' + desc + '</td>';
-							if (response[i].status === 'Перевіряється') {
+							rowBon += '<td class="' + type + '-category">' + item.category + '</td>';
+							rowBon += '<td class="' + type + '-car">' + item.vehicle + '</td>';
+							if (response[i].status === 'Перевіряється' && item.category !== 'Бонуси Bolt') {
 								rowBon += '<td><button class="edit-' + type + '-btn" data-bonus-penalty-id="' + item.id + '" data-type="edit"><i class="fa fa-pencil-alt"></i></button> <button class="delete-bonus-penalty-btn" data-bonus-penalty-id="' + item.id + '" data-type="delete"><i class="fa fa-times"></i></button></td>';
 							}
 							rowBon += '</tr>';

@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from app.models import DriverPayments, Bonus, Penalty, Driver, DriverEfficiencyPolymorphic
+from app.models import DriverPayments, Bonus, Penalty, Driver, DriverEfficiencyPolymorphic, Vehicle
 
 
 class AggregateReportSerializer(serializers.Serializer):
@@ -142,15 +142,21 @@ class ReshuffleSerializer(serializers.Serializer):
 
 
 class BonusSerializer(serializers.ModelSerializer):
+    vehicle = serializers.CharField(source='vehicle.licence_plate')
+    category = serializers.CharField(source='category.title')
+
     class Meta:
         model = Bonus
-        fields = ('id', 'amount', 'description', 'driver')
+        fields = ('id', 'amount', 'category', 'vehicle', 'driver')
 
 
 class PenaltySerializer(serializers.ModelSerializer):
+    vehicle = serializers.CharField(source='vehicle.licence_plate')
+    category = serializers.CharField(source='category.title')
+
     class Meta:
         model = Penalty
-        fields = ('id', 'amount', 'description', 'driver')
+        fields = ('id', 'amount', 'category', 'vehicle', 'driver')
 
 
 class DriverPaymentsSerializer(serializers.ModelSerializer):

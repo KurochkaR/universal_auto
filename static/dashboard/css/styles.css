@@ -1935,11 +1935,11 @@ span#vehicle-bonus-error {
 }
 
 .title-bonus-penalty th {
-	width: 25%;
+	width: 20%;
 }
 
 .description-bonus-penalty td {
-	width: 25%;
+	width: 20%;
 	padding: 0px;
 	color: #000;
 	font-size: 16px;
