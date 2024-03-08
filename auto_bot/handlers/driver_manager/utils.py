@@ -349,17 +349,15 @@ def get_efficiency(manager_id=None, start=None, end=None):
                 'Водії': drivers,
                 'Середня ефективність(грн/км)': effect[0],
                 'Ефективність(грн/км)': yesterday_effect[0],
-                'КМ всього': effect[1],
-                'КМ учора': yesterday_effect[1],
-                'Загальна каса': effect[2],
-                'Каса вчора': yesterday_effect[2]
+                'Пробіг (км)': f"{effect[1]} ({yesterday_effect[1]})",
+                'Каса (грн)': f"{effect[2]} (+{yesterday_effect[2]})",
             }
         else:
             effective_vehicle[vehicle.licence_plate] = {
                 'Водії': drivers,
                 'Середня ефективність(грн/км)': effect[0],
-                'КМ всього': effect[1],
-                'Загальна каса': effect[2]}
+                'Пробіг (км)': effect[1],
+                'Каса (грн)': effect[2]}
     sorted_effective_driver = dict(sorted(effective_vehicle.items(),
                                           key=lambda x: x[1]['Середня ефективність(грн/км)'],
                                           reverse=True))
@@ -393,7 +391,7 @@ def calculate_efficiency_driver(driver, start, end):
     total_distance = aggregations['total_distance']
     total_hours = aggregations['total_hours']
 
-    accept_percent = 100 if total_orders == 0 else float('{:.2f}'.format(completed_orders / total_orders))
+    accept_percent = 100 if total_orders == 0 else (completed_orders / total_orders) * 100
     avg_price = 0 if completed_orders == 0 else float('{:.2f}'.format(aggregations['total_kasa'] / completed_orders))
     efficiency = 0 if total_distance == 0 else float('{:.2f}'.format(aggregations['total_kasa'] / total_distance))
 
