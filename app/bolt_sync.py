@@ -164,7 +164,9 @@ class BoltRequest(Fleet, Synchronizer):
                 defaults=report
             )
             if not created:
-                db_report.update(**report)
+                for key, value in report.items():
+                    setattr(db_report, key, value)
+                db_report.save()
 
     def save_custom_report(self, start, end, driver_ids):
         param = self.param(50)
@@ -208,7 +210,9 @@ class BoltRequest(Fleet, Synchronizer):
             )
 
             if not created:
-                db_report.update(**report)
+                for key, value in report.items():
+                    setattr(db_report, key, value)
+                db_report.save()
 
     def save_weekly_report(self, start, end, driver_ids):
         week_number = start.strftime('%GW%V')

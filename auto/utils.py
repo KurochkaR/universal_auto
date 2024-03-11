@@ -96,8 +96,8 @@ def payment_24hours_create(start, end, fleet, driver, partner_pk):
             total_distance=Coalesce(Sum('total_distance'), Decimal(0)),
             total_rides=Coalesce(Sum('total_rides'), Value(0)))
         data["partner"] = Partner.objects.get(pk=partner_pk)
-        payment, created = Payments.objects.get_or_create(report_from=start,
-                                                          report_to=end,
+        payment, created = Payments.objects.get_or_create(report_from=report.first().report_from,
+                                                          report_to=report.last().report_to,
                                                           fleet_id=fleet,
                                                           driver=driver,
                                                           partner=partner_pk,
@@ -109,7 +109,7 @@ def payment_24hours_create(start, end, fleet, driver, partner_pk):
 
 
 def summary_report_create(start, end, driver, partner_pk):
-    payments = Payments.objects.filter(report_from=start, report_to=end, driver=driver, partner=partner_pk)
+    payments = Payments.objects.filter(report_from__date=start, report_to__date=end, driver=driver, partner=partner_pk)
     vehicle = check_vehicle(driver, date_time=end)
     if payments.exists():
         fields = ("total_rides", "total_distance", "total_amount_cash",
@@ -120,8 +120,8 @@ def summary_report_create(start, end, driver, partner_pk):
         default_values = {}
         for field in fields:
             default_values[field] = sum(getattr(payment, field, 0) or 0 for payment in payments)
-        report, created = SummaryReport.objects.get_or_create(report_from=start,
-                                                              report_to=end,
+        report, created = SummaryReport.objects.get_or_create(report_from=payments.first().report_from,
+                                                              report_to=payments.first().report_to,
                                                               driver=driver,
                                                               vehicle=vehicle,
                                                               partner=partner_pk,

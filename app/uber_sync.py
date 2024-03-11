@@ -124,14 +124,8 @@ class UberRequest(Fleet, Synchronizer):
                             })
         return drivers
 
-    def generate_report(self, start, end, schema=None, driver=None):
+    def generate_report(self, start, end, driver_ids, driver=None):
         results = []
-        if schema:
-            driver_ids = Driver.objects.get_active(schema=schema, fleetsdriversvehiclesrate__fleet=self).values_list(
-                'fleetsdriversvehiclesrate__driver_external_id', flat=True)
-        else:
-            driver_ids = Driver.objects.get_active(fleetsdriversvehiclesrate__fleet=self).values_list(
-                'fleetsdriversvehiclesrate__driver_external_id', flat=True)
         format_start = self.report_interval(start) * 1000
         format_end = self.report_interval(end) * 1000
         driver_ids = list(driver_ids) if not driver else driver.get_driver_external_id(self)
@@ -203,8 +197,8 @@ class UberRequest(Fleet, Synchronizer):
         }
         return payment
 
-    def custom_saving_report(self, start, end, model, schema=None):
-        reports = self.generate_report(start, end, schema)
+    def custom_saving_report(self, start, end, model, driver_ids):
+        reports = self.generate_report(start, end, driver_ids)
         uber_reports = []
         for report in reports:
             if report['totalEarnings']:
@@ -221,14 +215,17 @@ class UberRequest(Fleet, Synchronizer):
                 uber_reports.append(db_report)
         return uber_reports
 
-    def save_custom_report(self, start, end, schema):
-        return self.custom_saving_report(start, end, CustomReport, schema=schema)
+    def save_custom_report(self, start, end, driver_ids):
+        return self.custom_saving_report(start, end, CustomReport, driver_ids)
 
-    def save_weekly_report(self, start, end):
-        return self.custom_saving_report(start, end, WeeklyReport)
+    def save_daily_custom(self, start, end, driver_ids):
+        return self.custom_saving_report(start, end, CustomReport, driver_ids)
 
-    def save_daily_report(self, start, end):
-        return self.custom_saving_report(start, end, DailyReport)
+    def save_weekly_report(self, start, end, driver_ids):
+        return self.custom_saving_report(start, end, WeeklyReport, driver_ids)
+
+    def save_daily_report(self, start, end, driver_ids):
+        return self.custom_saving_report(start, end, DailyReport, driver_ids)
 
     def get_earnings_per_driver(self, driver, start_time, end_time):
         report = self.generate_report(start_time, end_time, driver=driver)
