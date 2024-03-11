@@ -52,6 +52,8 @@ $(document).ready(function () {
 									$("#checkmark").css("display", "none");
 									setTimeout(function () {
 										$("#loadingModal").css("display", "none");
+										$("#loadingMessage").text(gettext("Зачекайте, будь ласка, поки оновлюється база даних..."));
+										$("#loader").css("display", "block");
 									}, 3000);
 									clearInterval(interval);
 								}
