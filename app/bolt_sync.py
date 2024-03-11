@@ -352,10 +352,9 @@ class BoltRequest(Fleet, Synchronizer):
                         price = order.get('total_price', 0)
                         tip = order.get("tip", 0)
                         date_order = timezone.make_aware(datetime.fromtimestamp(order['driver_assigned_time']))
-                        accepted_time = timezone.make_aware(datetime.fromtimestamp(order['accepted_time']))
                         if FleetOrder.objects.filter(order_id=order['order_id'], partner=self.partner,
                                                      date_order=date_order).exists():
-                            vehicle = check_vehicle(driver, date_time=accepted_time)
+                            vehicle = check_vehicle(driver, date_time=date_order)
                             if not vehicle:
                                 vehicle = Vehicle.objects.get(licence_plate=normalized_plate(order['car_reg_number']))
                             FleetOrder.objects.filter(order_id=order['order_id'], partner=self.partner).update(
@@ -371,7 +370,7 @@ class BoltRequest(Fleet, Synchronizer):
                                 "fleet": self.name,
                                 "driver": driver,
                                 "from_address": order['pickup_address'],
-                                "accepted_time": accepted_time,
+                                "accepted_time": date_order,
                                 "state": bolt_states.get(order['order_try_state']),
                                 "finish_time": finish,
                                 "payment": PaymentTypes.map_payments(order['payment_method']),

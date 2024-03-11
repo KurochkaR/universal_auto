@@ -196,7 +196,7 @@ class UklonRequest(Fleet, Synchronizer):
                     driver = FleetsDriversVehiclesRate.objects.get(
                         driver_external_id=driver_report['driver']['id'],
                         fleet=self, partner=self.partner).driver
-                    report, distance = self.parse_json_report(start_time, end, driver, driver_report)
+                    report, distance = self.parse_json_report(start, end, driver, driver_report)
                     if custom:
                         start_day = timezone.make_aware(datetime.combine(start, time.min))
                         uklon_custom = CustomReport.objects.filter(report_from=start_day,
@@ -222,7 +222,7 @@ class UklonRequest(Fleet, Synchronizer):
                                             self.find_value(driver_report, *('profit', 'total', 'amount')) -
                                             uklon_custom.total_amount_without_fee),
                             })
-                    db_report = CustomReport.objects.filter(report_from=start_time,
+                    db_report = CustomReport.objects.filter(report_from=start,
                                                             driver=driver,
                                                             fleet=self,
                                                             partner=self.partner)

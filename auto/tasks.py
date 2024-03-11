@@ -217,6 +217,7 @@ def add_distance_for_order(self, partner_pk, day=None):
     start = end - timedelta(days=1)
     if gps_query.exists():
         orders = FleetOrder.objects.filter(partner=partner_pk, vehicle__isnull=False,
+                                           state=FleetOrder.COMPLETED,
                                            distance__isnull=True, finish_time__isnull=False,
                                            vehicle__gps__isnull=False, date_order__range=(start, end))
         gps = gps_query.first()
@@ -1139,7 +1140,7 @@ def calculate_driver_reports(self, schemas, day=None):
                 bonus = bolt_weekly['bonuses'] if schema_obj.is_weekly() and not today.weekday() else None
 
                 data = create_driver_payments(start, end, driver, schema_obj, bonuses=bonus)
-                if not schema_obj.is_weekly() and not today.weekday():
+                if all([not schema_obj.is_weekly(), not today.weekday(), bolt_weekly['bonuses']]):
                     vehicle_bonus = {}
                     weekly_reshuffles = check_reshuffle(driver, start_week, end_week)
                     for shift in weekly_reshuffles:

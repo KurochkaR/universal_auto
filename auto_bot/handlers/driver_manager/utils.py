@@ -349,17 +349,15 @@ def get_efficiency(manager_id=None, start=None, end=None):
                 'Водії': drivers,
                 'Середня ефективність(грн/км)': effect[0],
                 'Ефективність(грн/км)': yesterday_effect[0],
-                'КМ всього': effect[1],
-                'КМ учора': yesterday_effect[1],
-                'Загальна каса': effect[2],
-                'Каса вчора': yesterday_effect[2]
+                'Пробіг (км)': f"{effect[1]} ({yesterday_effect[1]})",
+                'Каса (грн)': f"{effect[2]} (+{yesterday_effect[2]})",
             }
         else:
             effective_vehicle[vehicle.licence_plate] = {
                 'Водії': drivers,
                 'Середня ефективність(грн/км)': effect[0],
-                'КМ всього': effect[1],
-                'Загальна каса': effect[2]}
+                'Пробіг (км)': effect[1],
+                'Каса (грн)': effect[2]}
     sorted_effective_driver = dict(sorted(effective_vehicle.items(),
                                           key=lambda x: x[1]['Середня ефективність(грн/км)'],
                                           reverse=True))
@@ -393,7 +391,7 @@ def calculate_efficiency_driver(driver, start, end):
     total_distance = aggregations['total_distance']
     total_hours = aggregations['total_hours']
 
-    accept_percent = 100 if total_orders == 0 else float('{:.2f}'.format(completed_orders / total_orders))
+    accept_percent = 100 if total_orders == 0 else float('{:.2f}'.format((completed_orders / total_orders) * 100))
     avg_price = 0 if completed_orders == 0 else float('{:.2f}'.format(aggregations['total_kasa'] / completed_orders))
     efficiency = 0 if total_distance == 0 else float('{:.2f}'.format(aggregations['total_kasa'] / total_distance))
 
@@ -507,20 +505,21 @@ def get_vehicle_income(driver, start, end, spending_rate, rent):
             else:
                 vehicle_income[vehicle] += income
         start += timedelta(days=1)
-    driver_bonus = {}
-    weekly_reshuffles = check_reshuffle(driver, start_week, end_week)
-    for shift in weekly_reshuffles:
-        shift_bolt_kasa = calculate_bolt_kasa(driver, shift.swap_vehicle, shift.swap_time, shift.end_time)
-        reshuffle_bonus = shift_bolt_kasa / (bolt_weekly['kasa'] - bolt_weekly['compensations'] - bolt_weekly['bonuses']) * bolt_weekly['bonuses']
-        if not driver_bonus.get(shift.swap_vehicle):
-            driver_bonus[shift.swap_vehicle] = reshuffle_bonus
-        else:
-            driver_bonus[shift.swap_vehicle] += reshuffle_bonus
-    for car, bonus in driver_bonus.items():
-        if not vehicle_income.get(car):
-            vehicle_income[car] = bonus * (1-driver.schema.rate)
-        else:
-            vehicle_income[car] += bonus * (1-driver.schema.rate)
+    if bolt_weekly['bonuses']:
+        driver_bonus = {}
+        weekly_reshuffles = check_reshuffle(driver, start_week, end_week)
+        for shift in weekly_reshuffles:
+            shift_bolt_kasa = calculate_bolt_kasa(driver, shift.swap_vehicle, shift.swap_time, shift.end_time)
+            reshuffle_bonus = shift_bolt_kasa / (bolt_weekly['kasa'] - bolt_weekly['compensations'] - bolt_weekly['bonuses']) * bolt_weekly['bonuses']
+            if not driver_bonus.get(shift.swap_vehicle):
+                driver_bonus[shift.swap_vehicle] = reshuffle_bonus
+            else:
+                driver_bonus[shift.swap_vehicle] += reshuffle_bonus
+        for car, bonus in driver_bonus.items():
+            if not vehicle_income.get(car):
+                vehicle_income[car] = bonus * (1-driver.schema.rate)
+            else:
+                vehicle_income[car] += bonus * (1-driver.schema.rate)
 
     return vehicle_income
 
