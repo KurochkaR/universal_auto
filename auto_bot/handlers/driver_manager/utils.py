@@ -391,7 +391,7 @@ def calculate_efficiency_driver(driver, start, end):
     total_distance = aggregations['total_distance']
     total_hours = aggregations['total_hours']
 
-    accept_percent = 100 if total_orders == 0 else (completed_orders / total_orders) * 100
+    accept_percent = 100 if total_orders == 0 else float('{:.2f}'.format((completed_orders / total_orders) * 100))
     avg_price = 0 if completed_orders == 0 else float('{:.2f}'.format(aggregations['total_kasa'] / completed_orders))
     efficiency = 0 if total_distance == 0 else float('{:.2f}'.format(aggregations['total_kasa'] / total_distance))
 
