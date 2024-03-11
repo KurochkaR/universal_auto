@@ -311,9 +311,8 @@ def add_shift(licence_plate, shift_date, start_time, end_time, driver_id, recurr
     messages = []
     vehicle = Vehicle.objects.filter(licence_plate=licence_plate).first()
     driver = Driver.objects.get(id=driver_id)
-
-    start_datetime = datetime.strptime(f"{shift_date} {start_time}", "%Y-%m-%d %H:%M")
-    end_datetime = datetime.strptime(f"{shift_date} {end_time}", "%Y-%m-%d %H:%M")
+    start_datetime = datetime.strptime(f"{shift_date} {start_time}", "%Y-%m-%d %H:%M:%S")
+    end_datetime = datetime.strptime(f"{shift_date} {end_time}", "%Y-%m-%d %H:%M:%S")
 
     today_reshuffle = DriverReshuffle.objects.filter(
         swap_time__date=shift_date,
