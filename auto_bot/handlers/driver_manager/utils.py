@@ -505,20 +505,21 @@ def get_vehicle_income(driver, start, end, spending_rate, rent):
             else:
                 vehicle_income[vehicle] += income
         start += timedelta(days=1)
-    driver_bonus = {}
-    weekly_reshuffles = check_reshuffle(driver, start_week, end_week)
-    for shift in weekly_reshuffles:
-        shift_bolt_kasa = calculate_bolt_kasa(driver, shift.swap_vehicle, shift.swap_time, shift.end_time)
-        reshuffle_bonus = shift_bolt_kasa / (bolt_weekly['kasa'] - bolt_weekly['compensations'] - bolt_weekly['bonuses']) * bolt_weekly['bonuses']
-        if not driver_bonus.get(shift.swap_vehicle):
-            driver_bonus[shift.swap_vehicle] = reshuffle_bonus
-        else:
-            driver_bonus[shift.swap_vehicle] += reshuffle_bonus
-    for car, bonus in driver_bonus.items():
-        if not vehicle_income.get(car):
-            vehicle_income[car] = bonus * (1-driver.schema.rate)
-        else:
-            vehicle_income[car] += bonus * (1-driver.schema.rate)
+    if bolt_weekly['bonuses']:
+        driver_bonus = {}
+        weekly_reshuffles = check_reshuffle(driver, start_week, end_week)
+        for shift in weekly_reshuffles:
+            shift_bolt_kasa = calculate_bolt_kasa(driver, shift.swap_vehicle, shift.swap_time, shift.end_time)
+            reshuffle_bonus = shift_bolt_kasa / (bolt_weekly['kasa'] - bolt_weekly['compensations'] - bolt_weekly['bonuses']) * bolt_weekly['bonuses']
+            if not driver_bonus.get(shift.swap_vehicle):
+                driver_bonus[shift.swap_vehicle] = reshuffle_bonus
+            else:
+                driver_bonus[shift.swap_vehicle] += reshuffle_bonus
+        for car, bonus in driver_bonus.items():
+            if not vehicle_income.get(car):
+                vehicle_income[car] = bonus * (1-driver.schema.rate)
+            else:
+                vehicle_income[car] += bonus * (1-driver.schema.rate)
 
     return vehicle_income
 
