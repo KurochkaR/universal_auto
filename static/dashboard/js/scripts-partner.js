@@ -306,7 +306,7 @@ function fetchSummaryReportData(period, start, end) {
 					}
 				});
 
-				driversData.sort((a, b) => b.total_cash - a.total_cash);
+				driversData.sort((a, b) => b.total_kasa - a.total_kasa);
 				const total_card = driversData.map(driver => driver.total_card);
 				const total_cash = driversData.map(driver => driver.total_cash);
 
