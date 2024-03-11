@@ -68,7 +68,7 @@ function driverPayment(period = null, start = null, end = null, paymentStatus = 
 					if (response[i].status === 'Перевіряється') {
 						row.append('<td>' + '<div style="display: flex;justify-content: space-evenly; align-items: center;">' + response[i].bonuses + addButtonBonus + '</div>' + '</td>');
 						row.append('<td>' + '<div style="display: flex;justify-content: space-evenly; align-items: center;">' + response[i].penalties + addButtonPenalty + '</div>' + '</td>');
-						row.append('<td class="driver-rate" title="Натиснути для зміни відсотка"><div style="display: flex;justify-content: space-evenly; align-items: center;"><span class="rate-payment" >' + response[i].rate + ' </span><input type="text" class="driver-rate-input" placeholder="100" style="display: none;"><i class="fa fa-pencil-alt"></i></div></td>')
+						row.append('<td class="driver-rate" title="Натиснути для зміни відсотка"><div style="display: flex; justify-content: space-evenly; align-items: center;"><span class="rate-payment">' + response[i].rate + '</span><input type="text" class="driver-rate-input" placeholder="100" style="display: none;"><i class="fa fa-check check-icon"></i><i class="fa fa-pencil-alt pencil-icon"></i></div></td>');
 					} else {
 						row.append('<td>' + '<div style="display: flex;justify-content: space-evenly; align-items: center;">' + response[i].bonuses + '</div>' + '</td>');
 						row.append('<td>' + '<div style="display: flex;justify-content: space-evenly; align-items: center;">' + response[i].penalties + '</div>' + '</td>');
@@ -107,14 +107,14 @@ function driverPayment(period = null, start = null, end = null, paymentStatus = 
 
 $(document).on('click', function (event) {
 	if (!$(event.target).closest('.driver-rate').length) {
-		// Hide the input and show the text
-		$('.driver-rate .rate-payment').show();
-		$('.driver-rate .driver-rate-input').hide();
-		$('.driver-rate i').show();
+		$('.driver-rate-input').hide();
+		$('.rate-payment').show();
+		$('.pencil-icon').show();
+		$('.check-icon').hide();
 	}
 });
-$(document).ready(function () {
 
+$(document).ready(function () {
 	var itemId, actionType, itemType;
 
 	$(this).on('click', '.driver-table tbody .driver-name', function () {
@@ -178,25 +178,6 @@ $(document).ready(function () {
 		}
 	});
 
-	$(this).on('click', ".driver-rate", function () {
-		var rateText = $(this).find(".rate-payment");
-		var rateInput = $(this).find(".driver-rate-input");
-		$('.driver-rate .driver-rate-input').not(rateInput).hide();
-		$('.driver-rate .rate-payment').not(rateText).show();
-
-		// Toggle visibility
-		rateText.toggle();
-		rateInput.toggle();
-
-		if (rateInput.is(":visible")) {
-			rateInput.focus();
-			$('.driver-rate i').hide();
-		} else {
-			rateInput.blur();
-			$('.driver-rate i').show();
-		}
-	});
-
 	$(this).on("input", ".driver-rate-input", function () {
 		var inputValue = $(this).val();
 		var sanitizedValue = inputValue.replace(/[^0-9]/g, '');
@@ -210,39 +191,44 @@ $(document).ready(function () {
 		$(this).val(sanitizedValue);
 	});
 
+	$(this).on('click', '.check-icon', function () {
+		var $rateInput = $(this).siblings('.driver-rate-input');
+		var rate = 0;
+
+		if ($rateInput.val() !== '') {
+			rate = $rateInput.val();
+		}
+
+		var $row = $(this).closest('tr');
+		var payment_id = $row.data('id');
+		var earning = $row.find('td.payment-earning');
+		var rateText = $row.find('.rate-payment');
+
+		$.ajax({
+			url: ajaxPostUrl,
+			type: 'POST',
+			data: {
+				rate: rate,
+				payment: payment_id,
+				action: 'calculate-payments',
+				csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
+			},
+			success: function (response) {
+				earning.text(response.earning);
+				rateText.text(response.rate);
+				$rateInput.hide();
+				rateText.show();
+			},
+			error: function (error) {
+				console.error("Error:", error);
+			}
+		});
+	});
+
 	$(this).on("keypress", ".driver-rate-input", function (e) {
 		if (e.which === 13) {
-			e.preventDefault();
-			$('.driver-rate i').show();
-			var rateInput = $(this)
-			var rate = 0
-			if (rateInput.val() !== '') {
-				rate = rateInput.val()
-			}
-			var $row = $(this).closest('tr')
-			var payment_id = $row.data('id')
-			var earning = $row.find('td.payment-earning');
-
-			var rateText = rateInput.siblings(".rate-payment");
-			$.ajax({
-				url: ajaxPostUrl,
-				type: 'POST',
-				data: {
-					rate: rate,
-					payment: payment_id,
-					action: 'calculate-payments',
-					csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
-				},
-				success: function (response) {
-					earning.text(response.earning)
-					rateText.text(response.rate)
-					rateInput.hide();
-					rateText.show();
-				},
-				error: function (error) {
-					console.error("Error:", error);
-				}
-			});
+			$(this).siblings('.check-icon').click();
+			$(this).blur();
 		}
 	});
 
@@ -282,7 +268,27 @@ $(document).ready(function () {
 
 	initializeCustomPaymentsSelect(customSelectDriver, selectedOptionDriver, optionsListDriver, iconDownDriver, datePickerDriver);
 
-	$('.driver-table tbody').on('click', '.add-btn-bonus, .add-btn-penalty', function () {
+	const driverTableTbody = $(".driver-table tbody");
+
+	driverTableTbody.on('click', '.driver-rate', function (event) {
+		console.log('click driver-rate');
+		var $rateContainer = $(this);
+		var $rateText = $rateContainer.find('.rate-payment');
+		var $rateInput = $rateContainer.find('.driver-rate-input');
+		var $pencilIcon = $rateContainer.find('.pencil-icon');
+		var $checkIcon = $rateContainer.find('.check-icon');
+
+		$rateText.toggle();
+		$rateInput.toggle();
+		$pencilIcon.toggle();
+		$checkIcon.toggle();
+
+		if ($rateInput.is(":visible")) {
+			$rateInput.focus();
+		}
+	});
+
+	driverTableTbody.on('click', '.add-btn-bonus, .add-btn-penalty', function () {
 		var id = $(this).closest('tr').data('id');
 		if ($(this).hasClass('add-btn-bonus')) {
 			openForm(id, null, 'bonus', null);
@@ -292,7 +298,7 @@ $(document).ready(function () {
 	});
 
 
-	$('.driver-table tbody').on('click', '.apply-btn', function () {
+	driverTableTbody.on('click', '.apply-btn', function () {
 		var id = $(this).closest('tr').data('id');
 		$(this).closest('tr').find('.edit-btn, .apply-btn').hide();
 		$(this).closest('tr').find('.box-btn-upd').css('display', 'flex');
@@ -300,7 +306,7 @@ $(document).ready(function () {
 		updStatusDriverPayments(id, status = 'pending', paymentStatus = "on_inspection");
 	});
 
-	$('.driver-table tbody').on('click', '.arrow-btn', function () {
+	driverTableTbody.on('click', '.arrow-btn', function () {
 		var id = $(this).closest('tr').data('id');
 		$(this).closest('tr').find('.edit-btn, .apply-btn').show()
 		$(this).closest('tr').find('.box-btn-upd').hide();
@@ -308,7 +314,7 @@ $(document).ready(function () {
 		updStatusDriverPayments(id, status = 'checking', paymentStatus = "not_closed");
 	});
 
-	$('.driver-table tbody').on('click', '.pay-btn, .not-pay-btn', function () {
+	driverTableTbody.on('click', '.pay-btn, .not-pay-btn', function () {
 		var id = $(this).closest('tr').data('id');
 		if ($(this).hasClass('pay-btn')) {
 			var status = 'completed';

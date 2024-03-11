@@ -67,7 +67,7 @@ class SummaryReportListView(CombinedPermissionsMixin, generics.ListAPIView):
         )['payment_rent']
 
         total_compensation_bonus = Bonus.objects.filter(
-            category=BonusCategory.objects.get(title='Компенсація оренди'),
+            category=BonusCategory.objects.get(title='Компенсація холостого пробігу'),
             driver_payments__in=driver_payments_list,
             driver_payments__partner=self.request.user
         ).aggregate(
