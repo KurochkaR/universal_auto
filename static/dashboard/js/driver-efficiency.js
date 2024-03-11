@@ -1,28 +1,11 @@
-function formatTime(time) {
-	let parts = time.match(/(\d+) (\d+):(\d+):(\d+)/);
-	if (!parts) {
-		return time;
-	} else {
-		let days = parseInt(parts[1]);
-		let hours = parseInt(parts[2]);
-		let minutes = parseInt(parts[3]);
-		let seconds = parseInt(parts[4]);
-
-		hours += days * 24;
-
-		// Format the string as HH:mm:ss
-		return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-	}
-}
-
-
 function fetchDriverEfficiencyData(period, start, end) {
 	let apiUrl;
 	if (period === 'custom') {
 		apiUrl = `/api/drivers_efficiency/${start}&${end}/`;
 	} else {
 		apiUrl = `/api/drivers_efficiency/${period}/`;
-	};
+	}
+
 	$.ajax({
 		url: apiUrl,
 		type: 'GET',
@@ -45,7 +28,7 @@ function fetchDriverEfficiencyData(period, start, end) {
 					row.append('<td class="driver">' + item.full_name + '</td>');
 					row.append('<td class="kasa">' + Math.round(item.total_kasa) + '</td>');
 					row.append('<td class="orders">' + item.total_orders + '</td>');
-					row.append('<td class="order_accepted">' + item.total_orders_accepted + '</td>');
+					row.append('<td class="order_accepted">' + Math.round(item.total_orders_accepted) + '</td>');
 					row.append('<td class="order_rejected">' + item.total_orders_rejected + '</td>');
 					row.append('<td class="price">' + Math.round(item.average_price) + '</td>');
 					row.append('<td class="mileage">' + Math.round(item.mileage) + '</td>');
@@ -95,9 +78,10 @@ function fetchDriverEfficiencyData(period, start, end) {
 			} else {
 				$('.income-drivers-date').text('З ' + startDate + ' ' + gettext('по') + ' ' + endDate);
 			}
+			sortTable('kasa', 'desc');
 		},
 		error: function (error) {
-		    $(".apply-filter-button_driver").prop("disabled", false);
+			$(".apply-filter-button_driver").prop("disabled", false);
 			console.error(error);
 		}
 	});
@@ -110,7 +94,8 @@ function fetchDriverFleetEfficiencyData(period, start, end, aggregators) {
 		apiUrl = `/api/drivers_efficiency/${start}&${end}/${aggregators}/`;
 	} else {
 		apiUrl = `/api/drivers_efficiency/${period}/${aggregators}/`;
-	};
+	}
+
 	$.ajax({
 		url: apiUrl,
 		type: 'GET',
@@ -135,7 +120,7 @@ function fetchDriverFleetEfficiencyData(period, start, end, aggregators) {
 						fleets.forEach(function (fleet, fleetIndex) {
 							let row = $('<tr></tr>');
 							if (fleetIndex !== fleets.length - 1) {
-									row.addClass('tr-aggregators'); // Додати клас тільки до рядків, крім останнього
+								row.addClass('tr-aggregators'); // Додати клас тільки до рядків, крім останнього
 							}
 							if (fleetIndex === 0) {
 								// Add the driver's name for the first line of the fleet only
@@ -219,10 +204,11 @@ function fetchDriverFleetEfficiencyData(period, start, end, aggregators) {
 			}
 
 			if (period === 'yesterday') {
-					$('.income-drivers-date').text(startDate);
+				$('.income-drivers-date').text(startDate);
 			} else {
-					$('.income-drivers-date').text('З ' + startDate + ' ' + gettext('по') + ' ' + endDate);
+				$('.income-drivers-date').text('З ' + startDate + ' ' + gettext('по') + ' ' + endDate);
 			}
+			sortTable('kasa', 'desc');
 		},
 		error: function (error) {
 			console.error(error);
@@ -230,62 +216,60 @@ function fetchDriverFleetEfficiencyData(period, start, end, aggregators) {
 	});
 }
 
+let $table = $('.driver-table');
+let $tbody = $table.find('tbody');
+
+function sortTable(column, order) {
+	var groups = [];
+	var group = [];
+
+	$('tr').each(function () {
+		if ($(this).find('.driver').length > 0) {
+			if (group.length > 0) {
+				groups.push(group);
+			}
+			group = [$(this)];
+		} else {
+			group.push($(this));
+		}
+	});
+
+	if (group.length > 0) {
+		groups.push(group);
+	}
+
+	groups.sort(function (a, b) {
+		var sumA = 0;
+		a.forEach(function (row) {
+			sumA += parseFloat($(row).find(`td.${column}`).text());
+		});
+		var sumB = 0;
+		b.forEach(function (row) {
+			sumB += parseFloat($(row).find(`td.${column}`).text());
+		});
+		// return sumA - sumB;
+		if (order === 'asc') {
+			return sumA - sumB;
+		} else {
+			return sumB - sumA;
+		}
+	});
+
+	$tbody.empty();
+	groups.forEach(function (group) {
+		group.forEach(function (row) {
+			$tbody.append(row);
+		});
+	});
+}
+
+
 $(document).ready(function () {
 	fetchDriverEfficiencyData('yesterday', null, null);
 
-	let $table = $('.driver-table');
-	let $tbody = $table.find('tbody');
-	let tableClone;
-
-	function sortTable(column, order) {
-		var groups = [];
-		var group = [];
-
-		$('tr').each(function() {
-			if ($(this).find('.driver').length > 0) {
-				if (group.length > 0) {
-					groups.push(group);
-				}
-				group = [$(this)];
-			} else {
-				group.push($(this));
-			}
-		});
-
-		if (group.length > 0) {
-			groups.push(group);
-		}
-
-		groups.sort(function(a, b) {
-				var sumA = 0;
-				a.forEach(function(row) {
-						sumA += parseFloat($(row).find(`td.${column}`).text());
-				});
-				var sumB = 0; b.forEach(function(row) {
-						sumB += parseFloat($(row).find(`td.${column}`).text());
-				});
-		 // return sumA - sumB;
-		 if (order === 'asc') {
-				return sumA - sumB;
-		 } else {
-				return sumB - sumA;
-		 }
-		});
-
-	 $tbody.empty();
-
-		groups.forEach(function(group) {
-			group.forEach(function(row) {
-				$tbody.append(row);
-			});
-		});
-	}
-
-	$(document).on('click', 'th.sortable', function() {
+	$(document).on('click', 'th.sortable', function () {
 		let column = $(this).data('sort');
 		let sortOrder = $(this).hasClass('sorted-asc') ? 'desc' : 'asc';
-
-		// Reset sorting indicators
 		$table.find('th.sortable').removeClass('sorted-asc sorted-desc');
 
 		if (sortOrder === 'asc') {
@@ -293,27 +277,26 @@ $(document).ready(function () {
 		} else {
 			$(this).addClass('sorted-desc');
 		}
-
 		sortTable(column, sortOrder);
 	});
 
 	function initializeCustomSelect(customSelect, selectedOption, optionsList, iconDown, datePicker) {
-		iconDown.click(function() {
+		iconDown.click(function () {
 			customSelect.toggleClass("active");
 		});
 
-		selectedOption.click(function() {
+		selectedOption.click(function () {
 			customSelect.toggleClass("active");
 		});
 
-		optionsList.on("click", "li", function() {
+		optionsList.on("click", "li", function () {
 
 			const clickedValue = $(this).data("value");
 			selectedOption.data("value", clickedValue);
 			selectedOption.text($(this).text());
 			customSelect.removeClass("active");
 
-			aggregators = $('.checkbox-container input[type="checkbox"]:checked').map(function() {
+			aggregators = $('.checkbox-container input[type="checkbox"]:checked').map(function () {
 				return $(this).val();
 			}).get();
 
@@ -344,7 +327,7 @@ $(document).ready(function () {
 	initializeCustomSelect(customSelectDriver, selectedOptionDriver, optionsListDriver, iconDownDriver, datePickerDriver);
 
 	var sharedCheckbox = $('#sharedCheckbox');
-	$('.checkbox-container input[type="checkbox"]').change(function() {
+	$('.checkbox-container input[type="checkbox"]').change(function () {
 		var checkboxId = $(this).attr('id');
 
 		if (checkboxId === 'sharedCheckbox' && $(this).prop('checked')) {
@@ -357,24 +340,23 @@ $(document).ready(function () {
 		if (!anyOtherCheckboxChecked) {
 			sharedCheckbox.prop('checked', true);
 		}
-
 		checkSelection();
 	});
 });
 
 function checkSelection() {
-  var selectedAggregators = [];
+	var selectedAggregators = [];
 
-  $('.checkbox-container input[type="checkbox"]:checked').each(function() {
-    selectedAggregators.push($(this).val());
-  });
+	$('.checkbox-container input[type="checkbox"]:checked').each(function () {
+		selectedAggregators.push($(this).val());
+	});
 
-  var aggregatorsString = selectedAggregators.join('&');
-  var selectedPeriod = $('#period .selected-option-drivers').data('value');
+	var aggregatorsString = selectedAggregators.join('&');
+	var selectedPeriod = $('#period .selected-option-drivers').data('value');
 	var startDate = $("#start_report_driver").val();
 	var endDate = $("#end_report_driver").val();
 
-  if (selectedPeriod !== "custom" && aggregatorsString === "shared") {
+	if (selectedPeriod !== "custom" && aggregatorsString === "shared") {
 		fetchDriverEfficiencyData(selectedPeriod, startDate, endDate);
 	} else {
 		if (aggregatorsString === "shared") {
