@@ -178,7 +178,9 @@ class CarEfficiencyListView(CombinedPermissionsMixin, generics.ListAPIView):
             total_mileage=Coalesce(Sum('mileage'), Decimal(0))
         )
         efficiency_qs = queryset.values('vehicle__licence_plate').distinct().filter(mileage__gt=0).annotate(
-            average_vehicle=Coalesce(Sum('total_kasa') / Sum('mileage'), Decimal(0)))
+            average_vehicle=Coalesce(Sum('total_kasa') / Sum('mileage'), Decimal(0)),
+            branding_trips=Coalesce(Sum('total_brand_trips'), 0)
+        )
         queryset = queryset.filter(vehicle=self.kwargs['vehicle']).order_by("report_from")
         kasa = aggregated_data.get('total_kasa')
         total_mileage = aggregated_data.get('total_mileage')
@@ -193,6 +195,7 @@ class CarEfficiencyListView(CombinedPermissionsMixin, generics.ListAPIView):
             "efficiency": list(queryset.values_list("efficiency", flat=True)),
             "average_eff": {item['vehicle__licence_plate']: round(item['average_vehicle'], 2) for item in
                             efficiency_qs},
+            "branding_trips": {item['vehicle__licence_plate']: item['branding_trips'] for item in efficiency_qs},
         }
         response_data = {
             "vehicles": efficiency_dict,

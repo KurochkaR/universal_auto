@@ -449,7 +449,7 @@ def get_car_efficiency(self, partner_pk, day=None):
                                            total_spending=total_spending,
                                            mileage=total_km,
                                            efficiency=result,
-                                           all_brand_trips=orders_count,
+                                           total_brand_trips=orders_count,
                                            partner_id=partner_pk)
         for driver, kasa in vehicle_drivers.items():
             DriverEffVehicleKasa.objects.create(driver_id=driver, efficiency_car=car, kasa=kasa)
