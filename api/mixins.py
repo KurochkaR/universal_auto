@@ -3,7 +3,7 @@ from django.db.models import Q
 from rest_framework import authentication
 
 from app.models import SummaryReport, Driver, CarEfficiency, DriverEfficiency, Vehicle, InvestorPayments, \
-    DriverPayments, DriverEfficiencyFleet
+    DriverPayments, DriverEfficiencyFleet, CustomReport
 from .permissions import IsPartnerUser, IsManagerUser, IsInvestorUser
 from api.authentication import TokenAuthentication
 
@@ -21,6 +21,7 @@ class ManagerFilterMixin:
             raise PermissionDenied("Authentication required")
         model_filter_map = {
             SummaryReport: (Q(driver__in=Driver.objects.filter(manager=user)) | Q(partner=user)),
+            CustomReport: (Q(driver__in=Driver.objects.filter(manager=user)) | Q(partner=user)),
             CarEfficiency: (Q(vehicle__manager=user) | Q(partner=user)),
             DriverEfficiency: (Q(driver__manager=user) | Q(partner=user)),
             DriverEfficiencyFleet: (Q(driver__manager=user) | Q(partner=user)),

@@ -19,7 +19,7 @@ from api.serializers import SummaryReportSerializer, CarEfficiencySerializer, Ca
     DriverEfficiencyFleetRentSerializer, DriverInformationSerializer
 from app.models import SummaryReport, CarEfficiency, Vehicle, DriverEfficiency, RentInformation, DriverReshuffle, \
     PartnerEarnings, InvestorPayments, DriverPayments, PaymentsStatus, PenaltyBonus, Penalty, Bonus, \
-    DriverEfficiencyFleet, VehicleSpending, Driver, BonusCategory
+    DriverEfficiencyFleet, VehicleSpending, Driver, BonusCategory, CustomReport
 from taxi_service.utils import get_start_end
 
 
@@ -35,7 +35,7 @@ class SummaryReportListView(CombinedPermissionsMixin, generics.ListAPIView):
 
     def get_queryset(self):
         start, end, format_start, format_end = get_start_end(self.kwargs['period'])
-        queryset = ManagerFilterMixin.get_queryset(SummaryReport, self.request.user).select_related('driver__user_ptr')
+        queryset = ManagerFilterMixin.get_queryset(CustomReport, self.request.user).select_related('driver__user_ptr')
         filtered_qs = queryset.filter(report_from__range=(start, end))
         kasa = filtered_qs.aggregate(kasa=Coalesce(Sum('total_amount_without_fee'), Decimal(0)))['kasa']
 
@@ -67,7 +67,7 @@ class SummaryReportListView(CombinedPermissionsMixin, generics.ListAPIView):
         )['payment_rent']
 
         total_compensation_bonus = Bonus.objects.filter(
-            category=BonusCategory.objects.get(title='Компенсація оренди'),
+            category=BonusCategory.objects.get(title='Компенсація холостого пробігу'),
             driver_payments__in=driver_payments_list,
             driver_payments__partner=self.request.user
         ).aggregate(

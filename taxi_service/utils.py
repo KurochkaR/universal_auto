@@ -311,9 +311,9 @@ def add_shift(licence_plate, shift_date, start_time, end_time, driver_id, recurr
     messages = []
     vehicle = Vehicle.objects.filter(licence_plate=licence_plate).first()
     driver = Driver.objects.get(id=driver_id)
-
-    start_datetime = datetime.strptime(f"{shift_date} {start_time}", "%Y-%m-%d %H:%M")
-    end_datetime = datetime.strptime(f"{shift_date} {end_time}", "%Y-%m-%d %H:%M")
+    print(start_time, end_time)
+    start_datetime = datetime.strptime(f"{shift_date} {start_time}", "%Y-%m-%d %H:%M:%S")
+    end_datetime = datetime.strptime(f"{shift_date} {end_time}", "%Y-%m-%d %H:%M:%S")
 
     today_reshuffle = DriverReshuffle.objects.filter(
         swap_time__date=shift_date,
@@ -339,9 +339,9 @@ def add_shift(licence_plate, shift_date, start_time, end_time, driver_id, recurr
         current_date = start_datetime + timedelta(days=day_offset)
 
         current_swap_time = timezone.make_aware(current_date.replace(
-            hour=start_datetime.hour, minute=start_datetime.minute))
+            hour=start_datetime.hour, minute=start_datetime.minute, second=start_datetime.second))
         current_end_time = timezone.make_aware(current_date.replace(
-            hour=end_datetime.hour, minute=end_datetime.minute))
+            hour=end_datetime.hour, minute=end_datetime.minute, second=end_datetime.second))
         status, conflicting_vehicle = is_conflict(driver, vehicle, current_swap_time, current_end_time)
         if not status:
             messages.append(conflicting_vehicle)
