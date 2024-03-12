@@ -254,6 +254,24 @@ class GPSNumber(models.Model):
         return f'{self.name}'
 
 
+class Fleet(PolymorphicModel):
+    name = models.CharField(max_length=255)
+    fees = models.DecimalField(decimal_places=2, max_digits=3, default=0)
+    created_at = models.DateTimeField(editable=False, auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    deleted_at = models.DateTimeField(null=True, blank=True)
+    min_fee = models.DecimalField(decimal_places=2, max_digits=15, default=0)
+
+    partner = models.ForeignKey(Partner, null=True, on_delete=models.CASCADE, verbose_name='Партнери')
+
+    class Meta:
+        verbose_name = 'Автопарк'
+        verbose_name_plural = 'Автопарки'
+
+    def __str__(self) -> str:
+        return f'{self.name} {self.partner}' if self.partner else f'{self.name}'
+
+
 class Vehicle(models.Model):
     class Currency(models.TextChoices):
         UAH = 'UAH', 'Гривня',
@@ -283,16 +301,16 @@ class Vehicle(models.Model):
                                      verbose_name='Валюта повернення коштів')
     investor_percentage = models.DecimalField(decimal_places=2, max_digits=10, default=0.35,
                                               verbose_name="Відсоток інвестора")
+    created_at = models.DateTimeField(editable=False, auto_now_add=True, verbose_name='Додано автомобіль')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='Оновлено')
+    deleted_at = models.DateTimeField(null=True, blank=True, verbose_name='Видалено')
 
+    branding = models.ForeignKey(Fleet, on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Бренд')
     manager = models.ForeignKey(Manager, on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Менеджер авто')
     gps = models.ForeignKey(GPSNumber, on_delete=models.CASCADE, null=True, blank=True, verbose_name="Назва авто в Gps")
     investor_car = models.ForeignKey(Investor, blank=True, null=True, on_delete=models.SET_NULL,
                                      verbose_name='Машина інвестора')
     partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, blank=True, verbose_name='Партнер')
-
-    created_at = models.DateTimeField(editable=False, auto_now_add=True, verbose_name='Додано автомобіль')
-    updated_at = models.DateTimeField(auto_now=True, verbose_name='Оновлено')
-    deleted_at = models.DateTimeField(null=True, blank=True, verbose_name='Видалено')
 
     objects = SoftDeleteManager()
 
@@ -574,24 +592,6 @@ class VehicleRent(models.Model):
     driver = models.ForeignKey(Driver, on_delete=models.SET_NULL, null=True, verbose_name='Водій')
     vehicle = models.ForeignKey(Vehicle, on_delete=models.SET_NULL, null=True, verbose_name="Автомобіль")
     partner = models.ForeignKey(Partner, on_delete=models.CASCADE, verbose_name='Партнер')
-
-
-class Fleet(PolymorphicModel):
-    name = models.CharField(max_length=255)
-    fees = models.DecimalField(decimal_places=2, max_digits=3, default=0)
-    created_at = models.DateTimeField(editable=False, auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    deleted_at = models.DateTimeField(null=True, blank=True)
-    min_fee = models.DecimalField(decimal_places=2, max_digits=15, default=0)
-
-    partner = models.ForeignKey(Partner, null=True, on_delete=models.CASCADE, verbose_name='Партнери')
-
-    class Meta:
-        verbose_name = 'Автопарк'
-        verbose_name_plural = 'Автопарки'
-
-    def __str__(self) -> str:
-        return f'{self.name} {self.partner}' if self.partner else f'{self.name}'
 
 
 class NinjaFleet(Fleet):
@@ -1074,6 +1074,7 @@ class CarEfficiency(models.Model):
     total_spending = models.DecimalField(null=True, decimal_places=2, max_digits=10, default=0, verbose_name='Витрати')
     mileage = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Пробіг, км')
     efficiency = models.DecimalField(decimal_places=2, max_digits=4, default=0, verbose_name='Ефективність, грн/км')
+    all_brand_trips = models.IntegerField(default=0, verbose_name='Всього поїздок бренду')
 
     drivers = models.ManyToManyField(Driver, through="DriverEffVehicleKasa", verbose_name='Водії', db_index=True)
     vehicle = models.ForeignKey(Vehicle, null=True, on_delete=models.CASCADE, verbose_name='Автомобіль', db_index=True)
