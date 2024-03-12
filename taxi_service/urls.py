@@ -9,6 +9,7 @@ urlpatterns = [
     path('auto-park/', AutoParkView.as_view(), name='auto-park'),
     path('investment/', InvestmentView.as_view(), name='investment'),
     path('charging-stations/', ChargingStationsView.as_view(), name='charging_stations'),
+    path('price/', PriceView.as_view(), name='price'),
     path('dashboard/', DashboardView.as_view(), name='dashboard'),
     path('dashboard/drivers/', DriversView.as_view(), name='drivers'),
     path('dashboard/driver/<int:pk>/', DriverDetailView.as_view(), name='driver_detail'),

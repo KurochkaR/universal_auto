@@ -138,6 +138,17 @@ class ChargingStationsView(BaseContextView, TemplateView):
         return context
 
 
+class PriceView(BaseContextView, TemplateView):
+    template_name = "price.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # context["seo_keywords"] = seo_price_page
+        # context["seo_title"] = seo_price_page_title
+        # context["seo_description"] = seo_description_price_page
+        return context
+
+
 # DASHBOARD VIEWS ->
 
 

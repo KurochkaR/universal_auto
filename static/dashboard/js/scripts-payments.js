@@ -154,9 +154,8 @@ $(document).ready(function () {
 			itemType = 'bonus';
 		} else if ($(this).hasClass('edit-penalty-btn')) {
 			itemType = 'penalty';
-		}
-		;
-		openForm(paymentId = paymentId, bonusId = itemId, itemType, driverId = null);
+		};
+		openForm(paymentId=paymentId, bonusId = itemId, itemType, driverId = null);
 		$('#modal-add-bonus').show();
 	});
 
@@ -357,7 +356,6 @@ $(document).ready(function () {
 		}
 	});
 });
-
 
 function updStatusDriverPayments(id, status, paymentStatus, all = null) {
 	if (all !== null) {
