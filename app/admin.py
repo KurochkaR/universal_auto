@@ -460,8 +460,8 @@ class JobApplicationAdmin(admin.ModelAdmin):
 
 @admin.register(VehicleSpending)
 class VehicleSpendingAdmin(admin.ModelAdmin):
-    list_display = ['vehicle', 'amount', 'category', 'description', 'display_photo', 'created_date']
-    list_filter = (VehicleSpendingFilter, 'category', 'created_at')
+    list_display = ['vehicle', 'amount', 'spending_category', 'description', 'display_photo', 'created_date']
+    list_filter = (VehicleSpendingFilter, 'spending_category', 'created_at')
     readonly_fields = ('display_photo',)
 
     class Media:
@@ -482,7 +482,7 @@ class VehicleSpendingAdmin(admin.ModelAdmin):
             ]
         else:
             fieldsets = [
-                ('Інформація про витрату', {'fields': ['vehicle', 'category', 'amount', 'description']}),
+                ('Інформація про витрату', {'fields': ['vehicle', 'spending_category', 'amount', 'description']}),
                 ('Фото', {'fields': ['photo', 'display_photo']})
             ]
 
@@ -565,7 +565,6 @@ class PartnerEarningsAdmin(admin.ModelAdmin):
 
 @admin.register(CarEfficiency)
 class CarEfficiencyAdmin(admin.ModelAdmin):
-
     list_per_page = 25
     raw_id_fields = ['vehicle']
     list_select_related = ['vehicle']
@@ -1223,7 +1222,7 @@ class VehicleAdmin(SoftDeleteAdmin):
             return ['licence_plate', 'name',
                     'vin_code', 'gps',
                     'purchase_price',
-                    'manager', 'investor_car', 'created_at'
+                    'manager', 'investor_car', 'branding', 'created_at'
                     ]
         else:
             return ['licence_plate', 'name',
@@ -1253,7 +1252,7 @@ class VehicleAdmin(SoftDeleteAdmin):
                 ('Особисті дані авто', {'fields': ['vin_code', 'gps_imei', 'lat', 'lon',
                                                    'car_status', 'gps',
                                                    ]}),
-                ('Додатково', {'fields': ['chat_id', 'partner', 'manager',
+                ('Додатково', {'fields': ['chat_id', 'partner', 'manager', 'branding'
                                           ]}),
             ]
 
@@ -1264,7 +1263,7 @@ class VehicleAdmin(SoftDeleteAdmin):
                 ('Інформація про машину', {'fields': ['name', 'purchase_price', 'gps_imei', 'gps',
                                                       'investor_car', 'investor_percentage'
                                                       ]}),
-                ('Додатково', {'fields': ['manager',
+                ('Додатково', {'fields': ['manager', 'branding'
                                           ]}),
             )
         elif request.user.is_manager():
@@ -1287,7 +1286,8 @@ class VehicleAdmin(SoftDeleteAdmin):
         filter_mapping = {
             'investor_car': ('investors_partner', ('first_name', 'last_name')),
             'manager': ('managers_partner', ('first_name', 'last_name')),
-            'gps': ('partner', ('name',))
+            'gps': ('partner', ('name',)),
+            'branding': ('partner', ('name',))
         }
         if request.user.is_partner():
             related_field_name = filter_mapping.get(db_field.name)

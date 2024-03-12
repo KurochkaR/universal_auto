@@ -119,6 +119,38 @@ class Partner(CustomUser):
         verbose_name_plural = 'Власники'
 
 
+class Category(PolymorphicModel):
+    title = models.CharField(max_length=255, null=True, verbose_name='Назва категорії')
+
+    partner = models.ForeignKey(Partner, null=True, on_delete=models.CASCADE, verbose_name='Партнер')
+
+    def __str__(self):
+        return self.title
+
+    class Meta:
+        unique_together = ['title', 'partner']
+
+
+class SpendingCategory(Category):
+    pass
+
+
+class PenaltyCategory(Category):
+    pass
+
+    class Meta:
+        verbose_name = "Категорія штрафу"
+        verbose_name_plural = "Категорії штрафів"
+
+
+class BonusCategory(Category):
+    pass
+
+    class Meta:
+        verbose_name = "Категорія бонусу"
+        verbose_name_plural = "Категорії бонусів"
+
+
 class Schema(models.Model):
     SCHEMA_CHOICES = [
         ('RENT', 'Схема оренди'),
@@ -330,19 +362,13 @@ class DeletedVehicle(Vehicle):
 
 
 class VehicleSpending(models.Model):
-    class Category(models.TextChoices):
-        FUEL = 'FUEL', 'Паливо'
-        SERVICE = 'SERVICE', 'Сервісне обслуговування'
-        REPAIR = 'REPAIR', 'Ремонт'
-        WASHING = 'WASHING', 'Мийка'
-        OTHER = 'OTHER', 'Інше'
-
     amount = models.DecimalField(decimal_places=2, max_digits=10, verbose_name='Сума')
-    category = models.CharField(max_length=255, choices=Category.choices, verbose_name='Категорія витрат')
     description = models.TextField(blank=True, null=True, verbose_name='Опис')
     photo = models.ImageField(upload_to='spending/', blank=True, null=True, verbose_name='Фото')
     created_at = models.DateTimeField(editable=False, auto_now_add=True, verbose_name='Створено')
 
+    spending_category = models.ForeignKey(SpendingCategory, null=True, on_delete=models.CASCADE,
+                                          verbose_name='Категорія')
     vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE, null=True, verbose_name='Автомобіль')
     partner = models.ForeignKey(Partner, on_delete=models.CASCADE, null=True, verbose_name='Партнер')
 
@@ -468,34 +494,6 @@ class DriverPayments(Earnings):
 
     def __str__(self):
         return f"{self.driver}"
-
-
-class Category(PolymorphicModel):
-    title = models.CharField(max_length=255, null=True, verbose_name='Назва категорії')
-
-    partner = models.ForeignKey(Partner, null=True, on_delete=models.CASCADE, verbose_name='Партнер')
-
-    def __str__(self):
-        return self.title
-
-    class Meta:
-        unique_together = ['title', 'partner']
-
-
-class PenaltyCategory(Category):
-    pass
-
-    class Meta:
-        verbose_name = "Категорія штрафу"
-        verbose_name_plural = "Категорії штрафів"
-
-
-class BonusCategory(Category):
-    pass
-
-    class Meta:
-        verbose_name = "Категорія бонусу"
-        verbose_name_plural = "Категорії бонусів"
 
 
 class PenaltyBonus(PolymorphicModel):
@@ -1074,7 +1072,7 @@ class CarEfficiency(models.Model):
     total_spending = models.DecimalField(null=True, decimal_places=2, max_digits=10, default=0, verbose_name='Витрати')
     mileage = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Пробіг, км')
     efficiency = models.DecimalField(decimal_places=2, max_digits=4, default=0, verbose_name='Ефективність, грн/км')
-    all_brand_trips = models.IntegerField(default=0, verbose_name='Всього поїздок бренду')
+    total_brand_trips = models.IntegerField(default=0, verbose_name='Всього поїздок бренду')
 
     drivers = models.ManyToManyField(Driver, through="DriverEffVehicleKasa", verbose_name='Водії', db_index=True)
     vehicle = models.ForeignKey(Vehicle, null=True, on_delete=models.CASCADE, verbose_name='Автомобіль', db_index=True)
