@@ -461,6 +461,9 @@ class Category(PolymorphicModel):
     def __str__(self):
         return self.title
 
+    class Meta:
+        unique_together = ['title', 'partner']
+
 
 class PenaltyCategory(Category):
     pass

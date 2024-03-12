@@ -1935,11 +1935,11 @@ span#vehicle-bonus-error {
 }
 
 .title-bonus-penalty th {
-	width: 25%;
+	width: 20%;
 }
 
 .description-bonus-penalty td {
-	width: 25%;
+	width: 20%;
 	padding: 0px;
 	color: #000;
 	font-size: 16px;
@@ -1969,10 +1969,19 @@ input.driver-rate-input:focus {
 }
 
 input.driver-rate-input {
-	width: 40px;
+	width: 50px;
 	border-radius: 25px;
 	padding: 5px;
 	border: 2px solid #EC6323;
+}
+
+.driver-rate .check-icon {
+	color: green;
+	font-size: 20px;
+	display: none;
+	position: relative;
+	top: 0;
+	left: -27px;
 }
 
 /* Загальні стилі для контейнера радіокнопок */

@@ -1,11 +1,11 @@
-$(document).ready(function() {
+$(document).ready(function () {
 
-	$("#admin-link").click(function() {
+	$("#admin-link").click(function () {
 		var adminUrl = $(this).data("url");
 		window.open(adminUrl, "_blank");
 	});
 
-	$(this).on('click', '#updateDatabaseContainer', function() {
+	$(this).on('click', '#updateDatabaseContainer', function () {
 		$(".confirmation-box h2").text("Бажаєте оновити базу даних?");
 		$(".confirmation-update-database").show();
 		$("#confirmation-btn-on").data('confirmUpd', true);
@@ -45,15 +45,19 @@ $(document).ready(function() {
 										window.location.reload();
 									}, 3000);
 									clearInterval(interval);
-								} if (response.data === false) {
+								}
+								if (response.data === false) {
 									$("#loadingMessage").text(gettext("Помилка оновлення бази даних. Спробуйте пізніше"));
 									$("#loader").css("display", "none");
 									$("#checkmark").css("display", "none");
 									setTimeout(function () {
 										$("#loadingModal").css("display", "none");
+										$("#loadingMessage").text(gettext("Зачекайте, будь ласка, поки оновлюється база даних..."));
+										$("#loader").css("display", "block");
 									}, 3000);
 									clearInterval(interval);
-								};
+								}
+								;
 							}
 						});
 					}, 5000);
@@ -87,11 +91,11 @@ $(document).ready(function() {
 
 	partnerRadioButtons.change(function () {
 		const selectedPartner = $("input[name='partner']:checked").val();
-		if (selectedPartner === "Gps"){
-		$("#partnerLogin").hide()
-		$(".helper-token").show()
-		$("#partnerLogin").removeAttr('required')
-		$("#partnerPassword").attr('placeholder', "Введіть токен gps")
+		if (selectedPartner === "Gps") {
+			$("#partnerLogin").hide()
+			$(".helper-token").show()
+			$("#partnerLogin").removeAttr('required')
+			$("#partnerPassword").attr('placeholder', "Введіть токен gps")
 		}
 		updateLoginField(selectedPartner);
 	});
@@ -138,10 +142,10 @@ $(document).ready(function() {
 		const selectedPartner = partnerForm.find("input[name='partner']:checked").val();
 		sendLogautDataToServer(selectedPartner);
 		localStorage.removeItem(selectedPartner);
-		if (selectedPartner !== 'Gps'){
-		    $("#partnerLogin").show()
-		    $(".helper-token").hide()
-		    }
+		if (selectedPartner !== 'Gps') {
+			$("#partnerLogin").show()
+			$(".helper-token").hide()
+		}
 		$("#partnerPassword").show()
 		$(".opt-partnerForm").show()
 		$(".login-ok").hide()
@@ -179,9 +183,9 @@ $(document).ready(function() {
 			$(".login-ok").show()
 			$("#loginErrorMessage").hide()
 		} else {
-		    if (partner !== 'Gps') {
-			    $("#partnerLogin").show()
-			    $(".helper-token").hide()
+			if (partner !== 'Gps') {
+				$("#partnerLogin").show()
+				$(".helper-token").hide()
 			}
 			$("#partnerPassword").show()
 			$(".opt-partnerForm").show()
@@ -268,16 +272,16 @@ $(document).ready(function() {
 		$('input[name="driver-info"][value="' + selectedOption + '"]').prop('checked', true);
 	}
 
-	$('#DriverBtnContainers').on('click', function() {
+	$('#DriverBtnContainers').on('click', function () {
 		$('input[name="driver-info"][value="driver-list"]').prop('checked', true);
 		sessionStorage.setItem('selectedOption', 'driver-list');
 	});
 
-	$('input[name="driver-info"]').change(function() {
+	$('input[name="driver-info"]').change(function () {
 		var selectedValue = $(this).val();
 		sessionStorage.setItem('selectedOption', selectedValue);
 
-		switch(selectedValue) {
+		switch (selectedValue) {
 			case 'driver-list':
 				window.location.href = "/dashboard/drivers/";
 				break;
@@ -302,18 +306,18 @@ $(document).ready(function() {
 	$(this).on('click', '#add-bonus-btn, #add-penalty-btn', function (e) {
 		e.preventDefault();
 		var $button = $(this);
-        if ($button.hasClass('disabled')) {
-            return;
-        }
-        $button.addClass('disabled');
+		if ($button.hasClass('disabled')) {
+			return;
+		}
+		$button.addClass('disabled');
 		$('#amount-bonus-error, #category-bonus-error, #vehicle-bonus-error').hide();
 		var idPayments = $('#modal-add-bonus').data('id');
 		var driverId = $('#modal-add-bonus').data('driver-id');
 		var formDataArray = $('#modal-add-bonus :input').serializeArray();
 
 		var formData = {};
-		$.each(formDataArray, function(i, field){
-				formData[field.name] = field.value;
+		$.each(formDataArray, function (i, field) {
+			formData[field.name] = field.value;
 		});
 		if ($(this).attr('id') === 'add-bonus-btn') {
 			formData['action'] = 'add-bonus';
@@ -337,19 +341,19 @@ $(document).ready(function() {
 				if (idPayments === null) {
 					window.location.reload();
 				} else {
-					driverPayment(null, null, null, paymentStatus="on_inspection");
+					driverPayment(null, null, null, paymentStatus = "on_inspection");
 				}
 			},
 			error: function (xhr, textStatus, errorThrown) {
-			if (xhr.status === 400) {
-				let errors = xhr.responseJSON.errors;
-				$.each(errors, function (key, value) {
-					$('#' + key + '-bonus-error').html(value).show();
-				});
-			} else {
-				console.error('Помилка запиту: ' + textStatus);
-			}
-			$button.removeClass('disabled');
+				if (xhr.status === 400) {
+					let errors = xhr.responseJSON.errors;
+					$.each(errors, function (key, value) {
+						$('#' + key + '-bonus-error').html(value).show();
+					});
+				} else {
+					console.error('Помилка запиту: ' + textStatus);
+				}
+				$button.removeClass('disabled');
 			},
 		});
 	});
@@ -357,10 +361,10 @@ $(document).ready(function() {
 	$(this).on('click', '#edit-button-bonus-penalty', function (e) {
 		e.preventDefault();
 		var $button = $(this);
-        if ($button.hasClass('disabled')) {
-            return;
-        }
-        $button.addClass('disabled');
+		if ($button.hasClass('disabled')) {
+			return;
+		}
+		$button.addClass('disabled');
 		$('#amount-bonus-error, #category-bonus-error, #vehicle-bonus-error').hide();
 		var idBonus = $('#modal-add-bonus').data('bonus-penalty-id');
 		var category = $('#modal-add-bonus').data('category-type');
@@ -369,8 +373,8 @@ $(document).ready(function() {
 		console.log(paymentId)
 		var formDataArray = $('#modal-add-bonus :input').serializeArray();
 		var formData = {};
-		$.each(formDataArray, function(i, field){
-				formData[field.name] = field.value;
+		$.each(formDataArray, function (i, field) {
+			formData[field.name] = field.value;
 		});
 		formData['action'] = 'upd_bonus_penalty';
 		formData['bonus_id'] = idBonus;
@@ -390,25 +394,25 @@ $(document).ready(function() {
 				if (paymentId === undefined) {
 					window.location.reload();
 				} else {
-					driverPayment(null, null, null, paymentStatus="on_inspection");
+					driverPayment(null, null, null, paymentStatus = "on_inspection");
 				}
 			},
 			error: function (xhr, textStatus, errorThrown) {
 				if (xhr.status === 400) {
 					let errors = xhr.responseJSON.errors;
 					$.each(errors, function (key, value) {
-					$('#' + key + '-bonus-error').html(value).show();
+						$('#' + key + '-bonus-error').html(value).show();
 					});
 				} else {
 					console.error('Помилка запиту: ' + textStatus);
 				}
-			$button.removeClass('disabled');
+				$button.removeClass('disabled');
 			},
 		});
 	});
 
-	$(this).on('change', '#bonus-category', function(){
-		if ($(this).val() === 'add_new_category'){
+	$(this).on('change', '#bonus-category', function () {
+		if ($(this).val() === 'add_new_category') {
 			$('.new-category-field').css('display', 'flex')
 		} else {
 			$('.new-category-field').hide()
@@ -441,7 +445,7 @@ function applyCustomDateRange(item) {
 
 	if (item === 'driver') {
 		$(".apply-filter-button_driver").prop("disabled", true);
-		aggregator = $('.checkbox-container input[type="checkbox"]:checked').map(function() {
+		aggregator = $('.checkbox-container input[type="checkbox"]:checked').map(function () {
 			return $(this).val();
 		}).get();
 		var aggregatorsString = aggregator.join('&');
@@ -460,7 +464,7 @@ function applyCustomDateRange(item) {
 
 	if (item === 'payments') {
 		$(".apply-filter-button_driver").prop("disabled", true);
-		driverPayment(selectedPeriod, startDate, endDate, paymentStatus="closed");
+		driverPayment(selectedPeriod, startDate, endDate, paymentStatus = "closed");
 	}
 }
 
@@ -469,12 +473,12 @@ function openForm(paymentId, bonusPenaltyId, itemType, driverId) {
 		url: ajaxGetUrl,
 		type: 'GET',
 		data: {
-			 action: 'render_bonus',
-			 payment: paymentId,
-			 bonus_penalty: bonusPenaltyId,
-			 type: itemType,
-			 driver_id: driverId
-	 	},
+			action: 'render_bonus',
+			payment: paymentId,
+			bonus_penalty: bonusPenaltyId,
+			type: itemType,
+			driver_id: driverId
+		},
 		success: function (response) {
 			$('#formContainer').html(response.data);
 			$('#modal-add-bonus').data('id', paymentId);
@@ -483,10 +487,10 @@ function openForm(paymentId, bonusPenaltyId, itemType, driverId) {
 			$('#modal-add-bonus').data('driver-id', driverId);
 			$('#modal-add-bonus').data('payment-id', paymentId);
 			var headingText = itemType === 'bonus' ? (bonusPenaltyId ? 'Редагування бонуса' : 'Додавання бонуса') :
-																							 (bonusPenaltyId ? 'Редагування штрафа' : 'Додавання штрафа');
+				(bonusPenaltyId ? 'Редагування штрафа' : 'Додавання штрафа');
 			var buttonText = bonusPenaltyId ? 'Редагувати' : 'Додати';
 			var buttonId = itemType === 'bonus' ? (bonusPenaltyId ? 'edit-button-bonus-penalty' : 'add-bonus-btn') :
-																						(bonusPenaltyId ? 'edit-button-bonus-penalty' : 'add-penalty-btn');
+				(bonusPenaltyId ? 'edit-button-bonus-penalty' : 'add-penalty-btn');
 			$('#add-bonus-btn').text(buttonText);
 			$('.title-add-bonus h2').text(headingText);
 			$('#add-bonus-btn').prop('id', buttonId);
@@ -497,13 +501,31 @@ function openForm(paymentId, bonusPenaltyId, itemType, driverId) {
 			}
 		},
 
-		error: function(xhr, status, error) {
+		error: function (xhr, status, error) {
 			var errorMessage = xhr.responseJSON.data
-      $('#errorText').text(errorMessage);
-  		$('#errorModal').show();
-  		setTimeout(function() {
+			$('#errorText').text(errorMessage);
+			$('#errorModal').show();
+			setTimeout(function () {
 				$('#errorModal').hide();
 			}, 5000);
-    }
-  });
+		}
+	});
 }
+
+function formatTime(time) {
+	let parts = time.match(/(\d+) (\d+):(\d+):(\d+)/);
+	if (!parts) {
+		return time;
+	} else {
+		let days = parseInt(parts[1]);
+		let hours = parseInt(parts[2]);
+		let minutes = parseInt(parts[3]);
+		let seconds = parseInt(parts[4]);
+
+		hours += days * 24;
+
+		// Format the string as HH:mm:ss
+		return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+	}
+}
+

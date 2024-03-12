@@ -1,0 +1,17 @@
+{% load static %}
+{% load i18n %}
+<section class="contact-me-section" id="contact-me-form">
+  <div class="container">
+    <button id="close-form-contact" class="close-button">×</button>
+    <h2>{% trans "Зв’яжіться зі мною" %}</h2>
+    <p>{% trans "Заповніть форму та наш менеджер зв'яжеться з Вами" %}</p>
+    <form id="contact-form">
+      {% csrf_token %}
+      <input type="text" id="name" name="name" placeholder="{% trans 'Ваше ім`я*' %}"><br>
+      <span class="error-name">{% trans "Ім'я обовязкове!" %}</span><br>
+      <input type="tel" id="phone" name="phone" placeholder="{% trans 'Ваш номер телефону*' %}"><br>
+      <span class="error-message">{% trans "Не вірний формат номеру" %}</span><br>
+      <input type="submit" value="{% trans 'Зв’язатися з нами' %}">
+    </form>
+  </div>
+</section>

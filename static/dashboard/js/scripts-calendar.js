@@ -13,12 +13,12 @@ $(document).ready(function () {
 	}
 
 	function formatDateString(inputDateString) {
-    var parts = inputDateString.split('-');
-    if (parts.length === 3) {
-        var formattedDate = parts[2] + '.' + parts[1] + '.' + parts[0];
-        return formattedDate;
-    }
-    return inputDateString;
+		var parts = inputDateString.split('-');
+		if (parts.length === 3) {
+			var formattedDate = parts[2] + '.' + parts[1] + '.' + parts[0];
+			return formattedDate;
+		}
+		return inputDateString;
 	}
 
 
@@ -38,7 +38,7 @@ $(document).ready(function () {
 
 	fetchCalendarData(formattedStartDate, formattedEndDate);
 
-	function reshuffleHandler (data) {
+	function reshuffleHandler(data) {
 
 		data.sort((a, b) => {
 			if (a.swap_licence < b.swap_licence) {
@@ -48,7 +48,7 @@ $(document).ready(function () {
 				return 1;
 			}
 			return 0;
-    });
+		});
 		$('.driver-calendar').empty();
 
 		const calendarHTML = data.map(function (carData) {
@@ -135,7 +135,7 @@ $(document).ready(function () {
 					const formattedDate = formatDateForDatabase(day);
 					card.attr('id', formattedDate);
 
-					const dayOfWeek = day.toLocaleDateString('uk-UA', { weekday: 'short' });
+					const dayOfWeek = day.toLocaleDateString('uk-UA', {weekday: 'short'});
 
 					const dayOfWeekElement = $('<div>').text(dayOfWeek).addClass('day-of-week');
 					card.append(dayOfWeekElement);
@@ -155,7 +155,7 @@ $(document).ready(function () {
 
 								const driverPhoto = $('<div>').addClass('driver-photo');
 								driverPhoto.attr('data-name', driver.driver_name).attr('data-id-driver', driver.driver_id).attr('data-id-vehicle', driver.vehicle_id).attr('reshuffle-id', driver.reshuffle_id);
-								const driverImage = $('<img>').attr('src', 'https://storage.googleapis.com/jobdriver-bucket/'+ driver.driver_photo).attr('alt', `Фото водія`)
+								const driverImage = $('<img>').attr('src', 'https://storage.googleapis.com/jobdriver-bucket/' + driver.driver_photo).attr('alt', `Фото водія`)
 
 								const startTime = new Date('1970-01-01T' + driver.start_shift);
 								const endTime = new Date('1970-01-01T' + driver.end_shift);
@@ -199,8 +199,9 @@ $(document).ready(function () {
 					}, function () {
 						$(this).find(".driver-info-reshuffle").css("display", "none");
 					});
-				};
-				$('.driver-photo-container').each(function(index, container) {
+				}
+				;
+				$('.driver-photo-container').each(function (index, container) {
 					var photos = $(container).find('.driver-photo img');
 
 					if (photos.length > 3) {
@@ -369,7 +370,7 @@ $(document).ready(function () {
 				$.ajax({
 					url: ajaxPostUrl,
 					type: 'POST',
-					data: { action, ...ajaxData },
+					data: {action, ...ajaxData},
 					success: function (response) {
 						fetchCalendarData(formattedStartDate, formattedEndDate);
 						filterCheck()
@@ -466,26 +467,27 @@ $(document).ready(function () {
 				let error = false;
 
 				if (startTimeInput.val() === "" || startTimeInput.val() === ":" || startTimeInput.val().length !== 5) {
-						$('#startTime').css('background-color', '#fba');
-						$('.shift-startTime-error').text('Введіть час').show();
-						error = true;
+					$('#startTime').css('background-color', '#fba');
+					$('.shift-startTime-error').text('Введіть час').show();
+					error = true;
 				} else {
-						$('#startTime').css('background-color', '');
-						$('.shift-startTime-error').text('').hide();
+					$('#startTime').css('background-color', '');
+					$('.shift-startTime-error').text('').hide();
 				}
 
 				if (endTimeInput.val() === "" || endTimeInput.val() === ":" || endTimeInput.val().length !== 5) {
-						$('#endTime').css('background-color', '#fba');
-						$('.shift-endTime-error').text('Введіть час').show();
-						error = true;
+					$('#endTime').css('background-color', '#fba');
+					$('.shift-endTime-error').text('Введіть час').show();
+					error = true;
 				} else {
-						$('#endTime').css('background-color', '');
-						$('.shift-endTime-error').text('').hide();
+					$('#endTime').css('background-color', '');
+					$('.shift-endTime-error').text('').hide();
 				}
 
 				if (error) {
-						return;
+					return;
 				}
+				console.log(formatTimeWithSeconds(startTimeInput.val()), formatTimeWithSeconds(startTimeInput.val()))
 				$.ajax({
 					url: ajaxPostUrl,
 					type: 'POST',
@@ -493,8 +495,8 @@ $(document).ready(function () {
 						action: 'add_shift',
 						vehicle_licence: calendarId,
 						date: clickedDayId,
-						start_time: startTimeInput.val(),
-						end_time: endTimeInput.val(),
+						start_time: formatTimeWithSeconds(startTimeInput.val()),
+						end_time: formatTimeWithSeconds(endTimeInput.val()),
 						driver_id: selectedDriverId,
 						recurrence,
 						csrfmiddlewaretoken: csrfTokenInput.val()
@@ -529,30 +531,30 @@ $(document).ready(function () {
 				}
 			});
 
-				calendarDetail.on('click', '.driver-photo', function (event) {
-					event.stopPropagation();
-					const clickedCard = $(this).closest('.calendar-card');
-					const clickedDayId = clickedCard.attr('id');
-					const calendarId = clickedCard.closest('.calendar-container').attr('id');
+			calendarDetail.on('click', '.driver-photo', function (event) {
+				event.stopPropagation();
+				const clickedCard = $(this).closest('.calendar-card');
+				const clickedDayId = clickedCard.attr('id');
+				const calendarId = clickedCard.closest('.calendar-container').attr('id');
 
-					if (!clickedCard.hasClass('yesterday')) {
-						const driverPh = $(this);
-						const dataName = driverPh.data('name');
-						const idDriver = driverPh.data('id-driver');
-						const idVehicle = driverPh.data('id-vehicle');
-						const idReshuffle = driverPh.attr('reshuffle-id');
-						const driverPhoto = $(this).find('img');
-						const photoSrc = driverPhoto.attr('src');
+				if (!clickedCard.hasClass('yesterday')) {
+					const driverPh = $(this);
+					const dataName = driverPh.data('name');
+					const idDriver = driverPh.data('id-driver');
+					const idVehicle = driverPh.data('id-vehicle');
+					const idReshuffle = driverPh.attr('reshuffle-id');
+					const driverPhoto = $(this).find('img');
+					const photoSrc = driverPhoto.attr('src');
 
-						if (photoSrc.endsWith('logo-2.svg')) {
-							openShiftForm(clickedDayId, calendarId);
-						} else {
-							const driverInfo = driverPh.find('.driver-info-reshuffle');
-							const startTime = driverInfo.find('.driver-time').text().split(' - ')[0];
-							const endTime = driverInfo.find('.driver-time').text().split(' - ')[1];
-							updShiftForm(clickedDayId, calendarId, dataName, startTime, endTime, idDriver, idVehicle, idReshuffle);
-						}
+					if (photoSrc.endsWith('logo-2.svg')) {
+						openShiftForm(clickedDayId, calendarId);
+					} else {
+						const driverInfo = driverPh.find('.driver-info-reshuffle');
+						const startTime = driverInfo.find('.driver-time').text().split(' - ')[0];
+						const endTime = driverInfo.find('.driver-time').text().split(' - ')[1];
+						updShiftForm(clickedDayId, calendarId, dataName, startTime, endTime, idDriver, idVehicle, idReshuffle);
 					}
+				}
 			});
 		});
 
@@ -592,6 +594,7 @@ $(document).ready(function () {
 
 //		showCalendars(currentPage);
 	}
+
 	function fetchCalendarData(formattedStartDate, formattedEndDate) {
 		apiUrl = `/api/reshuffle/${formattedStartDate}&${formattedEndDate}/`;
 		$.ajax({
@@ -631,7 +634,7 @@ $(document).ready(function () {
 	}
 
 	function handleSearchChange($element, filterProperty, reshuffleProperty, $otherElement) {
-    $element.change(function () {
+		$element.change(function () {
 			fetchDataAndHandle.call(this, filterProperty, reshuffleProperty)
 				.then(function (filteredData) {
 					reshuffleHandler(filteredData);
@@ -639,7 +642,7 @@ $(document).ready(function () {
 			if ($otherElement) {
 				$otherElement.val("all");
 			}
-    });
+		});
 	}
 
 
@@ -652,71 +655,70 @@ $(document).ready(function () {
 
 	const timeList = document.getElementById('timeList');
 
-  for (let i = 0; i < 24; i++) {
-    for (let j = 0; j < 60; j += 15) {
-      const hour = i.toString().padStart(2, '0');
-      const minute = j.toString().padStart(2, '0');
-      const option = document.createElement('option');
-      option.value = `${hour}:${minute}`;
-      timeList.appendChild(option);
-    }
-  }
-  $('.shift-close-btn').off('click').on('click', function (e) {
-  	e.preventDefault();
+	for (let i = 0; i < 24; i++) {
+		for (let j = 0; j < 60; j += 15) {
+			const hour = i.toString().padStart(2, '0');
+			const minute = j.toString().padStart(2, '0');
+			const option = document.createElement('option');
+			option.value = `${hour}:${minute}`;
+			timeList.appendChild(option);
+		}
+	}
+	$('.shift-close-btn').off('click').on('click', function (e) {
+		e.preventDefault();
 		$('#modal-shift').hide();
 	});
 });
 
 
-
 function compareTimes(time1, time2) {
-  const [hours1, minutes1] = time1.split(':').map(Number);
-  const [hours2, minutes2] = time2.split(':').map(Number);
+	const [hours1, minutes1] = time1.split(':').map(Number);
+	const [hours2, minutes2] = time2.split(':').map(Number);
 
-  if (hours1 !== hours2) {
-    return hours1 - hours2;
-  }
+	if (hours1 !== hours2) {
+		return hours1 - hours2;
+	}
 
-  return minutes1 - minutes2;
+	return minutes1 - minutes2;
 }
 
 function validateInputTime(input, field) {
-  $(input).on('input', function () {
-    let numericValue = input.value.replace(/\D/g, '');
+	$(input).on('input', function () {
+		let numericValue = input.value.replace(/\D/g, '');
 
-    let hours = numericValue.slice(0, 2);
-    let minutes = numericValue.slice(2, 4);
+		let hours = numericValue.slice(0, 2);
+		let minutes = numericValue.slice(2, 4);
 
-    input.value = hours + ':' + minutes;
+		input.value = hours + ':' + minutes;
 
-    input.value = input.value.slice(0, 5);
+		input.value = input.value.slice(0, 5);
 
-    var isValid = /^([0-1]?[0-9]|2[0-3]):([0-5][0-9])$/.test(input.value);
+		var isValid = /^([0-1]?[0-9]|2[0-3]):([0-5][0-9])$/.test(input.value);
 
-    if (isValid) {
-      input.style.backgroundColor = '#bfa';
-      $('.shift-'+ field +'-error').text('').hide();
-      blockBtn(false);
+		if (isValid) {
+			input.style.backgroundColor = '#bfa';
+			$('.shift-' + field + '-error').text('').hide();
+			blockBtn(false);
 
-      if (field === 'endTime') {
-        if (input.value === '00:00') {
-          input.value = '23:59';
-        }
-        const startTimeInput = $('#startTime').val();
+			if (field === 'endTime') {
+				if (input.value === '00:00') {
+					input.value = '23:59';
+				}
+				const startTimeInput = $('#startTime').val();
 
-        if (compareTimes(startTimeInput, input.value) > 0) {
-          input.style.backgroundColor = '#fba';
-          $('.shift-'+ field +'-error').text('Введіть коректний час').show();
-          blockBtn(true);
-        }
-      }
-    } else {
-      input.style.backgroundColor = '#fba';
-      $('.shift-'+ field +'-error').text('Введіть час').show();
-      blockBtn(true);
-    }
-  });
-  $(input).attr('inputmode', 'numeric');
+				if (compareTimes(startTimeInput, input.value) > 0) {
+					input.style.backgroundColor = '#fba';
+					$('.shift-' + field + '-error').text('Введіть коректний час').show();
+					blockBtn(true);
+				}
+			}
+		} else {
+			input.style.backgroundColor = '#fba';
+			$('.shift-' + field + '-error').text('Введіть час').show();
+			blockBtn(true);
+		}
+	});
+	$(input).attr('inputmode', 'numeric');
 }
 
 function blockBtn(arg) {
@@ -755,6 +757,7 @@ function showShiftMessage(success, showText, time, vehicle) {
 		}, 5000);
 	}
 }
+
 function showConflictMessage(success, showText, messageList) {
 	if (success) {
 		$(".shift-success-message").show();
@@ -765,9 +768,9 @@ function showConflictMessage(success, showText, messageList) {
 		}, 2000);
 	} else {
 		$(".shift-success-message").show();
-            const messages = messageList.map(conflict => `${conflict.licence_plate} - ${conflict.conflicting_time}`);
-            const resultMessage = messages.join('<br>');
-			$(".shift-success-message h2").html("Помилка, конфлікт змін:<br>" + resultMessage);
+		const messages = messageList.map(conflict => `${conflict.licence_plate} - ${conflict.conflicting_time}`);
+		const resultMessage = messages.join('<br>');
+		$(".shift-success-message h2").html("Помилка, конфлікт змін:<br>" + resultMessage);
 		setTimeout(function () {
 			$(".shift-success-message").hide();
 		}, 5000);
@@ -789,15 +792,24 @@ function filterCheck() {
 
 
 function openModal() {
-    document.getElementById('modal-shift').style.display = 'block';
-    document.querySelector('.modal-overlay').style.display = 'block';
-    document.body.style.overflow = 'hidden';
+	document.getElementById('modal-shift').style.display = 'block';
+	document.querySelector('.modal-overlay').style.display = 'block';
+	document.body.style.overflow = 'hidden';
 }
 
 function closeModal() {
-    document.getElementById('modal-shift').style.display = 'none';
-    document.querySelector('.modal-overlay').style.display = 'none';
-    document.body.style.overflow = '';
+	document.getElementById('modal-shift').style.display = 'none';
+	document.querySelector('.modal-overlay').style.display = 'none';
+	document.body.style.overflow = '';
 }
 
 document.querySelector('.shift-close-btn').addEventListener('click', closeModal);
+
+function formatTimeWithSeconds(time) {
+	const parts = time.split(':');
+	if (parts[1] === '59') {
+		return parts[0] + ':' + parts[1] + ':59';
+	} else {
+		return parts[0] + ':' + parts[1] + ':00';
+	}
+}
