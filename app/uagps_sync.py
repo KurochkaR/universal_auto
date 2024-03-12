@@ -198,7 +198,7 @@ class UaGpsSynchronizer(Fleet):
             partner=self.partner, swap_time__date=timezone.localtime()).values_list(
             'driver_start', flat=True) if not schema_drivers else schema_drivers
         for driver in drivers:
-            if RentInformation.objects.filter(report_from__date=start, driver=driver):
+            if RentInformation.objects.filter(report_from__date=start, driver=driver) and len(drivers) != 1:
                 continue
 
             road_dict[driver] = self.get_driver_rent(start, end, driver)

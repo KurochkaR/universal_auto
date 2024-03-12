@@ -124,6 +124,36 @@ $(document).ready(function () {
 		return false;
 	});
 
+	$(this).on('click', '.create-payment', function () {
+	    $.ajax({
+			url: ajaxPostUrl,
+			type: 'POST',
+			data: {
+				action: 'create-new-payment',
+				csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
+			},
+			success: function (response) {
+			$.each(response.drivers, function(index, driver) {
+            // Create a button element
+            var button = $('<button>', {
+                'text': driver.name,  // Use the driver's name as the button text
+                'data-driver-id': driver.id,  // You can add any additional data attributes if needed
+                'class': 'driver-button',  // Add a class for styling or event handling
+            });
+
+            // Append the button to the create-payment-list div
+            $('.create-payment-list').append(button);
+        });
+				$('#payment-driver-list').show();
+			},
+			error: function (error) {
+				console.error("Error:", error);
+			}
+		});
+
+	});
+
+
 	$(this).on('click', '.bonus-table .delete-bonus-penalty-btn', function () {
 		var $button = $(this);
 		if ($button.hasClass('disabled')) {
@@ -270,7 +300,6 @@ $(document).ready(function () {
 	const driverTableTbody = $(".driver-table tbody");
 
 	driverTableTbody.on('click', '.driver-rate', function (event) {
-		console.log('click driver-rate');
 		var $rateContainer = $(this);
 		var $rateText = $rateContainer.find('.rate-payment');
 		var $rateInput = $rateContainer.find('.driver-rate-input');

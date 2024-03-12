@@ -300,6 +300,7 @@ $(document).ready(function () {
 		$('#modal-add-bonus').hide();
 		$('#modal-upd-bonus').hide();
 		$('#modal-add-penalty').hide();
+		$('#payment-driver-list').hide();
 		$('.modal-not-closed-payments').hide();
 	});
 

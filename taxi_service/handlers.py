@@ -409,6 +409,12 @@ class PostRequestHandler:
         return JsonResponse({'data': 'success', 'cash_rate': driver.cash_rate})
 
     @staticmethod
+    def handler_create_payment(request):
+        drivers = Driver.objects.get_active(partner=request.user)
+        driver_info = [{'id': driver.id, 'name': f"{driver.second_name} {driver.name}."} for driver in drivers]
+        return JsonResponse({'drivers': driver_info})
+
+    @staticmethod
     def handle_unknown_action():
         return JsonResponse({}, status=400)
 

@@ -576,7 +576,7 @@ def detaching_the_driver_from_the_car(self, partner_pk, licence_plate, eta):
 
 
 @app.task(bind=True, retry_backoff=30, max_retries=4)
-def get_rent_information(self, schemas, day=None, driver=None):
+def get_rent_information(self, schemas=None, day=None, driver=None):
     try:
         if driver:
             drivers = Driver.objects.filter(pk=driver)
@@ -677,7 +677,7 @@ def send_daily_statistic(self, schemas):
             if result:
                 for num, key in enumerate(result[0], 1):
                     if result[0][key]:
-                        driver_msg = "{} {}\nКаса: {:.2f} (+{:.2f})\n Оренда: {:.2f}км (+{:.2f})\n\n".format(
+                        driver_msg = "{} {}\nКаса: {:.2f} (+{:.2f})\nХолостий пробіг: {:.2f}км (+{:.2f})\n\n".format(
                             key, schema_obj.title, result[0][key], result[1].get(key, 0), result[2].get(key, 0), result[3].get(key, 0))
                         driver_dict_msg[key.pk] = driver_msg
                         message += f"{num}.{driver_msg}"
@@ -1138,8 +1138,8 @@ def calculate_driver_reports(self, schemas, day=None):
         else:
             end, start = get_time_for_task(driver.schema, day)[1:3]
         reshuffles = check_reshuffle(driver, start, end)
-        report_kasa = SummaryReport.objects.filter(driver=driver, report_from__range=(start, end)).aggregate(
-                kasa=Coalesce(Sum('total_amount_without_fee'), 0, output_field=DecimalField()))['kasa']
+        # report_kasa = SummaryReport.objects.filter(driver=driver, report_from__range=(start, end)).aggregate(
+        #         kasa=Coalesce(Sum('total_amount_without_fee'), 0, output_field=DecimalField()))['kasa']
         if reshuffles:
             bolt_weekly = WeeklyReport.objects.filter(report_from=start_week, report_to=end_week,
                                                       driver=driver, fleet__name="Bolt").aggregate(
@@ -1154,7 +1154,8 @@ def calculate_driver_reports(self, schemas, day=None):
                 vehicle_bonus = {}
                 weekly_reshuffles = check_reshuffle(driver, start_week, end_week)
                 for shift in weekly_reshuffles:
-                    shift_bolt_kasa = calculate_bolt_kasa(driver,shift.swap_vehicle, shift.swap_time, shift.end_time)
+                    shift_bolt_kasa = calculate_bolt_kasa(driver, shift.swap_time, shift.end_time,
+                                                          vehicle=shift.swap_vehicle)
                     reshuffle_bonus = shift_bolt_kasa / (bolt_weekly['kasa'] - bolt_weekly['compensations'] - bolt_weekly['bonuses']) * bolt_weekly['bonuses']
                     if not vehicle_bonus.get(shift.swap_vehicle):
                         vehicle_bonus[shift.swap_vehicle] = reshuffle_bonus
@@ -1190,6 +1191,30 @@ def calculate_driver_reports(self, schemas, day=None):
             #         get_corrections(last_payment.report_from, last_payment.report_to, driver, driver_reports)
             #     else:
             #         get_corrections(start, end, driver)
+
+
+def create_daily_payment(self, driver_pk):
+    driver = Driver.objects.get(pk=driver_pk)
+    fleets = Fleet.objects.filter(partner=driver.partner, deleted_at=None).exclude(name='Gps')
+    start = timezone.make_aware(datetime.combine(timezone.localtime(), time.min))
+    end = timezone.localtime()
+    for fleet in fleets:
+        driver_ids = Driver.objects.get_active(fleetsdriversvehiclesrate__fleet=fleet).values_list(
+            'fleetsdriversvehiclesrate__driver_external_id', flat=True)
+        fleet.save_daily_custom(start, end, driver_ids)
+        payment_24hours_create(start, end, fleet, driver, driver.partner)
+    summary_report_create(start, end, driver, driver.partner)
+    get_rent_information(driver=driver_pk)
+    data = create_driver_payments(start, end, driver, driver.schema)
+    payment, created = DriverPayments.objects.get_or_create(report_from__date=start,
+                                                            driver=driver_pk,
+                                                            defaults=data)
+    if not created:
+        for key, value in data.items():
+            setattr(payment, key, value)
+        payment.save()
+
+
 
 
 @app.task(bind=True)
