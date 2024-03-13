@@ -262,8 +262,14 @@ let threeChartOptions = {
 			type: 'shadow'
 		},
 		formatter: function (params) {
-			return 'Автомобіль: ' + params[0].name + '<br/>Ефективність: ' + params[0].value;
+			let carName = params[0].data['name'];
+			let efficiency = params[0].data['value'];
+			let tripsValue = params[0].data['trips'];
+			let brand = params[0].data['brand'];
+			return 'Автомобіль: ' + carName + '<br/>Ефективність: ' + efficiency +
+				'<br/>Бренд: ' + brand + '<br/>Брендовані поїздки: ' + tripsValue;
 		}
+
 	}
 }
 
@@ -372,29 +378,58 @@ function fetchCarEfficiencyData(period, vehicleId, vehicle_lc, start, end) {
 
 				let firstVehicleData = {
 					name: vehicle_lc,
-					data: data['vehicles'].efficiency
+					data: data.efficiency
 				};
 
-				let seriesData = [firstVehicleData];
-
-				areaChartOptions.series = seriesData;
+				areaChartOptions.series = firstVehicleData;
 				areaChartOptions.xAxis.data = data['dates'];
 				areaChart.setOption(areaChartOptions);
 
-				let averageEff = data['vehicles'].average_eff;
-				let vehicleNames = Object.keys(averageEff);
-				let vehicleEff = Object.values(averageEff);
-				var keys = Object.keys(data['vehicle_numbers_eff']).sort();
+				let vehicle_list = data['vehicle_list'];
 				var dropdown = $('#vehicle-options');
 				dropdown.empty();
 
-				keys.forEach(function (key) {
-					var value = data['vehicle_numbers_eff'][key];
-					dropdown.append($('<li></li>').attr('data-value', value).text(key));
+				vehicle_list.sort((a, b) => {
+					let nameA = Object.keys(a)[0];
+					let nameB = Object.keys(b)[0];
+					return nameA.localeCompare(nameB);
 				});
 
-				threeChartOptions.series[0].data = vehicleEff;
-				threeChartOptions.xAxis.data = vehicleNames;
+				vehicle_list.forEach(function (vehicleInfo) {
+					let carName = Object.keys(vehicleInfo)[0];
+					let carId = vehicleInfo[carName].vehicle_id;
+
+					dropdown.append($('<li></li>').attr('data-value', carId).text(carName));
+				});
+
+				let vehicleData = [];
+				vehicle_list.forEach(function (vehicle) {
+					let carName = Object.keys(vehicle)[0];
+					let carInfo = vehicle[carName];
+
+					let carData = {
+						name: carName,
+						efficiency: carInfo.average_eff,
+						trips: carInfo.branding_trips || 0,
+						brand: carInfo.vehicle_brand || 'Відсутній'
+					};
+					vehicleData.push(carData);
+				});
+
+				let chartData = vehicleData.map(function (vehicle) {
+					return {
+						name: vehicle.name,
+						value: vehicle.efficiency,
+						trips: vehicle.trips,
+						brand: vehicle.brand
+					};
+				});
+
+				threeChartOptions.series[0].data = chartData;
+				threeChartOptions.xAxis.data = vehicleData.map(function (vehicle) {
+					return vehicle.name;
+				});
+
 				threeChart.setOption(threeChartOptions);
 			} else {
 				$(".noDataMessage2").show();
@@ -411,24 +446,6 @@ function fetchCarEfficiencyData(period, vehicleId, vehicle_lc, start, end) {
 			console.error(error);
 		}
 	});
-}
-
-function showDatePicker(periodSelectId, datePickerId) {
-	let periodSelect = $("#" + periodSelectId);
-	let datePicker = $("#" + datePickerId);
-
-	if (periodSelect.val() === "custom") {
-		datePicker.css("display", "block");
-	} else {
-		datePicker.css("display", "none");
-	}
-}
-
-function getUrlCalendar() {
-	let url = window.location.href;
-	let urlArr = url.split('#');
-	let urlCalendar = urlArr[urlArr.length - 1];
-	return urlCalendar
 }
 
 $(document).ready(function () {
