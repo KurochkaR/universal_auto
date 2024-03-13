@@ -240,8 +240,8 @@ def check_card_cash_value(self, partner_pk):
                 ratio = (card - rent_payment) / kasa
                 without_rent = card / kasa
                 rate = driver.cash_rate if driver.cash_rate else driver.schema.rate
-                enable = int(ratio > (1-rate))
-                rent_enable = int(without_rent > (1-rate))
+                enable = int(ratio > (1 - rate))
+                rent_enable = int(without_rent > (1 - rate))
                 fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name='Gps')
                 disabled = []
                 for fleet in fleets:
@@ -253,9 +253,9 @@ def check_card_cash_value(self, partner_pk):
                 if disabled:
                     if rent_payment:
                         calc_text = f"Готівка {int(kasa - card)} + холостий пробіг {int(rent_payment)}/{int(kasa)} =" \
-                                    f" {int((1-ratio)*100)}%\n"
+                                    f" {int((1 - ratio) * 100)}%\n"
                     else:
-                        calc_text = f"Готівка {int(kasa - card)} /{int(kasa)} = {int((1-ratio)*100)}%\n"
+                        calc_text = f"Готівка {int(kasa - card)} /{int(kasa)} = {int((1 - ratio) * 100)}%\n"
                     if enable:
                         text = f"\U0001F7E2 {driver} система увімкнула отримання замовлень за готівку.\n" + calc_text
 
@@ -265,7 +265,7 @@ def check_card_cash_value(self, partner_pk):
                     else:
                         text = f"\U0001F534 {driver} системою вимкнено готівкові замовлення.\n" \
                                f"Причина: високий рівень готівки\n" + calc_text
-                    text += f"Дозволено готівки {rate*100}%"
+                    text += f"Дозволено готівки {rate * 100}%"
                     bot.send_message(chat_id=ParkSettings.get_value("CASH_CHAT", partner=partner_pk),
                                      text=text)
     except Exception as e:
@@ -411,6 +411,14 @@ def get_car_efficiency(self, partner_pk, day=None):
                                                   vehicle=vehicle)
         if efficiency:
             continue
+        if vehicle.branding:
+            orders_count = FleetOrder.objects.filter(
+                vehicle__branding__name=vehicle.branding.name,
+                date_order__range=(start, end),
+                vehicle=vehicle, state=FleetOrder.COMPLETED).count()
+        else:
+            orders_count = 0
+
         vehicle_drivers = {}
         total_spending = VehicleSpending.objects.filter(
             vehicle=vehicle, created_at__range=(start, end)).aggregate(Sum('amount'))['amount__sum'] or 0
@@ -441,6 +449,7 @@ def get_car_efficiency(self, partner_pk, day=None):
                                            total_spending=total_spending,
                                            mileage=total_km,
                                            efficiency=result,
+                                           total_brand_trips=orders_count,
                                            partner_id=partner_pk)
         for driver, kasa in vehicle_drivers.items():
             DriverEffVehicleKasa.objects.create(driver_id=driver, efficiency_car=car, kasa=kasa)
@@ -477,7 +486,8 @@ def update_driver_status(self, partner_pk, photo=None):
             status_with_client = set()
             fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name='Gps')
             for fleet in fleets:
-                statuses = fleet.get_drivers_status(photo) if isinstance(fleet, BoltRequest) else fleet.get_drivers_status()
+                statuses = fleet.get_drivers_status(photo) if isinstance(fleet,
+                                                                         BoltRequest) else fleet.get_drivers_status()
                 logger.info(f"{fleet} {statuses}")
                 status_online = status_online.union(set(statuses['wait']))
                 status_with_client = status_with_client.union(set(statuses['with_client']))
@@ -666,7 +676,8 @@ def send_daily_statistic(self, schemas):
                 for num, key in enumerate(result[0], 1):
                     if result[0][key]:
                         driver_msg = "{} {}\nКаса: {:.2f} (+{:.2f})\n Оренда: {:.2f}км (+{:.2f})\n\n".format(
-                            key, schema_obj.title, result[0][key], result[1].get(key, 0), result[2].get(key, 0), result[3].get(key, 0))
+                            key, schema_obj.title, result[0][key], result[1].get(key, 0), result[2].get(key, 0),
+                            result[3].get(key, 0))
                         driver_dict_msg[key.pk] = driver_msg
                         message += f"{num}.{driver_msg}"
                 if schema_obj.partner.pk in dict_msg:
@@ -1129,7 +1140,7 @@ def calculate_driver_reports(self, schemas, day=None):
         for driver in Driver.objects.get_active(schema=schema):
             reshuffles = check_reshuffle(driver, start, end)
             report_kasa = SummaryReport.objects.filter(driver=driver, report_from__range=(start, end)).aggregate(
-                    kasa=Coalesce(Sum('total_amount_without_fee'), 0, output_field=DecimalField()))['kasa']
+                kasa=Coalesce(Sum('total_amount_without_fee'), 0, output_field=DecimalField()))['kasa']
             if reshuffles:
                 bolt_weekly = WeeklyReport.objects.filter(report_from=start_week, report_to=end_week,
                                                           driver=driver, fleet__name="Bolt").aggregate(
@@ -1146,7 +1157,9 @@ def calculate_driver_reports(self, schemas, day=None):
                     for shift in weekly_reshuffles:
                         shift_bolt_kasa = calculate_bolt_kasa(driver, shift.swap_vehicle,
                                                               shift.swap_time, shift.end_time)
-                        reshuffle_bonus = shift_bolt_kasa / (bolt_weekly['kasa'] - bolt_weekly['compensations'] - bolt_weekly['bonuses']) * bolt_weekly['bonuses']
+                        reshuffle_bonus = shift_bolt_kasa / (
+                                bolt_weekly['kasa'] - bolt_weekly['compensations'] - bolt_weekly['bonuses']) * \
+                                          bolt_weekly['bonuses']
                         if not vehicle_bonus.get(shift.swap_vehicle):
                             vehicle_bonus[shift.swap_vehicle] = reshuffle_bonus
                         else:
@@ -1223,8 +1236,10 @@ def calculate_vehicle_earnings(self, payment_pk):
     for vehicle, income in vehicles_income.items():
         vehicle_bonus = Penalty.objects.filter(vehicle=vehicle, driver_payments=payment).aggregate(
             total_amount=Coalesce(Sum('amount'), Decimal(0)))['total_amount']
-        vehicle_penalty = Bonus.objects.filter(vehicle=vehicle, driver_payments=payment).exclude(category__title="Бонуси Bolt").aggregate(
-            total_amount=Coalesce(Sum('amount'), Decimal(0)))['total_amount']
+        vehicle_penalty = \
+            Bonus.objects.filter(vehicle=vehicle, driver_payments=payment).exclude(
+                category__title="Бонуси Bolt").aggregate(
+                total_amount=Coalesce(Sum('amount'), Decimal(0)))['total_amount']
         earning = income + vehicle_bonus - vehicle_penalty
         PartnerEarnings.objects.get_or_create(
             report_from=payment.report_from,
