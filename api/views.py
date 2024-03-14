@@ -9,6 +9,7 @@ from django.contrib.postgres.aggregates import ArrayAgg
 from django.db.models import Sum, F, OuterRef, Subquery, DecimalField, Avg, Value, CharField, ExpressionWrapper, Case, \
     When, Func, FloatField, Exists, Prefetch, Q, IntegerField
 from django.db.models.functions import Concat, Round, Coalesce
+from django.forms import DurationField
 from django.utils import timezone
 from rest_framework import generics
 from rest_framework.response import Response
@@ -249,12 +250,44 @@ class DriverEfficiencyListView(CombinedPermissionsMixin,
     def get_queryset(self):
         start, end, format_start, format_end = get_start_end(self.kwargs['period'])
         queryset = ManagerFilterMixin.get_queryset(DriverEfficiency, self.request.user)
-        filtered_qs = queryset.filter(report_from__range=(start, end)).exclude(total_orders=0)
-        qs = filtered_qs.values('driver_id').annotate(
-            **get_dynamic_fleet()
+        filtered_qs = queryset.filter(report_from__range=(start, end))
+        qs_efficient = filtered_qs.values('driver_id').annotate(**get_dynamic_fleet())
+
+        efficient_driver_ids = set(qs_efficient.values_list('driver_id', flat=True))
+
+        reshuffled_drivers = DriverReshuffle.objects.filter(
+            swap_time__range=(start, end),
+            driver_start__isnull=False,
+            partner=self.request.user
+        ).exclude(driver_start__id__in=efficient_driver_ids).distinct()
+
+        reshuffled_driver_ids = reshuffled_drivers.values_list('driver_start__id', flat=True)
+
+        reshuffled_drivers_info = Driver.objects.filter(id__in=reshuffled_driver_ids).values(
+            'id', 'name', 'second_name'
         )
 
-        return [{'start': format_start, 'end': format_end, 'drivers_efficiency': qs}]
+        additional_drivers_info = [
+            {
+                'driver_id': driver_info['id'],
+                'full_name': f"{driver_info['name']} {driver_info['second_name']}",
+                'total_kasa': 0,
+                'total_orders': 0,
+                'total_orders_accepted': 0,
+                'total_orders_rejected': 0,
+                'average_price': 0,
+                'accept_percent': 0,
+                'road_time': timedelta(),
+                'mileage': 0,
+                'efficiency': 0
+            }
+            for driver_info in reshuffled_drivers_info
+        ]
+
+        qs_efficient = list(qs_efficient) + additional_drivers_info
+
+        return [
+            {'start': format_start, 'end': format_end, 'drivers_efficiency': qs_efficient}]
 
 
 class DriverEfficiencyFleetListView(CombinedPermissionsMixin,
