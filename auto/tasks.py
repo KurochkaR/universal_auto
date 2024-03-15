@@ -261,7 +261,7 @@ def check_card_cash_value(self, partner_pk):
 
                     elif rent_enable:
                         text = f"\U0001F534 {driver} системою вимкнено готівкові замовлення.\n" \
-                               f"Причина: холостий пробіг\n" + calc_text + ", перепробіг {int(rent)} км\n"
+                               f"Причина: холостий пробіг\n" + calc_text + f", перепробіг {int(rent)} км\n"
                     else:
                         text = f"\U0001F534 {driver} системою вимкнено готівкові замовлення.\n" \
                                f"Причина: високий рівень готівки\n" + calc_text
