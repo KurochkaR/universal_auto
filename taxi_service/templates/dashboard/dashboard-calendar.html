@@ -12,7 +12,7 @@
       <select id="search-vehicle-calendar">
         <option value="all">--------</option>
         {% for vehicle in get_active_vehicle %}
-        <option value="{{ vehicle.id }}">{{ vehicle }}</option>
+          <option value="{{ vehicle.id }}">{{ vehicle }}</option>
         {% endfor %}
       </select>
     </div>
@@ -21,7 +21,7 @@
       <select id="search-shift-driver">
         <option value="all">--------</option>
         {% for driver in get_all_driver %}
-        <option value="{{ driver.id }}">{{ driver }}</option>
+          <option value="{{ driver.id }}">{{ driver }}</option>
         {% endfor %}
       </select>
     </div>
@@ -76,7 +76,8 @@
       <div class="shift-time">
         <div class="shift-start-time">
           <label for="startTime">{% trans "Час початку" %}</label>
-          <input type="text" id="startTime" list="timeList" value="00:00" oninput="validateInputTime(this, 'startTime')">
+          <input type="text" id="startTime" list="timeList" value="00:00"
+                 oninput="validateInputTime(this, 'startTime')">
           <div class="shift-startTime-error"></div>
         </div>
         <div class="shift-end-time">
@@ -100,8 +101,10 @@
         <div class="shift-driver">
           <label for="shift-driver">{% trans "Водії" %}</label>
           <select id="shift-driver">
+            <option value="road-accident">ДТП</option>
+            <option value="technical-service">Тех.Обслуговування</option>
             {% for driver in get_all_driver %}
-            <option value="{{ driver.id }}">{{ driver }}</option>
+              <option value="{{ driver.id }}">{{ driver }}</option>
             {% endfor %}
           </select>
         </div>
@@ -109,7 +112,7 @@
           <label for="shift-vehicle">{% trans "Автомобіль" %}</label>
           <select id="shift-vehicle">
             {% for vehicle in get_active_vehicle %}
-            <option value="{{ vehicle.id }}">{{ vehicle }}</option>
+              <option value="{{ vehicle.id }}">{{ vehicle }}</option>
             {% endfor %}
           </select>
         </div>
@@ -138,10 +141,10 @@
 </div>
 <!-- Scripts -->
 <script>
-  const VehicleImg = "{% static 'app/images/index-one-block-2.webp' %}";
-  const logoImageUrl = "{% static 'app/images/logo-2.svg' %}";
-  let ajaxPostUrl = "{% url 'post_request' %}";
-  let ajaxGetUrl = "{% url 'get_request' %}";
+	const VehicleImg = "{% static 'app/images/index-one-block-2.webp' %}";
+	const logoImageUrl = "{% static 'app/images/logo-2.svg' %}";
+	let ajaxPostUrl = "{% url 'post_request' %}";
+	let ajaxGetUrl = "{% url 'get_request' %}";
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.3/dist/jquery.min.js" defer></script>
