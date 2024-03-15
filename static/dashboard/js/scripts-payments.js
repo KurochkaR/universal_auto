@@ -82,9 +82,9 @@ function driverPayment(period = null, start = null, end = null, paymentStatus = 
 						row.append('<td>' + '<div style="display: flex;justify-content: space-evenly; align-items: center;">' + response[i].penalties + addButtonPenalty + '</div>' + '</td>');
 						row.append('<td class="driver-rate" title="Натиснути для зміни відсотка"><div style="display: flex; justify-content: space-evenly; align-items: center;"><span class="rate-payment">' + response[i].rate + '</span><input type="text" class="driver-rate-input" placeholder="100" style="display: none;"><i class="fa fa-check check-icon"></i><i class="fa fa-pencil-alt pencil-icon"></i></div></td>');
 					} else {
-						row.append('<td>' + '<div style="display: flex;justify-content: space-evenly; align-items: center;">' + response[i].bonuses + '</div>' + '</td>');
-						row.append('<td>' + '<div style="display: flex;justify-content: space-evenly; align-items: center;">' + response[i].penalties + '</div>' + '</td>');
-						row.append('<td><div style="display: flex;justify-content: space-evenly; align-items: center;"><span class="rate-payment" >' + response[i].rate + ' </span></div></td>')
+						row.append('<td>' + '<div class="no-pencil-rate" style="display: flex;justify-content: space-evenly; align-items: center;">' + response[i].bonuses + '</div>' + '</td>');
+						row.append('<td>' + '<div class="no-pencil-rate" style="display: flex;justify-content: space-evenly; align-items: center;">' + response[i].penalties + '</div>' + '</td>');
+						row.append('<td><div style="display: flex;justify-content: space-evenly; align-items: center;"><span class="rate-payment no-pencil-rate" >' + response[i].rate + ' </span></div></td>')
 
 					}
 					row.append('<td class="payment-earning">' + response[i].earning + '</td>');
@@ -153,7 +153,8 @@ $(document).ready(function () {
 	$(this).on('click', '.driver-table tbody .driver-name', function () {
 		var row = $(this).closest('tr');
 		var bonusTable = row.next().find('.bonus-table');
-		bonusTable.toggle();
+
+		bonusTable.toggleClass('expanded');
 		return false;
 	});
 

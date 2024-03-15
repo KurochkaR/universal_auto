@@ -2290,6 +2290,14 @@ td.driver-rate {
 	cursor: pointer;
 }
 
+.no-pencil-rate {
+    margin-right: 28px;
+}
+
+span.no-pencil-rate {
+    margin-right: 20px;
+}
+
 input.driver-rate-input:focus {
 	outline: none;
 }
@@ -2422,6 +2430,9 @@ input.driver-rate-input {
 
 .bonus-table {
 	display: none;
+}
+.bonus-table.expanded {
+    display: table-cell;
 }
 
 #modal-upd-bonus .shift-close-btn {
