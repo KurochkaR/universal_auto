@@ -608,7 +608,7 @@ def get_today_rent(self, partner_pk):
         raise self.retry(exc=e, countdown=retry_delay)
 
 
-@app.task(bind=True, retry_backoff=30, max_retries=4)
+@app.task(bind=True, ignore_result=False, retry_backoff=30, max_retries=4)
 def fleets_cash_trips(self, partner_pk, pk, enable):
     try:
         driver = Driver.objects.get(pk=pk)
@@ -617,12 +617,14 @@ def fleets_cash_trips(self, partner_pk, pk, enable):
         for fleet in fleets:
             driver_rate = FleetsDriversVehiclesRate.objects.filter(
                 driver=driver, fleet=fleet).first()
-            fleet.disable_cash(driver_rate.driver_external_id, enable)
+            if driver_rate:
+                fleet.disable_cash(driver_rate.driver_external_id, enable)
 
     except Exception as e:
         logger.error(e)
         retry_delay = retry_logic(e, self.request.retries + 1)
         raise self.retry(exc=e, countdown=retry_delay)
+    return partner_pk, 'success'
 
 
 @app.task(bind=True, retry_backoff=30, max_retries=4)
