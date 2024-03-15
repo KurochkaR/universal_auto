@@ -124,8 +124,8 @@ class UberRequest(Fleet, Synchronizer):
                             })
         return drivers
 
-    def generate_report(self, start, end, driver_ids, driver=None):
-        results = []
+    def generate_report(self, start, end, driver_ids=None, driver=None):
+        results = {}
         format_start = self.report_interval(start) * 1000
         format_end = self.report_interval(end) * 1000
         driver_ids = list(driver_ids) if not driver else driver.get_driver_external_id(self)
@@ -299,7 +299,13 @@ class UberRequest(Fleet, Synchronizer):
                     'vin_code': vehicle['vin']})
             return vehicles_list
 
-    def get_fleet_orders(self, start, end):
+    def get_fleet_orders(self, start, end, driver=None):
+        if driver:
+            uber_orders = FleetOrder.objects.filter(accepted_time__range=(start, end),
+                                                    driver=driver, fleet=self.name).count()
+            report = self.generate_report(start, end, driver=driver)
+            if any([not report, not report[0].get("totalTrips"), uber_orders == report[0].get("totalTrips")]):
+                return
         uber_driver = SeleniumTools(self.partner.id)
         uber_driver.download_payments_order(start, end)
         uber_driver.save_trips_report(start, end)

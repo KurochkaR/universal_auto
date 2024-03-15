@@ -77,7 +77,7 @@ def get_corrections(start, end, driver, driver_reports=None):
 
 def payment_24hours_create(start, end, fleet, driver, partner_pk):
     report = CustomReport.objects.filter(
-        report_from__range=(start, end),
+        report_to__range=(start - timedelta(minutes=1), end),
         fleet=fleet,
         driver=driver)
     if report:
@@ -96,12 +96,12 @@ def payment_24hours_create(start, end, fleet, driver, partner_pk):
             total_distance=Coalesce(Sum('total_distance'), Decimal(0)),
             total_rides=Coalesce(Sum('total_rides'), Value(0)))
         data["partner"] = Partner.objects.get(pk=partner_pk)
+        data["report_to"] = report.last().report_to
         payment, created = Payments.objects.get_or_create(report_from=report.first().report_from,
-                                                          report_to=report.last().report_to,
-                                                          fleet_id=fleet,
+                                                          fleet=fleet,
                                                           driver=driver,
                                                           partner=partner_pk,
-                                                          defaults={**data})
+                                                          defaults=data)
         if not created:
             for key, value in data.items():
                 setattr(payment, key, value)
@@ -109,7 +109,8 @@ def payment_24hours_create(start, end, fleet, driver, partner_pk):
 
 
 def summary_report_create(start, end, driver, partner_pk):
-    payments = Payments.objects.filter(report_from__date=start, report_to__date=end, driver=driver, partner=partner_pk)
+    payments = Payments.objects.filter(report_to__range=(start - timedelta(minutes=1), end),
+                                       driver=driver, partner=partner_pk)
     vehicle = check_vehicle(driver, date_time=end)
     if payments.exists():
         fields = ("total_rides", "total_distance", "total_amount_cash",
@@ -120,8 +121,8 @@ def summary_report_create(start, end, driver, partner_pk):
         default_values = {}
         for field in fields:
             default_values[field] = sum(getattr(payment, field, 0) or 0 for payment in payments)
+        default_values['report_to'] = payments.first().report_to
         report, created = SummaryReport.objects.get_or_create(report_from=payments.first().report_from,
-                                                              report_to=payments.first().report_to,
                                                               driver=driver,
                                                               vehicle=vehicle,
                                                               partner=partner_pk,
@@ -129,7 +130,8 @@ def summary_report_create(start, end, driver, partner_pk):
         if not created:
             for field in fields:
                 setattr(report, field, sum(getattr(payment, field, 0) or 0 for payment in payments))
-            report.save(update_fields=fields)
+            report.report_to = payments.first().report_to
+            report.save()
 
 
 def get_efficiency_info(partner_pk, driver, start, end, payments_model, aggregator=None):

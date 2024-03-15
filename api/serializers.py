@@ -185,7 +185,7 @@ class DriverPaymentsSerializer(serializers.ModelSerializer):
     class Meta:
         model = DriverPayments
         fields = ('full_name', 'driver_vehicles', 'kasa', 'cash', 'rent', 'rate', 'earning', 'salary', 'status',
-                  'report_from', 'report_to', 'id', 'bonuses', 'penalties', 'bonuses_list', 'penalties_list')
+                  'report_from', 'report_to', 'id', 'bonuses', 'penalties', 'payment_type', 'bonuses_list', 'penalties_list')
 
 
 class DriverInformationSerializer(serializers.ModelSerializer):

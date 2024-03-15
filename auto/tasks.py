@@ -132,26 +132,16 @@ def auto_send_task_bot(self):
     requests.post(webhook_url, json=message_data)
 
 
-@app.task(bind=True, ignore_result=False, retry_backoff=30, max_retries=3)
+@app.task(bind=True, ignore_result=False)
 def get_session(self, partner_pk, aggregator='Uber', login=None, password=None):
     try:
         fleet = Fleet.objects.get(name=aggregator, partner=partner_pk, deleted_at__isnull=False)
     except ObjectDoesNotExist:
         fleet = Fleet.objects.get(name=aggregator, partner=None)
-    try:
-        token = fleet.create_session(partner_pk, password, login)
-        if token:
-            success = login_in(aggregator=aggregator, partner_id=partner_pk,
-                               login_name=login, password=password, token=token)
-            return partner_pk, success
-    except AuthenticationError as e:
-        logger.error(e)
-        success = False
-        return partner_pk, success
-    except Exception as e:
-        logger.error(e)
-        retry_delay = retry_logic(e, self.request.retries + 1)
-        raise self.retry(exc=e, countdown=retry_delay)
+    token = fleet.create_session(partner_pk, password, login)
+    if token:
+        login_in(aggregator=aggregator, partner_id=partner_pk,
+                 login_name=login, password=password, token=token)
 
 
 @app.task(bind=True, queue='bot_tasks')
@@ -211,15 +201,18 @@ def get_today_orders(self, partner_pk):
 
 
 @app.task(bind=True, retry_backoff=30, max_retries=3)
-def add_distance_for_order(self, partner_pk, day=None):
+def add_distance_for_order(self, partner_pk, day=None, driver=None):
     gps_query = UaGpsSynchronizer.objects.filter(partner=partner_pk)
     end = timezone.make_aware(datetime.strptime(day, "%Y-%m-%d")) if day else timezone.localtime()
     start = end - timedelta(days=1)
+    filter_query = Q(partner=partner_pk, vehicle__isnull=False,
+                     state=FleetOrder.COMPLETED, distance__isnull=True, finish_time__isnull=False,
+                     vehicle__gps__isnull=False, date_order__range=(start, end))
+
     if gps_query.exists():
-        orders = FleetOrder.objects.filter(partner=partner_pk, vehicle__isnull=False,
-                                           state=FleetOrder.COMPLETED,
-                                           distance__isnull=True, finish_time__isnull=False,
-                                           vehicle__gps__isnull=False, date_order__range=(start, end))
+        if driver:
+            filter_query &= Q(driver=driver)
+        orders = FleetOrder.objects.filter(filter_query)
         gps = gps_query.first()
         gps.get_order_distance(orders)
 
@@ -261,7 +254,7 @@ def check_card_cash_value(self, partner_pk):
 
                     elif rent_enable:
                         text = f"\U0001F534 {driver} системою вимкнено готівкові замовлення.\n" \
-                               f"Причина: холостий пробіг\n" + calc_text + ", перепробіг {int(rent)} км\n"
+                               f"Причина: холостий пробіг\n" + calc_text + f", перепробіг {int(rent)} км\n"
                     else:
                         text = f"\U0001F534 {driver} системою вимкнено готівкові замовлення.\n" \
                                f"Причина: високий рівень готівки\n" + calc_text
@@ -519,15 +512,10 @@ def update_driver_status(self, partner_pk, photo=None):
 
 @app.task(bind=True, ignore_result=False)
 def update_driver_data(self, partner_pk, manager_id=None):
-    try:
-        fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None)
-        for synchronization_class in fleets:
-            synchronization_class.synchronize()
-        success = True
-    except Exception as e:
-        logger.error(e)
-        success = False
-    return manager_id, success
+    fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None)
+    for synchronization_class in fleets:
+        synchronization_class.synchronize()
+    return manager_id
 
 
 @app.task(bind=True, queue='bot_tasks', retry_backoff=30, max_retries=4)
@@ -610,21 +598,15 @@ def get_today_rent(self, partner_pk):
         raise self.retry(exc=e, countdown=retry_delay)
 
 
-@app.task(bind=True, retry_backoff=30, max_retries=4)
+@app.task(bind=True, ignore_result=False, retry_backoff=30, max_retries=4)
 def fleets_cash_trips(self, partner_pk, pk, enable):
-    try:
-        driver = Driver.objects.get(pk=pk)
-        fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name='Gps')
+    driver = Driver.objects.get(pk=pk)
+    fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name='Gps')
 
-        for fleet in fleets:
-            driver_rate = FleetsDriversVehiclesRate.objects.filter(
-                driver=driver, fleet=fleet).first()
-            fleet.disable_cash(driver_rate.driver_external_id, enable)
-
-    except Exception as e:
-        logger.error(e)
-        retry_delay = retry_logic(e, self.request.retries + 1)
-        raise self.retry(exc=e, countdown=retry_delay)
+    for fleet in fleets:
+        driver_rate = FleetsDriversVehiclesRate.objects.filter(
+            driver=driver, fleet=fleet).first()
+        fleet.disable_cash(driver_rate.driver_external_id, enable)
 
 
 @app.task(bind=True, retry_backoff=30, max_retries=4)
@@ -1155,7 +1137,7 @@ def calculate_driver_reports(self, schemas, day=None):
                 weekly_reshuffles = check_reshuffle(driver, start_week, end_week)
                 for shift in weekly_reshuffles:
                     shift_bolt_kasa = calculate_bolt_kasa(driver, shift.swap_time, shift.end_time,
-                                                          vehicle=shift.swap_vehicle)
+                                                          vehicle=shift.swap_vehicle)[0]
                     reshuffle_bonus = shift_bolt_kasa / (bolt_weekly['kasa'] - bolt_weekly['compensations'] - bolt_weekly['bonuses']) * bolt_weekly['bonuses']
                     if not vehicle_bonus.get(shift.swap_vehicle):
                         vehicle_bonus[shift.swap_vehicle] = reshuffle_bonus
@@ -1193,28 +1175,31 @@ def calculate_driver_reports(self, schemas, day=None):
             #         get_corrections(start, end, driver)
 
 
+@app.task(bind=True, ignore_result=False)
 def create_daily_payment(self, driver_pk):
     driver = Driver.objects.get(pk=driver_pk)
     fleets = Fleet.objects.filter(partner=driver.partner, deleted_at=None).exclude(name='Gps')
     start = timezone.make_aware(datetime.combine(timezone.localtime(), time.min))
     end = timezone.localtime()
     for fleet in fleets:
-        driver_ids = Driver.objects.get_active(fleetsdriversvehiclesrate__fleet=fleet).values_list(
+        driver_ids = Driver.objects.get_active(fleetsdriversvehiclesrate__fleet=fleet, id=driver_pk).values_list(
             'fleetsdriversvehiclesrate__driver_external_id', flat=True)
+        fleet.get_fleet_orders(start, end, driver)
         fleet.save_daily_custom(start, end, driver_ids)
         payment_24hours_create(start, end, fleet, driver, driver.partner)
+    add_distance_for_order(driver.partner, driver=driver_pk)
     summary_report_create(start, end, driver, driver.partner)
     get_rent_information(driver=driver_pk)
     data = create_driver_payments(start, end, driver, driver.schema)
-    payment, created = DriverPayments.objects.get_or_create(report_from__date=start,
-                                                            driver=driver_pk,
+    payment, created = DriverPayments.objects.get_or_create(report_to__date=end,
+                                                            driver=driver,
                                                             defaults=data)
     if not created:
         for key, value in data.items():
             setattr(payment, key, value)
         payment.save()
 
-
+    return {"status": payment.status, "id": payment.id}
 
 
 @app.task(bind=True)

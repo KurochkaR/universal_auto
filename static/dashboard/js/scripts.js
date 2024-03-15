@@ -1,3 +1,14 @@
+var showOverlay = true
+$(document).ajaxStart(function() {
+    if (showOverlay) {
+        $('#overlay').show();
+    }
+});
+
+$(document).ajaxStop(function() {
+    $('#overlay').hide();
+});
+
 $(document).ready(function () {
 
 	$("#admin-link").click(function () {
@@ -25,43 +36,26 @@ $(document).ready(function () {
 					action: "upd_database",
 				},
 				success: function (response) {
-					let task_id = response.task_id
-					let interval = setInterval(function () {
-						$.ajax({
-							type: "GET",
-							url: ajaxGetUrl,
-							data: {
-								action: "check_task",
-								task_id: task_id,
-							},
-							success: function (response) {
-								if (response.data === true) {
-									$(".loading-content").css("display", "flex");
-									$("#loadingMessage").text(gettext("Базу даних оновлено"));
-									$("#loader").css("display", "none");
-									$("#checkmark").css("display", "block");
-									setTimeout(function () {
-										$("#loadingModal").css("display", "none");
-										window.location.reload();
-									}, 3000);
-									clearInterval(interval);
-								}
-								if (response.data === false) {
-									$("#loadingMessage").text(gettext("Помилка оновлення бази даних. Спробуйте пізніше"));
-									$("#loader").css("display", "none");
-									$("#checkmark").css("display", "none");
-									setTimeout(function () {
-										$("#loadingModal").css("display", "none");
-										$("#loadingMessage").text(gettext("Зачекайте, будь ласка, поки оновлюється база даних..."));
-										$("#loader").css("display", "block");
-									}, 3000);
-									clearInterval(interval);
-								}
-								;
-							}
-						});
-					}, 5000);
-				}
+			        checkTaskStatus(response.task_id)
+                    .then(function (response) {
+                        if (response.data === "SUCCESS") {
+                            $(".loading-content").css("display", "flex");
+                            $("#loadingMessage").text(gettext("Базу даних оновлено"));
+                            $("#loader").css("display", "none");
+                            $("#checkmark").css("display", "block");
+                        } else {
+                            $("#loadingMessage").text(gettext("Помилка оновлення бази даних. Спробуйте пізніше"));
+                            $("#loader").css("display", "none");
+                            $("#checkmark").css("display", "none");
+                        }
+                        setTimeout(function() {
+                        $("#loadingModal").css("display", "none");
+                        }, 3000);
+                    })
+                    .catch(function (error) {
+                        console.error('Error:', error);
+                    });
+				},
 			});
 		}
 	});
@@ -207,38 +201,27 @@ $(document).ready(function () {
 				password: password,
 			},
 			success: function (response) {
-				let task_id = response.task_id;
-				let interval = setInterval(function () {
-					$.ajax({
-						type: "GET",
-						url: ajaxGetUrl,
-						data: {
-							action: "check_task",
-							task_id: task_id,
-						},
-						success: function (response) {
-							if (response.data === true) {
-								localStorage.setItem(partner, 'success');
-								$("#partnerLogin").hide();
-								$(".helper-token").hide()
-								$("#partnerPassword").hide().val('');
-								$(".opt-partnerForm").hide();
-								$(".login-ok").show();
-								$("#loginErrorMessage").hide();
-								hideLoader(partnerForm);
-								clearInterval(interval);
-							}
-							if (response.data === false) {
-								$(".opt-partnerForm").show();
-								$("#loginErrorMessage").show();
-								$("#partnerLogin").val("").addClass("error-border");
-								$("#partnerPassword").val("").addClass("error-border");
-								hideLoader(partnerForm);
-								clearInterval(interval);
-							}
-						},
-					});
-				}, 5000);
+			    checkTaskStatus(response.task_id)
+				.then( function (response) {
+                    if (response.data === "SUCCESS") {
+                        localStorage.setItem(partner, 'success');
+                        $("#partnerLogin").hide();
+                        $(".helper-token").hide()
+                        $("#partnerPassword").hide().val('');
+                        $(".opt-partnerForm").hide();
+                        $(".login-ok").show();
+                        $("#loginErrorMessage").hide();
+                    } else {
+                        $(".opt-partnerForm").show();
+                        $("#loginErrorMessage").show();
+                        $("#partnerLogin").val("").addClass("error-border");
+                        $("#partnerPassword").val("").addClass("error-border");
+                    }
+                    hideLoader(partnerForm);
+                })
+                .catch( function (error) {
+                        console.error('Error:', error);
+                    });
 			},
 		});
 	}
@@ -297,11 +280,10 @@ $(document).ready(function () {
 	});
 
 	$(this).on('click', '.shift-close-btn', function () {
-		$('#modal-add-bonus').hide();
-		$('#modal-upd-bonus').hide();
-		$('#modal-add-penalty').hide();
-		$('#payment-driver-list').hide();
+		$(this).closest('form').hide();
+		$('.create-payment').css('background', '#a1e8b9')
 		$('.modal-not-closed-payments').hide();
+		$('.modal-overlay').hide();
 	});
 
 	$(this).on('click', '#add-bonus-btn, #add-penalty-btn', function (e) {
@@ -371,7 +353,6 @@ $(document).ready(function () {
 		var category = $('#modal-add-bonus').data('category-type');
 		var driverId = $('#modal-add-bonus').data('driver-id');
 		var paymentId = $('#modal-add-bonus').data('payment-id');
-		console.log(paymentId)
 		var formDataArray = $('#modal-add-bonus :input').serializeArray();
 		var formData = {};
 		$.each(formDataArray, function (i, field) {
@@ -528,5 +509,36 @@ function formatTime(time) {
 		// Format the string as HH:mm:ss
 		return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 	}
+}
+
+function checkTaskStatus(taskId) {
+    return new Promise(function (resolve, reject) {
+        function pollTaskStatus() {
+            $.ajax({
+                type: "GET",
+                url: ajaxGetUrl,
+                data: {
+                    action: "check_task",
+                    task_id: taskId,
+                },
+                beforeSend: function() {
+                    showOverlay = false;
+                },
+                success: function (response) {
+                    if (response.data === "SUCCESS" || response.data === "FAILURE") {
+                        resolve(response);
+                    } else {
+                        setTimeout(pollTaskStatus, 3000);
+                    }
+                },
+                error: function (response) {
+                    console.error('Error checking task status');
+                    reject('Error checking task status');
+                }
+            });
+        }
+
+        pollTaskStatus();
+    });
 }
 

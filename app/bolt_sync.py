@@ -312,7 +312,7 @@ class BoltRequest(Fleet, Synchronizer):
             })
         return driver_list
 
-    def get_fleet_orders(self, start, end):
+    def get_fleet_orders(self, start, end, driver=None):
         bolt_states = {
             "client_did_not_show": FleetOrder.CLIENT_CANCEL,
             "finished": FleetOrder.COMPLETED,

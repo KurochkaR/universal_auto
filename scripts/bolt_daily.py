@@ -9,10 +9,10 @@ from auto_bot.handlers.order.utils import check_vehicle
 
 
 def run(*args):
-    start = timezone.make_aware(datetime.combine(timezone.localtime(), time.min))
+    start = timezone.make_aware(datetime.combine(timezone.localtime() - timedelta(days=1), time.min))
     fleets = Fleet.objects.filter(partner=1, deleted_at=None).exclude(name__in=['Gps', 'Uber'])
     for fleet in fleets:
         driver_ids = Driver.objects.get_active(
              fleetsdriversvehiclesrate__fleet=fleet).values_list(
             'fleetsdriversvehiclesrate__driver_external_id', flat=True)
-        fleet.save_daily_custom(start, timezone.localtime(), driver_ids)
+        fleet.save_daily_custom(start, timezone.localtime() - timedelta(days=1), driver_ids)

@@ -176,31 +176,27 @@ $(document).ready(function () {
 			},
 			dataType: 'json',
 			success: function (response) {
+			    console.log(response)
+			    if (response.task_id) {
+                    checkTaskStatus(response.task_id)
+                    .then(function (response) {
+                        if (response.data === 'SUCCESS') {
+                        // message
+                        } else {
+                        // message
+                        }
+                        checkCash();
+                        $('#loader-confirmation-cash').hide()
+                    })
+                    .catch( function (error){
+                        console.error('Error:', error)
+                    })
+                } else {
+                    checkCash();
+                    $('#loader-confirmation-cash').hide()
+                }
+			},
 
-				if (response.task_id) {
-					let interval = setInterval(function () {
-						$.ajax({
-							url: ajaxGetUrl,
-							type: 'GET',
-							data: {
-								action: 'check_task',
-								task_id: response.task_id,
-							},
-							dataType: 'json',
-							success: function (response) {
-								if (response.data === 'success') {
-									checkCash();
-									clearInterval(interval);
-									$('#loader-confirmation-cash').hide()
-								}
-							}
-						});
-					}, 5000);
-				} else {
-					checkCash();
-					$('#loader-confirmation-cash').hide()
-				}
-			}
 		});
 	});
 

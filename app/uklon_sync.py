@@ -191,11 +191,16 @@ class UklonRequest(Fleet, Synchronizer):
                         driver_external_id=driver_report['driver']['id'],
                         fleet=self, partner=self.partner).driver
                     report, distance = self.parse_json_report(start, end, driver, driver_report)
-                    db_report = CustomReport.objects.filter(report_from=start,
-                                                            driver=driver,
-                                                            fleet=self,
-                                                            partner=self.partner)
-                    db_report.update(**report) if db_report else CustomReport.objects.create(**report)
+                    db_report, created = CustomReport.objects.get_or_create(report_from=start,
+                                                                            driver=driver,
+                                                                            fleet=self,
+                                                                            partner=self.partner,
+                                                                            defaults=report)
+                    print(f"{db_report}uklon")
+                    if not created:
+                        for key, value in report.items():
+                            setattr(db_report, key, value)
+                        db_report.save()
             if offset + limit < data['total_count']:
                 offset += limit
             else:
@@ -372,7 +377,7 @@ class UklonRequest(Fleet, Synchronizer):
                 break
         return drivers
 
-    def get_fleet_orders(self, start, end):
+    def get_fleet_orders(self, start, end, driver=None):
         states = {"completed": FleetOrder.COMPLETED,
                   "Rider": FleetOrder.CLIENT_CANCEL,
                   "Driver": FleetOrder.DRIVER_CANCEL,

@@ -4,6 +4,7 @@
 
 <!-- Content -->
 {% block content %}
+<div class="modal-overlay" style="display: none;"></div>
 <div class="info-driver">
   <div class="title-driver">
     <h2>{% trans 'Виплати водіям' %}</h2>
@@ -55,7 +56,7 @@
       <th class="sortable" data-sort="fines">{% trans 'Штрафи' %}</th>
       <th class="sortable" data-sort="driver-rate">{% trans '% водія' %}</th>
       <th class="sortable" data-sort="earning">{% trans 'Виплата' %}</th>
-      <th class="sortable" data-sort="status">{% trans 'Статус виплати' %}</th>
+      <th class="sortable" data-sort="status">{% trans 'Перерахування виплат' %}</th>
       <th class="sortable" data-sort="button">
         <button class="send-all-button">{% trans 'Відправити усім' %}</button>
       </th>
@@ -78,6 +79,7 @@
 </div>
 <div id="formContainer"></div>
 {% include 'dashboard/_payment-driver-list.html' %}
+{% include 'dashboard/_bolt-confirmation-form.html' %}
 {% include 'dashboard/_confirmation-update-database.html' %}
 {% endblock %}
 {% block js %}

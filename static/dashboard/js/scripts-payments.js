@@ -15,21 +15,31 @@ function driverPayment(period = null, start = null, end = null, paymentStatus = 
 			$(".apply-filter-button_driver").prop("disabled", false);
 			var tableBody = $('.driver-table tbody');
 			tableBody.empty();
-
+            var addButtonBonus = '<button class="add-btn-bonus" title="Додати бонус"><i class="fa fa-plus"></i></button>';
+            var addButtonPenalty = '<button class="add-btn-penalty" title="Додати штраф"><i class="fa fa-plus"></i></button>';
+            var incorrectBtn = '<button class="incorrect-payment-btn">Перерахувати виплату</button>';
+            var calculateBtn = '<button class="calculate-payment-btn">Розрахувати на зараз</button>';
+            var confirmButton = '<button class="apply-btn" title="Відправити водію"></button>';
+            var arrowBtn = '<button class="arrow-btn">Повернути на перевірку</button>';
+            var payBtn = '<button class="pay-btn">Отримано</button>';
+            var notPayBtn = '<button class="not-pay-btn">Не отримано</button>';
+            var statusTh = $('th[data-sort="status"]');
+            if (paymentStatus === 'closed') {
+                $('th[data-sort="button"]').hide();
+			    statusTh.text("Статус виплати");
+            }
+            if (paymentStatus === 'not_closed') {
+                statusTh.text("Дії");
+				$('th[data-sort="button"]').hide();
+            }
 			for (var i = 0; i < response.length; i++) {
-				if ((paymentStatus === 'on_inspection' && response[i].status === 'Перевіряється') ||
+				if ((paymentStatus === 'on_inspection' && (response[i].status === 'Перевіряється' || response[i].status === 'Потребує поправок')) ||
 					(paymentStatus === 'not_closed' && response[i].status === 'Очікується') ||
 					(paymentStatus === 'closed' && (response[i].status === 'Виплачений' || response[i].status === 'Не сплачений'))) {
 
-					var addButtonBonus = '<button class="add-btn-bonus" title="Додати бонус"><i class="fa fa-plus"></i></button>';
-					var addButtonPenalty = '<button class="add-btn-penalty" title="Додати штраф"><i class="fa fa-plus"></i></button>';
 
-					var confirmButton = '<button class="apply-btn" title="Відправити водію"><i class="fa fa-mobile"></i></button>';
-					var arrowBtn = '<button class="arrow-btn"><i class="fa fa-arrow-left"></i></button>';
-					var payByn = '<button class="pay-btn">Отримано</button>';
-					var notPayByn = '<button class="not-pay-btn">Не отримано</button>';
 					var dataId = response[i].id;
-
+                    var responseDate = moment(response[i].report_to, "DD.MM.YYYY HH:mm");
 					var rowBonus = '<tr class="tr-driver-payments" data-id="' + dataId + '">' +
 						'<td colspan="11" class="bonus-table"><table class="bonus-penalty-table"><tr class="title-bonus-penalty">' +
 						'<th class="edit-bonus-penalty">Тип</th>' +
@@ -66,6 +76,8 @@ function driverPayment(period = null, start = null, end = null, paymentStatus = 
 					row.append('<td>' + response[i].cash + '</td>');
 					row.append('<td>' + response[i].rent + '</td>');
 					if (response[i].status === 'Перевіряється') {
+
+
 						row.append('<td>' + '<div style="display: flex;justify-content: space-evenly; align-items: center;">' + response[i].bonuses + addButtonBonus + '</div>' + '</td>');
 						row.append('<td>' + '<div style="display: flex;justify-content: space-evenly; align-items: center;">' + response[i].penalties + addButtonPenalty + '</div>' + '</td>');
 						row.append('<td class="driver-rate" title="Натиснути для зміни відсотка"><div style="display: flex; justify-content: space-evenly; align-items: center;"><span class="rate-payment">' + response[i].rate + '</span><input type="text" class="driver-rate-input" placeholder="100" style="display: none;"><i class="fa fa-check check-icon"></i><i class="fa fa-pencil-alt pencil-icon"></i></div></td>');
@@ -76,19 +88,40 @@ function driverPayment(period = null, start = null, end = null, paymentStatus = 
 
 					}
 					row.append('<td class="payment-earning">' + response[i].earning + '</td>');
-					row.append('<td>' + response[i].status + '</td>');
 					var showAllButton = $('.send-all-button');
 					showAllButton.hide(0);
 					if (response[i].status === 'Очікується') {
-						row.append('<td><div class="box-btn-upd">' + arrowBtn + '<div class="btnPay">' + payByn + notPayByn + '</div></div></td>');
+						row.append('<td><div class="box-btn-upd">' + arrowBtn + payBtn + notPayBtn + '</div></td>');
 						if (response[i].earning > 0) {
 							row.find('.not-pay-btn').remove();
 							row.find('.pay-btn').text('Сплатити');
+
 						}
 					}
 					if (response[i].status === 'Перевіряється') {
 						showAllButton.show(0);
+						statusTh.text("Перерахування виплат");
+						$('th[data-sort="button"]').show();
+						if (response[i].payment_type === "DAY" && moment().startOf('day').isSame(responseDate.startOf('day'))) {
+						    row.append('<td>' + calculateBtn + '</td>')
+						} else {
+						    row.append('<td></td>')
+						}
 						row.append('<td>' + confirmButton + '</td>');
+					}
+					if (response[i].status === 'Потребує поправок') {
+					    showAllButton.show(0);
+					    if (response[i].payment_type === "DAY" && moment().startOf('day').isSame(responseDate.startOf('day'))) {
+						    row.append('<td>' + calculateBtn + '</td>')
+						} else {
+						    row.append('<td></td>')
+						}
+						row.append('<td>' + incorrectBtn + '</td>');
+						row.addClass('incorrect');
+					}
+
+					if (response[i].status === 'Виплачений' || response[i].status === 'Не сплачений') {
+					    row.append('<td>' + response[i].status + '</td>');
 					}
 
 					tableBody.append(row);
@@ -115,7 +148,7 @@ $(document).on('click', function (event) {
 });
 
 $(document).ready(function () {
-	var itemId, actionType, itemType;
+	var itemId, actionType, itemType, drivers;
 
 	$(this).on('click', '.driver-table tbody .driver-name', function () {
 		var row = $(this).closest('tr');
@@ -124,27 +157,44 @@ $(document).ready(function () {
 		return false;
 	});
 
+    function populateButtons(filteredDrivers) {
+        var createPaymentList = $(".create-payment-list");
+        createPaymentList.empty();
+
+        filteredDrivers.forEach(function(driver) {
+            var button = $('<button>', {
+                'text': driver.name,
+                'data-driver-id': driver.id,
+                'class': 'driver-button',
+            });
+            createPaymentList.append(button);
+        });
+    }
+
 	$(this).on('click', '.create-payment', function () {
 	    $.ajax({
 			url: ajaxPostUrl,
 			type: 'POST',
 			data: {
-				action: 'create-new-payment',
+				action: 'payment-driver-list',
 				csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
 			},
 			success: function (response) {
-			$.each(response.drivers, function(index, driver) {
-            // Create a button element
-            var button = $('<button>', {
-                'text': driver.name,  // Use the driver's name as the button text
-                'data-driver-id': driver.id,  // You can add any additional data attributes if needed
-                'class': 'driver-button',  // Add a class for styling or event handling
-            });
-
-            // Append the button to the create-payment-list div
-            $('.create-payment-list').append(button);
-        });
+			    drivers = response.drivers;
+			    if (drivers.length !== 0) {
+			    populateButtons(drivers);
+			    $("#search-driver").val("");
 				$('#payment-driver-list').show();
+				$('.modal-overlay').show();
+				$('.create-payment').css('background', '#ec6323')
+			} else {
+			    $("#loadingModal").show();
+			    $("#loader").hide();
+		        $("#loadingMessage").text(gettext("Сьогодні відсутні водії з денним розрахунком"));
+                setTimeout(function () {
+                    $('#loadingModal').hide();
+                }, 3000);
+			}
 			},
 			error: function (error) {
 				console.error("Error:", error);
@@ -152,6 +202,107 @@ $(document).ready(function () {
 		});
 
 	});
+
+	$("#search-driver").on("keyup", function() {
+
+        var searchText = $(this).val().toLowerCase();
+
+        var filteredDrivers = drivers.filter(function(driver) {
+            return driver.name.toLowerCase().includes(searchText);
+        });
+
+        populateButtons(filteredDrivers);
+    });
+
+    $("#search-driver").on("keypress", function(e) {
+    	    if (e.which === 13) {
+            e.preventDefault();
+            $(this).blur();
+        }
+    });
+
+    $(this).on('click', '.driver-button, .calculate-payment-btn', function (e) {
+        e.preventDefault();
+        driverId = $(this).data('driver-id');
+        paymentId = $(this).closest('tr').data('id');
+        $('#payment-driver-list').hide();
+		$('.create-payment').css('background', '#a1e8b9')
+		$('.modal-overlay').hide();
+		$("#loadingModal").show();
+		$("#loadingMessage").text(gettext("Створюється нова виплата"));
+		$.ajax({
+			url: ajaxPostUrl,
+			type: 'POST',
+			data: {
+			    driver_id: driverId,
+			    payment_id: paymentId,
+				action: 'create-new-payment',
+				csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
+			},
+			success: function (response) {
+			    checkTaskStatus(response.task_id)
+			    .then( function (response){
+			        if (response.data === "SUCCESS") {
+			            $("#loadingModal").hide();
+			            if (response.result.status === 'incorrect') {
+			                $(".bolt-confirm-button").data("payment-id", response.result.id)
+                            $("#bolt-confirmation-form").show();
+                            $('.modal-overlay').show();
+			            } else {
+			            	driverPayment(null, null, null, paymentStatus = "on_inspection");
+			            }
+			        }
+
+			    })
+			    .catch( function (error) {
+                    console.error('Error:', error)
+			    })
+			},
+    });
+    })
+
+    $(this).on('click', '.incorrect-payment-btn', function() {
+        paymentId = $(this).closest('tr').data('id')
+        $(".bolt-confirm-button").data("payment-id", paymentId)
+        $('.modal-overlay').show();
+        $("#bolt-amount, #bolt-cash").each(function() {
+            $(this).val("")
+        })
+        $("#bolt-confirmation-form").show();
+    })
+
+    $(this).on('click', '.bolt-confirm-button', function (e) {
+        e.preventDefault();
+        itemId = $(this).data('payment-id');
+        $("#bolt-amount, #bolt-cash").each(function() {
+            var sanitizedValue = $(this).val();
+            if (sanitizedValue === "" || sanitizedValue === ".") {
+                sanitizedValue = "0";
+            }
+            $(this).val(sanitizedValue);
+        });
+        boltKasa = $("#bolt-amount").val();
+        boltCash = $("#bolt-cash").val();
+        $.ajax({
+			url: ajaxPostUrl,
+			type: 'POST',
+			data: {
+			        action: "update_incorrect_payment",
+			        payment_id: itemId,
+			        bolt_kasa: boltKasa,
+			        bolt_cash: boltCash,
+			        csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
+		    },
+			success: function (response) {
+			    $("#bolt-confirmation-form").hide();
+			    $('.modal-overlay').hide();
+				driverPayment(null, null, null, paymentStatus = "on_inspection");
+			},
+			error: function (error){
+			    console.error("Error:", error);
+			}
+		});
+    });
 
 
 	$(this).on('click', '.bonus-table .delete-bonus-penalty-btn', function () {
@@ -218,6 +369,18 @@ $(document).ready(function () {
 		}
 		sanitizedValue = Math.min(Math.max(integerValue, 0), 100);
 		$(this).val(sanitizedValue);
+	});
+
+	$(this).on("input", "#bolt-cash, #bolt-amount", function() {
+	    var inputValue = $(this).val();
+        var sanitizedValue = inputValue.replace(/[^\d.]/g, '');
+        var dotIndex = sanitizedValue.indexOf('.');
+        if (dotIndex !== -1) {
+            var remainingValue = sanitizedValue.substring(dotIndex + 1);
+            sanitizedValue = sanitizedValue.substring(0, dotIndex) + '.' + remainingValue.replace('.', '');
+        }
+
+        $(this).val(sanitizedValue);
 	});
 
 	$(this).on('click', '.check-icon', function () {
@@ -352,13 +515,15 @@ $(document).ready(function () {
 		$(".confirmation-box h2").text("Ви впевнені, що хочете закрити платіж ?");
 		$(".confirmation-update-database").show();
 		$("#confirmation-btn-on").data('id', id).data('status', status);
+		$(".confirmation-btn-on").addClass('close-payment').removeClass('confirmation-btn-on');
 	});
 
-	$("#confirmation-btn-on").click(function () {
+    $(this).on("click", ".close-payment", function () {
 		var id = $(this).data('id');
 		var status = $(this).data('status');
 		updStatusDriverPayments(id, status, paymentStatus = "not_closed");
 		$(".confirmation-update-database").hide();
+		$(".close-payment").addClass('confirmation-btn-on').removeClass('close-payment');
 	});
 
 	$('.send-all-button').on('click', function () {

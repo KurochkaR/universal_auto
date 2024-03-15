@@ -41,6 +41,151 @@ p, span, div {
 	padding: 0 30px 0 30px;
 	box-shadow: 0 6px 7px -3px rgba(0, 0, 0, 0.35);
 }
+/* loading screen */
+#overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent black */
+    z-index: 9999;
+}
+
+body {
+  background-color: #fff;
+  min-height: 100vh;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-around;
+  align-content: space-around;
+}
+
+
+.loader-car{
+  width: 160px;
+  height: 160px;
+  position: relative;
+  margin: auto;
+
+  .loader-child {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    animation: loader-car 1.2s infinite ease-in-out;
+  }
+}
+
+
+.loader-child > span > span:nth-child(1),
+.loader-child > span > span:nth-child(2),
+.loader-child > span > span:nth-child(3),
+.loader-child > span > span:nth-child(4),
+.loader-child > span > span:nth-child(5) {
+  width: 12px;
+  height: 2px;
+  border-radius: 2px;
+  background: #A1E8B9;
+  position: absolute;
+  animation: fazer1 .8s linear infinite;
+}
+
+.loader-child > span > span:nth-child(1) {
+  top: 3px;
+  animation: fazer2 .4s linear infinite;
+}
+
+.loader-child > span > span:nth-child(2) {
+  top: 10px;
+  animation: fazer2 .8s linear infinite;
+}
+
+.loader-child > span > span:nth-child(3) {
+  top: 20px;
+  animation: fazer3 .2s linear infinite;
+  animation-delay: -1.2s;
+}
+
+.loader-child > span > span:nth-child(4) {
+  top: 30px;
+  animation: fazer4 .5s linear infinite;
+  animation-delay: -2s;
+}
+
+.loader-child > span > span:nth-child(5) {
+  top: 40px;
+  animation: fazer4 .6s linear infinite;
+  animation-delay: -1.6s;
+}
+
+//keyframes car
+@keyframes loader-car {
+  0%, 100%  {margin: 0 0 0 0;}
+  50% {margin: 8px 0 0 0;}
+}
+
+@keyframes loader-car {
+  0%, 100%  {margin: 0 0 0 0;}
+  50% {margin: 8px 0 0 0;}
+}
+
+//particles
+@keyframes fazer1 {
+  0% {
+    left: 0;
+  }
+  100% {
+    left: -80px;
+    opacity: 0;
+  }
+}
+
+@keyframes fazer2 {
+  0% {
+    left: 0;
+  }
+  100% {
+    left: -100px;
+    opacity: 0;
+  }
+}
+
+@keyframes fazer3 {
+  0% {
+    left: 0;
+  }
+  100% {
+    left: -60px;
+    opacity: 0;
+  }
+}
+
+@keyframes fazer4 {
+  0% {
+    left: 0;
+  }
+  100% {
+    left: -120px;
+    opacity: 0;
+  }
+}
+
+@keyframes fazer5 {
+  0% {
+    left: 0;
+  }
+  100% {
+    left: -80px;
+    opacity: 0;
+  }
+}
+
+/* End loading screen */
 
 .menu-icon {
 	display: none;
@@ -1433,15 +1578,53 @@ select:focus {
     cursor:pointer;
 }
 
+.bolt-confirm-button {
+    margin-left: 37px;
+    border: 3px solid #a1e8b9;
+    border-radius: 62px;
+    width: 249px;
+    height: 31px;
+    font-family: var(--second-family);
+    font-weight: 700;
+    font-size: 15px;
+    text-align: center;
+    color: #fff;
+    background: #a1e8b9;
+}
+
 .create-payment:hover,
-.driver-button:hover {
-    background: #ec6323;
+.bolt-confirm-button:hover,
+.driver-button:hover,
+.calculate-payment-btn:hover,
+.incorrect-payment-btn:hover,
+.confirmation-box .btn-box button:hover {
+    border: 3px solid #ec6323;
+    background: #ec6323 !important;
     color: #fff;
 }
 
 .create-payment span {
     font-weight: 600;
     font-size: 23px;
+    color: #fff;
+}
+
+.incorrect {
+    background-color: rgba(235, 95, 95, 0.38) !important;
+}
+
+.incorrect-payment-btn,
+.calculate-payment-btn {
+    border-radius: 62px;
+    border:none;
+    width: 167px;
+    height: 61px;
+    box-shadow: 0 4px 4px 0 rgba(0, 0, 0, 0.25);
+    background: #a1e8b9;
+    font-family: var(--font-family);
+    font-weight: 700;
+    font-size: 15px;
+    text-align: center;
     color: #fff;
 }
 
@@ -1589,6 +1772,7 @@ select:focus {
 #modal-shift,
 #modal-add-bonus,
 #payment-driver-list,
+#bolt-confirmation-form,
 #modal-add-penalty {
 	z-index: 10;
 	display: none;
@@ -1596,7 +1780,6 @@ select:focus {
 	top: 50%;
 	left: 50%;
 	transform: translate(-50%, -50%);
-	border: 1px solid #ccc;
 	border-radius: 62px;
 	background-color: #fff;
 	width: 645px;
@@ -1608,10 +1791,16 @@ select:focus {
     width: 391px;
 	height: 650px;
 }
+
+#bolt-confirmation-form {
+    width: 322px;
+    height: 275px;
+}
+
 .driver-search-container {
     display: flex;
     align-items: center;
-    padding: 15px 20px 0px 15px;
+    padding: 15px 27px 0px 27px;
     justify-content: space-between;
 }
 
@@ -1625,10 +1814,11 @@ select:focus {
 
 .search-driver {
   position: relative;
-  right: 42px;
+  left: 250px;
 }
 
 .create-payment-list {
+    padding: 0 27px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -1639,7 +1829,8 @@ select:focus {
 .driver-button {
     border: 3px solid #a1e8b9;
     border-radius: 62px;
-    width: 337px;
+    background: #fff;
+    width: 100%;
     height: 31px;
     margin: 5px;
     font-weight: 700;
@@ -1650,6 +1841,7 @@ select:focus {
 .modal-shift-title,
 .title-add-bonus,
 .title-choose-driver,
+.title-bolt-confirmation,
 .title-add-penalty {
 	display: flex;
 	justify-content: space-between;
@@ -1666,14 +1858,63 @@ select:focus {
     width: 391px;
     padding: 10px 0px 10px 0px;
 }
+
+.title-bolt-confirmation {
+    width: 322px;
+    height: 90px;
+    padding: 0;
+}
+
+#bolt-amount,
+#bolt-cash {
+    border: 3px solid #a1e8b9;
+    border-radius: 62px;
+    width: 89px;
+    height: 31px;
+}
+
+.main-label {
+    font-weight: 700;
+    font-size: 20px;
+}
+
+.bolt-label {
+    font-weight: 500;
+    font-size: 10px;
+    color: rgba(38, 57, 44, 0.6);
+}
+
 .driver-search-container h2 {
     font-weight: 700;
     font-size: 20px;
     margin-bottom: 17px;
 }
 
+.bolt-amount-cash {
+    padding-bottom:40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.bolt-amount,
+.bolt-cash {
+    display: flex;
+    flex-direction:column;
+    align-items: center;
+    margin: 0 25px;
+}
+
+.bolt-amount input,
+.bolt-cash input {
+    font-weight: 700;
+    font-size: 15px;
+    color: rgba(83, 120, 94, 0.6);
+}
+
 .modal-shift-title h2,
 .title-add-bonus h2,
+.title-bolt-confirmation h2,
 .title-choose-driver h2,
 .title-add-penalty h2 {
 	margin-left: 15px;
@@ -1768,6 +2009,7 @@ span#vehicle-bonus-error {
 
 .shift-close-btn {
 	margin-right: 15px;
+	font-size: 24px;
 	cursor: pointer;
 }
 
@@ -1958,12 +2200,11 @@ span#vehicle-bonus-error {
 }
 
 .confirmation-box h2 {
-	color: #EC6323;
 	margin: 0px 0px;
 	text-align: center;
-	font-size: 28px;
-	font-style: normal;
-	font-weight: 700;
+	font-weight: 600;
+    font-size: 23px;
+    color: #141e17;
 	line-height: normal;
 }
 
@@ -1974,13 +2215,14 @@ span#vehicle-bonus-error {
 }
 
 .confirmation-box .btn-box button {
-	width: 70px;
-	padding: 5px 17px;
 	border-radius: 62px;
-	border: 3px solid #EC6323;
-	background: #EC6323;
+	border: none;
+    width: 195px;
+    height: 39px;
+    box-shadow: 0 4px 4px 0 rgba(0, 0, 0, 0.25);
+    background: #a1e8b9;
 	color: #FFF;
-	font-size: 15px;
+	font-size: 20px;
 	font-style: normal;
 	font-weight: 700;
 	line-height: normal;
@@ -1989,14 +2231,20 @@ span#vehicle-bonus-error {
 
 .driver-table tbody tr td .add-btn-bonus,
 .driver-table tbody tr td .add-btn-penalty,
-.driver-table tbody tr td .apply-btn,
-.driver-table tbody tr td .arrow-btn {
+.driver-table tbody tr td .apply-btn {
 	background: none;
 	border: none;
 	padding: 5px;
 	cursor: pointer;
 	font-size: 30px;
 }
+
+.driver-table tbody tr td .apply-btn {
+    width: 59px;
+    height: 34px;
+    background-image: url('https://storage.googleapis.com/jobdriver-bucket/docs/docs_svgviewer-png-output22.png')
+}
+
 
 .edit-bonus-penalty {
 	background-color: #EC6323;
@@ -2134,33 +2382,30 @@ input.driver-rate-input {
 
 .box-btn-upd {
 	display: flex;
-	justify-content: space-between;
-}
-
-.btnPay {
-	display: flex;
 	flex-direction: column;
 	justify-content: center;
 	gap: 5px;
 }
 
-.btnPay .pay-btn,
-.btnPay .not-pay-btn {
-	padding: 5px 17px;
-	border-radius: 62px;
-	border: 3px solid #EC6323;
-	background: #EC6323;
+
+.pay-btn, .arrow-btn,
+.not-pay-btn {
+    border: 1px solid #a1e8b9;
+    border-radius: 62px;
+    width: 106px;
+    height: 41px;
+	background: #a1e8b9;
 	color: #141E17;
-	font-size: 15px;
-	font-style: normal;
-	font-weight: 700;
-	line-height: normal;
+    font-weight: 700;
+    font-size: 12px;
+    text-align: center;
+    color: #fff;
 	cursor: pointer;
 }
 
-.btnPay .pay-btn {
-	background: #A1E8B9;
-	border: 3px solid #A1E8B9;
+.pay-btn {
+	background: #EC6323;
+	border: 1px solid #EC6323;
 }
 
 .send-all-button {
