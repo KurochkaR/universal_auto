@@ -233,8 +233,8 @@ def check_card_cash_value(self, partner_pk):
                 ratio = (card - rent_payment) / kasa
                 without_rent = card / kasa
                 rate = driver.cash_rate if driver.cash_rate else driver.schema.rate
-                enable = int(ratio > (1-rate))
-                rent_enable = int(without_rent > (1-rate))
+                enable = int(ratio > (1 - rate))
+                rent_enable = int(without_rent > (1 - rate))
                 fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name='Gps')
                 disabled = []
                 for fleet in fleets:
@@ -409,6 +409,14 @@ def get_car_efficiency(self, partner_pk, day=None):
                                                   vehicle=vehicle)
         if efficiency:
             continue
+        if vehicle.branding:
+            orders_count = FleetOrder.objects.filter(
+                vehicle__branding__name=vehicle.branding.name,
+                date_order__range=(start, end),
+                vehicle=vehicle, state=FleetOrder.COMPLETED).count()
+        else:
+            orders_count = 0
+
         vehicle_drivers = {}
         total_spending = VehicleSpending.objects.filter(
             vehicle=vehicle, created_at__range=(start, end)).aggregate(Sum('amount'))['amount__sum'] or 0
@@ -439,6 +447,7 @@ def get_car_efficiency(self, partner_pk, day=None):
                                            total_spending=total_spending,
                                            mileage=total_km,
                                            efficiency=result,
+                                           total_brand_trips=orders_count,
                                            partner_id=partner_pk)
         for driver, kasa in vehicle_drivers.items():
             DriverEffVehicleKasa.objects.create(driver_id=driver, efficiency_car=car, kasa=kasa)
@@ -477,7 +486,8 @@ def update_driver_status(self, partner_pk, photo=None):
             status_with_client = set()
             fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name='Gps')
             for fleet in fleets:
-                statuses = fleet.get_drivers_status(photo) if isinstance(fleet, BoltRequest) else fleet.get_drivers_status()
+                statuses = fleet.get_drivers_status(photo) if isinstance(fleet,
+                                                                         BoltRequest) else fleet.get_drivers_status()
                 logger.info(f"{fleet} {statuses}")
                 status_online = status_online.union(set(statuses['wait']))
                 status_with_client = status_with_client.union(set(statuses['with_client']))

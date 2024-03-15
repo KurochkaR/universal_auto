@@ -144,8 +144,9 @@ class BonusForm(ModelForm):
         else:
             payment = DriverPayments.objects.filter(driver=driver_id).last()
             if payment:
-                reshuffle_query = Q(Q(swap_time__range=(payment.report_to, timezone.localtime())) |
-                                    Q(end_time__range=(payment.report_to, timezone.localtime())))
+                reshuffle_query = Q(Q(Q(swap_time__range=(payment.report_to, timezone.localtime())) |
+                                      Q(end_time__range=(payment.report_to, timezone.localtime()))) |
+                                    Q(swap_time__date=timezone.localtime()))
             else:
                 reshuffle_query = Q()
         driver_vehicle_ids = DriverReshuffle.objects.filter(
