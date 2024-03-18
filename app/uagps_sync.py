@@ -166,7 +166,7 @@ class UaGpsSynchronizer(Fleet):
             if RentInformation.objects.filter(report_to=end, driver=driver):
                 continue
 
-            reshuffles = check_reshuffle(driver, start, end)
+            reshuffles = check_reshuffle(driver, start, end, gps=True)
             for reshuffle in reshuffles:
                 completed = []
                 start_report, end_report = find_reshuffle_period(reshuffle, start, end)
@@ -174,7 +174,8 @@ class UaGpsSynchronizer(Fleet):
                                                        state=FleetOrder.COMPLETED,
                                                        accepted_time__gte=start_report,
                                                        accepted_time__lt=end_report).order_by('accepted_time')
-                order_params, previous_finish_time = self.get_order_parameters(completed, end_report)
+                order_params, previous_finish_time = self.get_order_parameters(completed, end_report,
+                                                                               reshuffle.swap_vehicle)
 
                 parameters.extend(order_params)
                 if (timezone.localtime(start_report).time() == time.min or
@@ -183,16 +184,12 @@ class UaGpsSynchronizer(Fleet):
                                                                 finish_time__gt=start_report,
                                                                 state=FleetOrder.COMPLETED,
                                                                 accepted_time__lte=start_report).first()
-                    if yesterday_order and yesterday_order.vehicle.gps:
-                        try:
-                            report = self.get_params_for_report(self.get_timestamp(start_report),
-                                                                self.get_timestamp(timezone.localtime(
-                                                                    yesterday_order.finish_time)),
-                                                                yesterday_order.vehicle.gps.gps_id)
-                            parameters.append(report)
-                        except AttributeError as e:
-                            get_logger().error(e)
-                            continue
+                    if yesterday_order:
+                        report = self.get_params_for_report(self.get_timestamp(start_report),
+                                                            self.get_timestamp(timezone.localtime(
+                                                                yesterday_order.finish_time)),
+                                                            reshuffle.swap_vehicle.gps.gps_id)
+                        parameters.append(report)
             batch_size = 25
             batches = [parameters[i:i + batch_size] for i in range(0, len(parameters), batch_size)]
             for batch in batches:
@@ -223,25 +220,21 @@ class UaGpsSynchronizer(Fleet):
                 updated_orders.append(order)
             FleetOrder.objects.bulk_update(updated_orders, fields=['distance', 'road_time'], batch_size=200)
 
-    def get_order_parameters(self, orders, end):
+    def get_order_parameters(self, orders, end, vehicle):
         parameters = []
         previous_finish_time = None
         for order in orders:
             end_report = order.finish_time if order.finish_time < end else end
-            try:
-                if previous_finish_time is None or order.accepted_time >= previous_finish_time:
-                    report = self.get_params_for_report(self.get_timestamp(timezone.localtime(order.accepted_time)),
-                                                        self.get_timestamp(timezone.localtime(end_report)),
-                                                        order.vehicle.gps.gps_id)
-                elif order.finish_time <= previous_finish_time:
-                    continue
-                else:
-                    report = self.get_params_for_report(self.get_timestamp(timezone.localtime(previous_finish_time)),
-                                                        self.get_timestamp(timezone.localtime(end_report)),
-                                                        order.vehicle.gps.gps_id)
-            except AttributeError as e:
-                get_logger().error(e)
+            if previous_finish_time is None or order.accepted_time >= previous_finish_time:
+                report = self.get_params_for_report(self.get_timestamp(timezone.localtime(order.accepted_time)),
+                                                    self.get_timestamp(timezone.localtime(end_report)),
+                                                    vehicle.gps.gps_id)
+            elif order.finish_time <= previous_finish_time:
                 continue
+            else:
+                report = self.get_params_for_report(self.get_timestamp(timezone.localtime(previous_finish_time)),
+                                                    self.get_timestamp(timezone.localtime(end_report)),
+                                                    vehicle.gps.gps_id)
             parameters.append(report)
         return parameters, previous_finish_time
 
@@ -274,7 +267,7 @@ class UaGpsSynchronizer(Fleet):
                             driver=driver,
                             state=FleetOrder.COMPLETED,
                             accepted_time__range=(start_period, end_period)).order_by('accepted_time')
-                        parameters.extend(self.get_order_parameters(orders, end)[0])
+                        parameters.extend(self.get_order_parameters(orders, end, reshuffle.swap_vehicle)[0])
                         batch_size = 40
                         batches = [parameters[i:i + batch_size] for i in range(0, len(parameters), batch_size)]
                         for batch in batches:
