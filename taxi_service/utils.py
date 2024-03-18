@@ -359,7 +359,7 @@ def add_shift(licence_plate, shift_date, start_time, end_time, driver_id, recurr
             dtp_or_maintenance='accident' if driver_id == 'road-accident' else 'maintenance' if driver_id == 'technical-service' else None
         )
         instances.append(reshuffle)
-        
+
     DriverReshuffle.objects.bulk_create(instances)
     if messages:
         return False, messages
@@ -392,15 +392,17 @@ def upd_shift(action, licence_id, start_time, end_time, shift_date, driver_id, r
     end_datetime = datetime.strptime(shift_date + ' ' + end_time, '%Y-%m-%d %H:%M')
 
     if action == 'update_shift':
-        status, conflicting_vehicle = is_conflict(driver_id, licence_id, start_datetime, end_datetime, reshuffle_id)
-        if not status:
-            return False, conflicting_vehicle
+        if driver_id not in ['road-accident', 'technical-service']:
+            status, conflicting_vehicle = is_conflict(driver_id, licence_id, start_datetime, end_datetime, reshuffle_id)
+            if not status:
+                return False, conflicting_vehicle
 
         DriverReshuffle.objects.filter(id=reshuffle_id).update(
             swap_time=start_datetime,
             end_time=end_datetime,
-            driver_start=driver_id,
-            swap_vehicle=licence_id
+            driver_start=driver_id if driver_id not in ['road-accident', 'technical-service'] else None,
+            swap_vehicle=licence_id,
+            dtp_or_maintenance='accident' if driver_id == 'road-accident' else 'maintenance' if driver_id == 'technical-service' else None
         )
         return True, "Зміна успішно оновлена"
 
@@ -419,14 +421,16 @@ def upd_shift(action, licence_id, start_time, end_time, shift_date, driver_id, r
         for reshuffle in reshuffle_upd:
             start = datetime.combine(timezone.localtime(reshuffle.swap_time).date(), start_datetime.time())
             end = datetime.combine(timezone.localtime(reshuffle.end_time).date(), end_datetime.time())
-            status, conflicting_vehicle = is_conflict(driver_id, licence_id, start, end, reshuffle.id)
-            if not status:
-                return False, conflicting_vehicle
+            if driver_id not in ['road-accident', 'technical-service']:
+                status, conflicting_vehicle = is_conflict(driver_id, licence_id, start, end, reshuffle.id)
+                if not status:
+                    return False, conflicting_vehicle
 
             reshuffle.swap_time = start
             reshuffle.end_time = end
-            reshuffle.driver_start_id = driver_id
+            reshuffle.driver_start_id = driver_id if driver_id not in ['road-accident', 'technical-service'] else None
             reshuffle.swap_vehicle_id = licence_id
+            reshuffle.dtp_or_maintenance = 'accident' if driver_id == 'road-accident' else 'maintenance' if driver_id == 'technical-service' else None
             reshuffle.save()
             successful_updates += 1
         return True, f"Оновлено {successful_updates} змін"
