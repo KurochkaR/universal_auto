@@ -435,18 +435,21 @@ class DriverReshuffleListView(CombinedPermissionsMixin, generics.ListAPIView):
         ).select_related('driver_start', 'swap_vehicle').annotate(
             licence_plate=F('swap_vehicle__licence_plate'),
             vehicle_id=F('swap_vehicle__pk'),
+            vehicle_brand=F('swap_vehicle__branding__name'),
             driver_name=Concat(
                 F("driver_start__user_ptr__second_name"),
                 Value(" "),
                 F("driver_start__user_ptr__name")),
             driver_id=F('driver_start__pk'),
+            dtp_maintenance=F('dtp_or_maintenance'),
             driver_photo=F('driver_start__photo'),
             start_shift=F('swap_time__time'),
             end_shift=F('end_time__time'),
             date=F('swap_time__date'),
             reshuffle_id=F('pk')
-        ).values('licence_plate', 'vehicle_id', 'driver_name', 'driver_id', 'driver_photo', 'start_shift', 'end_shift',
-                 'date', 'reshuffle_id').order_by('start_shift')
+        ).values('licence_plate', 'vehicle_id', 'vehicle_brand', 'driver_name', 'driver_id', 'driver_photo',
+                 'start_shift', 'end_shift',
+                 'date', 'reshuffle_id', 'dtp_maintenance').order_by('start_shift')
         sorted_reshuffles = sorted(qs, key=itemgetter('licence_plate'))
         grouped_by_licence_plate = defaultdict(list)
         for key, group in groupby(sorted_reshuffles, key=itemgetter('licence_plate')):

@@ -39,7 +39,6 @@ $(document).ready(function () {
 	fetchCalendarData(formattedStartDate, formattedEndDate);
 
 	function reshuffleHandler(data) {
-
 		data.sort((a, b) => {
 			if (a.swap_licence < b.swap_licence) {
 				return -1;
@@ -52,11 +51,23 @@ $(document).ready(function () {
 		$('.driver-calendar').empty();
 
 		const calendarHTML = data.map(function (carData) {
+			let brandImage = '';
+			if (carData.reshuffles && carData.reshuffles.length > 0) {
+				const vehicleBrand = carData.reshuffles[0].vehicle_brand;
+				if (vehicleBrand === "Uklon") {
+					brandImage = '<img class="brand-vehicle" src="https://storage.googleapis.com/jobdriver-bucket/docs/brand-uklon.png" alt="Бренд авто">';
+				} else if (vehicleBrand === "Bolt") {
+					brandImage = '<img class="brand-vehicle" src="https://storage.googleapis.com/jobdriver-bucket/docs/brand-bolt.png" alt="Бренд авто">';
+				} else if (vehicleBrand === "Uber") {
+					brandImage = '<img class="brand-vehicle" src="https://storage.googleapis.com/jobdriver-bucket/docs/brand-uber.png" alt="Бренд авто">';
+				}
+			}
 			return `
 			<div class="calendar-container" id="${carData.swap_licence}">
 				<div class="car-image">
 					<img src="${VehicleImg}" alt="Зображення авто">
 					<p class="vehicle-license-plate">${carData.swap_licence}</p>
+					${brandImage}
 				</div>
 				<div class="investButton" id="investPrevButton">
 					<svg xmlns="http://www.w3.org/2000/svg" width="12" height="24" viewBox="0 0 12 24" fill="none">
@@ -124,6 +135,8 @@ $(document).ready(function () {
 
 			const driverList = data.find(carDate => carDate.swap_licence === vehicleLC);
 
+			// console.log("driverList", driverList);
+
 			function renderCalendar(startDate) {
 				calendarDetail.empty();
 
@@ -145,17 +158,26 @@ $(document).ready(function () {
 
 					const driverPhotoContainer = $('<div>').addClass('driver-photo-container');
 					const isDriverPhotoVisible = driverList.reshuffles.some(function (driver) {
-						return driver.date === formattedDate && driver.driver_photo;
+						return driver.date === formattedDate && driver.driver_photo || driver.date === formattedDate && driver.dtp_maintenance;
 					});
-
 					if (isDriverPhotoVisible) {
 
 						driverList.reshuffles.forEach(function (driver) {
 							if (driver.date === formattedDate) {
 
 								const driverPhoto = $('<div>').addClass('driver-photo');
-								driverPhoto.attr('data-name', driver.driver_name).attr('data-id-driver', driver.driver_id).attr('data-id-vehicle', driver.vehicle_id).attr('reshuffle-id', driver.reshuffle_id);
-								const driverImage = $('<img>').attr('src', 'https://storage.googleapis.com/jobdriver-bucket/' + driver.driver_photo).attr('alt', `Фото водія`)
+								driverPhoto.attr('data-name', driver.driver_name).attr('data-dtp-maintenance', driver.dtp_maintenance).attr('data-id-driver', driver.driver_id).attr('data-id-vehicle', driver.vehicle_id).attr('reshuffle-id', driver.reshuffle_id);
+								let driverImage;
+
+								if (driver.driver_photo) {
+									driverImage = $('<img>').attr('src', 'https://storage.googleapis.com/jobdriver-bucket/' + driver.driver_photo).attr('alt', `Фото водія`);
+								} else {
+									if (driver.dtp_maintenance === "maintenance") {
+										driverImage = $('<img>').attr('src', 'https://storage.googleapis.com/jobdriver-bucket/docs/service.png').attr('alt', `Фото водія`);
+									} else {
+										driverImage = $('<img>').attr('src', 'https://storage.googleapis.com/jobdriver-bucket/docs/accident.png').attr('alt', `Фото водія`);
+									}
+								}
 
 								const startTime = new Date('1970-01-01T' + driver.start_shift);
 								const endTime = new Date('1970-01-01T' + driver.end_shift);
@@ -167,6 +189,18 @@ $(document).ready(function () {
 								const driverDate = $('<p>').addClass('driver-date').text(driver.date);
 								const driverName = $('<p>').addClass('driver-name').text(driver.driver_name);
 								const driverTime = $('<p>').addClass('driver-time').text(StartTimes + ' - ' + EndTimes);
+
+								let additionalInfo = '';
+
+								if (driver.dtp_maintenance === "accident") {
+									additionalInfo = 'ДТП';
+								} else if (driver.dtp_maintenance === "maintenance") {
+									additionalInfo = 'Тех. обслуговування';
+								}
+
+								if (additionalInfo) {
+									driverName.text(additionalInfo);
+								}
 
 								driverInfo.append(driverDate, driverName, driverTime);
 
@@ -487,7 +521,6 @@ $(document).ready(function () {
 				if (error) {
 					return;
 				}
-				console.log(formatTimeWithSeconds(startTimeInput.val()), formatTimeWithSeconds(startTimeInput.val()))
 				$.ajax({
 					url: ajaxPostUrl,
 					type: 'POST',

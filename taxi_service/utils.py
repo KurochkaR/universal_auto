@@ -310,9 +310,12 @@ def add_shift(licence_plate, shift_date, start_time, end_time, driver_id, recurr
     instances = []
     messages = []
     vehicle = Vehicle.objects.filter(licence_plate=licence_plate).first()
-    driver = Driver.objects.get(id=driver_id)
+    driver = None
     start_datetime = datetime.strptime(f"{shift_date} {start_time}", "%Y-%m-%d %H:%M:%S")
     end_datetime = datetime.strptime(f"{shift_date} {end_time}", "%Y-%m-%d %H:%M:%S")
+
+    if driver_id not in ['road-accident', 'technical-service']:
+        driver = Driver.objects.get(id=driver_id)
 
     today_reshuffle = DriverReshuffle.objects.filter(
         swap_time__date=shift_date,
@@ -341,19 +344,22 @@ def add_shift(licence_plate, shift_date, start_time, end_time, driver_id, recurr
             hour=start_datetime.hour, minute=start_datetime.minute, second=start_datetime.second))
         current_end_time = timezone.make_aware(current_date.replace(
             hour=end_datetime.hour, minute=end_datetime.minute, second=end_datetime.second))
-        status, conflicting_vehicle = is_conflict(driver, vehicle, current_swap_time, current_end_time)
-        if not status:
-            messages.append(conflicting_vehicle)
-            continue
+        if driver:
+            status, conflicting_vehicle = is_conflict(driver, vehicle, current_swap_time, current_end_time)
+            if not status:
+                messages.append(conflicting_vehicle)
+                continue
 
         reshuffle = DriverReshuffle(
             swap_vehicle=vehicle,
             driver_start=driver,
             swap_time=current_swap_time,
             end_time=current_end_time,
-            partner_id=partner.pk
+            partner_id=partner.pk,
+            dtp_or_maintenance='accident' if driver_id == 'road-accident' else 'maintenance' if driver_id == 'technical-service' else None
         )
         instances.append(reshuffle)
+        
     DriverReshuffle.objects.bulk_create(instances)
     if messages:
         return False, messages
