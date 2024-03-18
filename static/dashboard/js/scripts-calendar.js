@@ -52,8 +52,8 @@ $(document).ready(function () {
 
 		const calendarHTML = data.map(function (carData) {
 			let brandImage = '';
-			if (carData.reshuffles && carData.reshuffles.length > 0) {
-				const vehicleBrand = carData.reshuffles[0].vehicle_brand;
+			if (carData.vehicle_brand) {
+				const vehicleBrand = carData.vehicle_brand;
 				if (vehicleBrand === "Uklon") {
 					brandImage = '<img class="brand-vehicle" src="https://storage.googleapis.com/jobdriver-bucket/docs/brand-uklon.png" alt="Бренд авто">';
 				} else if (vehicleBrand === "Bolt") {
@@ -134,8 +134,6 @@ $(document).ready(function () {
 			const vehicleLC = $(this).attr('id');
 
 			const driverList = data.find(carDate => carDate.swap_licence === vehicleLC);
-
-			// console.log("driverList", driverList);
 
 			function renderCalendar(startDate) {
 				calendarDetail.empty();

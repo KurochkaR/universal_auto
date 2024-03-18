@@ -435,7 +435,6 @@ class DriverReshuffleListView(CombinedPermissionsMixin, generics.ListAPIView):
         ).select_related('driver_start', 'swap_vehicle').annotate(
             licence_plate=F('swap_vehicle__licence_plate'),
             vehicle_id=F('swap_vehicle__pk'),
-            vehicle_brand=F('swap_vehicle__branding__name'),
             driver_name=Concat(
                 F("driver_start__user_ptr__second_name"),
                 Value(" "),
@@ -447,7 +446,7 @@ class DriverReshuffleListView(CombinedPermissionsMixin, generics.ListAPIView):
             end_shift=F('end_time__time'),
             date=F('swap_time__date'),
             reshuffle_id=F('pk')
-        ).values('licence_plate', 'vehicle_id', 'vehicle_brand', 'driver_name', 'driver_id', 'driver_photo',
+        ).values('licence_plate', 'vehicle_id', 'driver_name', 'driver_id', 'driver_photo',
                  'start_shift', 'end_shift',
                  'date', 'reshuffle_id', 'dtp_maintenance').order_by('start_shift')
         sorted_reshuffles = sorted(qs, key=itemgetter('licence_plate'))
@@ -455,16 +454,18 @@ class DriverReshuffleListView(CombinedPermissionsMixin, generics.ListAPIView):
         for key, group in groupby(sorted_reshuffles, key=itemgetter('licence_plate')):
             grouped_by_licence_plate[key].extend(group)
 
-        for vehicle in active_vehicles:
-            if vehicle.licence_plate not in grouped_by_licence_plate:
-                grouped_by_licence_plate[vehicle.licence_plate] = []
         reshuffles_list = []
-        for licence_plate, reshuffles in grouped_by_licence_plate.items():
-            reshuffle_data = {
+        for vehicle in active_vehicles:
+            licence_plate = vehicle.licence_plate
+            branding_name = vehicle.branding.name if vehicle.branding else None
+            reshuffles = grouped_by_licence_plate.get(licence_plate, [])
+
+            reshuffles_list.append({
                 "swap_licence": licence_plate,
+                "vehicle_brand": branding_name,
                 "reshuffles": reshuffles
-            }
-            reshuffles_list.append(reshuffle_data)
+            })
+
         return reshuffles_list
 
     def list(self, request, *args, **kwargs):

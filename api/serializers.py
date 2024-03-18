@@ -132,7 +132,6 @@ class DriverChangesSerializer(serializers.Serializer):
     driver_name = serializers.CharField()
     driver_id = serializers.IntegerField()
     vehicle_id = serializers.IntegerField()
-    vehicle_brand = serializers.CharField()
     driver_photo = serializers.CharField()
     start_shift = serializers.TimeField()
     end_shift = serializers.TimeField()
@@ -142,6 +141,7 @@ class DriverChangesSerializer(serializers.Serializer):
 
 class ReshuffleSerializer(serializers.Serializer):
     swap_licence = serializers.CharField()
+    vehicle_brand = serializers.CharField()
     reshuffles = DriverChangesSerializer(many=True)
 
 
