@@ -95,8 +95,8 @@
   <aside id="sidebar">
     <div class="sidebar-title">
       <a class="navbar-brand" href="{% url 'index' %}">
-        <img class="logo-1" src="{% static 'app/images/logo-2.svg' %}" width="142" height="50" alt="Ninja Taxi">
-        <img class="logo-2" src="{% static 'app/images/logo.svg' %}" width="142" height="50" alt="Ninja Taxi">
+        <img class="logo-1" src="https://storage.googleapis.com/jobdriver-bucket/docs/ninja_logo1.png" alt="Ninja Taxi">
+        <img class="logo-2" src="https://storage.googleapis.com/jobdriver-bucket/docs/ninja_logo2.png" alt="Ninja Taxi">
       </a>
     </div>
     <ul class="sidebar-list">
@@ -109,14 +109,14 @@
       {% if partner_group or investor_group %}
       <div id="VehicleBtnContainer">
         <li class="sidebar-list-item" onclick="window.location='{% url 'dashboard_vehicle' %}'">
-          <i class="fas fa-car-side"></i><span>{% trans 'Автомобілі' %}</span>
+          <i class="fas fa-car"></i><span>{% trans 'Автомобілі' %}</span>
         </li>
       </div>
       {% endif %}
       {% if partner_group or manager_group %}
       <div id="DriverBtnContainers">
         <li class="sidebar-list-item" onclick="window.location='{% url 'drivers' %}'">
-          <i class="fas fa-users"></i><span>{% trans 'Водії' %}</span>
+          <i class="fas fa-user-friends"></i><span>{% trans 'Водії' %}</span>
         </li>
       </div>
       <div id="workCalendarBtnContainer">
@@ -125,7 +125,7 @@
         </li>
       </div>
       <li class="sidebar-list-item admin" data-url="{% url 'admin:index' %}" id="admin-link">
-        <i class="fas fa-gem"></i><span>{% trans 'Керування автопарком' %}</span>
+        <i class="fas fa-key"></i><span>{% trans 'Керування автопарком' %}</span>
       </li>
       <div id="updateDatabaseContainer">
         <li class="sidebar-list-item">
@@ -146,7 +146,7 @@
       {% if partner_group %}
       <div id="settingBtnContainer">
         <li class="sidebar-list-item">
-          <i class="fas fa-pencil-alt"></i><span>{% trans 'Підключення агрегаторів' %}</span>
+          <i class="fas fa-box-open"></i><span>{% trans 'Підключення агрегаторів' %}</span>
         </li>
       </div>
       <div id="settingsWindow" class="settings-window">

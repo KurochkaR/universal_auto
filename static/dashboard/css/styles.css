@@ -55,15 +55,6 @@ p, span, div {
     z-index: 9999;
 }
 
-body {
-  background-color: #fff;
-  min-height: 100vh;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-around;
-  align-content: space-around;
-}
-
 
 .loader-car{
   width: 160px;
@@ -223,16 +214,18 @@ body {
 
 .sidebar-list {
 	padding: 0;
+	width:275px;
 	margin-top: 55px;
 	list-style-type: none;
 }
 
 .sidebar-list-item {
-	display: flex;
-	align-items: center;
-	padding: 20px 20px 25px 20px;
-	font-size: 18px;
-	color: #141E17;
+    display: flex;
+    align-items: center;
+    padding: 10px 35px 10px 15px;
+    font-size: 25px;
+    font-weight: 500;
+    color: #141E17;
 }
 
 .sidebar-list-item:hover {

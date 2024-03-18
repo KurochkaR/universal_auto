@@ -103,8 +103,8 @@ $(document).ready(function () {
     isSidebarOpen = !isSidebarOpen;
 
     if (isSidebarOpen) {
-      gridContainer.css("grid-template-columns", "300px 1fr 1fr 1fr");
-      sidebarTitle.css("padding", "10px 30px 0px 30px");
+      gridContainer.css("grid-template-columns", "375px 1fr 1fr 1fr");
+      sidebarTitle.css("padding", "10px 25px 0px 25px");
       sidebarToggleIcon.removeClass("fa-angle-double-right").addClass("fa-angle-double-left");
 
       $(".logo-1").hide();
@@ -118,7 +118,7 @@ $(document).ready(function () {
         });
       }, 500);
     } else {
-      gridContainer.css("grid-template-columns", "60px 1fr 1fr 1fr");
+      gridContainer.css("grid-template-columns", "112px 1fr 1fr 1fr");
       sidebarTitle.css("padding", "30px 30px 50px 30px");
       sidebarToggleIcon.removeClass("fa-angle-double-left").addClass("fa-angle-double-right");
 
