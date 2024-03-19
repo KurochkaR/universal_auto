@@ -14,11 +14,9 @@ function fetchDriverEfficiencyData(period, start, end) {
 			$('th[data-sort="fleet"]').hide();
 			$(".aggregator").css("display", "none");
 			$(".apply-filter-button_driver").prop("disabled", false);
-			let table = $('.info-driver table');
-			let driverBlock = $('.driver-block');
+			let table = $('.info-driver .driver-table tbody');
 			let startDate = data[0]['start'];
 			let endDate = data[0]['end'];
-			table.find('tr:gt(0)').remove();
 			if (data[0]['drivers_efficiency'].length !== 0) {
 				data[0]['drivers_efficiency'].forEach(function (item) {
 					let row = $('<tr></tr>');
@@ -221,7 +219,7 @@ function sortTable(column, order) {
 	var groups = [];
 	var group = [];
 
-	$('tr').each(function () {
+	$('tr:not(.table-header)').each(function () {
 		if ($(this).find('.driver').length > 0) {
 			if (group.length > 0) {
 				groups.push(group);

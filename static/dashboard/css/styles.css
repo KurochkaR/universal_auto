@@ -1060,7 +1060,6 @@ img.brand-vehicle {
 table {
 	width: 100%;
 	border-collapse: collapse;
-	margin-top: 20px;
 }
 
 th {
@@ -3593,7 +3592,12 @@ span.circle {
 	}
 }
 
-.info-driver {
-	height: 300px;
-	overflow-y: auto;
+.table-container {
+	height: 600px;
+	overflow: auto;
+}
+
+thead tr th {
+	position: sticky;
+	top: 0;
 }
