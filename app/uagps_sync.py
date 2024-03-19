@@ -226,25 +226,21 @@ class UaGpsSynchronizer(Fleet):
                 updated_orders.append(order)
             FleetOrder.objects.bulk_update(updated_orders, fields=['distance', 'road_time'], batch_size=200)
 
-    def get_order_parameters(self, orders, end):
+    def get_order_parameters(self, orders, end, vehicle):
         parameters = []
         previous_finish_time = None
         for order in orders:
             end_report = order.finish_time if order.finish_time < end else end
-            try:
-                if previous_finish_time is None or order.accepted_time >= previous_finish_time:
-                    report = self.get_params_for_report(self.get_timestamp(timezone.localtime(order.accepted_time)),
-                                                        self.get_timestamp(timezone.localtime(end_report)),
-                                                        order.vehicle.gps.gps_id)
-                elif order.finish_time <= previous_finish_time:
-                    continue
-                else:
-                    report = self.get_params_for_report(self.get_timestamp(timezone.localtime(previous_finish_time)),
-                                                        self.get_timestamp(timezone.localtime(end_report)),
-                                                        order.vehicle.gps.gps_id)
-            except AttributeError as e:
-                get_logger().error(e)
+            if previous_finish_time is None or order.accepted_time >= previous_finish_time:
+                report = self.get_params_for_report(self.get_timestamp(timezone.localtime(order.accepted_time)),
+                                                    self.get_timestamp(timezone.localtime(end_report)),
+                                                    vehicle.gps.gps_id)
+            elif order.finish_time <= previous_finish_time:
                 continue
+            else:
+                report = self.get_params_for_report(self.get_timestamp(timezone.localtime(previous_finish_time)),
+                                                    self.get_timestamp(timezone.localtime(end_report)),
+                                                    vehicle.gps.gps_id)
             parameters.append(report)
         return parameters, previous_finish_time
 

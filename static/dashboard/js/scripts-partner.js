@@ -297,6 +297,7 @@ function fetchSummaryReportData(period, start, end) {
 				$(".noDataMessage1").hide();
 				$('#bar-chart').show();
 				const driversData = data[0]['drivers'];
+				driversData.sort((a, b) => b.total_kasa - a.total_kasa);
 				const categories = driversData.map(driver => driver.full_name);
 				const formattedNamesList = [];
 				categories.forEach(name => {
@@ -312,7 +313,6 @@ function fetchSummaryReportData(period, start, end) {
 					}
 				});
 
-				driversData.sort((a, b) => b.total_kasa - a.total_kasa);
 				const total_card = driversData.map(driver => driver.total_card);
 				const total_cash = driversData.map(driver => driver.total_cash);
 

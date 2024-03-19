@@ -25,11 +25,13 @@ def normalized_plate(licence_plate):
     return plate
 
 
-def check_reshuffle(driver, start, end):
-    reshuffles = DriverReshuffle.objects.filter(
-        (Q(swap_time__lt=end) & Q(end_time__gt=start)),
-        driver_start=driver
-    ).order_by("swap_time")
+def check_reshuffle(driver, start, end, gps=False):
+    filter_query = Q(Q(swap_time__lt=end) &
+                     Q(end_time__gt=start),
+                     Q(driver_start=driver))
+    if gps:
+        filter_query &= Q(swap_vehicle__gps__isnull=False)
+    reshuffles = DriverReshuffle.objects.filter(filter_query).order_by("swap_time")
     return reshuffles
 
 

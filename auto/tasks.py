@@ -20,7 +20,8 @@ from app.models import (RawGPS, Vehicle, Order, Driver, JobApplication, ParkSett
                         InvestorPayments, VehicleSpending, DriverReshuffle, DriverPayments,
                         TaskScheduler, DriverEffVehicleKasa, Schema, CustomReport, Fleet,
                         VehicleGPS, PartnerEarnings, Investor, Bonus, Penalty, PaymentsStatus,
-                        FleetsDriversVehiclesRate, DriverEfficiencyFleet, WeeklyReport, SalaryCalculation, Category)
+                        FleetsDriversVehiclesRate, DriverEfficiencyFleet, WeeklyReport, SalaryCalculation, Category,
+                        PenaltyCategory)
 from django.db.models import Sum, IntegerField, FloatField, DecimalField, Q
 from django.db.models.functions import Cast, Coalesce
 from app.utils import get_schedule, create_task
@@ -227,11 +228,12 @@ def check_card_cash_value(self, partner_pk):
             start = start_week if driver.schema.is_weekly() else get_time_for_task(driver.schema_id)[2]
             rent = calculate_rent(start_week, today, driver) if driver.schema.is_weekly() else (
                 calculate_rent(yesterday, today, driver))
+            penalties = driver.get_penalties()
             rent_payment = rent * driver.schema.rent_price
             kasa, card = get_today_statistic(partner_pk, start, today, driver)[:2]
             if kasa > driver.schema.cash:
-                ratio = (card - rent_payment) / kasa
-                without_rent = card / kasa
+                ratio = (card - rent_payment - penalties) / kasa
+                without_rent = (card - penalties) / kasa
                 rate = driver.cash_rate if driver.cash_rate else driver.schema.rate
                 enable = int(ratio > (1 - rate))
                 rent_enable = int(without_rent > (1 - rate))
@@ -244,14 +246,14 @@ def check_card_cash_value(self, partner_pk):
                         result = fleet.disable_cash(driver_rate.driver_external_id, enable)
                         disabled.append(result)
                 if disabled:
+                    calc_text = f"Готівка {int(kasa - card)}"
+                    if penalties:
+                        calc_text += f" борг {int(penalties)}"
                     if rent_payment:
-                        calc_text = f"Готівка {int(kasa - card)} + холостий пробіг {int(rent_payment)}/{int(kasa)} =" \
-                                    f" {int((1 - ratio) * 100)}%\n"
-                    else:
-                        calc_text = f"Готівка {int(kasa - card)} /{int(kasa)} = {int((1 - ratio) * 100)}%\n"
+                        calc_text += f" холостий пробіг {int(rent_payment)}/{int(kasa)}"
+                    calc_text += f" = {int((1 - ratio) * 100)}%\n"
                     if enable:
                         text = f"\U0001F7E2 {driver} система увімкнула отримання замовлень за готівку.\n" + calc_text
-
                     elif rent_enable:
                         text = f"\U0001F534 {driver} системою вимкнено готівкові замовлення.\n" \
                                f"Причина: холостий пробіг\n" + calc_text + f", перепробіг {int(rent)} км\n"
@@ -621,7 +623,8 @@ def fleets_cash_trips(self, partner_pk, pk, enable):
     for fleet in fleets:
         driver_rate = FleetsDriversVehiclesRate.objects.filter(
             driver=driver, fleet=fleet).first()
-        fleet.disable_cash(driver_rate.driver_external_id, enable)
+        if driver_rate:
+            fleet.disable_cash(driver_rate.driver_external_id, enable)
 
 
 @app.task(bind=True, retry_backoff=30, max_retries=4)
@@ -1293,6 +1296,8 @@ def calculate_vehicle_spending(self, payment_pk):
 def calculate_failed_earnings(self, payment_pk):
     payment = DriverPayments.objects.get(pk=payment_pk)
     vehicle_income = get_failed_income(payment)
+    total_income = 0
+    vehicles = len(vehicle_income)
     for vehicle, income in vehicle_income.items():
         PartnerEarnings.objects.get_or_create(
             report_from=payment.report_from,
@@ -1305,6 +1310,19 @@ def calculate_failed_earnings(self, payment_pk):
                 "earning": income,
             }
         )
+        total_income += income
+    for vehicle, income in vehicle_income.items():
+        if total_income:
+            debt = Decimal(round((income / total_income) * abs(payment.earning), 2))
+        else:
+            debt = Decimal(round(abs(payment.earning) / vehicles, 2))
+        format_start = payment.report_from.strftime("%d.%m")
+        format_end = payment.report_to.strftime("%d.%m")
+        description = f"Борг з {format_start} по {format_end}"
+        category, _ = PenaltyCategory.objects.get_or_create(title="Борг по виплаті")
+        Penalty.objects.create(vehicle=vehicle, driver=payment.driver,
+                               amount=debt, description=description,
+                               category=category)
 
 
 @app.task(bind=True)
