@@ -3592,3 +3592,8 @@ span.circle {
 		height: 404px;
 	}
 }
+
+.info-driver {
+	height: 300px;
+	overflow-y: auto;
+}
