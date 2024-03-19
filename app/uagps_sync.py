@@ -4,7 +4,6 @@ from datetime import datetime, timedelta, time
 import requests
 from _decimal import Decimal
 from django.utils import timezone
-from telegram.error import BadRequest
 
 from app.models import (Driver, GPSNumber, RentInformation, FleetOrder, CredentialPartner, ParkSettings, Fleet,
                         Partner, VehicleRent, Vehicle, DriverReshuffle)
@@ -158,14 +157,14 @@ class UaGpsSynchronizer(Fleet):
         total_distance = 0
         total_time = timedelta()
         previous_finish_time = None
-        reshuffles = check_reshuffle(driver, start, end)
+        reshuffles = check_reshuffle(driver, start, end, gps=True)
         for reshuffle in reshuffles:
             start_report, end_report = find_reshuffle_period(reshuffle, start, end)
             completed = FleetOrder.objects.filter(driver=driver,
                                                   state=FleetOrder.COMPLETED,
                                                   accepted_time__gte=start_report,
                                                   accepted_time__lt=end_report).order_by('accepted_time')
-            order_params, previous_finish_time = self.get_order_parameters(completed, end_report)
+            order_params, previous_finish_time = self.get_order_parameters(completed, end_report, reshuffle.swap_vehicle)
 
             parameters.extend(order_params)
             if (timezone.localtime(start_report).time() == time.min or
@@ -179,7 +178,7 @@ class UaGpsSynchronizer(Fleet):
                         report = self.get_params_for_report(self.get_timestamp(start_report),
                                                             self.get_timestamp(timezone.localtime(
                                                                 yesterday_order.finish_time)),
-                                                            yesterday_order.vehicle.gps.gps_id)
+                                                            reshuffle.swap_vehicle.gps.gps_id)
                         parameters.append(report)
                     except AttributeError as e:
                         get_logger().error(e)
@@ -272,7 +271,7 @@ class UaGpsSynchronizer(Fleet):
                         driver=driver,
                         state=FleetOrder.COMPLETED,
                         accepted_time__range=(start_period, end_period)).order_by('accepted_time')
-                    parameters.extend(self.get_order_parameters(orders, end)[0])
+                    parameters.extend(self.get_order_parameters(orders, end, reshuffle.swap_vehicle)[0])
                     batch_size = 40
                     batches = [parameters[i:i + batch_size] for i in range(0, len(parameters), batch_size)]
                     for batch in batches:
@@ -366,21 +365,17 @@ class UaGpsSynchronizer(Fleet):
                 total_km = 0
                 if not end_time:
                     end_time = timezone.localtime()
-                reshuffles = check_reshuffle(driver, start, end)
+                reshuffles = check_reshuffle(driver, start, end, gps=True)
                 for reshuffle in reshuffles:
-                    try:
-                        if reshuffle.end_time < end_time:
-                            total_km += self.total_per_day(reshuffle.swap_vehicle.gps.gps_id,
-                                                           reshuffle.swap_time,
-                                                           reshuffle.end_time)
-                        elif reshuffle.swap_time < end_time:
-                            total_km += self.total_per_day(reshuffle.swap_vehicle.gps.gps_id,
-                                                           reshuffle.swap_time,
-                                                           end_time)
-                        else:
-                            continue
-                    except AttributeError as e:
-                        get_logger().error(e)
+                    if reshuffle.end_time < end_time:
+                        total_km += self.total_per_day(reshuffle.swap_vehicle.gps.gps_id,
+                                                       reshuffle.swap_time,
+                                                       reshuffle.end_time)
+                    elif reshuffle.swap_time < end_time:
+                        total_km += self.total_per_day(reshuffle.swap_vehicle.gps.gps_id,
+                                                       reshuffle.swap_time,
+                                                       end_time)
+                    else:
                         continue
                 rent_distance = total_km - distance
                 driver_obj = Driver.objects.get(id=driver)

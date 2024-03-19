@@ -481,8 +481,7 @@ class PostRequestHandler:
                 payment_24hours_create(payment.report_from, payment.report_to, fleet, payment.driver, partner_pk)
         summary_report_create(payment.report_from, payment.report_to, payment.driver, payment.partner)
         get_rent_information(payment=payment.id)
-        print(payment.driver)
-        payment_data = create_driver_payments(start, payment.report_to, payment.driver, payment.driver.schema)
+        payment_data = create_driver_payments(start, timezone.localtime(payment.report_to), payment.driver, payment.driver.schema)
 
         for key, value in payment_data.items():
             setattr(payment, key, value)
