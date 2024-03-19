@@ -433,11 +433,13 @@ def get_car_efficiency(self, partner_pk, day=None):
             return
         if total_km:
             for driver in drivers:
-                reports = CustomReport.objects.filter(
-                    report_from__date=start,
-                    driver=driver)
-                driver_kasa = reports.aggregate(
-                    kasa=Coalesce(Sum("total_amount_without_fee"), Decimal(0)))['kasa']
+                fleets = Fleet.objects.filter(fleetsdriversvehiclesrate__driver=driver)
+                driver_kasa = 0
+                for fleet in fleets:
+                    orders = FleetOrder.objects.filter(
+                        accepted_time__date=start, driver=driver, fleet=fleet.name, vehicle=vehicle).aggregate(
+                        total_price=Coalesce(Sum('price'), 0))['total_price']
+                    driver_kasa += orders * (1 - fleet.fees)
                 vehicle_drivers[driver] = driver_kasa
                 total_kasa += driver_kasa
         result = max(
