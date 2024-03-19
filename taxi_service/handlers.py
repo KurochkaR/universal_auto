@@ -443,7 +443,7 @@ class PostRequestHandler:
     def handler_incorrect_payment(request):
         partner_pk = request.user.manager.managers_partner.pk if request.user.is_manager() else request.user.pk
 
-        fleets = Fleet.objects.filter(partner=partner_pk)
+        fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name='Gps')
         data = request.POST
         payment = DriverPayments.objects.get(pk=int(data['payment_id']))
         start = timezone.make_aware(datetime.combine(payment.report_to, time.min))
@@ -478,9 +478,10 @@ class PostRequestHandler:
                     custom.total_amount_cash = Decimal(data['bolt_cash'])
                     custom.report_to = payment.report_to
                     custom.save()
-                payment_24hours_create(start, payment.report_to, fleet, payment.driver, partner_pk)
-        summary_report_create(start, payment.report_to, payment.driver, partner_pk)
+                payment_24hours_create(payment.report_from, payment.report_to, fleet, payment.driver, partner_pk)
+        summary_report_create(payment.report_from, payment.report_to, payment.driver, payment.partner)
         get_rent_information(payment=payment.id)
+        print(payment.driver)
         payment_data = create_driver_payments(start, payment.report_to, payment.driver, payment.driver.schema)
 
         for key, value in payment_data.items():

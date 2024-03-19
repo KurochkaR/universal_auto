@@ -98,7 +98,7 @@ def payment_24hours_create(start, end, fleet, driver, partner_pk):
         data["partner"] = Partner.objects.get(pk=partner_pk)
         data["report_to"] = report.last().report_to
         payment, created = Payments.objects.get_or_create(report_from=report.first().report_from,
-                                                          fleet_id=fleet,
+                                                          fleet=fleet,
                                                           driver=driver,
                                                           partner=partner_pk,
                                                           defaults=data)
@@ -109,7 +109,8 @@ def payment_24hours_create(start, end, fleet, driver, partner_pk):
 
 
 def summary_report_create(start, end, driver, partner_pk):
-    payments = Payments.objects.filter(report_to__range=(start - timedelta(minutes=1), end),
+    payments = Payments.objects.filter(report_to__range=(start, end),
+                                       report_to__gt=start,
                                        driver=driver, partner=partner_pk)
     vehicle = check_vehicle(driver, date_time=end)
     if payments.exists():

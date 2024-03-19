@@ -49,7 +49,9 @@ def find_reshuffle_period(reshuffle, start, end):
 
 
 def create_driver_payments(start, end, driver, schema, bonuses=None, driver_report=None, delete=None):
+    print(start, end)
     reports = SummaryReport.objects.filter(report_to__range=(start, end),
+                                           report_to__gt=start,
                                            driver=driver)
     if not driver_report:
         driver_report = reports.aggregate(
@@ -94,8 +96,10 @@ def create_driver_payments(start, end, driver, schema, bonuses=None, driver_repo
             "payment_type": schema.salary_calculation,
             "partner": schema.partner}
     bolt_order_kasa = calculate_bolt_kasa(driver, start, end)[0]
-    bolt_report = Payments.objects.filter(report_from__range=(start, end),
-                                          driver=driver, fleet__name="Bolt").aggregate(
+    bolt_report = CustomReport.objects.filter(
+        report_to__range=(start, end),
+        report_to__gt=start,
+        driver=driver, fleet__name="Bolt").aggregate(
         kasa=Coalesce(Sum('total_amount_without_fee'), 0, output_field=DecimalField()),
         compensations=Coalesce(Sum('compensations'), 0, output_field=DecimalField())
         )
@@ -148,7 +152,8 @@ def calculate_rent(start, end, driver):
     end_time = timezone.make_aware(datetime.combine(end, datetime.max.time()))
     rent_report = RentInformation.objects.filter(
         rent_distance__gt=driver.schema.limit_distance,
-        report_from__range=(start, end_time),
+        report_to__range=(start, end_time),
+        report_to__gt=start,
         driver=driver)
     overall_rent = ExpressionWrapper(F('rent_distance') - driver.schema.limit_distance,
                                      output_field=DecimalField())

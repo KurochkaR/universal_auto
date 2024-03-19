@@ -222,7 +222,7 @@ class UklonRequest(Fleet, Synchronizer):
                     driver = FleetsDriversVehiclesRate.objects.get(
                         driver_external_id=driver_report['driver']['id'],
                         fleet=self, partner=self.partner).driver
-                    report, distance = self.parse_json_report(start_time, end, driver, driver_report)
+                    report, distance = self.parse_json_report(start, end, driver, driver_report)
                     start_day = timezone.make_aware(start_time)
                     uklon_custom = CustomReport.objects.filter(report_from=start_day,
                                                                driver=driver,
