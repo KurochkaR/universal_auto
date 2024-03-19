@@ -574,12 +574,18 @@ def detaching_the_driver_from_the_car(self, partner_pk, licence_plate, eta):
 
 
 @app.task(bind=True, retry_backoff=30, max_retries=4)
-def get_rent_information(self, schemas=None, day=None, driver=None):
+def get_rent_information(self, schemas=None, day=None, driver=None, payment=None):
     try:
         if driver:
             drivers = Driver.objects.filter(pk=driver)
             end = timezone.localtime()
-            start = timezone.make_aware(datetime.combine(timezone.localtime(), drivers.first().schema.shift_time))
+            start = timezone.make_aware(datetime.combine(timezone.localtime() - timedelta(days=1),
+                                                         drivers.first().schema.shift_time))
+        elif payment:
+            driver_payment = DriverPayments.objects.get(pk=payment)
+            drivers = Driver.objects.filter(pk=driver_payment.driver_id)
+            start = driver_payment.report_from
+            end = driver_payment.report_to
         else:
             schema_obj = Schema.objects.filter(pk__in=schemas).first()
             end, start = get_time_for_task(schema_obj.pk, day)[1:3]
@@ -1165,6 +1171,8 @@ def calculate_driver_reports(self, schemas, day=None):
                                                               "earning": vehicle_amount})
                     bolt_category = Category.objects.get(title="Бонуси Bolt")
                     Bonus.objects.create(driver=driver, vehicle=car, amount=amount, category=bolt_category)
+            if driver.driver_status == Driver.WITH_CLIENT:
+                data['status'] = PaymentsStatus.INCORRECT
             payment, created = DriverPayments.objects.get_or_create(report_from__date=start,
                                                                     driver=driver,
                                                                     defaults=data)

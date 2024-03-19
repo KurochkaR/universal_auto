@@ -241,23 +241,37 @@ $(document).ready(function () {
 				csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
 			},
 			success: function (response) {
-			    checkTaskStatus(response.task_id)
-			    .then( function (response){
-			        if (response.data === "SUCCESS") {
-			            $("#loadingModal").hide();
-			            if (response.result.status === 'incorrect') {
-			                $(".bolt-confirm-button").data("payment-id", response.result.id)
-                            $("#bolt-confirmation-form").show();
-                            $('.modal-overlay').show();
-			            } else {
-			            	driverPayment(null, null, null, paymentStatus = "on_inspection");
-			            }
-			        }
+                    checkTaskStatus(response.task_id)
+                    .then( function (response) {
+                        if (response.data === "SUCCESS") {
+                            $("#loadingModal").hide();
+                            if (response.result.status === 'incorrect') {
+                                $(".bolt-confirm-button").data("payment-id", response.result.id)
+                                $("#bolt-confirmation-form").show();
+                                $('.modal-overlay').show();
+                            } else {
+                                driverPayment(null, null, null, paymentStatus = "on_inspection");
+                            }
+                        }
 
-			    })
-			    .catch( function (error) {
-                    console.error('Error:', error)
-			    })
+                    })
+                    .catch( function (error) {
+                        console.error('Error:', error)
+                    })
+			},
+			error: function(xhr, textStatus, errorThrown) {
+			if (xhr.status === 400) {
+				let error = xhr.responseJSON.error;
+			    $('#loadingModal').show();
+                $('#loadingMessage').text(xhr.responseJSON.error)
+                $("#loader").css("display", "none");
+                $("#checkmark").css("display", "none");
+                setTimeout(function () {
+                    $('#loadingModal').hide();
+                }, 5000);
+            } else {
+                console.error('Помилка запиту: ' + textStatus);
+            }
 			},
     });
     })

@@ -304,7 +304,7 @@ class UberRequest(Fleet, Synchronizer):
             uber_orders = FleetOrder.objects.filter(accepted_time__range=(start, end),
                                                     driver=driver, fleet=self.name).count()
             report = self.generate_report(start, end, driver=driver)
-            if any([not report, not report[0].get("totalTrips"), uber_orders == report[0].get("totalTrips")]):
+            if not report or not report[0].get("totalTrips") or uber_orders == report[0].get("totalTrips"):
                 return
         uber_driver = SeleniumTools(self.partner.id)
         uber_driver.download_payments_order(start, end)

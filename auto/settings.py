@@ -19,8 +19,8 @@ import sentry_sdk
 sentry_sdk.init(
     dsn=os.getenv("SENTRY_DSN"),
     enable_tracing=True,
-    traces_sample_rate=0.1,
-    profiles_sample_rate=0.1,
+    traces_sample_rate=1.0,
+    profiles_sample_rate=1.0,
 )
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
