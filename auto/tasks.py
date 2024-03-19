@@ -1134,7 +1134,7 @@ def calculate_driver_reports(self, schemas, day=None):
             else:
                 continue
         else:
-            end, start = get_time_for_task(driver.schema, day)[1:3]
+            end, start = get_time_for_task(driver.schema_id, day)[1:3]
         reshuffles = check_reshuffle(driver, start, end)
         # report_kasa = SummaryReport.objects.filter(driver=driver, report_from__range=(start, end)).aggregate(
         #         kasa=Coalesce(Sum('total_amount_without_fee'), 0, output_field=DecimalField()))['kasa']

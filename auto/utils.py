@@ -98,7 +98,7 @@ def payment_24hours_create(start, end, fleet, driver, partner_pk):
         data["partner"] = Partner.objects.get(pk=partner_pk)
         data["report_to"] = report.last().report_to
         payment, created = Payments.objects.get_or_create(report_from=report.first().report_from,
-                                                          fleet=fleet,
+                                                          fleet_id=fleet,
                                                           driver=driver,
                                                           partner=partner_pk,
                                                           defaults=data)

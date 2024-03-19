@@ -194,13 +194,14 @@ class UaGpsSynchronizer(Fleet):
 
     def get_road_distance(self, start, end, schema_drivers=None):
         road_dict = {}
-        drivers = DriverReshuffle.objects.filter(
-            partner=self.partner, swap_time__date=timezone.localtime()).values_list(
-            'driver_start', flat=True) if not schema_drivers else schema_drivers
+        if not schema_drivers:
+            schema_drivers = DriverReshuffle.objects.filter(
+                partner=self.partner, swap_time__date=timezone.localtime()).values_list(
+                'driver_start', flat=True)
+        drivers = Driver.objects.filter(pk__in=schema_drivers)
         for driver in drivers:
             if RentInformation.objects.filter(report_from__date=start, driver=driver) and len(drivers) != 1:
                 continue
-
             road_dict[driver] = self.get_driver_rent(start, end, driver)
         return road_dict
 
