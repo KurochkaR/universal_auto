@@ -96,7 +96,7 @@ class Synchronizer:
                     if managers.count():
                         message_text = f"{manager_msg} Призначте йому менеджера."
                 else:
-                    message_text = f"{manager_msg} без вказаної схеми. Призначте йому схему."
+                    message_text = f"{manager_msg} без вказаної схеми та менеджера. Призначте йому схему та менеджера."
             if message_text:
                 bot.send_message(chat_id=manager_chat_id, text=message_text)
 
