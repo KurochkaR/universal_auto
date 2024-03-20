@@ -232,7 +232,6 @@ class UaGpsSynchronizer(Fleet):
         parameters = []
         previous_finish_time = None
         for order in orders:
-            print(order)
             end_report = order.finish_time if order.finish_time < end else end
             if previous_finish_time is None or order.accepted_time >= previous_finish_time:
                 report = self.get_params_for_report(self.get_timestamp(timezone.localtime(order.accepted_time)),
@@ -384,8 +383,7 @@ class UaGpsSynchronizer(Fleet):
                         continue
                 rent_distance = total_km - distance
                 driver_obj = Driver.objects.get(id=driver)
-                kasa, card, mileage, orders, canceled_orders = get_today_statistic(self.partner, start,
-                                                                                   end_time, driver_obj)
+                kasa, card, mileage, orders, canceled_orders = get_today_statistic(start, end_time, driver_obj)
                 time_now = timezone.localtime(end_time)
                 if kasa and mileage:
                     text += f"Водій: {driver_obj} час {time_now.strftime('%H:%M')} \n"\

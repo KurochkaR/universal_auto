@@ -487,7 +487,6 @@ $(document).ready(function () {
 				if (error) {
 					return;
 				}
-				console.log(formatTimeWithSeconds(startTimeInput.val()), formatTimeWithSeconds(startTimeInput.val()))
 				$.ajax({
 					url: ajaxPostUrl,
 					type: 'POST',

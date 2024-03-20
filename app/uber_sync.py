@@ -203,15 +203,11 @@ class UberRequest(Fleet, Synchronizer):
         for report in reports:
             if report['totalEarnings']:
                 payment = self.parse_json_report(start, end, report)
-                db_report, created = model.objects.get_or_create(report_from=start,
-                                                                 driver=payment['driver'],
-                                                                 fleet=self,
-                                                                 partner=self.partner,
-                                                                 defaults=payment)
-                if not created:
-                    for key, value in payment.items():
-                        setattr(db_report, key, value)
-                    db_report.save()
+                db_report, _ = model.objects.update_or_create(report_from=start,
+                                                              driver=payment['driver'],
+                                                              fleet=self,
+                                                              partner=self.partner,
+                                                              defaults=payment)
                 uber_reports.append(db_report)
         return uber_reports
 

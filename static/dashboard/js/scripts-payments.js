@@ -155,6 +155,7 @@ $(document).ready(function () {
 		var bonusTable = row.next().find('.bonus-table');
 
 		bonusTable.toggleClass('expanded');
+		bonusTable.toggle();
 		return false;
 	});
 
@@ -183,19 +184,19 @@ $(document).ready(function () {
 			success: function (response) {
 			    drivers = response.drivers;
 			    if (drivers.length !== 0) {
-			    populateButtons(drivers);
-			    $("#search-driver").val("");
-				$('#payment-driver-list').show();
-				$('.modal-overlay').show();
-				$('.create-payment').css('background', '#ec6323')
-			} else {
-			    $("#loadingModal").show();
-			    $("#loader").hide();
-		        $("#loadingMessage").text(gettext("Сьогодні відсутні водії з денним розрахунком"));
-                setTimeout(function () {
-                    $('#loadingModal').hide();
-                }, 3000);
-			}
+                    populateButtons(drivers);
+                    $("#search-driver").val("");
+                    $('#payment-driver-list').show();
+                    $('.modal-overlay').show();
+                    $('.create-payment').css('background', '#ec6323')
+                } else {
+                    $("#loadingModal").show();
+                    $("#loader").hide();
+                    $("#loadingMessage").text(gettext("Сьогодні відсутні водії з денним розрахунком"));
+                    setTimeout(function () {
+                        $('#loadingModal').hide();
+                    }, 3000);
+			    }
 			},
 			error: function (error) {
 				console.error("Error:", error);
@@ -216,7 +217,7 @@ $(document).ready(function () {
     });
 
     $("#search-driver").on("keypress", function(e) {
-    	    if (e.which === 13) {
+        if (e.which === 13) {
             e.preventDefault();
             $(this).blur();
         }
@@ -231,6 +232,7 @@ $(document).ready(function () {
 		$('.modal-overlay').hide();
 		$("#loadingModal").show();
 		$("#loadingMessage").text(gettext("Створюється нова виплата"));
+		$("#loader").show();
 		$.ajax({
 			url: ajaxPostUrl,
 			type: 'POST',
@@ -241,45 +243,52 @@ $(document).ready(function () {
 				csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
 			},
 			success: function (response) {
-                    checkTaskStatus(response.task_id)
-                    .then( function (response) {
-                        if (response.data === "SUCCESS") {
-                            $("#loadingModal").hide();
-                            if (response.result.status === 'incorrect') {
-                                $(".bolt-confirm-button").data("payment-id", response.result.id)
-                                $("#bolt-confirmation-form").show();
-                                $('.modal-overlay').show();
-                            } else {
-                                driverPayment(null, null, null, paymentStatus = "on_inspection");
-                            }
-                        }
+                checkTaskStatus(response.task_id)
+                .then( function (response) {
+                    if (response.data === "SUCCESS") {
+                        $("#loadingModal").hide();
+                        if (response.result.status === 'incorrect') {
+                            $(".bolt-confirm-button").data("payment-id", response.result.id)
+                            $("#bolt-confirmation-form").show();
+                            $('.modal-overlay').show();
+                        } else if (response.result.status === 'error') {
+                            $('#loadingModal').show();
+                            $('#loadingMessage').text("Немає звітів по водію за цей період")
+                            $("#loader").hide();
+                            setTimeout(function () {
+                                $('#loadingModal').hide();
+                            }, 3000);
 
-                    })
-                    .catch( function (error) {
-                        console.error('Error:', error)
-                    })
+                        } else {
+                            driverPayment(null, null, null, paymentStatus = "on_inspection");
+                        }
+                    }
+                })
+                .catch( function (error) {
+                    console.error('Error:', error)
+                })
 			},
 			error: function(xhr, textStatus, errorThrown) {
-			if (xhr.status === 400) {
-				let error = xhr.responseJSON.error;
-			    $('#loadingModal').show();
-                $('#loadingMessage').text(xhr.responseJSON.error)
-                $("#loader").css("display", "none");
-                $("#checkmark").css("display", "none");
-                setTimeout(function () {
-                    $('#loadingModal').hide();
-                }, 5000);
-            } else {
-                console.error('Помилка запиту: ' + textStatus);
-            }
+                if (xhr.status === 400) {
+                    let error = xhr.responseJSON.error;
+                    $('#loadingModal').show();
+                    $('#loadingMessage').text(xhr.responseJSON.error)
+                    $("#loader").hide();
+                    setTimeout(function () {
+                        $('#loadingModal').hide();
+                    }, 3000);
+                } else {
+                    console.error('Помилка запиту: ' + textStatus);
+                }
 			},
-    });
+        });
     })
 
     $(this).on('click', '.incorrect-payment-btn', function() {
         paymentId = $(this).closest('tr').data('id')
         $("#loadingModal").show();
 		$("#loadingMessage").text(gettext("Перераховуємо виплату"));
+		$("#loader").show();
         $.ajax({
 			url: ajaxPostUrl,
 			type: 'POST',
@@ -289,31 +298,25 @@ $(document).ready(function () {
 				csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
 			},
 			success: function (response) {
-                    checkTaskStatus(response.task_id)
-                    .then( function (response) {
-                        if (response.data === "SUCCESS") {
-                            $("#loadingModal").hide();
-                            if (response.result.status === 'incorrect') {
-                                $(".bolt-confirm-button").data("payment-id", response.result.id)
-                                $("#bolt-confirmation-form").show();
-                                $('.modal-overlay').show();
-                            } else {
-                                driverPayment(null, null, null, paymentStatus = "on_inspection");
-                            }
+                checkTaskStatus(response.task_id)
+                .then( function (response) {
+                    if (response.data === "SUCCESS") {
+                        $("#loadingModal").hide();
+                        if (response.result.status === 'incorrect') {
+                            $(".bolt-confirm-button").data("payment-id", response.result.id)
+                            $("#bolt-confirmation-form").show();
+                            $('.modal-overlay').show();
+                        } else {
+                            driverPayment(null, null, null, paymentStatus = "on_inspection");
                         }
+                    }
 
-                    })
-                    .catch( function (error) {
-                        console.error('Error:', error)
-                    })
+                })
+                .catch( function (error) {
+                    console.error('Error:', error)
+                })
 			},
 		});
-//        $(".bolt-confirm-button").data("payment-id", paymentId)
-//        $('.modal-overlay').show();
-//        $("#bolt-amount, #bolt-cash").each(function() {
-//            $(this).val("")
-//        })
-//        $("#bolt-confirmation-form").show();
     })
 
     $(this).on('click', '.bolt-confirm-button', function (e) {
@@ -343,8 +346,20 @@ $(document).ready(function () {
 			    $('.modal-overlay').hide();
 				driverPayment(null, null, null, paymentStatus = "on_inspection");
 			},
-			error: function (error){
-			    console.error("Error:", error);
+			error: function (xhr, textStatus, errorThrown) {
+			    if (xhr.status === 400) {
+                    $("#bolt-confirmation-form").hide();
+                    $('.modal-overlay').hide();
+                    let error = xhr.responseJSON.error;
+                    $('#loadingModal').show();
+                    $('#loadingMessage').text(xhr.responseJSON.error);
+                    $("#loader").hide();
+                    setTimeout(function () {
+                        $('#loadingModal').hide();
+                    }, 3000);
+                } else {
+                    console.error('Помилка запиту: ' + textStatus);
+                }
 			}
 		});
     });

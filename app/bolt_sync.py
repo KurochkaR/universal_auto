@@ -156,17 +156,12 @@ class BoltRequest(Fleet, Synchronizer):
             if not driver_report['net_earnings'] or str(driver_report['id']) not in driver_ids:
                 continue
             report = self.parse_json_report(start, end, driver_report)
-            db_report, created = CustomReport.objects.get_or_create(
-                report_from=start,
-                driver=report['driver'],
-                fleet=self,
-                partner=self.partner,
-                defaults=report
-            )
-            if not created:
-                for key, value in report.items():
-                    setattr(db_report, key, value)
-                db_report.save()
+            CustomReport.objects.update_or_create(report_from=start,
+                                                  driver=report['driver'],
+                                                  fleet=self,
+                                                  partner=self.partner,
+                                                  defaults=report
+                                                  )
 
     def save_custom_report(self, start, end, driver_ids):
         param = self.param(50)
@@ -201,20 +196,12 @@ class BoltRequest(Fleet, Synchronizer):
                      "compensations": Decimal(driver_report['compensations']) - bolt_custom.compensations,
                      "refunds": Decimal(driver_report['expense_refunds']) - bolt_custom.refunds,
                      })
-            else:
-                continue
-            db_report, created = CustomReport.objects.get_or_create(
-                report_from=start,
-                driver=report['driver'],
-                fleet=self,
-                partner=self.partner,
-                defaults=report
-            )
-
-            if not created:
-                for key, value in report.items():
-                    setattr(db_report, key, value)
-                db_report.save()
+            CustomReport.objects.update_or_create(report_from=start,
+                                                  driver=report['driver'],
+                                                  fleet=self,
+                                                  partner=self.partner,
+                                                  defaults=report
+                                                  )
 
     def save_weekly_report(self, start, end, driver_ids):
         week_number = start.strftime('%GW%V')
@@ -250,15 +237,11 @@ class BoltRequest(Fleet, Synchronizer):
             reports = self.get_target_url(f'{self.base_url}getDriverEarnings/dateRange', param)
             for driver_report in reports['data']['drivers']:
                 report = self.parse_json_report(start, end, driver_report)
-                db_report, created = DailyReport.objects.get_or_create(report_from=start,
-                                                                       driver=driver,
-                                                                       fleet=self,
-                                                                       partner=self.partner,
-                                                                       defaults=report)
-                if not created:
-                    for key, value in report.items():
-                        setattr(db_report, key, value)
-                    db_report.save()
+                db_report, _ = DailyReport.objects.update_or_create(report_from=start,
+                                                                    driver=driver,
+                                                                    fleet=self,
+                                                                    partner=self.partner,
+                                                                    defaults=report)
                 bolt_reports.append(db_report)
             if limit + offset < reports['data']['total_rows']:
                 offset += limit

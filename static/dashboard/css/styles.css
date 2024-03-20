@@ -2410,15 +2410,19 @@ input.driver-rate-input {
 }
 
 .send-all-button {
+    height: 61px;
+    width: 148px;
 	display: block;
 	margin: 0 auto;
-	padding: 8px 16px;
-	font-size: 16px;
+	padding: 8px 17px;
 	background-color: #EC6323;
 	color: white;
 	border: none;
-	border-radius: 10px;
+	border-radius: 62px;
 	cursor: pointer;
+	font-size: 15px;
+	font-weight: 700;
+    font-family: var(--font-family);
 }
 
 .bonus-table {

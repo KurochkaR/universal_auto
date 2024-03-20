@@ -77,9 +77,9 @@ def get_corrections(start, end, driver, driver_reports=None):
 
 def payment_24hours_create(start, end, fleet, driver, partner_pk):
     report = CustomReport.objects.filter(
-        report_to__range=(start - timedelta(minutes=1), end),
+        report_to__range=((start - timedelta(minutes=1)), end),
         fleet=fleet,
-        driver=driver)
+        driver=driver).order_by("report_from")
     if report:
         data = report.aggregate(
             total_amount_without_fee=Coalesce(Sum('total_amount_without_fee'), Decimal(0)),
@@ -97,21 +97,17 @@ def payment_24hours_create(start, end, fleet, driver, partner_pk):
             total_rides=Coalesce(Sum('total_rides'), Value(0)))
         data["partner"] = Partner.objects.get(pk=partner_pk)
         data["report_to"] = report.last().report_to
-        payment, created = Payments.objects.get_or_create(report_from=report.first().report_from,
-                                                          fleet=fleet,
-                                                          driver=driver,
-                                                          partner=partner_pk,
-                                                          defaults=data)
-        if not created:
-            for key, value in data.items():
-                setattr(payment, key, value)
-            payment.save()
+        Payments.objects.update_or_create(report_from=report.first().report_from,
+                                          fleet=fleet,
+                                          driver=driver,
+                                          partner=partner_pk,
+                                          defaults=data)
 
 
 def summary_report_create(start, end, driver, partner_pk):
     payments = Payments.objects.filter(report_to__range=(start, end),
                                        report_to__gt=start,
-                                       driver=driver, partner=partner_pk)
+                                       driver=driver, partner=partner_pk).order_by("report_from")
     vehicle = check_vehicle(driver, date_time=end)
     if payments.exists():
         fields = ("total_rides", "total_distance", "total_amount_cash",
@@ -133,6 +129,7 @@ def summary_report_create(start, end, driver, partner_pk):
                 setattr(report, field, sum(getattr(payment, field, 0) or 0 for payment in payments))
             report.report_to = payments.first().report_to
             report.save()
+        return report
 
 
 def get_efficiency_info(partner_pk, driver, start, end, payments_model, aggregator=None):
@@ -171,12 +168,9 @@ def polymorphic_efficiency_create(create_model, partner_pk, driver, start, end, 
             km=Coalesce(Sum('distance'), Decimal(0)))['km']
         efficiency_filter['fleet_id'] = aggregator
     else:
-        try:
-            mileage, vehicles = UaGpsSynchronizer.objects.get(
-                partner=partner_pk).calc_total_km(driver, start, end)
-            if not mileage:
-                return
-        except ObjectDoesNotExist:
+        mileage, vehicles = UaGpsSynchronizer.objects.get(
+            partner=partner_pk).calc_total_km(driver, start, end)
+        if not mileage:
             return
     data = {
         'total_kasa': total_kasa,
