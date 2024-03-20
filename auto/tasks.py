@@ -437,6 +437,7 @@ def get_car_efficiency(self, partner_pk, day=None):
                 driver_kasa = 0
                 for fleet in fleets:
                     orders = FleetOrder.objects.filter(
+                        state=FleetOrder.COMPLETED,
                         accepted_time__date=start, driver=driver, fleet=fleet.name, vehicle=vehicle).aggregate(
                         total_price=Coalesce(Sum('price'), 0))['total_price']
                     driver_kasa += orders * (1 - fleet.fees)
