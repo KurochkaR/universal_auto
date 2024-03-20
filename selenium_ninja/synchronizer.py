@@ -97,7 +97,8 @@ class Synchronizer:
                         message_text = f"{manager_msg} без вказаної схеми. Призначте йому менеджера."
                 else:
                     message_text = f"{manager_msg} без вказаної схеми. Призначте йому схему."
-            bot.send_message(chat_id=manager_chat_id, text=message_text)
+            if message_text:
+                bot.send_message(chat_id=manager_chat_id, text=message_text)
 
             driver = Driver.objects.create(**data)
             try:
