@@ -278,12 +278,42 @@ $(document).ready(function () {
 
     $(this).on('click', '.incorrect-payment-btn', function() {
         paymentId = $(this).closest('tr').data('id')
-        $(".bolt-confirm-button").data("payment-id", paymentId)
-        $('.modal-overlay').show();
-        $("#bolt-amount, #bolt-cash").each(function() {
-            $(this).val("")
-        })
-        $("#bolt-confirmation-form").show();
+        $("#loadingModal").show();
+		$("#loadingMessage").text(gettext("Перераховуємо виплату"));
+        $.ajax({
+			url: ajaxPostUrl,
+			type: 'POST',
+			data: {
+			    payment_id: paymentId,
+				action: 'update_incorrect_payment',
+				csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
+			},
+			success: function (response) {
+                    checkTaskStatus(response.task_id)
+                    .then( function (response) {
+                        if (response.data === "SUCCESS") {
+                            $("#loadingModal").hide();
+                            if (response.result.status === 'incorrect') {
+                                $(".bolt-confirm-button").data("payment-id", response.result.id)
+                                $("#bolt-confirmation-form").show();
+                                $('.modal-overlay').show();
+                            } else {
+                                driverPayment(null, null, null, paymentStatus = "on_inspection");
+                            }
+                        }
+
+                    })
+                    .catch( function (error) {
+                        console.error('Error:', error)
+                    })
+			},
+		});
+//        $(".bolt-confirm-button").data("payment-id", paymentId)
+//        $('.modal-overlay').show();
+//        $("#bolt-amount, #bolt-cash").each(function() {
+//            $(this).val("")
+//        })
+//        $("#bolt-confirmation-form").show();
     })
 
     $(this).on('click', '.bolt-confirm-button', function (e) {
@@ -302,7 +332,7 @@ $(document).ready(function () {
 			url: ajaxPostUrl,
 			type: 'POST',
 			data: {
-			        action: "update_incorrect_payment",
+			        action: "correction_bolt_payment",
 			        payment_id: itemId,
 			        bolt_kasa: boltKasa,
 			        bolt_cash: boltCash,

@@ -49,7 +49,6 @@ def find_reshuffle_period(reshuffle, start, end):
 
 
 def create_driver_payments(start, end, driver, schema, bonuses=None, driver_report=None, delete=None):
-    print(start, end)
     reports = SummaryReport.objects.filter(report_to__range=(start, end),
                                            report_to__gt=start,
                                            driver=driver)

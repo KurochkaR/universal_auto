@@ -442,52 +442,63 @@ class PostRequestHandler:
     @staticmethod
     def handler_incorrect_payment(request):
         partner_pk = request.user.manager.managers_partner.pk if request.user.is_manager() else request.user.pk
-
-        fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name='Gps')
         data = request.POST
-        payment = DriverPayments.objects.get(pk=int(data['payment_id']))
-        start = timezone.make_aware(datetime.combine(payment.report_to, time.min))
-        for fleet in fleets:
-            fleet.get_fleet_orders(start, payment.report_to, payment.driver)
-            if isinstance(fleet, BoltRequest):
-                bolt_order_kasa = calculate_bolt_kasa(payment.driver, start, payment.report_to)[1]
-                custom_data = {
-                    "report_from": start,
-                    "report_to": payment.report_to,
-                    "fleet": fleet,
-                    "driver": payment.driver,
-                    "total_amount_cash": Decimal(data['bolt_cash']),
-                    "total_amount": bolt_order_kasa['total_price'],
-                    "tips": bolt_order_kasa['total_tips'],
-                    "partner_id": partner_pk,
-                    "bonuses": 0,
-                    "cancels": 0,
-                    "fee": -(bolt_order_kasa['total_price'] - Decimal(data['bolt_kasa'])),
-                    "total_amount_without_fee": Decimal(data['bolt_kasa']),
-                    "compensations": 0,
-                    "refunds": 0,
-                    "total_rides": bolt_order_kasa['total_count'],
-                    "vehicle": check_vehicle(payment.driver, payment.report_to)
-                }
-                custom, created = CustomReport.objects.get_or_create(driver=payment.driver,
-                                                                     report_to__date=payment.report_to,
-                                                                     fleet__name="Bolt",
-                                                                     defaults=custom_data)
-                if not created:
-                    custom.total_amount_without_fee = Decimal(data['bolt_kasa']) - custom.bonuses
-                    custom.total_amount_cash = Decimal(data['bolt_cash'])
-                    custom.report_to = payment.report_to
-                    custom.save()
-                payment_24hours_create(payment.report_from, payment.report_to, fleet, payment.driver, partner_pk)
-        summary_report_create(payment.report_from, payment.report_to, payment.driver, payment.partner)
-        get_rent_information(payment=payment.id)
-        payment_data = create_driver_payments(start, timezone.localtime(payment.report_to), payment.driver, payment.driver.schema)
+        create_payment = create_daily_payment.apply_async(args=[int(data['payment_id'])],
+                                                          queue=f'beat_tasks_{partner_pk}')
+        json_data = JsonResponse({'task_id': create_payment.id}, safe=False)
+        return json_data
 
-        for key, value in payment_data.items():
-            setattr(payment, key, value)
-            payment.save()
+    @staticmethod
+    def handler_correction_bolt(request):
+        partner_pk = request.user.manager.managers_partner.pk if request.user.is_manager() else request.user.pk
+        data = request.POST
+        custom, created = CustomReport.objects.get_or_create(driver=payment.driver,
+                                                             report_to__date=payment.report_to,
+                                                             fleet__name="Bolt",
+                                                             defaults=custom_data)
 
-        json_data = JsonResponse({'data': data})
+        # start = timezone.make_aware(datetime.combine(payment.report_to, time.min))
+        # for fleet in fleets:
+        #     fleet.get_fleet_orders(start, payment.report_to, payment.driver)
+        #     if isinstance(fleet, BoltRequest):
+        #         bolt_order_kasa = calculate_bolt_kasa(payment.driver, start, payment.report_to)[1]
+        #         custom_data = {
+        #             "report_from": start,
+        #             "report_to": payment.report_to,
+        #             "fleet": fleet,
+        #             "driver": payment.driver,
+        #             "total_amount_cash": Decimal(data['bolt_cash']),
+        #             "total_amount": bolt_order_kasa['total_price'],
+        #             "tips": bolt_order_kasa['total_tips'],
+        #             "partner_id": partner_pk,
+        #             "bonuses": 0,
+        #             "cancels": 0,
+        #             "fee": -(bolt_order_kasa['total_price'] - Decimal(data['bolt_kasa'])),
+        #             "total_amount_without_fee": Decimal(data['bolt_kasa']),
+        #             "compensations": 0,
+        #             "refunds": 0,
+        #             "total_rides": bolt_order_kasa['total_count'],
+        #             "vehicle": check_vehicle(payment.driver, payment.report_to)
+        #         }
+        #         custom, created = CustomReport.objects.get_or_create(driver=payment.driver,
+        #                                                              report_to__date=payment.report_to,
+        #                                                              fleet__name="Bolt",
+        #                                                              defaults=custom_data)
+        #         if not created:
+        #             custom.total_amount_without_fee = Decimal(data['bolt_kasa']) - custom.bonuses
+        #             custom.total_amount_cash = Decimal(data['bolt_cash'])
+        #             custom.report_to = payment.report_to
+        #             custom.save()
+        #         payment_24hours_create(payment.report_from, payment.report_to, fleet, payment.driver, partner_pk)
+        # summary_report_create(payment.report_from, payment.report_to, payment.driver, payment.partner)
+        # get_rent_information(payment=payment.id)
+        # payment_data = create_driver_payments(start, timezone.localtime(payment.report_to), payment.driver, payment.driver.schema)
+        #
+        # for key, value in payment_data.items():
+        #     setattr(payment, key, value)
+        #     payment.save()
+
+        # json_data = JsonResponse({'data': data})
         return json_data
 
     @staticmethod

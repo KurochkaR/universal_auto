@@ -196,7 +196,6 @@ class UklonRequest(Fleet, Synchronizer):
                                                                             fleet=self,
                                                                             partner=self.partner,
                                                                             defaults=report)
-                    print(f"{db_report}uklon")
                     if not created:
                         for key, value in report.items():
                             setattr(db_report, key, value)
@@ -228,7 +227,7 @@ class UklonRequest(Fleet, Synchronizer):
                                                                driver=driver,
                                                                fleet=self,
                                                                partner=self.partner).last()
-                    if uklon_custom:
+                    if uklon_custom and uklon_custom.report_to != end:
                         report.update({
                             "report_from": uklon_custom.report_to,
                             "total_rides": driver_report.get('total_orders_count', 0) - uklon_custom.total_rides,
@@ -248,6 +247,8 @@ class UklonRequest(Fleet, Synchronizer):
                                         self.find_value(driver_report, *('profit', 'total', 'amount')) -
                                         uklon_custom.total_amount_without_fee),
                         })
+                    else:
+                        continue
                     db_report = CustomReport.objects.filter(report_from=start,
                                                             driver=driver,
                                                             fleet=self,

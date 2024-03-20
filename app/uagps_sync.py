@@ -128,6 +128,7 @@ class UaGpsSynchronizer(Fleet):
                 raw_time = item['reportResult']['stats'][12][1]
                 clean_time = [int(i) for i in raw_time.split(':')]
                 raw_distance = item['reportResult']['stats'][11][1]
+
             except KeyError:
                 bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"), text=f"{item}")
             result_list.append((Decimal(raw_distance.split(' ')[0]), timedelta(hours=clean_time[0],
@@ -136,6 +137,7 @@ class UaGpsSynchronizer(Fleet):
         if orders:
             return result_list
         else:
+            print(result_list)
             road_distance = sum(item[0] for item in result_list)
             road_time = sum((result[1] for result in result_list), timedelta())
             return road_distance, road_time
@@ -202,6 +204,7 @@ class UaGpsSynchronizer(Fleet):
             if RentInformation.objects.filter(report_from__date=start, driver=driver) and len(drivers) != 1:
                 continue
             road_dict[driver] = self.get_driver_rent(start, end, driver)
+            print(road_dict)
         return road_dict
 
     def get_order_distance(self, orders):
@@ -229,11 +232,13 @@ class UaGpsSynchronizer(Fleet):
         parameters = []
         previous_finish_time = None
         for order in orders:
+            print(order)
             end_report = order.finish_time if order.finish_time < end else end
             if previous_finish_time is None or order.accepted_time >= previous_finish_time:
                 report = self.get_params_for_report(self.get_timestamp(timezone.localtime(order.accepted_time)),
                                                     self.get_timestamp(timezone.localtime(end_report)),
                                                     vehicle.gps.gps_id)
+                previous_finish_time = end_report
             elif order.finish_time <= previous_finish_time:
                 continue
             else:

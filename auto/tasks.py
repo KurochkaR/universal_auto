@@ -1196,11 +1196,18 @@ def calculate_driver_reports(self, schemas, day=None):
 
 
 @app.task(bind=True, ignore_result=False)
-def create_daily_payment(self, driver_pk):
-    driver = Driver.objects.get(pk=driver_pk)
+def create_daily_payment(self, driver_pk=None, payment_id=None):
+    if driver_pk:
+        driver = Driver.objects.get(pk=driver_pk)
+
+        start = timezone.make_aware(datetime.combine(timezone.localtime(), time.min))
+        end = timezone.localtime()
+    else:
+        payment = DriverPayments.objects.get(pk=payment_id)
+        driver = payment.driver
+        start = timezone.make_aware(datetime.combine(payment.report_to, time.min))
+        end = payment.report_to
     fleets = Fleet.objects.filter(partner=driver.partner, deleted_at=None).exclude(name='Gps')
-    start = timezone.make_aware(datetime.combine(timezone.localtime(), time.min))
-    end = timezone.localtime()
     for fleet in fleets:
         driver_ids = Driver.objects.get_active(fleetsdriversvehiclesrate__fleet=fleet, id=driver_pk).values_list(
             'fleetsdriversvehiclesrate__driver_external_id', flat=True)

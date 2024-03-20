@@ -186,7 +186,7 @@ class BoltRequest(Fleet, Synchronizer):
                                                       driver=report['driver'],
                                                       fleet=self,
                                                       partner=self.partner).last()
-            if bolt_custom:
+            if bolt_custom and bolt_custom.report_to != end:
                 report.update(
                     {"report_from": bolt_custom.report_to,
                      "total_amount_cash": Decimal(driver_report['cash_in_hand']) - bolt_custom.total_amount_cash,
@@ -201,6 +201,8 @@ class BoltRequest(Fleet, Synchronizer):
                      "compensations": Decimal(driver_report['compensations']) - bolt_custom.compensations,
                      "refunds": Decimal(driver_report['expense_refunds']) - bolt_custom.refunds,
                      })
+            else:
+                continue
             db_report, created = CustomReport.objects.get_or_create(
                 report_from=start,
                 driver=report['driver'],
