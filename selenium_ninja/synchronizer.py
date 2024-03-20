@@ -77,28 +77,27 @@ class Synchronizer:
                              "email": kwargs['email']
                              })
             managers = Manager.objects.filter(managers_partner=self.partner)
-            schema = Schema.objects.filter(managers_partner=self.partner)
+            schema = Schema.objects.filter(partner=self.partner)
 
-            manager_msg = f" з {managers.count()} менеджерами" if managers.count() > 1 else ""
-            schema_msg = f" з {schema.count()} схемами" if schema.count() > 1 else ""
-
+            manager_msg = f"У вас новий водій: {kwargs['name']} {kwargs['second_name']}"
+            manager_chat_id = ParkSettings.get_value("DEVELOPER_CHAT_ID")
+            message_text = ""
             if managers.count() == 1:
+                manager_chat_id = managers.first().chat_id
                 data['manager'] = managers.first()
                 if schema.count() == 1:
                     data['schema'] = schema.first()
-                elif schema.count() > 1:
-                    bot.send_message(chat_id=managers.first().chat_id,
-                                     text=f"У вас новий водій: {kwargs['name']} {kwargs['second_name']} без вказаної схеми{manager_msg}. Потрібно вибрати одну схему.")
-                else:
-                    bot.send_message(chat_id=managers.first().chat_id,
-                                     text=f"У вас новий водій: {kwargs['name']} {kwargs['second_name']} без вказаної схеми{manager_msg}. Потрібно додати та призначити схему.")
+                elif schema.count() > 1 or schema.count() == 0:
+                    message_text = f"{manager_msg} без вказаної схеми. Призначте йому схему."
 
-            elif managers.count() > 1:
-                bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"),
-                                 text=f"У вас новий водій: {kwargs['name']} {kwargs['second_name']} із не вказаним менеджером{schema_msg}")
-            else:
-                bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"),
-                                 text=f"У вас новий водій: {kwargs['name']} {kwargs['second_name']}. Не знайдено жодного менеджера.")
+            elif managers.count() > 1 or managers.count() == 0:
+                if schema.count() == 1:
+                    data['schema'] = schema.first()
+                    if managers.count():
+                        message_text = f"{manager_msg} без вказаної схеми. Призначте йому менеджера."
+                else:
+                    message_text = f"{manager_msg} без вказаної схеми. Призначте йому схему."
+            bot.send_message(chat_id=manager_chat_id, text=message_text)
 
             driver = Driver.objects.create(**data)
             try:
