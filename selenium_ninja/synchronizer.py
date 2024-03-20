@@ -80,7 +80,7 @@ class Synchronizer:
             schema = Schema.objects.filter(partner=self.partner)
 
             manager_msg = f"У вас новий водій: {kwargs['name']} {kwargs['second_name']}"
-            manager_chat_id = ParkSettings.get_value("DEVELOPER_CHAT_ID")
+            manager_chat_id = self.partner.chat_id
             message_text = ""
             if managers.count() == 1:
                 manager_chat_id = managers.first().chat_id
@@ -94,7 +94,7 @@ class Synchronizer:
                 if schema.count() == 1:
                     data['schema'] = schema.first()
                     if managers.count():
-                        message_text = f"{manager_msg} без вказаної схеми. Призначте йому менеджера."
+                        message_text = f"{manager_msg} Призначте йому менеджера."
                 else:
                     message_text = f"{manager_msg} без вказаної схеми. Призначте йому схему."
             if message_text:
