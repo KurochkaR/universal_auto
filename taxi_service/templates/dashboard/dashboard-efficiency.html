@@ -49,35 +49,26 @@
              value="{% trans 'Фільтрувати' %}">
       <div id="error_message" style="display: none; color: red;"></div>
     </div>
-    <table class="driver-table">
-      <thead>
-      <tr>
-        <th class="sortable" data-sort="driver">{% trans 'Водій' %}</th>
-        <th class="sortable" data-sort="fleet">{% trans 'Агрегатор' %}</th>
-        <th class="sortable" data-sort="kasa">{% trans 'Каса' %}</th>
-        <th class="sortable" data-sort="orders">{% trans 'Кількість замовлень' %}</th>
-        <th class="sortable" data-sort="order_accepted">{% trans 'Виконано замовлень' %}</th>
-        <th class="sortable" data-sort="order_rejected">{% trans 'Кількість відмов' %}</th>
-        <th class="sortable" data-sort="price">{% trans 'Середній чек, грн' %}</th>
-        <th class="sortable" data-sort="mileage">{% trans 'Пробіг, км' %}</th>
-        <th class="sortable" data-sort="efficiency">{% trans 'Ефективність, грн/км' %}</th>
-        <th class="sortable" data-sort="road">{% trans 'Час в дорозі' %}</th>
-      </tr>
-      </thead>
-      <tr>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-      </tr>
-    </table>
+    <div class="table-container">
+      <table class="driver-table">
+        <thead>
+        <tr class="table-header">
+          <th class="sortable" data-sort="driver">{% trans 'Водій' %}</th>
+          <th class="sortable" data-sort="fleet">{% trans 'Агрегатор' %}</th>
+          <th class="sortable" data-sort="kasa">{% trans 'Каса' %}</th>
+          <th class="sortable" data-sort="order_accepted">{% trans 'Виконано замовлень' %}</th>
+          <th class="sortable" data-sort="order_rejected">{% trans 'Кількість відмов' %}</th>
+          <th class="sortable" data-sort="price">{% trans 'Середній чек, грн' %}</th>
+          <th class="sortable" data-sort="mileage">{% trans 'Пробіг, км' %}</th>
+          <th class="sortable" data-sort="idling-mileage">{% trans 'Холостий пробіг, км' %}</th>
+          <th class="sortable" data-sort="efficiency">{% trans 'Ефективність, грн/км' %}</th>
+          <th class="sortable" data-sort="road">{% trans 'Час в дорозі' %}</th>
+        </tr>
+        </thead>
+        <tbody>
+        </tbody>
+      </table>
+    </div>
   </div>
   <div class="driver-container"></div>
   {% include 'dashboard/_confirmation-update-database.html' %}

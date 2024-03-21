@@ -565,10 +565,16 @@ class PartnerEarnings(Earnings):
 
 
 class DriverReshuffle(models.Model):
+    EVENT_TYPES = [
+        ('accident', 'ДТП'),
+        ('maintenance', 'Тех.Обслуговування'),
+    ]
+
     calendar_event_id = models.CharField(max_length=100)
     swap_time = models.DateTimeField(verbose_name="Час початку зміни")
     end_time = models.DateTimeField(verbose_name="Час завершення зміни")
     created_at = models.DateTimeField(editable=False, auto_now_add=True, verbose_name='Створено')
+    dtp_or_maintenance = models.CharField(max_length=100, choices=EVENT_TYPES, null=True, verbose_name='Тип події')
 
     swap_vehicle = models.ForeignKey(Vehicle, on_delete=models.SET_NULL, null=True, verbose_name="Автомобіль")
     driver_start = models.ForeignKey(Driver, on_delete=models.SET_NULL, null=True, verbose_name="Водій")

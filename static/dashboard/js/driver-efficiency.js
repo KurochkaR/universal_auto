@@ -15,7 +15,6 @@ function fetchDriverEfficiencyData(period, start, end) {
 			$(".aggregator").css("display", "none");
 			$(".apply-filter-button_driver").prop("disabled", false);
 			let table = $('.info-driver table');
-			let driverBlock = $('.driver-block');
 			let startDate = data[0]['start'];
 			let endDate = data[0]['end'];
 			table.find('tr:gt(0)').remove();
@@ -27,11 +26,11 @@ function fetchDriverEfficiencyData(period, start, end) {
 
 					row.append('<td class="driver">' + item.full_name + '</td>');
 					row.append('<td class="kasa">' + Math.round(item.total_kasa) + '</td>');
-					row.append('<td class="orders">' + item.total_orders + '</td>');
 					row.append('<td class="order_accepted">' + Math.round(item.total_orders_accepted) + '</td>');
 					row.append('<td class="order_rejected">' + item.total_orders_rejected + '</td>');
 					row.append('<td class="price">' + Math.round(item.average_price) + '</td>');
 					row.append('<td class="mileage">' + Math.round(item.mileage) + '</td>');
+					row.append('<td class="idling-mileage">' + Math.round(item.idling_mileage) + '</td>');
 					row.append('<td class="efficiency">' + item.efficiency + '</td>');
 					row.append('<td class="road">' + time + '</td>');
 
@@ -58,11 +57,11 @@ function fetchDriverEfficiencyData(period, start, end) {
 					});
 
 					driverInfo.append('<p>' + gettext("Каса: ") + Math.round(driver.total_kasa) + gettext(" грн") + '</p>');
-					driverInfo.append('<p>' + gettext("Кількість замовлень: ") + driver.total_orders + '</p>');
 					driverInfo.append('<p>' + gettext("Виконано замовлень: ") + driver.total_orders_accepted + '</p>');
 					driverInfo.append('<p>' + gettext("Скасованих замовлень: ") + driver.total_orders_rejected + '</p>');
 					driverInfo.append('<p>' + gettext("Середній чек, грн: ") + Math.round(driver.average_price) + '</p>');
 					driverInfo.append('<p>' + gettext("Пробіг, км: ") + Math.round(driver.mileage) + '</p>');
+					driverInfo.append('<p>' + gettext("Холостий пробіг, км: ") + Math.round(driver.idling_mileage) + '</p>');
 					driverInfo.append('<p>' + gettext("Ефективність, грн/км: ") + driver.efficiency + '</p>');
 					driverInfo.append('<p>' + gettext("Час в дорозі: ") + formatTime(driver.road_time) + '</p>');
 
@@ -129,7 +128,6 @@ function fetchDriverFleetEfficiencyData(period, start, end, aggregators) {
 
 							row.append('<td class="fleet">' + Object.keys(fleet)[0] + '</td>');
 							row.append('<td class="kasa">' + Math.round(fleet[Object.keys(fleet)[0]].total_kasa) + '</td>');
-							row.append('<td class="orders">' + fleet[Object.keys(fleet)[0]].total_orders + '</td>');
 							row.append('<td class="order_accepted">' + fleet[Object.keys(fleet)[0]].total_orders_accepted + '</td>');
 							row.append('<td class="order_rejected">' + fleet[Object.keys(fleet)[0]].total_orders_rejected + '</td>');
 							row.append('<td class="price">' + Math.round(fleet[Object.keys(fleet)[0]].average_price) + '</td>');
@@ -188,7 +186,6 @@ function fetchDriverFleetEfficiencyData(period, start, end, aggregators) {
 								let driverInfo = $('<div class="driver-info "></div>');
 								driverInfo.append('<p>' + gettext("Флот: ") + Object.keys(fleet)[0] + '</p>');
 								driverInfo.append('<p>' + gettext("Каса: ") + Math.round(fleet[Object.keys(fleet)[0]].total_kasa) + gettext(" грн") + '</p>');
-								driverInfo.append('<p>' + gettext("Кількість замовлень: ") + fleet[Object.keys(fleet)[0]].total_orders + '</p>');
 								driverInfo.append('<p>' + gettext("Виконано замовлень: ") + fleet[Object.keys(fleet)[0]].total_orders_accepted + '</p>');
 								driverInfo.append('<p>' + gettext("Кількість відмов: ") + fleet[Object.keys(fleet)[0]].total_orders_rejected + '</p>');
 								driverInfo.append('<p>' + gettext("Середній чек, грн: ") + Math.round(fleet[Object.keys(fleet)[0]].driver_average_price) + '</p>');
@@ -223,7 +220,7 @@ function sortTable(column, order) {
 	var groups = [];
 	var group = [];
 
-	$('tr').each(function () {
+	$('tr:not(.table-header)').each(function () {
 		if ($(this).find('.driver').length > 0) {
 			if (group.length > 0) {
 				groups.push(group);
@@ -304,8 +301,10 @@ $(document).ready(function () {
 
 			if (clickedValue !== "custom") {
 				if (aggregatorsString === "shared") {
+					$('th[data-sort="idling-mileage"]').show();
 					fetchDriverEfficiencyData(clickedValue, null, null);
 				} else {
+					console.log("aggregatorsString: ", aggregatorsString);
 					fetchDriverFleetEfficiencyData(clickedValue, null, null, aggregatorsString);
 				}
 			}
@@ -357,11 +356,13 @@ function checkSelection() {
 	var endDate = $("#end_report_driver").val();
 
 	if (selectedPeriod !== "custom" && aggregatorsString === "shared") {
+		$('th[data-sort="idling-mileage"]').show();
 		fetchDriverEfficiencyData(selectedPeriod, startDate, endDate);
 	} else {
 		if (aggregatorsString === "shared") {
 			fetchDriverEfficiencyData(selectedPeriod, startDate, endDate);
 		} else {
+			$('th[data-sort="idling-mileage"]').hide();
 			fetchDriverFleetEfficiencyData(selectedPeriod, startDate, endDate, aggregatorsString);
 		}
 	}
