@@ -273,28 +273,34 @@ def check_aggregators(user_pk):
     return list(aggregators), list(fleets)
 
 
-def is_conflict(driver, vehicle, start_time, end_time, reshuffle_id_to_exclude=None):
-    reshuffles = DriverReshuffle.objects.filter(
-        Q(driver_start=driver) |
-        Q(swap_vehicle=vehicle)
-    )
+def is_conflict(driver, vehicle, start_time, end_time, reshuffle=None):
+    if driver:
+        filter_query = Q(Q(driver_start=driver) | Q(swap_vehicle=vehicle))
+    else:
+        filter_query = Q(swap_vehicle=vehicle)
 
+    reshuffles = DriverReshuffle.objects.filter(filter_query)
+
+    accident_conflicts = reshuffles.filter(
+        dtp_or_maintenance__in=['accident', 'maintenance'],
+        swap_time__lte=end_time,
+        end_time__gt=start_time
+    )
     conflicts = reshuffles.filter(
         (Q(swap_time__range=(start_time, end_time)) | Q(end_time__range=(start_time, end_time))) |
         (Q(swap_time__lte=start_time, end_time__gte=end_time))
     )
 
-    if reshuffle_id_to_exclude:
-        conflicts = conflicts.exclude(id=reshuffle_id_to_exclude)
+    if reshuffle:
+        conflicts = conflicts.exclude(id=reshuffle)
 
     overlapping_shifts = conflicts.filter(
         (Q(swap_time__lte=start_time) & Q(end_time__gt=start_time)) |
         (Q(swap_time__lt=end_time) & Q(end_time__gte=end_time)) |
         (Q(swap_time__gte=start_time) & Q(end_time__lte=end_time))
     )
-
-    if overlapping_shifts.exists():
-        conflicting_shift = overlapping_shifts.first()
+    if overlapping_shifts.exists() or accident_conflicts.exists():
+        conflicting_shift = overlapping_shifts.first() if overlapping_shifts.exists() else accident_conflicts.first()
         conflicting_time = (f"{timezone.localtime(conflicting_shift.swap_time).strftime('%Y-%m-%d %H:%M:%S')} "
                             f"{timezone.localtime(conflicting_shift.end_time).time()}")
         conflicting_vehicle_data = {
@@ -302,24 +308,7 @@ def is_conflict(driver, vehicle, start_time, end_time, reshuffle_id_to_exclude=N
             'conflicting_time': conflicting_time
         }
         return False, conflicting_vehicle_data
-    else:
-        if driver:
-            accident_conflicts = reshuffles.filter(
-                dtp_or_maintenance='accident',
-                swap_time__lte=end_time,
-                end_time__gt=start_time
-            )
-
-            technical_service_conflicts = reshuffles.filter(
-                dtp_or_maintenance='maintenance',
-                swap_time__lte=end_time,
-                end_time__gt=start_time
-            )
-
-            if accident_conflicts.exists() or technical_service_conflicts.exists():
-                return False, {'conflicting_time': 'Conflicts with accident or technical service shift'}
-
-        return True, None
+    return True, None
 
 
 def add_shift(licence_plate, shift_date, start_time, end_time, driver_id, recurrence, partner):
@@ -360,12 +349,12 @@ def add_shift(licence_plate, shift_date, start_time, end_time, driver_id, recurr
             hour=start_datetime.hour, minute=start_datetime.minute, second=start_datetime.second))
         current_end_time = timezone.make_aware(current_date.replace(
             hour=end_datetime.hour, minute=end_datetime.minute, second=end_datetime.second))
-
+        print("CONFLICT")
         status, conflicting_vehicle = is_conflict(driver, vehicle, current_swap_time, current_end_time)
         if not status:
             messages.append(conflicting_vehicle)
             continue
-
+        print("CONFLICT END")
         reshuffle = DriverReshuffle(
             swap_vehicle=vehicle,
             driver_start=driver if driver_id not in ['road-accident', 'technical-service'] else None,
