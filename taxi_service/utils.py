@@ -81,8 +81,8 @@ def get_dates(period=None):
 
     if period == 'yesterday':
         previous_date = current_date - timedelta(days=1)
-        start_date = previous_date
-        end_date = current_date
+        start_date = previous_date.replace(hour=0, minute=0, second=0, microsecond=0)
+        end_date = previous_date.replace(hour=23, minute=59, second=59, microsecond=999999)
 
     elif period == 'current_week':
         weekday = current_date.weekday()
