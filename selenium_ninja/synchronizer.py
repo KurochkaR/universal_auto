@@ -122,15 +122,27 @@ class Synchronizer:
         licence_plate, v_name, vin = kwargs['licence_plate'], kwargs['vehicle_name'], kwargs['vin_code']
         if licence_plate:
             plate = normalized_plate(licence_plate)
-            vehicle, created = Vehicle.objects.get_or_create(licence_plate=plate,
-                                                             defaults={
-                                                                 "name": v_name.upper(),
-                                                                 "licence_plate": plate,
-                                                                 "vin_code": vin,
-                                                                 "partner": self.partner
-                                                             })
+            vehicle, created = Vehicle.objects.get_or_create(
+                licence_plate=plate,
+                defaults={
+                    "name": v_name.upper(),
+                    "licence_plate": plate,
+                    "vin_code": vin,
+                    "partner": self.partner
+                }
+            )
             if not created:
                 self.update_vehicle_fields(vehicle, **kwargs)
+
+            managers = Manager.objects.filter(managers_partner=self.partner)
+            if managers.count() == 1:
+                vehicle.manager = managers.first()
+                vehicle.save()
+            elif managers.count() > 1:
+                owner_chat_id = self.partner.chat_id
+                message_text = f"У вас новий автомобіль {plate}. Будь ласка, призначте йому менеджера."
+                bot.send_message(chat_id=owner_chat_id, text=message_text)
+
             return vehicle
 
     def update_vehicle_fields(self, vehicle, **kwargs):
