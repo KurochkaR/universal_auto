@@ -4,11 +4,11 @@ import requests
 from _decimal import Decimal
 
 from django.core.exceptions import ObjectDoesNotExist
-from django.db.models import Sum, DecimalField, Q, Value
+from django.db.models import Sum, DecimalField, Q, Value, F
 from django.db.models.functions import Coalesce
 
 from app.models import CustomReport, ParkSettings, Vehicle, Partner, Payments, SummaryReport, DriverPayments, Penalty, \
-    Bonus, FleetOrder, Fleet
+    Bonus, FleetOrder, Fleet, DriverReshuffle
 from app.uagps_sync import UaGpsSynchronizer
 from auto_bot.handlers.driver_manager.utils import create_driver_payments
 from auto_bot.handlers.order.utils import check_vehicle
@@ -153,11 +153,11 @@ def get_efficiency_info(partner_pk, driver, start, end, payments_model, aggregat
 
 def polymorphic_efficiency_create(create_model, partner_pk, driver, start, end, get_model, aggregator=None):
     efficiency_filter = {
-                        'report_from': start,
-                        'report_to': end,
-                        'driver': driver,
-                        'partner_id': partner_pk
-                         }
+        'report_from': start,
+        'report_to': end,
+        'driver': driver,
+        'partner_id': partner_pk
+    }
     total_kasa, total_orders, canceled_orders, completed_orders, fleet_orders = get_efficiency_info(
         partner_pk, driver, start, end, get_model, aggregator)
     if aggregator:
@@ -199,3 +199,46 @@ def polymorphic_efficiency_create(create_model, partner_pk, driver, start, end, 
             setattr(result, key, value)
 
         result.save()
+
+
+def calendar_weekly_report(partner_pk, start_date, end_date, format_start, format_end):
+    total_earnings = \
+        CustomReport.objects.filter(report_from__range=(start_date, end_date), partner=1).aggregate(
+            kasa=Coalesce(Sum('total_amount_without_fee'), Decimal(0)))['kasa']
+
+    vehicles_count = Vehicle.objects.filter(partner=partner_pk).count()
+    maximum_working_time = (24 * 7 * vehicles_count) * 3600
+
+    qs_reshuffle = DriverReshuffle.objects.filter(
+        swap_time__range=(start_date, end_date),
+        end_time__range=(start_date, end_date),
+        partner=partner_pk
+    )
+    total_shift_duration = qs_reshuffle.filter(driver_start__isnull=False).aggregate(
+        total_shift_duration=Coalesce(Sum(F('end_time') - F('swap_time')), timedelta(0))
+    )['total_shift_duration'].total_seconds()
+
+    occupancy_percentage = (total_shift_duration / maximum_working_time) * 100
+
+    total_accidents = qs_reshuffle.filter(dtp_or_maintenance='accident').aggregate(
+        total_accidents_duration=Coalesce(Sum(F('end_time') - F('swap_time')), timedelta(0))
+    )['total_accidents_duration'].total_seconds()
+    total_accidents_percentage = (total_accidents / maximum_working_time) * 100
+
+    total_maintenance = qs_reshuffle.filter(dtp_or_maintenance='maintenance').aggregate(
+        total_maintenance_duration=Coalesce(Sum(F('end_time') - F('swap_time')), timedelta(0))
+    )['total_maintenance_duration'].total_seconds()
+    total_maintenance_percentage = (total_maintenance / maximum_working_time) * 100
+
+    total_idle = 100 - occupancy_percentage - total_accidents_percentage - total_maintenance_percentage
+
+    message = (
+        f"Звіт за період з {format_start} по {format_end}\n\n"
+        f"Загальна сума автопарку: {total_earnings}\n"
+        f"Кількість авто: {vehicles_count}\n"
+        f"Відсоток зайнятості авто: {occupancy_percentage:.2f}%\n"
+        f"Кількість простою: {total_idle:.2f}%\n"
+        f"Кількість аварій: {total_accidents_percentage:.2f}%\n"
+        f"Кількість ТО: {total_maintenance_percentage:.2f}%\n"
+    )
+    return message

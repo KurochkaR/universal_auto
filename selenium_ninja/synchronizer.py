@@ -5,7 +5,8 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.core.files import File
 from django.db.models import Q
 
-from app.models import Fleet, FleetsDriversVehiclesRate, Driver, Vehicle, Role, JobApplication, ParkSettings, Manager
+from app.models import Fleet, FleetsDriversVehiclesRate, Driver, Vehicle, Role, JobApplication, ParkSettings, Manager, \
+    Schema
 from auto_bot.handlers.order.utils import normalized_plate
 from auto_bot.main import bot
 
@@ -76,18 +77,41 @@ class Synchronizer:
                              "email": kwargs['email']
                              })
             managers = Manager.objects.filter(managers_partner=self.partner)
+            schema = Schema.objects.filter(partner=self.partner)
+
+            manager_msg = f"У вас новий водій: {kwargs['name']} {kwargs['second_name']}"
+            manager_chat_id = self.partner.chat_id
+            message_text = ""
             if managers.count() == 1:
+                manager_chat_id = managers.first().chat_id
                 data['manager'] = managers.first()
+                if schema.count() == 1:
+                    data['schema'] = schema.first()
+                elif schema.count() > 1 or schema.count() == 0:
+                    message_text = f"{manager_msg} без вказаної схеми. Призначте йому схему."
+
+            elif managers.count() > 1 or managers.count() == 0:
+                if schema.count() == 1:
+                    data['schema'] = schema.first()
+                    if managers.count():
+                        message_text = f"{manager_msg} Призначте йому менеджера."
+                else:
+                    message_text = f"{manager_msg} без вказаної схеми та менеджера. Призначте йому схему та менеджера."
+            if message_text:
+                bot.send_message(chat_id=manager_chat_id, text=message_text)
+
             driver = Driver.objects.create(**data)
             try:
                 client = JobApplication.objects.get(first_name=kwargs['name'], last_name=kwargs['second_name'])
                 driver.chat_id = client.chat_id
                 driver.save()
                 fleet = Fleet.objects.get(name='Ninja')
-                FleetsDriversVehiclesRate.objects.get_or_create(fleet=fleet,
-                                                                driver_external_id=driver.chat_id,
-                                                                driver=driver,
-                                                                partner=self.partner)
+                FleetsDriversVehiclesRate.objects.get_or_create(
+                    fleet=fleet,
+                    driver_external_id=driver.chat_id,
+                    driver=driver,
+                    partner=self.partner
+                )
             except ObjectDoesNotExist:
                 pass
         else:
@@ -98,15 +122,30 @@ class Synchronizer:
         licence_plate, v_name, vin = kwargs['licence_plate'], kwargs['vehicle_name'], kwargs['vin_code']
         if licence_plate:
             plate = normalized_plate(licence_plate)
-            vehicle, created = Vehicle.objects.get_or_create(licence_plate=plate,
-                                                             defaults={
-                                                                 "name": v_name.upper(),
-                                                                 "licence_plate": plate,
-                                                                 "vin_code": vin,
-                                                                 "partner": self.partner
-                                                             })
+            vehicle, created = Vehicle.objects.get_or_create(
+                licence_plate=plate,
+                defaults={
+                    "name": v_name.upper(),
+                    "licence_plate": plate,
+                    "vin_code": vin,
+                    "partner": self.partner
+                }
+            )
             if not created:
                 self.update_vehicle_fields(vehicle, **kwargs)
+
+            if created:
+                managers = Manager.objects.filter(managers_partner=self.partner)
+                message_text = ""
+                if managers.count() == 1:
+                    vehicle.manager = managers.first()
+                    vehicle.save()
+                elif managers.count() > 1:
+                    message_text = f"У вас новий автомобіль {plate}. Будь ласка, призначте йому менеджера."
+
+                if message_text:
+                    bot.send_message(chat_id=self.partner.chat_id, text=message_text)
+
             return vehicle
 
     def update_vehicle_fields(self, vehicle, **kwargs):

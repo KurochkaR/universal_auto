@@ -57,6 +57,7 @@ class DriverEfficiencyFleetRentSerializer(serializers.Serializer):
 
 class DriverEfficiencySerializer(FleetEfficiencySerializer):
     full_name = serializers.CharField()
+    idling_mileage = serializers.DecimalField(max_digits=10, decimal_places=2)
 
     class Meta:
         model = DriverEfficiencyPolymorphic
@@ -70,6 +71,7 @@ class DriverEfficiencySerializer(FleetEfficiencySerializer):
             "road_time",
             "efficiency",
             "mileage",
+            "idling_mileage",
         )
 
 
@@ -136,10 +138,12 @@ class DriverChangesSerializer(serializers.Serializer):
     start_shift = serializers.TimeField()
     end_shift = serializers.TimeField()
     reshuffle_id = serializers.IntegerField()
+    dtp_maintenance = serializers.CharField()
 
 
 class ReshuffleSerializer(serializers.Serializer):
     swap_licence = serializers.CharField()
+    vehicle_brand = serializers.CharField()
     reshuffles = DriverChangesSerializer(many=True)
 
 

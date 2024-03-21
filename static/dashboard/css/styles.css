@@ -592,6 +592,11 @@ input[type="button"] {
 	margin: 10px;
 }
 
+img.brand-vehicle {
+	padding: 0;
+	margin: 0 !important;
+}
+
 .car-image img {
 	margin: 10px 10px 0px 10px;
 	width: 100px;
@@ -1055,7 +1060,6 @@ input[type="button"] {
 table {
 	width: 100%;
 	border-collapse: collapse;
-	margin-top: 20px;
 }
 
 th {
@@ -3586,4 +3590,14 @@ span.circle {
 	#modal-shift, #modal-add-bonus, #modal-add-penalty {
 		height: 404px;
 	}
+}
+
+.table-container {
+	height: 600px;
+	overflow: auto;
+}
+
+thead tr th {
+	position: sticky;
+	top: 0;
 }

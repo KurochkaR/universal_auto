@@ -39,7 +39,6 @@ $(document).ready(function () {
 	fetchCalendarData(formattedStartDate, formattedEndDate);
 
 	function reshuffleHandler(data) {
-
 		data.sort((a, b) => {
 			if (a.swap_licence < b.swap_licence) {
 				return -1;
@@ -52,11 +51,23 @@ $(document).ready(function () {
 		$('.driver-calendar').empty();
 
 		const calendarHTML = data.map(function (carData) {
+			let brandImage = '';
+			if (carData.vehicle_brand) {
+				const vehicleBrand = carData.vehicle_brand;
+				if (vehicleBrand === "Uklon") {
+					brandImage = '<img class="brand-vehicle" src="https://storage.googleapis.com/jobdriver-bucket/docs/brand-uklon.png" alt="Бренд авто">';
+				} else if (vehicleBrand === "Bolt") {
+					brandImage = '<img class="brand-vehicle" src="https://storage.googleapis.com/jobdriver-bucket/docs/brand-bolt.png" alt="Бренд авто">';
+				} else if (vehicleBrand === "Uber") {
+					brandImage = '<img class="brand-vehicle" src="https://storage.googleapis.com/jobdriver-bucket/docs/brand-uber.png" alt="Бренд авто">';
+				}
+			}
 			return `
 			<div class="calendar-container" id="${carData.swap_licence}">
 				<div class="car-image">
 					<img src="${VehicleImg}" alt="Зображення авто">
 					<p class="vehicle-license-plate">${carData.swap_licence}</p>
+					${brandImage}
 				</div>
 				<div class="investButton" id="investPrevButton">
 					<svg xmlns="http://www.w3.org/2000/svg" width="12" height="24" viewBox="0 0 12 24" fill="none">
@@ -87,35 +98,6 @@ $(document).ready(function () {
 		}).join('');
 		$('.driver-calendar').append(calendarHTML);
 
-//		const totalPages = Math.ceil(data.length / 5);
-//		let currentPage = 1;
-
-//		const paginationContainer = `
-//			<div class="pagination">
-//				<button id="prevPageBtn">
-//					<svg version="1.0" xmlns="http://www.w3.org/2000/svg" width="50px" height="50px" viewBox="0 0 1280.000000 1280.000000" preserveAspectRatio="xMidYMid meet">
-//						<metadata>Created by potrace 1.15, written by Peter Selinger 2001-2017</metadata>
-//						<g transform="translate(1280.000000,0.000000) scale(-0.100000,0.100000)" fill="#EC6323" stroke="none">
-//							<path d="M1422 12134 c3 -10 416 -1279 917 -2819 l912 -2801 -916 -2813 c-504 -1547 -914 -2815 -912 -2817 3 -4 10215 5612 10230 5625 4 4 -907 511 -2025 1126 -3792 2086 -5300 2916 -6748 3712 -795 438 -1449 798 -1454 801 -5 3 -7 -3 -4 -14z"/>
-//						</g>
-//				</svg>
-//				</button>
-//				<span id="pageInfo">Сторінка ${currentPage} з ${totalPages}</span>
-//				<button id="nextPageBtn">
-//					<svg version="1.0" xmlns="http://www.w3.org/2000/svg" width="50px" height="50px" viewBox="0 0 1280.000000 1280.000000" preserveAspectRatio="xMidYMid meet">
-//						<metadata>Created by potrace 1.15, written by Peter Selinger 2001-2017</metadata>
-//						<g transform="translate(0.000000,1280.000000) scale(0.100000,-0.100000)" fill="#EC6323" stroke="none">
-//							<path d="M1422 12134 c3 -10 416 -1279 917 -2819 l912 -2801 -916 -2813 c-504 -1547 -914 -2815 -912 -2817 3 -4 10215 5612 10230 5625 4 4 -907 511 -2025 1126 -3792 2086 -5300 2916 -6748 3712 -795 438 -1449 798 -1454 801 -5 3 -7 -3 -4 -14z"/>
-//						</g>
-//					</svg>
-//				</button>
-//			</div>
-//		`;
-//
-//
-//		$('.driver-calendar').append(paginationContainer);
-
-
 		$('.calendar-container').each(function () {
 			const calendarDetail = $(this).find('.calendar-detail');
 			const investPrevButton = $(this).find('#investPrevButton');
@@ -145,17 +127,16 @@ $(document).ready(function () {
 
 					const driverPhotoContainer = $('<div>').addClass('driver-photo-container');
 					const isDriverPhotoVisible = driverList.reshuffles.some(function (driver) {
-						return driver.date === formattedDate && driver.driver_photo;
+						return driver.date === formattedDate && driver.driver_photo || driver.date === formattedDate && driver.dtp_maintenance;
 					});
-
 					if (isDriverPhotoVisible) {
 
 						driverList.reshuffles.forEach(function (driver) {
 							if (driver.date === formattedDate) {
 
 								const driverPhoto = $('<div>').addClass('driver-photo');
-								driverPhoto.attr('data-name', driver.driver_name).attr('data-id-driver', driver.driver_id).attr('data-id-vehicle', driver.vehicle_id).attr('reshuffle-id', driver.reshuffle_id);
-								const driverImage = $('<img>').attr('src', 'https://storage.googleapis.com/jobdriver-bucket/' + driver.driver_photo).attr('alt', `Фото водія`)
+								driverPhoto.attr('data-name', driver.driver_name).attr('data-dtp-maintenance', driver.dtp_maintenance).attr('data-id-driver', driver.driver_id).attr('data-id-vehicle', driver.vehicle_id).attr('reshuffle-id', driver.reshuffle_id);
+								const driverImage = renderPhoto(driver);
 
 								const startTime = new Date('1970-01-01T' + driver.start_shift);
 								const endTime = new Date('1970-01-01T' + driver.end_shift);
@@ -167,6 +148,18 @@ $(document).ready(function () {
 								const driverDate = $('<p>').addClass('driver-date').text(driver.date);
 								const driverName = $('<p>').addClass('driver-name').text(driver.driver_name);
 								const driverTime = $('<p>').addClass('driver-time').text(StartTimes + ' - ' + EndTimes);
+
+								let additionalInfo = '';
+
+								if (driver.dtp_maintenance === "accident") {
+									additionalInfo = 'ДТП';
+								} else if (driver.dtp_maintenance === "maintenance") {
+									additionalInfo = 'Тех. обслуговування';
+								}
+
+								if (additionalInfo) {
+									driverName.text(additionalInfo);
+								}
 
 								driverInfo.append(driverDate, driverName, driverTime);
 
@@ -255,12 +248,14 @@ $(document).ready(function () {
 								const driverPhoto = $('<div>').addClass('driver-photo');
 								driverPhoto.attr('data-name', driver.driver_name).attr('data-id-driver', driver.driver_id).attr('data-id-vehicle', driver.vehicle_id).attr('reshuffle-id', driver.reshuffle_id);
 
-								const driverImage = $('<img>').attr('src', 'https://storage.googleapis.com/jobdriver-bucket/' + driver.driver_photo).attr('alt', `Фото водія`);
+								const driverImage = renderPhoto(driver);
 
+								var startShiftFormatted = driver.start_shift.split(':').slice(0, 2).join(':');
+								var endShiftFormatted = driver.end_shift.split(':').slice(0, 2).join(':');
 								const driverInfo = $('<div>').addClass('driver-info-reshuffle');
 								const driverDate = $('<p>').addClass('driver-date').text(driver.date);
 								const driverName = $('<p>').addClass('driver-name').text(driver.driver_name);
-								const driverTime = $('<p>').addClass('driver-time').text(driver.start_shift + ' - ' + driver.end_shift);
+								const driverTime = $('<p>').addClass('driver-time').text(startShiftFormatted + ' - ' + endShiftFormatted);
 
 								driverInfo.append(driverDate, driverName, driverTime);
 								driverPhoto.append(driverInfo);
@@ -437,15 +432,15 @@ $(document).ready(function () {
 		}
 
 		function openShiftForm(clickedDayId, calendarId) {
+			$('.recurrence').show();
+			$('.delete-btn').hide();
+			$('.delete-all-btn').hide();
+			$('.upd-btn').hide();
+			$('.upd-all-btn').hide();
+			$('.shift-vehicle').hide();
 			const modalShiftTitle = $('.modal-shift-title h2');
 			const shiftForm = $('#modal-shift');
 			const shiftBtn = $('.shift-btn').show();
-			const recurrence = $('.recurrence').show();
-			const deleteBtn = $('.delete-btn').hide();
-			const deleteAllBtn = $('.delete-all-btn').hide();
-			const updBtn = $('.upd-btn').hide();
-			const updAllBtn = $('.upd-all-btn').hide();
-			const shiftVehicle = $('.shift-vehicle').hide();
 			const modalShiftDate = $('.modal-shift-date');
 			const startTimeInput = $('#startTime');
 			const endTimeInput = $('#endTime');
@@ -487,7 +482,6 @@ $(document).ready(function () {
 				if (error) {
 					return;
 				}
-				console.log(formatTimeWithSeconds(startTimeInput.val()), formatTimeWithSeconds(startTimeInput.val()))
 				$.ajax({
 					url: ajaxPostUrl,
 					type: 'POST',
@@ -557,42 +551,6 @@ $(document).ready(function () {
 				}
 			});
 		});
-
-//		function showCalendars(page) {
-//			$('.calendar-container').hide();
-//
-//			const startIndex = (page - 1) * 4;
-//			const endIndex = Math.min(startIndex + 3, data.length - 1);
-//
-//			const calendarsToShow = $('.calendar-container').filter(function (index) {
-//					return index >= startIndex && index <= endIndex;
-//			});
-//
-//			if (calendarsToShow.length > 0) {
-//					calendarsToShow.show();
-//			} else {
-//					$('.driver-calendar').html('<p>Немає календарів для відображення.</p>');
-//			}
-//
-//			$('#pageInfo').text(`Сторінка ${page} з ${totalPages}`);
-//		}
-//
-//
-//		$('#prevPageBtn').on('click', function () {
-//			if (currentPage > 1) {
-//				currentPage--;
-//				showCalendars(currentPage);
-//			}
-//		});
-//
-//		$('#nextPageBtn').on('click', function () {
-//			if (currentPage < totalPages) {
-//				currentPage++;
-//				showCalendars(currentPage);
-//			}
-//		});
-
-//		showCalendars(currentPage);
 	}
 
 	function fetchCalendarData(formattedStartDate, formattedEndDate) {
@@ -768,14 +726,20 @@ function showConflictMessage(success, showText, messageList) {
 		}, 2000);
 	} else {
 		$(".shift-success-message").show();
-		const messages = messageList.map(conflict => `${conflict.licence_plate} - ${conflict.conflicting_time}`);
-		const resultMessage = messages.join('<br>');
-		$(".shift-success-message h2").html("Помилка, конфлікт змін:<br>" + resultMessage);
+		let resultMessage = "Помилка, конфлікт змін:<br>";
+		if (Array.isArray(messageList)) {
+			const messages = messageList.map(conflict => `${conflict.licence_plate} - ${conflict.conflicting_time}`);
+			resultMessage += messages.join('<br>');
+		} else {
+			resultMessage += messageList;
+		}
+		$(".shift-success-message h2").html(resultMessage);
 		setTimeout(function () {
 			$(".shift-success-message").hide();
 		}, 5000);
 	}
 }
+
 
 function filterCheck() {
 	const vehicleFilter = $("#search-vehicle-calendar").val();
@@ -813,3 +777,18 @@ function formatTimeWithSeconds(time) {
 		return parts[0] + ':' + parts[1] + ':00';
 	}
 }
+
+function renderPhoto(driver) {
+	let driverImage;
+	if (driver.driver_photo) {
+		driverImage = $('<img>').attr('src', 'https://storage.googleapis.com/jobdriver-bucket/' + driver.driver_photo).attr('alt', `Фото водія`);
+	} else {
+		if (driver.dtp_maintenance === "maintenance") {
+			driverImage = $('<img>').attr('src', 'https://storage.googleapis.com/jobdriver-bucket/docs/service.png').attr('alt', `Фото водія`);
+		} else {
+			driverImage = $('<img>').attr('src', 'https://storage.googleapis.com/jobdriver-bucket/docs/accident.png').attr('alt', `Фото водія`);
+		}
+	}
+	return driverImage;
+}
+
