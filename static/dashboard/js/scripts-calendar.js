@@ -469,15 +469,15 @@ $(document).ready(function () {
 		}
 
 		function openShiftForm(clickedDayId, calendarId) {
+			$('.recurrence').show();
+			$('.delete-btn').hide();
+			$('.delete-all-btn').hide();
+			$('.upd-btn').hide();
+			$('.upd-all-btn').hide();
+			$('.shift-vehicle').hide();
 			const modalShiftTitle = $('.modal-shift-title h2');
 			const shiftForm = $('#modal-shift');
 			const shiftBtn = $('.shift-btn').show();
-			const recurrence = $('.recurrence').show();
-			const deleteBtn = $('.delete-btn').hide();
-			const deleteAllBtn = $('.delete-all-btn').hide();
-			const updBtn = $('.upd-btn').hide();
-			const updAllBtn = $('.upd-all-btn').hide();
-			const shiftVehicle = $('.shift-vehicle').hide();
 			const modalShiftDate = $('.modal-shift-date');
 			const startTimeInput = $('#startTime');
 			const endTimeInput = $('#endTime');
@@ -799,14 +799,20 @@ function showConflictMessage(success, showText, messageList) {
 		}, 2000);
 	} else {
 		$(".shift-success-message").show();
-		const messages = messageList.map(conflict => `${conflict.licence_plate} - ${conflict.conflicting_time}`);
-		const resultMessage = messages.join('<br>');
-		$(".shift-success-message h2").html("Помилка, конфлікт змін:<br>" + resultMessage);
+		let resultMessage = "Помилка, конфлікт змін:<br>";
+		if (Array.isArray(messageList)) {
+			const messages = messageList.map(conflict => `${conflict.licence_plate} - ${conflict.conflicting_time}`);
+			resultMessage += messages.join('<br>');
+		} else {
+			resultMessage += messageList;
+		}
+		$(".shift-success-message h2").html(resultMessage);
 		setTimeout(function () {
 			$(".shift-success-message").hide();
 		}, 5000);
 	}
 }
+
 
 function filterCheck() {
 	const vehicleFilter = $("#search-vehicle-calendar").val();

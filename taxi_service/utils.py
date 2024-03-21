@@ -303,6 +303,22 @@ def is_conflict(driver, vehicle, start_time, end_time, reshuffle_id_to_exclude=N
         }
         return False, conflicting_vehicle_data
     else:
+        if driver:
+            accident_conflicts = reshuffles.filter(
+                dtp_or_maintenance='accident',
+                swap_time__lte=end_time,
+                end_time__gt=start_time
+            )
+
+            technical_service_conflicts = reshuffles.filter(
+                dtp_or_maintenance='maintenance',
+                swap_time__lte=end_time,
+                end_time__gt=start_time
+            )
+
+            if accident_conflicts.exists() or technical_service_conflicts.exists():
+                return False, {'conflicting_time': 'Conflicts with accident or technical service shift'}
+
         return True, None
 
 
@@ -344,15 +360,15 @@ def add_shift(licence_plate, shift_date, start_time, end_time, driver_id, recurr
             hour=start_datetime.hour, minute=start_datetime.minute, second=start_datetime.second))
         current_end_time = timezone.make_aware(current_date.replace(
             hour=end_datetime.hour, minute=end_datetime.minute, second=end_datetime.second))
-        if driver:
-            status, conflicting_vehicle = is_conflict(driver, vehicle, current_swap_time, current_end_time)
-            if not status:
-                messages.append(conflicting_vehicle)
-                continue
+
+        status, conflicting_vehicle = is_conflict(driver, vehicle, current_swap_time, current_end_time)
+        if not status:
+            messages.append(conflicting_vehicle)
+            continue
 
         reshuffle = DriverReshuffle(
             swap_vehicle=vehicle,
-            driver_start=driver,
+            driver_start=driver if driver_id not in ['road-accident', 'technical-service'] else None,
             swap_time=current_swap_time,
             end_time=current_end_time,
             partner_id=partner.pk,
