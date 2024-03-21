@@ -324,6 +324,7 @@ class UaGpsSynchronizer(Fleet):
     def calculate_driver_vehicle_rent(self, start, end, driver, result):
         distance, road_time = result[0], result[1]
         total_km = self.calc_total_km(driver, start, end)[0]
+        print(f"totalkm={total_km}, {start}, {end}")
         rent_distance = total_km - distance
         data = {
             "report_from": start,

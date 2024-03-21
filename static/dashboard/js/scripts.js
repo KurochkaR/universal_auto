@@ -64,20 +64,6 @@ $(document).ready(function () {
 		$(".confirmation-update-database").hide();
 	});
 
-	$.ajax({
-		url: ajaxGetUrl,
-		type: "GET",
-		data: {
-			action: "aggregators"
-		},
-		success: function (response) {
-			const aggregators = new Set(response.data);
-			const fleets = new Set(response.fleets);
-			fleets.forEach(fleet => {
-				localStorage.setItem(fleet, aggregators.has(fleet) ? 'success' : 'false');
-			});
-		}
-	});
 	const partnerForm = $("#partnerForm");
 	const partnerLoginField = $("#partnerLogin");
 	const partnerRadioButtons = $("input[name='partner']");
@@ -103,10 +89,6 @@ $(document).ready(function () {
 		}
 	}
 
-	if (sessionStorage.getItem('settings') === 'true') {
-		$("#settingsWindow").fadeIn();
-	}
-
 	if (localStorage.getItem('Uber') === 'success') {
 		$("#partnerLogin").hide()
 		$("#partnerPassword").hide()
@@ -117,8 +99,27 @@ $(document).ready(function () {
 
 
 	$("#settingBtnContainer").click(function () {
-		sessionStorage.setItem('settings', 'true');
-		$("#settingsWindow").fadeIn();
+	    $.ajax({
+            url: ajaxGetUrl,
+            type: "GET",
+            data: {
+                action: "aggregators"
+            },
+            success: function (response) {
+                const aggregators = new Set(response.data);
+                const fleets = new Set(response.fleets);
+                fleets.forEach(fleet => {
+                    if (aggregators.has(fleet))  {
+                        localStorage.setItem(fleet, aggregators.has(fleet) ? 'success' : 'false');
+                        $('[name="partner"][value= "' + fleet + '"]').next('label').css("border", "2px solid #EC6323")
+                    }
+
+                });
+
+                $("#partnerForm").show();
+                $(".login-ok").hide();
+		    },
+	    });
 	});
 
 	$(".login-btn").click(function () {
@@ -166,9 +167,19 @@ $(document).ready(function () {
 
 
 	$('[name="partner"]').change(function () {
-		let partner = $(this).val()
-		let login = localStorage.getItem(partner)
+		$('[name="partner"]').not(this).next('label').css({
+        "background-color": "",
+        "color": ""
+        });
 
+        let partner = $(this).val();
+        let login = localStorage.getItem(partner);
+
+        // Add styles to the current label
+        $(this).next('label').css({
+            "background-color": "#EC6323",
+            "color": "white"
+        });
 		if (login === "success") {
 			$("#partnerLogin").hide()
 			$(".helper-token").hide()

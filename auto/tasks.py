@@ -580,8 +580,15 @@ def get_rent_information(self, schemas=None, day=None, driver=None, payment=None
         if driver:
             drivers = Driver.objects.filter(pk=driver)
             end = timezone.localtime()
-            start = timezone.make_aware(datetime.combine(timezone.localtime() - timedelta(days=1),
-                                                         drivers.first().schema.shift_time))
+            start_schema = timezone.make_aware(datetime.combine(timezone.localtime() - timedelta(days=1),
+                                               drivers.first().schema.shift_time))
+            last_payment = DriverPayments.objects.filter(
+                driver=driver,
+                report_to__date=start_schema).order_by("-report_from").last()
+            if last_payment and last_payment.report_to > start_schema:
+                start = timezone.localtime(last_payment.report_to)
+            else:
+                start = start_schema
         elif payment:
             driver_payment = DriverPayments.objects.get(pk=payment)
             drivers = Driver.objects.filter(pk=driver_payment.driver_id)
@@ -1197,6 +1204,7 @@ def calculate_driver_reports(self, schemas, day=None):
 
 @app.task(bind=True, ignore_result=False)
 def create_daily_payment(self, **kwargs):
+    print(kwargs)
     if kwargs.get("driver_pk"):
         driver = Driver.objects.get(pk=kwargs.get("driver_pk"))
 
@@ -1207,8 +1215,9 @@ def create_daily_payment(self, **kwargs):
         driver = payment.driver
         start = timezone.make_aware(datetime.combine(payment.report_to, time.min))
         end = payment.report_to
-    fleets = Fleet.objects.filter(partner=driver.partner, deleted_at=None).exclude(name='Gps')
+    fleets = Fleet.objects.filter(fleetsdriversvehiclesrate__driver=driver, deleted_at=None)
     for fleet in fleets:
+        print(fleet)
         driver_ids = Driver.objects.get_active(fleetsdriversvehiclesrate__fleet=fleet, id=driver.id).values_list(
             'fleetsdriversvehiclesrate__driver_external_id', flat=True)
         fleet.get_fleet_orders(start, end, driver)
@@ -1286,40 +1295,42 @@ def calculate_vehicle_earnings(self, payment_pk):
                 "earning": earning,
             }
         )
-    bonus_without_income = Penalty.objects.filter(
-        driver_payments=payment).exclude(vehicle__in=vehicles_income.keys()).values('vehicle').aggregate(
-            total_amount=Coalesce(Sum('amount'), Decimal(0)))['total_amount']
-    penalty_without_income = Penalty.objects.filter(
-        driver_payments=payment).exclude(vehicle__in=vehicles_income.keys()).values('vehicle').aggregate(
-        total_amount=Coalesce(Sum('amount'), Decimal(0)))['total_amount']
-    net_amount_per_vehicle = {}
-    for vehicle_id, bonus_entry in bonus_without_income.items():
-        total_bonus_amount = bonus_entry['total_amount']
-        total_penalty_amount = 0
-
-        if vehicle_id in penalty_without_income:
-            total_penalty_amount = penalty_without_income[vehicle_id]['total_amount']
-
-        net_amount = total_bonus_amount - total_penalty_amount
-        net_amount_per_vehicle[vehicle_id] = net_amount
-
-    for vehicle_id, penalty_entry in penalty_without_income.items():
-        if vehicle_id not in net_amount_per_vehicle:
-            total_penalty_amount = penalty_entry['total_amount']
-            net_amount_per_vehicle[vehicle_id] = -total_penalty_amount
-
-    for vehicle, income in net_amount_per_vehicle.items():
-        PartnerEarnings.objects.get_or_create(
-            report_from=payment.report_from,
-            report_to=payment.report_to,
-            vehicle_id=vehicle,
-            driver=driver,
-            partner=driver.partner,
-            defaults={
-                "status": PaymentsStatus.COMPLETED,
-                "earning": income,
-            }
-        )
+    # bonus_dict = Penalty.objects.filter(
+    #     driver_payments=payment).exclude(vehicle__in=vehicles_income.keys()).values('vehicle').aggregate(
+    #         total_amount=Coalesce(Sum('amount'), Decimal(0)))
+    # bonus_without_income = {entry['vehicle']: entry['total_amount'] for entry in bonus_dict}
+    # penalty_dict = Penalty.objects.filter(
+    #     driver_payments=payment).exclude(vehicle__in=vehicles_income.keys()).values('vehicle').aggregate(
+    #     total_amount=Coalesce(Sum('amount'), Decimal(0)))
+    # penalty_without_income = {entry['vehicle']: entry['total_amount'] for entry in penalty_dict}
+    # net_amount_per_vehicle = {}
+    # for vehicle_id, bonus_entry in bonus_without_income.items():
+    #     total_bonus_amount = bonus_entry['total_amount']
+    #     total_penalty_amount = 0
+    #
+    #     if vehicle_id in penalty_without_income:
+    #         total_penalty_amount = penalty_without_income[vehicle_id]['total_amount']
+    #
+    #     net_amount = total_bonus_amount - total_penalty_amount
+    #     net_amount_per_vehicle[vehicle_id] = net_amount
+    #
+    # for vehicle_id, penalty_entry in penalty_without_income.items():
+    #     if vehicle_id not in net_amount_per_vehicle:
+    #         total_penalty_amount = penalty_entry['total_amount']
+    #         net_amount_per_vehicle[vehicle_id] = -total_penalty_amount
+    #
+    # for vehicle, income in net_amount_per_vehicle.items():
+    #     PartnerEarnings.objects.get_or_create(
+    #         report_from=payment.report_from,
+    #         report_to=payment.report_to,
+    #         vehicle_id=vehicle,
+    #         driver=driver,
+    #         partner=driver.partner,
+    #         defaults={
+    #             "status": PaymentsStatus.COMPLETED,
+    #             "earning": income,
+    #         }
+    #     )
 
 
 @app.task(bind=True)

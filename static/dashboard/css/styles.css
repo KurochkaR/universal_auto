@@ -6,6 +6,7 @@ body {
 /* Заголовки використовують Montserrat */
 h1, h2, h3, h4, h5, h6 {
 	font-family: 'Montserrat', sans-serif;
+
 }
 
 /* Інший текст використовує Open Sans */
@@ -851,60 +852,56 @@ input[type="button"] {
 }
 
 
-.settings-window {
-	display: none;
-	position: fixed;
-	top: 0;
-	left: 0;
-	width: 100%;
-	height: 100%;
-	background-color: rgba(0, 0, 0, 0.8);
-	z-index: 9999;
-}
-
-.settings-content,
+#partnerForm,
 #passwordChangeForm {
+    display:none;
 	position: absolute;
-	top: 50%;
-	left: 50%;
-	transform: translate(-50%, -50%);
-	background-color: #A1E8B9;
-	padding: 30px;
-	border-radius: 25px;
-	box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-	max-width: 450px;
-	width: 90%;
-	z-index: 897;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: #A1E8B9;
+    padding: 40px 55px 20px 28px;
+    border-radius: 62px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    width: 463px;
+    z-index: 897;
 }
 
 .settings-content h2 {
 	text-align: center;
 	color: #141E17;
 	font-size: 32px;
+	margin: 0;
 	font-style: normal;
 	font-weight: 700;
 	line-height: normal;
 }
 
+.settings-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    text-align: center;
+}
+
 .settings-content h3 {
 	color: #26392C;
 	font-size: 23px;
-	font-style: normal;
+	font-family: "Open sans";
 	font-weight: 400;
-	line-height: normal;
 }
 
 .settings-content form {
 	margin-bottom: 20px;
 }
 
-.settings-content form label,
+#partnerForm label,
 #passwordChangeForm form label {
-	padding: 5px 10px;
+	padding: 5px 21px;
 	border-radius: 10px;
 	display: block;
 	margin-bottom: 5px;
-	margin-right: 0;
+	margin-right: 20px;
 	background-color: white;
 	color: #53785E;
 	text-align: center;
@@ -914,7 +911,7 @@ input[type="button"] {
 	line-height: normal;
 }
 
-.settings-content form input,
+#partnerForm input,
 #passwordChangeForm form input {
 	width: 100%;
 	padding: 15px 10px;
@@ -937,9 +934,6 @@ input[type="button"] {
 	color: #FFF;
 	text-align: center;
 	font-size: 23px;
-	font-style: normal;
-	font-weight: 400;
-	line-height: normal;
 }
 
 .logout-btn {
@@ -962,14 +956,6 @@ input[type="button"] {
 	background-color: #36a936;
 }
 
-.close-btn {
-	color: black;
-	font-size: 30px;
-	position: absolute;
-	top: 15px;
-	right: 15px;
-	cursor: pointer;
-}
 
 .opt-partnerForm {
 	display: flex;
@@ -1010,16 +996,17 @@ input[type="button"] {
 .partner-options label:hover {
 	padding: 5px 10px;
 	cursor: pointer;
+	border: 2px solid #EC6323;
 	border-radius: 10px;
 }
 
-.partner-options input:checked + label {
+/*.partner-options label {
 	padding: 5px 10px;
 	background-color: white;
 	color: #53785E;
 	border: 2px solid #EC6323;
 	border-radius: 10px;
-}
+}*/
 
 .login-ok {
 	display: none;
@@ -2648,7 +2635,7 @@ input.driver-rate-input {
 /* Стилі для детальної інформації про водія */
 
 .driver-detail-header {
-	padding: 10px;
+	padding: 10px 10px 10px 0;
 	display: flex;
 	justify-content: flex-start;
 	align-items: center;

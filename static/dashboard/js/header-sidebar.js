@@ -74,12 +74,6 @@ $(document).ready(function () {
 		}
 	});
 
-	$(".close-btn").click(function () {
-		$("#settingsWindow").fadeOut();
-		sessionStorage.setItem('settings', 'false');
-		location.reload();
-	});
-
 	// burger-menu
 	$('.burger-menu').click(function () {
 		$('.burger-menu').toggleClass('open');

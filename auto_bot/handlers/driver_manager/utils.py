@@ -83,7 +83,16 @@ def create_driver_payments(start, end, driver, schema, bonuses=None, driver_repo
             (schema.plan - kasa) * Decimal(1 - schema.rate)
             if kasa < schema.plan else 0) - rent_value
         )
-    data = {"report_from": reports.first().report_from,
+    start_schema = timezone.make_aware(datetime.combine(timezone.localtime() - timedelta(days=1),
+                                                        schema.shift_time))
+    last_payment = DriverPayments.objects.filter(
+        driver=driver,
+        report_to__date=start_schema).order_by("-report_from").last()
+    if last_payment and last_payment.report_to > start_schema:
+        report_from = timezone.localtime(last_payment.report_to)
+    else:
+        report_from = start_schema
+    data = {"report_from": report_from,
             "report_to": reports.first().report_to,
             "rent_distance": rent,
             "rent_price": schema.rent_price,

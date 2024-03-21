@@ -191,6 +191,7 @@ class UklonRequest(Fleet, Synchronizer):
                         driver_external_id=driver_report['driver']['id'],
                         fleet=self, partner=self.partner).driver
                     report, distance = self.parse_json_report(start, end, driver, driver_report)
+                    print(report)
                     CustomReport.objects.update_or_create(report_from=start,
                                                           driver=driver,
                                                           fleet=self,
