@@ -261,7 +261,7 @@ def check_card_cash_value(self, partner_pk):
 
                     elif rent_enable:
                         text = f"\U0001F534 {driver} системою вимкнено готівкові замовлення.\n" \
-                               f"Причина: холостий пробіг\n" + calc_text + ", перепробіг {int(rent)} км\n"
+                               f"Причина: холостий пробіг\n" + calc_text + f", перепробіг {int(rent)} км\n"
                     else:
                         text = f"\U0001F534 {driver} системою вимкнено готівкові замовлення.\n" \
                                f"Причина: високий рівень готівки\n" + calc_text
@@ -433,11 +433,14 @@ def get_car_efficiency(self, partner_pk, day=None):
             return
         if total_km:
             for driver in drivers:
-                reports = CustomReport.objects.filter(
-                    report_from__date=start,
-                    driver=driver)
-                driver_kasa = reports.aggregate(
-                    kasa=Coalesce(Sum("total_amount_without_fee"), Decimal(0)))['kasa']
+                fleets = Fleet.objects.filter(fleetsdriversvehiclesrate__driver=driver)
+                driver_kasa = 0
+                for fleet in fleets:
+                    orders = FleetOrder.objects.filter(
+                        state=FleetOrder.COMPLETED,
+                        accepted_time__date=start, driver=driver, fleet=fleet.name, vehicle=vehicle).aggregate(
+                        total_price=Coalesce(Sum('price'), 0))['total_price']
+                    driver_kasa += orders * (1 - fleet.fees)
                 vehicle_drivers[driver] = driver_kasa
                 total_kasa += driver_kasa
         result = max(
@@ -608,7 +611,7 @@ def get_today_rent(self, partner_pk):
         raise self.retry(exc=e, countdown=retry_delay)
 
 
-@app.task(bind=True, retry_backoff=30, max_retries=4)
+@app.task(bind=True, ignore_result=False, retry_backoff=30, max_retries=4)
 def fleets_cash_trips(self, partner_pk, pk, enable):
     try:
         driver = Driver.objects.get(pk=pk)
@@ -617,12 +620,14 @@ def fleets_cash_trips(self, partner_pk, pk, enable):
         for fleet in fleets:
             driver_rate = FleetsDriversVehiclesRate.objects.filter(
                 driver=driver, fleet=fleet).first()
-            fleet.disable_cash(driver_rate.driver_external_id, enable)
+            if driver_rate:
+                fleet.disable_cash(driver_rate.driver_external_id, enable)
 
     except Exception as e:
         logger.error(e)
         retry_delay = retry_logic(e, self.request.retries + 1)
         raise self.retry(exc=e, countdown=retry_delay)
+    return partner_pk, 'success'
 
 
 @app.task(bind=True, retry_backoff=30, max_retries=4)
