@@ -134,14 +134,17 @@ class Synchronizer:
             if not created:
                 self.update_vehicle_fields(vehicle, **kwargs)
 
-            managers = Manager.objects.filter(managers_partner=self.partner)
-            if managers.count() == 1:
-                vehicle.manager = managers.first()
-                vehicle.save()
-            elif managers.count() > 1:
-                owner_chat_id = self.partner.chat_id
-                message_text = f"У вас новий автомобіль {plate}. Будь ласка, призначте йому менеджера."
-                bot.send_message(chat_id=owner_chat_id, text=message_text)
+            if created:
+                managers = Manager.objects.filter(managers_partner=self.partner)
+                message_text = ""
+                if managers.count() == 1:
+                    vehicle.manager = managers.first()
+                    vehicle.save()
+                elif managers.count() > 1:
+                    message_text = f"У вас новий автомобіль {plate}. Будь ласка, призначте йому менеджера."
+
+                if message_text:
+                    bot.send_message(chat_id=self.partner.chat_id, text=message_text)
 
             return vehicle
 
