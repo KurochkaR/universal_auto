@@ -8,7 +8,7 @@ from django.db.models import Sum, DecimalField, Q, Value, F
 from django.db.models.functions import Coalesce
 
 from app.models import CustomReport, ParkSettings, Vehicle, Partner, Payments, SummaryReport, DriverPayments, Penalty, \
-    Bonus, FleetOrder, Fleet, DriverReshuffle
+    Bonus, FleetOrder, Fleet, DriverReshuffle, DriverEfficiency
 from app.uagps_sync import UaGpsSynchronizer
 from auto_bot.handlers.driver_manager.utils import create_driver_payments
 from auto_bot.handlers.order.utils import check_vehicle
@@ -151,7 +151,8 @@ def get_efficiency_info(partner_pk, driver, start, end, payments_model, aggregat
     return total_kasa, total_orders, canceled_orders, completed_orders, fleet_orders
 
 
-def polymorphic_efficiency_create(create_model, partner_pk, driver, start, end, get_model, aggregator=None):
+def polymorphic_efficiency_create(create_model, partner_pk, driver, start, end, get_model, aggregator=None,
+                                  road_mileage=None):
     efficiency_filter = {
         'report_from': start,
         'report_to': end,
@@ -188,6 +189,10 @@ def polymorphic_efficiency_create(create_model, partner_pk, driver, start, end, 
         'efficiency': total_kasa / mileage if mileage else 0,
         'partner_id': partner_pk
     }
+    if create_model == DriverEfficiency:
+        rent_mileage = mileage - road_mileage[driver.id][0]
+        data['rent_mileage'] = rent_mileage
+
     efficiency_filter['defaults'] = data
     result, created = create_model.objects.get_or_create(**efficiency_filter)
     if created:

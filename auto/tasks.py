@@ -425,7 +425,8 @@ def get_car_efficiency(self, partner_pk, day=None):
         drivers = DriverReshuffle.objects.filter(end_time__lte=end,
                                                  swap_time__gte=start,
                                                  swap_vehicle=vehicle,
-                                                 partner=partner_pk).values_list('driver_start', flat=True)
+                                                 partner=partner_pk,
+                                                 driver_start__isnull=False).values_list('driver_start', flat=True)
         total_kasa = 0
         try:
             total_km = UaGpsSynchronizer.objects.get(partner=partner_pk).total_per_day(vehicle.gps.gps_id, start, end)
@@ -461,11 +462,13 @@ def get_car_efficiency(self, partner_pk, day=None):
 @app.task(bind=True)
 def get_driver_efficiency(self, schemas, day=None):
     schema_obj = Schema.objects.filter(pk__in=schemas).first()
+    end, start = get_time_for_task(schema_obj.id, day)[1:3]
     if Fleet.objects.filter(partner=schema_obj.partner, deleted_at=None, name="Gps").exists():
+        road_mileage = UaGpsSynchronizer.objects.get(
+            partner=schema_obj.partner).get_road_distance(start, end)
         for driver in Driver.objects.get_active(schema__in=schemas):
-            end, start = get_time_for_task(driver.schema.id, day)[1:3]
             polymorphic_efficiency_create(DriverEfficiency, driver.partner.pk, driver,
-                                          start, end, SummaryReport)
+                                          start, end, SummaryReport, road_mileage=road_mileage)
 
 
 @app.task(bind=True)
@@ -558,7 +561,8 @@ def schedule_for_detaching_uklon(self, partner_pk):
                                                    swap_time__date=today.date(),
                                                    swap_vehicle=vehicle,
                                                    end_time__range=(today, desired_time),
-                                                   partner=partner_pk).first()
+                                                   partner=partner_pk,
+                                                   driver_start__isnull=False).first()
         if reshuffle:
             eta = timezone.localtime(reshuffle.end_time)
             detaching_the_driver_from_the_car.apply_async((partner_pk, reshuffle.swap_vehicle.licence_plate, eta),
