@@ -122,7 +122,8 @@ class InvestorCarsEarningsView(CombinedPermissionsMixin,
         queryset = InvestorFilterMixin.get_queryset(InvestorPayments, self.request.user)
         filtered_qs = queryset.filter(report_from__range=(start, end))
         mileage_subquery = CarEfficiency.objects.filter(
-            report_from__range=(start, end)
+            report_from__range=(start, end),
+            investor=self.request.user
         ).values('vehicle__licence_plate').annotate(
             mileage=Sum('mileage'),
             spending=Sum('total_spending')

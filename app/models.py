@@ -1083,6 +1083,7 @@ class CarEfficiency(models.Model):
     drivers = models.ManyToManyField(Driver, through="DriverEffVehicleKasa", verbose_name='Водії', db_index=True)
     vehicle = models.ForeignKey(Vehicle, null=True, on_delete=models.CASCADE, verbose_name='Автомобіль', db_index=True)
     partner = models.ForeignKey(Partner, null=True, on_delete=models.SET_NULL, verbose_name='Партнер')
+    investor = models.ForeignKey(Investor, null=True, on_delete=models.SET_NULL, verbose_name='Інвестор')
 
     class Meta:
         verbose_name = 'Ефективність автомобіля'
@@ -1121,6 +1122,8 @@ class DriverEfficiencyPolymorphic(PolymorphicModel):
 
 
 class DriverEfficiency(DriverEfficiencyPolymorphic):
+    rent_distance = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Холостий пробіг')
+
     class Meta:
         verbose_name = 'Ефективність водія'
         verbose_name_plural = 'Ефективність водіїв'
