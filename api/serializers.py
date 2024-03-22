@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from app.models import DriverPayments, Bonus, Penalty, Driver, DriverEfficiencyPolymorphic, Vehicle
+from app.models import DriverPayments, Bonus, Penalty, Driver, DriverEfficiencyPolymorphic, Vehicle, DriverEfficiency
 
 
 class AggregateReportSerializer(serializers.Serializer):
@@ -57,10 +57,9 @@ class DriverEfficiencyFleetRentSerializer(serializers.Serializer):
 
 class DriverEfficiencySerializer(FleetEfficiencySerializer):
     full_name = serializers.CharField()
-    idling_mileage = serializers.DecimalField(max_digits=10, decimal_places=2)
 
     class Meta:
-        model = DriverEfficiencyPolymorphic
+        model = DriverEfficiency
         fields = (
             "full_name",
             "total_kasa",
@@ -71,7 +70,7 @@ class DriverEfficiencySerializer(FleetEfficiencySerializer):
             "road_time",
             "efficiency",
             "mileage",
-            "idling_mileage",
+            "rent_distance"
         )
 
 

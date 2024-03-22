@@ -237,7 +237,8 @@ def get_dynamic_fleet():
                 output_field=DecimalField()
             ),
             output_field=DecimalField()
-        )
+        ),
+        'rent_distance': Sum('rent_distance')
     }
 
     return dynamic_fleet
@@ -252,22 +253,6 @@ class DriverEfficiencyListView(CombinedPermissionsMixin,
         queryset = ManagerFilterMixin.get_queryset(DriverEfficiency, self.request.user)
         filtered_qs = queryset.filter(report_from__range=(start, end))
         qs_efficient = filtered_qs.values('driver_id').annotate(**get_dynamic_fleet())
-        idling_mileage = RentInformation.objects.filter(
-            report_from__range=(start, end),
-            driver__in=qs_efficient.values_list('driver_id', flat=True)
-        ).values('driver').annotate(
-            idling_mileage=Sum('rent_distance')
-        )
-
-        qs_efficient_driver_ids = [item['driver_id'] for item in qs_efficient]
-        idling_mileage_driver_ids = [item['driver'] for item in idling_mileage]
-        all_driver_ids = set(qs_efficient_driver_ids + idling_mileage_driver_ids)
-
-        merged_results = {}
-        for driver_id in all_driver_ids:
-            driver_info = next((item for item in qs_efficient if item['driver_id'] == driver_id), {})
-            driver_info.update(next((item for item in idling_mileage if item['driver'] == driver_id), {}))
-            merged_results[driver_id] = driver_info
 
         efficient_driver_ids = set(qs_efficient.values_list('driver_id', flat=True))
         reshuffled_drivers = DriverReshuffle.objects.filter(
@@ -293,16 +278,15 @@ class DriverEfficiencyListView(CombinedPermissionsMixin,
                 'accept_percent': 0,
                 'road_time': timedelta(),
                 'mileage': 0,
-                'idling_mileage': 0,
+                'rent_distance': 0,
                 'efficiency': 0
             }
             for driver_info in reshuffled_drivers_info
         ]
-        additional_drivers_dict = {driver_info['driver_id']: driver_info for driver_info in additional_drivers_info}
-        merged_results = list(merged_results.update(additional_drivers_dict) or merged_results.values())
 
+        qs = list(qs_efficient) + additional_drivers_info
         return [
-            {'start': format_start, 'end': format_end, 'drivers_efficiency': merged_results}]
+            {'start': format_start, 'end': format_end, 'drivers_efficiency': qs}]
 
 
 class DriverEfficiencyFleetListView(CombinedPermissionsMixin,
