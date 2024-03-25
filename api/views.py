@@ -66,9 +66,9 @@ class SummaryReportListView(CombinedPermissionsMixin, generics.ListAPIView):
         sum_rent = driver_payments_list.aggregate(
             payment_rent=Coalesce(Sum('rent'), Value(0, output_field=DecimalField()))
         )['payment_rent']
-
+        bonus_category, _ = BonusCategory.objects.get_or_create(title='Компенсація холостого пробігу')
         total_compensation_bonus = Bonus.objects.filter(
-            category=BonusCategory.objects.get(title='Компенсація холостого пробігу'),
+            category=bonus_category,
             driver_payments__in=driver_payments_list,
             driver_payments__partner=self.request.user
         ).aggregate(
@@ -122,7 +122,8 @@ class InvestorCarsEarningsView(CombinedPermissionsMixin,
         queryset = InvestorFilterMixin.get_queryset(InvestorPayments, self.request.user)
         filtered_qs = queryset.filter(report_from__range=(start, end))
         mileage_subquery = CarEfficiency.objects.filter(
-            report_from__range=(start, end)
+            report_from__range=(start, end),
+            investor=self.request.user
         ).values('vehicle__licence_plate').annotate(
             mileage=Sum('mileage'),
             spending=Sum('total_spending')
