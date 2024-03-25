@@ -19,6 +19,14 @@ function toggleSidebar() {
 	}
 }
 
+$(document).click(function (event) {
+    var form = $(".change-password-btn")
+    var header = $(".header-right")
+    if (!form.is(event.target) && form.has(event.target).length === 0 && !header.is(event.target) && header.has(event.target).length === 0) {
+        form.hide();
+    }
+});
+
 $(document).ready(function () {
 
 	$("#logout-dashboard").click(function () {
@@ -38,7 +46,7 @@ $(document).ready(function () {
 	});
 
 	$("#changePassword").click(function () {
-		$("#passwordChangeForm").toggle();
+		$("#passwordForm").show();
 	});
 
 
@@ -75,8 +83,8 @@ $(document).ready(function () {
 	});
 
 	// burger-menu
-	$('.burger-menu').click(function () {
-		$('.burger-menu').toggleClass('open');
+	$('.header-right').click(function () {
+		$('.change-password-btn').show();
 	});
 
 	const resetButton = $("#reset-button");
@@ -98,9 +106,9 @@ $(document).ready(function () {
 
     if (isSidebarOpen) {
       gridContainer.css("grid-template-columns", "375px 1fr 1fr 1fr");
-      sidebarTitle.css("padding", "10px 25px 0px 25px");
+      sidebarTitle.css("padding", "10px 25px 50px 25px");
       sidebarToggleIcon.removeClass("fa-angle-double-right").addClass("fa-angle-double-left");
-
+      $("#logout-dashboard").show();
       $(".logo-1").hide();
       $(".logo-2").show();
 
@@ -112,12 +120,13 @@ $(document).ready(function () {
         });
       }, 500);
     } else {
-      gridContainer.css("grid-template-columns", "112px 1fr 1fr 1fr");
+      gridContainer.css("grid-template-columns", "60px 1fr 1fr 1fr");
       sidebarTitle.css("padding", "30px 30px 50px 30px");
       sidebarToggleIcon.removeClass("fa-angle-double-left").addClass("fa-angle-double-right");
 
       $(".logo-1").show();
       $(".logo-2").hide();
+      $("#logout-dashboard").hide();
 
       sidebarListItems.each(function() {
         $(this).css("display", "none");

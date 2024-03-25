@@ -247,7 +247,8 @@ $(document).ready(function () {
                 .then( function (response) {
                     if (response.data === "SUCCESS") {
                         $("#loadingModal").hide();
-                        if (response.result.status === 'incorrect') {
+                        console.log(response);
+                        if (response.result.status === 'incorrect' && response.result.order === false) {
                             $(".bolt-confirm-button").data("payment-id", response.result.id)
                             $("#bolt-confirmation-form").show();
                             $('.modal-overlay').show();
@@ -301,12 +302,21 @@ $(document).ready(function () {
                 checkTaskStatus(response.task_id)
                 .then( function (response) {
                     if (response.data === "SUCCESS") {
+                    console.log(response);
                         $("#loadingModal").hide();
-                        if (response.result.status === 'incorrect') {
+                        if (response.result.status === 'incorrect' && response.result.order === false) {
                             $(".bolt-confirm-button").data("payment-id", response.result.id)
                             $("#bolt-confirmation-form").show();
                             $('.modal-overlay').show();
-                        } else {
+                        } else if (response.result.order === true) {
+                            $("#loadingMessage").text(gettext("Вибачте, не всі замовлення розраховані агрегатором, спробуйте пізніше"));
+                            $("#loader").hide();
+                            $("#loadingModal").show();
+                            setTimeout(function () {
+                                $('#loadingModal').hide();
+                            }, 3000);
+                        }
+                        else {
                             driverPayment(null, null, null, paymentStatus = "on_inspection");
                         }
                     }

@@ -9,8 +9,7 @@
   <!-- Montserrat Font -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&family=Open+Sans:wght@300;400;700&display=swap"
-        rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
   <!-- Material Icons -->
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
   <!-- Custom CSS -->
@@ -51,43 +50,11 @@
     <div class="header-right">
       {% if user.is_authenticated %}
       <span id="account_circle">{{user.first_name}} {{user.last_name}}</span>
+      <div class="change-password-btn">
+        <button id="changePassword" type="button">{% trans 'Змінити пароль' %}</button>
+      </div>
       {% endif %}
     </div>
-    {% if user.is_authenticated %}
-    <div class="burger-menu">
-      <div class="stripes">
-        <div class="stripe top-stripe"></div>
-        <div class="stripe middle-stripe"></div>
-        <div class="stripe bottom-stripe"></div>
-      </div>
-      <div class="burger-content">
-        <button id="changePassword" type="button">{% trans 'Змінити пароль' %}</button>
-        <button id="logout-dashboard" type="button">{% trans 'Вийти' %}</button>
-      </div>
-    </div>
-    {% endif %}
-    <div id="passwordChangeForm" style="display: none;">
-      <span class="close-btn">&times;</span>
-      <h2>{% trans 'Після зміни пароля потрібно перезайти.' %}</h2>
-      <form id="passwordForm">
-        {% csrf_token %}
-        <h4>{% trans 'Старий пароль:' %}</h4>
-        <input type="password" id="oldPassword" name="oldPassword" required>
-        <p class="error-message" id="oldPasswordMessage"
-           style="display:none; color: red">{% trans 'Вказано неправильний пароль' %}</p>
-        <h4>{% trans 'Новий пароль:' %}</h4>
-        <input type="password" id="newPassword" name="newPassword" required>
-        <p class="error-message" id="ChangeErrorMessage"
-           style="display:none; color: red">{% trans 'Пароль не співпадає' %}</p>
-        <p class="error-message" id="EmptyPasswordError"
-           style="display:none; color: red">{% trans 'Пароль не може бути пустим' %}</p>
-        <h4>{% trans 'Підтвердити новий пароль:' %}</h4>
-        <input type="password" id="confirmPassword" name="confirmPassword" required>
-
-        <button id="submitPassword" type="button">{% trans 'Змінити' %}</button>
-      </form>
-    </div>
-
   </header>
   <!-- End Header -->
 
@@ -127,11 +94,6 @@
       <li class="sidebar-list-item admin" data-url="{% url 'admin:index' %}" id="admin-link">
         <i class="fas fa-key"></i><span>{% trans 'Керування автопарком' %}</span>
       </li>
-      <div id="updateDatabaseContainer">
-        <li class="sidebar-list-item">
-          <i class="fas fa-cogs"></i><span>{% trans 'Оновлення бази даних' %}</span>
-        </li>
-      </div>
       <!-- Модальне вікно -->
       <div id="loadingModal" class="modal">
         <div class="modal-content">
@@ -149,6 +111,8 @@
           <i class="fas fa-box-open"></i><span>{% trans 'Підключення агрегаторів' %}</span>
         </li>
       </div>
+      <button id="logout-dashboard" type="button">{% trans 'Вийти' %}</button>
+
       <form id="partnerForm" novalidate>
         <div class="settings-content">
         <div class="settings-head">
@@ -160,7 +124,7 @@
             {% csrf_token %}
             <h3>{% trans 'Виберіть агрегатор:' %}</h3>
             <div class="partner-options">
-              <input type="radio" id="uberOption" name="partner" value="Uber" checked>
+              <input type="radio" id="uberOption" name="partner" value="Uber">
               <label for="uberOption">Uber</label>
 
               <input type="radio" id="boltOption" name="partner" value="Bolt">
@@ -177,14 +141,13 @@
             <input type="text" id="partnerLogin" name="partnerLogin" placeholder="{% trans 'Логін' %}" required>
             <input class="showPassword partnerPassword" type="password" id="partnerPassword" name="partnerPassword"
                    placeholder="{% trans 'Пароль' %}" required>
-            <a class="helper-token" href="https://storage.googleapis.com/jobdriver-bucket/docs/gps-token.webp" data-lightbox="image">Де взяти токен gps?</a>
             <div class="loader-login"></div>
 
 
           <div class="opt-partnerForm">
-            <input type="checkbox" class="showPasswordCheckbox" id="showPasswordPartner">
+            <a class="helper-token" href="https://storage.googleapis.com/jobdriver-bucket/docs/gps-token.webp" data-lightbox="image">Де взяти токен gps?</a>
             <span class="circle-password"></span>
-            <span class="showPassword">{% trans 'Показати пароль' %}</span>
+            <span class="showPasswordText">{% trans 'Показати пароль' %}</span>
             <button type="button" class="login-btn">{% trans 'Увійти' %}</button>
           </div>
             <div class="login-ok">
@@ -195,5 +158,6 @@
       </form>
       {% endif %}
     </ul>
+    {% include 'dashboard/_password-change-form.html' %}
   </aside>
   <!-- End Sidebar -->

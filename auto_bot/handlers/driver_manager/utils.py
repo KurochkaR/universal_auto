@@ -92,6 +92,7 @@ def create_driver_payments(start, end, driver, schema, bonuses=None, driver_repo
         report_from = timezone.localtime(last_payment.report_to)
     else:
         report_from = start_schema
+    status, no_price = check_correct_bolt_report(start, end, driver)
     data = {"report_from": report_from,
             "report_to": reports.first().report_to,
             "rent_distance": rent,
@@ -102,11 +103,11 @@ def create_driver_payments(start, end, driver, schema, bonuses=None, driver_repo
             "rent": rent_value,
             "rate": rate * 100,
             "payment_type": schema.salary_calculation,
-            "status": check_correct_bolt_report(start, end, driver),
+            "status": status,
             "partner": schema.partner
             }
 
-    return data
+    return data, no_price
 
 
 def check_correct_bolt_report(start, end, driver):
@@ -116,12 +117,14 @@ def check_correct_bolt_report(start, end, driver):
         report_to__gt=start,
         driver=driver, fleet__name="Bolt").aggregate(
         kasa=Coalesce(Sum('total_amount_without_fee'), 0, output_field=DecimalField()),
-        compensations=Coalesce(Sum('compensations'), 0, output_field=DecimalField())
+        compensations=Coalesce(Sum('compensations'), 0, output_field=DecimalField()),
+        bonuses=Coalesce(Sum('bonuses'), 0, output_field=DecimalField()),
     )
     no_price = FleetOrder.objects.filter(price=0, state=FleetOrder.COMPLETED, fleet="Bolt",
                                          driver=driver, accepted_time__range=(start, end))
     tolerance = 1
-    incorrect = round(bolt_order_kasa, 2) - round((bolt_report['kasa'] - bolt_report['compensations']), 2)
+    incorrect = round(bolt_order_kasa, 2) - round(
+        (bolt_report['kasa'] - bolt_report['compensations']), 2)
     if abs(incorrect) >= tolerance or no_price.exists():
         print(incorrect)
         print(
@@ -130,7 +133,7 @@ def check_correct_bolt_report(start, end, driver):
         status = PaymentsStatus.INCORRECT
     else:
         status = PaymentsStatus.CHECKING
-    return status
+    return status, no_price.exists()
 
 
 def validate_date(date_str):
@@ -646,7 +649,7 @@ def get_failed_income(payment):
                         total_tips=Coalesce(Sum('tips'), 0))
                     kasa = Decimal(bolt_kasa['total_price'] * 0.75004 + bolt_kasa['total_tips'])
                     cash = Decimal(bolt_cash['total_price'] + bolt_cash['total_tips'])
-                    orders_total_cash += bolt_cash
+                    orders_total_cash += cash
                 else:
                     kasa, cash = fleet.get_earnings_per_driver(payment.driver, start_period, end_period)
                 total_kasa += Decimal(kasa)

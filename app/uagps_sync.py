@@ -383,11 +383,10 @@ class UaGpsSynchronizer(Fleet):
                     else:
                         continue
                 rent_distance = total_km - distance
-                driver_obj = Driver.objects.get(id=driver)
-                kasa, card, mileage, orders, canceled_orders = get_today_statistic(start, end_time, driver_obj)
+                kasa, card, mileage, orders, canceled_orders = get_today_statistic(start, end_time, driver)
                 time_now = timezone.localtime(end_time)
                 if kasa and mileage:
-                    text += f"Водій: {driver_obj} час {time_now.strftime('%H:%M')} \n"\
+                    text += f"Водій: {driver} час {time_now.strftime('%H:%M')} \n"\
                             f"Каса: {round(kasa, 2)}\n"\
                             f"Виконано замовлень: {orders}\n"\
                             f"Скасовано замовлень: {canceled_orders}\n"\
@@ -395,7 +394,7 @@ class UaGpsSynchronizer(Fleet):
                             f"Ефективність: {round(kasa / mileage, 2)}\n"\
                             f"Холостий пробіг: {rent_distance}\n\n"
                 else:
-                    text += f"Водій {driver_obj} ще не виконав замовлень\n" \
+                    text += f"Водій {driver} ще не виконав замовлень\n" \
                             f"Холостий пробіг: {rent_distance}\n\n"
             if timezone.localtime().time() > time(7, 0):
                 send_long_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"), text=text)

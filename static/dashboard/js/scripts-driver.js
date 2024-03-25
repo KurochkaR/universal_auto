@@ -176,7 +176,6 @@ $(document).ready(function () {
 			},
 			dataType: 'json',
 			success: function (response) {
-			    console.log(response)
 			    if (response.task_id) {
                     checkTaskStatus(response.task_id)
                     .then(function (response) {

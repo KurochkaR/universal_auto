@@ -93,9 +93,8 @@ class PostRequestHandler:
         task = get_session.apply_async(args=[request.user.pk, aggregator, login, password],
                                        queue=f'beat_tasks_{request.user.pk}')
         json_data = JsonResponse({'task_id': task.id}, safe=False)
-        response = HttpResponse(json_data, content_type='application/json')
 
-        return response
+        return json_data
 
     @staticmethod
     def handler_handler_logout(request):
@@ -170,10 +169,10 @@ class PostRequestHandler:
         else:
             manager = Manager.objects.get(pk=request.user.pk)
             partner = manager.managers_partner.pk
+        print(partner)
         upd = update_driver_data.apply_async(args=[partner], queue=f'beat_tasks_{partner}')
         json_data = JsonResponse({'task_id': upd.id}, safe=False)
-        response = HttpResponse(json_data, content_type='application/json')
-        return response
+        return json_data
 
     @staticmethod
     def handler_free_access(request):
@@ -499,7 +498,7 @@ class PostRequestHandler:
                 payment_24hours_create(payment.report_from, payment.report_to, fleet, payment.driver, partner_pk)
                 summary_report_create(payment.report_from, payment.report_to, payment.driver, payment.partner)
                 payment_data = create_driver_payments(start, timezone.localtime(payment.report_to), payment.driver,
-                                                      payment.driver.schema)
+                                                      payment.driver.schema)[0]
                 for key, value in payment_data.items():
                     setattr(payment, key, value)
                     payment.save()
@@ -539,7 +538,10 @@ class GetRequestHandler:
     @staticmethod
     def handle_check_task(request):
         upd = AsyncResult(request.GET.get('task_id'))
-        response = JsonResponse({'data': upd.status, 'result': upd.result}, safe=False)
+        if upd.status == "SUCCESS":
+            response = JsonResponse({'data': upd.status, 'result': upd.result}, safe=False)
+        else:
+            response = JsonResponse({'data': upd.status}, safe=False)
         return response
 
     @staticmethod

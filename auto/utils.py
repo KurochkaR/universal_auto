@@ -62,7 +62,7 @@ def get_corrections(start, end, driver, driver_reports=None):
                                             report_to=end,
                                             driver=driver)
     if payment.exists():
-        data = create_driver_payments(start, end, driver, driver.schema, driver_reports)
+        data = create_driver_payments(start, end, driver, driver.schema, driver_reports)[0]
         format_start = start.strftime("%d.%m")
         format_end = end.strftime("%d.%m")
         description = f"Корекція з {format_start} по {format_end}"
@@ -77,7 +77,7 @@ def get_corrections(start, end, driver, driver_reports=None):
 
 def payment_24hours_create(start, end, fleet, driver, partner_pk):
     report = CustomReport.objects.filter(
-        report_to__range=((start - timedelta(minutes=1)), end),
+        report_to__range=(start, end),
         fleet=fleet,
         driver=driver).order_by("report_from")
     if report:
@@ -135,7 +135,7 @@ def summary_report_create(start, end, driver, partner_pk):
 def get_efficiency_info(partner_pk, driver, start, end, payments_model, aggregator=None):
     filter_request = Q(driver=driver, date_order__range=(start, end), partner_id=partner_pk)
 
-    payment_request = Q(driver=driver, report_from__date=start, partner_id=partner_pk)
+    payment_request = Q(driver=driver, report_to__range=(start, end), partner_id=partner_pk)
 
     if aggregator:
         fleet = Fleet.objects.get(pk=aggregator)
