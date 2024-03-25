@@ -154,8 +154,8 @@ $(document).ready(function () {
 			itemType = 'bonus';
 		} else if ($(this).hasClass('edit-penalty-btn')) {
 			itemType = 'penalty';
-		};
-		openForm(paymentId=paymentId, bonusId = itemId, itemType, driverId = null);
+		}
+		openForm(paymentId = paymentId, bonusId = itemId, itemType, driverId = null);
 		$('#modal-add-bonus').show();
 	});
 
@@ -270,7 +270,6 @@ $(document).ready(function () {
 	const driverTableTbody = $(".driver-table tbody");
 
 	driverTableTbody.on('click', '.driver-rate', function (event) {
-		console.log('click driver-rate');
 		var $rateContainer = $(this);
 		var $rateText = $rateContainer.find('.rate-payment');
 		var $rateInput = $rateContainer.find('.driver-rate-input');

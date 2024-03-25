@@ -307,4 +307,79 @@ $(document).ready(function () {
 		sanitizedValue = Math.min(Math.max(integerValue, 0), 100);
 		$(this).val(sanitizedValue);
 	});
+
+	function getCategory(element) {
+		return $(element).find('.penalty-category span').text();
+	}
+
+	$(document).on('click', '.driver-bonus-penalty-info', function (event) {
+		var $this = $(this);
+		var category = getCategory($this);
+
+		if (!$(event.target).closest('.debt-repayment-input-container').length) {
+			$this.find('.debt-repayment-btn').show();
+			$this.find('.edit-penalty-btn, .delete-bonus-penalty-btn').toggle(category !== 'Штраф по виплаті');
+			$this.find('.debt-repayment-input-container').hide();
+			if (category === 'Штраф по виплаті') {
+				$this.find('.debt-repayment-btn').css('width', '165px');
+			}
+		}
+	});
+
+	$(document).on('click', '.debt-repayment-btn', function (event) {
+		event.stopPropagation();
+		var $container = $(this).closest('.driver-bonus-penalty-info');
+
+		$(this).hide();
+		$container.find('.debt-repayment-input-container').css('display', 'flex');
+		$container.find('.edit-penalty-btn, .delete-bonus-penalty-btn').hide();
+	});
+
+	$('.driver-bonus-penalty-info').each(function () {
+		var $this = $(this);
+		var category = getCategory($this);
+
+		$this.find('.debt-repayment-btn').show().css('width', category === 'Штраф по виплаті' ? '165px' : 'auto');
+		$this.find('.edit-penalty-btn, .delete-bonus-penalty-btn').toggle(category !== 'Штраф по виплаті');
+	});
+	const confirmationDebt = $('.confirmation-debt-repayment');
+	$(document).on('click', '.debt-repayment-input-container i', function () {
+		const driversDebt = parseFloat($(this).closest('.driver-bonus-penalty-info').find('.penalty-amount span').text());
+		const repaymentDebt = parseFloat($(this).closest('.debt-repayment-input-container').find('input').val());
+		const penalty_id = $(this).closest('.driver-bonus-penalty-info').data('id');
+
+		if (driversDebt === repaymentDebt) {
+			$('.confirmation-debt-repayment h2').text('Ви впевнені, що хочете закрити штраф?');
+		} else {
+			$('.confirmation-debt-repayment h2').text('Водій повернув ' + repaymentDebt + ' ₴ штрафу?');
+		}
+
+		confirmationDebt.attr('data-repayment', driversDebt === repaymentDebt ? driversDebt : repaymentDebt);
+		confirmationDebt.attr('data-penalty_id', penalty_id);
+		confirmationDebt.show();
+	});
+
+
+	$('#debt-repayment-on').click(function () {
+		$.ajax({
+			url: ajaxPostUrl,
+			type: 'POST',
+			data: {
+				action: 'debt_repayment',
+				driver_id: $('.detail-driver-info').data('id'),
+				penalty_id: confirmationDebt.data('penalty_id'),
+				debt_repayment: confirmationDebt.data('repayment'),
+				csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
+			},
+			dataType: 'json',
+			success: function (response) {
+				window.location.reload();
+			}
+		});
+	});
+
+	$('#debt-repayment-off').click(function () {
+		$('.confirmation-debt-repayment').hide();
+	});
+
 });

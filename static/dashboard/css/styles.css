@@ -1862,7 +1862,8 @@ span#vehicle-bonus-error {
 /* confirmation update database */
 
 .confirmation-update-database,
-.confirmation-cash-control {
+.confirmation-cash-control,
+.confirmation-debt-repayment {
 	display: none;
 	background-color: #A1E8B9;
 	padding: 20px;
@@ -2954,23 +2955,65 @@ span.circle {
 .driver-bonus-penalty-info,
 .driver-bonus-penalty-title {
 	display: grid;
-	grid-template-columns: repeat(5, 1fr);
-	gap: 60px;
+	grid-template-columns: 30% 17% 18% 35%;
+	align-items: center;
+	gap: 10px;
+	padding: 8px;
 }
 
 .driver-bonus-penalty-info {
 	background: #DEF7E7;
 	border-bottom: 3px solid #A1E8B9;
+	border-radius: 7px;
 }
 
 .driver-penalty-item {
 	display: none;
 }
 
-.btns {
+.btns,
+.debt-repayment,
+.debt-repayment-input-container {
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
+	gap: 10px;
+	align-content: center;
+}
+
+.debt-repayment-btn {
+	width: 101px;
+	height: 26px;
+	background-color: #A1E8B9;
+	border: none;
+	cursor: pointer;
+	transition: background-color 0.3s ease;
+	font-weight: 700;
+	font-size: 15px;
+	text-align: center;
+	color: #fff;
+	border-radius: 62px;
+}
+
+.debt-repayment-input {
+	width: 153px;
+	padding: 5px;
+	border-radius: 62px;
+	border: 3px solid #A1E8B9;
+	background: #FFF;
+	color: #26392c;
+	font-size: 20px;
+}
+
+.debt-repayment-input-container {
+	display: none;
+}
+
+.debt-repayment-input-container i {
+	cursor: pointer;
+	position: relative;
+	top: 0;
+	right: 45px;
 }
 
 .btns .edit-bonus-btn,
@@ -2990,9 +3033,8 @@ span.circle {
 	border: none;
 	padding: 0;
 	cursor: pointer;
-	font-size: 25px;
+	font-size: 27px;
 }
-
 
 .bonus-category,
 .bonus-amount,
