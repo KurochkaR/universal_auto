@@ -208,10 +208,10 @@ def polymorphic_efficiency_create(create_model, partner_pk, driver, start, end, 
 
 def calendar_weekly_report(partner_pk, start_date, end_date, format_start, format_end):
     total_earnings = \
-        CustomReport.objects.filter(report_from__range=(start_date, end_date), partner=1).aggregate(
+        CustomReport.objects.filter(report_from__range=(start_date, end_date), partner=partner_pk).aggregate(
             kasa=Coalesce(Sum('total_amount_without_fee'), Decimal(0)))['kasa']
 
-    vehicles_count = Vehicle.objects.filter(partner=partner_pk).count()
+    vehicles_count = Vehicle.objects.get_active(partner=partner_pk).count()
     maximum_working_time = (24 * 7 * vehicles_count) * 3600
 
     qs_reshuffle = DriverReshuffle.objects.filter(
