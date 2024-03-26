@@ -24,7 +24,7 @@ $(document).ready(function () {
 
 	$("#confirmation-btn-on").click(function () {
         $(".confirmation-update-database").hide();
-        if ($(this).data("confirmUpdate", true)) {
+        if ($(this).data("confirmUpdate")) {
             $("#loadingModal").css("display", "block");
             $(".loading-content").css("display", "block");
             $("#loadingMessage").text(gettext("Зачекайте, будь ласка, поки оновлюється база даних..."));

@@ -225,7 +225,12 @@ def check_card_cash_value(self, partner_pk):
         yesterday = timezone.make_aware(datetime.combine(today, time.min)) - timedelta(days=1)
         start_week = timezone.make_aware(datetime.combine(today, time.min)) - timedelta(days=today.weekday())
         for driver in Driver.objects.get_active(partner=partner_pk, schema__isnull=False, cash_control=True):
-            start = start_week if driver.schema.is_weekly() else get_time_for_task(driver.schema_id)[2]
+            if driver.schema.is_weekly():
+                start = start_week
+            else:
+                start_time = get_time_for_task(driver.schema_id)[2]
+                today_start = timezone.make_aware(datetime.combine(timezone.localtime(), driver.schema.shift_time))
+                start = today_start if timezone.localtime() > today_start  else start_time
             rent = calculate_rent(start_week, today, driver) if driver.schema.is_weekly() else (
                 calculate_rent(yesterday, today, driver))
             penalties = driver.get_penalties()

@@ -553,7 +553,7 @@ def get_vehicle_income(driver, start, end, spending_rate, rent):
     weekly_reshuffles = check_reshuffle(driver, start_week, end_week)
     for shift in weekly_reshuffles:
         shift_bolt_kasa = calculate_bolt_kasa(driver, shift.swap_time, shift.end_time, vehicle=shift.swap_vehicle)[0]
-        reshuffle_bonus = shift_bolt_kasa / (bolt_weekly['kasa'] - bolt_weekly['compensations'] - bolt_weekly['bonuses']) * bolt_weekly['bonuses']
+        reshuffle_bonus = shift_bolt_kasa / Decimal((bolt_weekly['kasa'] - bolt_weekly['compensations'] - bolt_weekly['bonuses']) * bolt_weekly['bonuses'])
         if not driver_bonus.get(shift.swap_vehicle):
             driver_bonus[shift.swap_vehicle] = reshuffle_bonus
         else:
