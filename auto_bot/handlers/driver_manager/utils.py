@@ -29,7 +29,8 @@ def get_time_for_task(schema, day=None):
         yesterday = date - timedelta(days=1)
     else:
         shift_time = time.max.replace(microsecond=0)
-        date = datetime.strptime(day, "%Y-%m-%d") - timedelta(days=1) if day else timezone.localtime() - timedelta(days=1)
+        date = datetime.strptime(day, "%Y-%m-%d") - timedelta(days=1) if day else timezone.localtime() - timedelta(
+            days=1)
         yesterday = date
     start = timezone.make_aware(datetime.combine(date, time.min))
     previous_end = timezone.make_aware(datetime.combine(yesterday, time.max.replace(microsecond=0)))
@@ -82,7 +83,7 @@ def create_driver_payments(start, end, driver, schema, bonuses=None, driver_repo
         salary = '%.2f' % (kasa * rate - driver_report['cash'] - (
             (schema.plan - kasa) * Decimal(1 - schema.rate)
             if kasa < schema.plan else 0) - rent_value
-        )
+                           )
     start_schema = timezone.make_aware(datetime.combine(timezone.localtime() - timedelta(days=1),
                                                         schema.shift_time))
     last_payment = DriverPayments.objects.filter(
@@ -263,7 +264,8 @@ def generate_message_report(chat_id, schema_id=None, daily=None):
     drivers_dict = {}
     balance = 0
     for driver in drivers:
-        driver_payments_query = DriverPayments.objects.filter(report_from__date=start, report_to__date=end, driver=driver)
+        driver_payments_query = DriverPayments.objects.filter(report_from__date=start, report_to__date=end,
+                                                              driver=driver)
         if driver_payments_query.exists():
             payment = driver_payments_query.last()
 
@@ -553,16 +555,17 @@ def get_vehicle_income(driver, start, end, spending_rate, rent):
     weekly_reshuffles = check_reshuffle(driver, start_week, end_week)
     for shift in weekly_reshuffles:
         shift_bolt_kasa = calculate_bolt_kasa(driver, shift.swap_time, shift.end_time, vehicle=shift.swap_vehicle)[0]
-        reshuffle_bonus = shift_bolt_kasa / Decimal((bolt_weekly['kasa'] - bolt_weekly['compensations'] - bolt_weekly['bonuses']) * bolt_weekly['bonuses'])
+        reshuffle_bonus = shift_bolt_kasa / Decimal(
+            (bolt_weekly['kasa'] - bolt_weekly['compensations'] - bolt_weekly['bonuses']) * bolt_weekly['bonuses'])
         if not driver_bonus.get(shift.swap_vehicle):
             driver_bonus[shift.swap_vehicle] = reshuffle_bonus
         else:
             driver_bonus[shift.swap_vehicle] += reshuffle_bonus
     for car, bonus in driver_bonus.items():
         if not vehicle_income.get(car):
-            vehicle_income[car] = bonus * (1-driver.schema.rate)
+            vehicle_income[car] = bonus * (1 - driver.schema.rate)
         else:
-            vehicle_income[car] += bonus * (1-driver.schema.rate)
+            vehicle_income[car] += bonus * (1 - driver.schema.rate)
 
     return vehicle_income
 
@@ -587,7 +590,8 @@ def calculate_income_partner(driver, start, end, spending_rate, rent, driver_ren
         else:
             total_rent = 0
 
-        fleets = Fleet.objects.filter(fleetsdriversvehiclesrate__driver=driver, deleted_at=None)
+        fleets = Fleet.objects.filter(fleetsdriversvehiclesrate__driver=driver, deleted_at=None).exclude(
+            name="NinjaFleet")
         for fleet in fleets:
             if isinstance(fleet, BoltRequest):
                 total_gross_kasa += calculate_bolt_kasa(driver, start_period, end_period, vehicle=vehicle)[0]
@@ -605,7 +609,7 @@ def calculate_income_partner(driver, start, end, spending_rate, rent, driver_ren
     if compensations:
         vehicles = len(vehicle_income.values())
         for key in vehicle_income:
-            vehicle_income[key] += compensations / vehicles * (1-driver.schema.rate)
+            vehicle_income[key] += compensations / vehicles * (1 - driver.schema.rate)
     return vehicle_income
 
 
@@ -634,7 +638,8 @@ def get_failed_income(payment):
             total_cash = 0
             start_period, end_period = find_reshuffle_period(reshuffle, start_report, end_report)
             vehicle = reshuffle.swap_vehicle
-            fleets = Fleet.objects.filter(fleetsdriversvehiclesrate__driver=payment.driver, deleted_at=None)
+            fleets = Fleet.objects.filter(fleetsdriversvehiclesrate__driver=payment.driver, deleted_at=None).exclude(
+                name="NinjaFleet")
             for fleet in fleets:
                 if isinstance(fleet, BoltRequest):
                     bolt_orders = FleetOrder.objects.filter(
@@ -672,7 +677,8 @@ def get_failed_income(payment):
 def get_today_statistic(start, end, driver):
     kasa = 0
     card = 0
-    fleets = Fleet.objects.filter(fleetsdriversvehiclesrate__driver=driver, deleted_at=None)
+    fleets = Fleet.objects.filter(fleetsdriversvehiclesrate__driver=driver, deleted_at=None).exclude(
+        name="NinjaFleet")
     orders = FleetOrder.objects.filter(accepted_time__gt=start,
                                        state=FleetOrder.COMPLETED,
                                        driver=driver).order_by('-finish_time')

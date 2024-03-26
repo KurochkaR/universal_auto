@@ -176,24 +176,24 @@ $(document).ready(function () {
 			},
 			dataType: 'json',
 			success: function (response) {
-			    if (response.task_id) {
-                    checkTaskStatus(response.task_id)
-                    .then(function (response) {
-                        if (response.data === 'SUCCESS') {
-                        // message
-                        } else {
-                        // message
-                        }
-                        checkCash();
-                        $('#loader-confirmation-cash').hide()
-                    })
-                    .catch( function (error){
-                        console.error('Error:', error)
-                    })
-                } else {
-                    checkCash();
-                    $('#loader-confirmation-cash').hide()
-                }
+				if (response.task_id) {
+					checkTaskStatus(response.task_id)
+						.then(function (response) {
+							if (response.data === 'SUCCESS') {
+								// message
+							} else {
+								// message
+							}
+							checkCash();
+							$('#loader-confirmation-cash').hide()
+						})
+						.catch(function (error) {
+							console.error('Error:', error)
+						})
+				} else {
+					checkCash();
+					$('#loader-confirmation-cash').hide()
+				}
 			},
 
 		});

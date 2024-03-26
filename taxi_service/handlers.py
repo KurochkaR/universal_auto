@@ -600,7 +600,8 @@ class GetRequestHandler:
 
         fleet_driver_rate = FleetsDriversVehiclesRate.objects.filter(Q(driver=driver) & ~Q(fleet__name='Ninja'))
         driver_pay_cash = all(rate.pay_cash for rate in fleet_driver_rate)
-        driver_cash_rate = int(driver.cash_rate * 100) if driver.cash_rate != 0 else int(driver.schema.rate * 100)
+        driver_cash_rate = int(driver.schema.rate * 100) if driver.cash_rate == 0 and driver.schema else int(
+            driver.cash_rate * 100)
         driver_cash_control = driver.cash_control
 
         return JsonResponse({

@@ -235,8 +235,7 @@ def get_dynamic_fleet():
                 output_field=DecimalField()
             ),
             output_field=DecimalField()
-        ),
-        'rent_distance': Sum('rent_distance')
+        )
     }
 
     return dynamic_fleet
@@ -250,6 +249,8 @@ class DriverEfficiencyListView(CombinedPermissionsMixin,
         start, end, format_start, format_end = get_start_end(self.kwargs['period'])
         queryset = ManagerFilterMixin.get_queryset(DriverEfficiency, self.request.user)
         filtered_qs = queryset.filter(report_from__range=(start, end))
+        dynamic_fleet = get_dynamic_fleet()
+        dynamic_fleet['rent_distance'] = Sum('rent_distance')
         qs_efficient = filtered_qs.values('driver_id').annotate(**get_dynamic_fleet())
 
         efficient_driver_ids = set(qs_efficient.values_list('driver_id', flat=True))

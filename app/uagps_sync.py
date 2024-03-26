@@ -165,7 +165,8 @@ class UaGpsSynchronizer(Fleet):
                                                   state=FleetOrder.COMPLETED,
                                                   accepted_time__gte=start_report,
                                                   accepted_time__lt=end_report).order_by('accepted_time')
-            order_params, previous_finish_time = self.get_order_parameters(completed, end_report, reshuffle.swap_vehicle)
+            order_params, previous_finish_time = self.get_order_parameters(completed, end_report,
+                                                                           reshuffle.swap_vehicle)
 
             parameters.extend(order_params)
             if (timezone.localtime(start_report).time() == time.min or
@@ -307,7 +308,7 @@ class UaGpsSynchronizer(Fleet):
     def calc_total_km(self, driver, start, end):
         driver_vehicles = []
         total_km = 0
-        reshuffles = check_reshuffle(driver, start, end)
+        reshuffles = check_reshuffle(driver, start, end, gps=True)
         for reshuffle in reshuffles:
             driver_vehicles.append(reshuffle.swap_vehicle)
             start_report, end_report = find_reshuffle_period(reshuffle, start, end)
@@ -323,7 +324,6 @@ class UaGpsSynchronizer(Fleet):
     def calculate_driver_vehicle_rent(self, start, end, driver, result):
         distance, road_time = result[0], result[1]
         total_km = self.calc_total_km(driver, start, end)[0]
-        print(f"totalkm={total_km}, {start}, {end}")
         rent_distance = total_km - distance
         data = {
             "report_from": start,

@@ -27,7 +27,7 @@
         </div>
         <div class="driver-flex">
           <h3 class="driver-schema">{% trans "Схема роботи: " %}</h3>
-          <p>{{ object.schema }}</p>
+          <p>{{ object.schema | default_if_none:'Відсутня' }}</p>
         </div>
         <div class="driver-flex">
           <h3 class="driver-create">{% trans "Дата початку роботи в автопарку: " %}</h3>
@@ -321,8 +321,8 @@
     </div>
   </div>
 </main>
-    {% include 'dashboard/forms/_password-change-form.html' %}
-    {% include 'dashboard/forms/_aggregator-form.html' %}
+{% include 'dashboard/forms/_password-change-form.html' %}
+{% include 'dashboard/forms/_aggregator-form.html' %}
 <script>
 	const VehicleImg = "{% static 'app/images/index-one-block-2.webp' %}";
 	const logoImageUrl = "{% static 'app/images/logo-2.svg' %}";

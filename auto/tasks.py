@@ -230,7 +230,7 @@ def check_card_cash_value(self, partner_pk):
             else:
                 start_time = get_time_for_task(driver.schema_id)[2]
                 today_start = timezone.make_aware(datetime.combine(timezone.localtime(), driver.schema.shift_time))
-                start = today_start if timezone.localtime() > today_start  else start_time
+                start = today_start if timezone.localtime() > today_start else start_time
             rent = calculate_rent(start_week, today, driver) if driver.schema.is_weekly() else (
                 calculate_rent(yesterday, today, driver))
             penalties = driver.get_penalties()
@@ -393,7 +393,8 @@ def generate_payments(self, schemas, day=None):
     for driver in Driver.objects.get_active(schema__in=schemas):
         end, start_time = get_time_for_task(driver.schema.pk, day)[1:3]
         start = timezone.make_aware(datetime.combine(start_time, time.max.replace(microsecond=0)))
-        fleets = Fleet.objects.filter(fleetsdriversvehiclesrate__driver=driver, deleted_at=None)
+        fleets = Fleet.objects.filter(fleetsdriversvehiclesrate__driver=driver, deleted_at=None).exclude(
+            name="NinjaFleet")
         for fleet in fleets:
             payment_24hours_create(start, end, fleet, driver, driver.partner)
 
@@ -595,7 +596,7 @@ def get_rent_information(self, schemas=None, day=None, driver=None, payment=None
             drivers = Driver.objects.filter(pk=driver)
             end = timezone.localtime()
             start_schema = timezone.make_aware(datetime.combine(timezone.localtime() - timedelta(days=1),
-                                               drivers.first().schema.shift_time))
+                                                                drivers.first().schema.shift_time))
             last_payment = DriverPayments.objects.filter(
                 driver=driver,
                 report_to__date=start_schema).order_by("-report_from").last()
@@ -699,7 +700,8 @@ def send_daily_statistic(self, schemas):
                 for num, key in enumerate(result[0], 1):
                     if result[0][key]:
                         driver_msg = "{} {}\nКаса: {:.2f} (+{:.2f})\nХолостий пробіг: {:.2f}км (+{:.2f})\n\n".format(
-                            key, schema_obj.title, result[0][key], result[1].get(key, 0), result[2].get(key, 0), result[3].get(key, 0))
+                            key, schema_obj.title, result[0][key], result[1].get(key, 0), result[2].get(key, 0),
+                            result[3].get(key, 0))
                         driver_dict_msg[key.pk] = driver_msg
                         message += f"{num}.{driver_msg}"
                 if schema_obj.partner.pk in dict_msg:
@@ -1182,7 +1184,9 @@ def calculate_driver_reports(self, schemas, day=None):
                 for shift in weekly_reshuffles:
                     shift_bolt_kasa = calculate_bolt_kasa(driver, shift.swap_time, shift.end_time,
                                                           vehicle=shift.swap_vehicle)[0]
-                    reshuffle_bonus = shift_bolt_kasa / (bolt_weekly['kasa'] - bolt_weekly['compensations'] - bolt_weekly['bonuses']) * bolt_weekly['bonuses']
+                    reshuffle_bonus = shift_bolt_kasa / (
+                                bolt_weekly['kasa'] - bolt_weekly['compensations'] - bolt_weekly['bonuses']) * \
+                                      bolt_weekly['bonuses']
                     if not vehicle_bonus.get(shift.swap_vehicle):
                         vehicle_bonus[shift.swap_vehicle] = reshuffle_bonus
                     else:
@@ -1222,7 +1226,8 @@ def create_daily_payment(self, **kwargs):
         driver = payment.driver
         start = timezone.make_aware(datetime.combine(payment.report_to, time.min))
         end = payment.report_to
-    fleets = Fleet.objects.filter(fleetsdriversvehiclesrate__driver=driver, deleted_at=None)
+    fleets = Fleet.objects.filter(fleetsdriversvehiclesrate__driver=driver, deleted_at=None).exclude(
+        name="NinjaFleet")
     for fleet in fleets:
         driver_ids = Driver.objects.get_active(fleetsdriversvehiclesrate__fleet=fleet, id=driver.id).values_list(
             'fleetsdriversvehiclesrate__driver_external_id', flat=True)
@@ -1287,7 +1292,8 @@ def calculate_vehicle_earnings(self, payment_pk):
     for vehicle, income in vehicles_income.items():
         vehicle_bonus = Penalty.objects.filter(vehicle=vehicle, driver_payments=payment).aggregate(
             total_amount=Coalesce(Sum('amount'), Decimal(0)))['total_amount']
-        vehicle_penalty = Bonus.objects.filter(vehicle=vehicle, driver_payments=payment).exclude(category__title="Бонуси Bolt").aggregate(
+        vehicle_penalty = \
+        Bonus.objects.filter(vehicle=vehicle, driver_payments=payment).exclude(category__title="Бонуси Bolt").aggregate(
             total_amount=Coalesce(Sum('amount'), Decimal(0)))['total_amount']
         earning = income + vehicle_bonus - vehicle_penalty
         PartnerEarnings.objects.update_or_create(
@@ -1467,10 +1473,9 @@ def update_schedule(self):
         create_task('download_nightly_report', schema.partner.pk, get_schedule(time(4, 45)))
         create_task('get_information_from_fleets', schema.partner.pk, schedule, schema.pk)
 
-
 # @app.on_after_finalize.connect
 # def run_periodic_tasks(sender, **kwargs):
-    # sender.add_periodic_task(crontab(minute="*/2"), send_time_order.s())
-    # sender.add_periodic_task(crontab(minute='*/20'), raw_gps_handler.s(queue='beat_tasks_1'))
-    # sender.add_periodic_task(crontab(minute="*/2"), order_not_accepted.s())
-    # sender.add_periodic_task(crontab(minute="*/4"), check_personal_orders.s())
+# sender.add_periodic_task(crontab(minute="*/2"), send_time_order.s())
+# sender.add_periodic_task(crontab(minute='*/20'), raw_gps_handler.s(queue='beat_tasks_1'))
+# sender.add_periodic_task(crontab(minute="*/2"), order_not_accepted.s())
+# sender.add_periodic_task(crontab(minute="*/4"), check_personal_orders.s())
