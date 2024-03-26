@@ -2,14 +2,11 @@
 {% load i18n %}
 <form method="post" id="modal-add-bonus" action="add-bonus" novalidate>
   {% csrf_token %}
-  <div class="title-add-bonus">
+  <div class="title-form">
     <h2>{% trans "Додавання бонуса" %}</h2>
     <span class="modal-payments-date"></span>
     <span class="shift-close-btn">
-      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28" fill="none">
-        <path d="M26.5 2L14.25 14.25M2 26.5L14.25 14.25M14.25 14.25L2 2L26.5 26.5" stroke="white" stroke-width="3"
-              stroke-linejoin="round"/>
-      </svg>
+      <i class="fas fa-times"></i>
     </span>
   </div>
   <div class="bonus-payments">

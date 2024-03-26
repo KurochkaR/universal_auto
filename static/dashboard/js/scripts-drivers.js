@@ -6,16 +6,13 @@ $(document).ready(function () {
 		success: function(data) {
 			data.forEach(function(driver) {
 				var driverItem = $('<div class="driver-item"></div>');
-        var driverInfo = $('<div class="driver-info" data-id="' + driver.id + '"></div>');
 
-				driverInfo.append('<div class="driver-name-info"><p>' + driver.full_name + '</p></div>');
-				driverInfo.append('<div class="driver-phone"><p>' + driver.phone_number + '</p></div>');
-				driverInfo.append('<div class="driver-chat-id"><p>' + driver.chat_id + '</p></div>');
-				driverInfo.append('<div class="driver-schedule"><p>' + driver.driver_schema + '</p></div>');
-				driverInfo.append('<div class="driver-status"><p>' + driver.driver_status + '</p></div>');
-				driverInfo.append('<div class="driver-car"><p>' + driver.vehicle + '</p></div>');
-
-				driverItem.append(driverInfo);
+				driverItem.append('<div class="driver-name-info" data-id="' + driver.id + '"><p>' + driver.full_name + '</p></div>');
+				driverItem.append('<div class="driver-phone"><p>' + driver.phone_number + '</p></div>');
+				driverItem.append('<div class="driver-chat-id"><p>' + driver.chat_id + '</p></div>');
+				driverItem.append('<div class="driver-schedule"><p>' + driver.driver_schema + '</p></div>');
+				driverItem.append('<div class="driver-status"><p>' + driver.driver_status + '</p></div>');
+				driverItem.append('<div class="driver-car"><p>' + driver.vehicle + '</p></div>');
 
 				$('.drivers-list').append(driverItem);
 			});
@@ -23,7 +20,7 @@ $(document).ready(function () {
 	});
 
 	$(this).on('click', '.driver-name-info', function() {
-		var driverId = $(this).parent().data('id');
+		var driverId = $(this).data('id');
 		window.location.href = "/dashboard/driver/" + driverId;
 	});
 });

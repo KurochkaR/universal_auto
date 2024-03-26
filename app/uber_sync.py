@@ -124,14 +124,8 @@ class UberRequest(Fleet, Synchronizer):
                             })
         return drivers
 
-    def generate_report(self, start, end, schema=None, driver=None):
-        results = []
-        if schema:
-            driver_ids = Driver.objects.get_active(schema=schema, fleetsdriversvehiclesrate__fleet=self).values_list(
-                'fleetsdriversvehiclesrate__driver_external_id', flat=True)
-        else:
-            driver_ids = Driver.objects.get_active(fleetsdriversvehiclesrate__fleet=self).values_list(
-                'fleetsdriversvehiclesrate__driver_external_id', flat=True)
+    def generate_report(self, start, end, driver_ids=None, driver=None):
+        results = {}
         format_start = self.report_interval(start) * 1000
         format_end = self.report_interval(end) * 1000
         driver_ids = list(driver_ids) if not driver else driver.get_driver_external_id(self)
@@ -203,32 +197,31 @@ class UberRequest(Fleet, Synchronizer):
         }
         return payment
 
-    def custom_saving_report(self, start, end, model, schema=None):
-        reports = self.generate_report(start, end, schema)
+    def custom_saving_report(self, start, end, model, driver_ids):
+        reports = self.generate_report(start, end, driver_ids)
         uber_reports = []
         for report in reports:
             if report['totalEarnings']:
                 payment = self.parse_json_report(start, end, report)
-                db_report, created = model.objects.get_or_create(report_from=start,
-                                                                 driver=payment['driver'],
-                                                                 fleet=self,
-                                                                 partner=self.partner,
-                                                                 defaults=payment)
-                if not created:
-                    for key, value in payment.items():
-                        setattr(db_report, key, value)
-                    db_report.save()
+                db_report, _ = model.objects.update_or_create(report_from=start,
+                                                              driver=payment['driver'],
+                                                              fleet=self,
+                                                              partner=self.partner,
+                                                              defaults=payment)
                 uber_reports.append(db_report)
         return uber_reports
 
-    def save_custom_report(self, start, end, schema):
-        return self.custom_saving_report(start, end, CustomReport, schema=schema)
+    def save_custom_report(self, start, end, driver_ids):
+        return self.custom_saving_report(start, end, CustomReport, driver_ids)
 
-    def save_weekly_report(self, start, end):
-        return self.custom_saving_report(start, end, WeeklyReport)
+    def save_daily_custom(self, start, end, driver_ids):
+        return self.custom_saving_report(start, end, CustomReport, driver_ids)
 
-    def save_daily_report(self, start, end):
-        return self.custom_saving_report(start, end, DailyReport)
+    def save_weekly_report(self, start, end, driver_ids):
+        return self.custom_saving_report(start, end, WeeklyReport, driver_ids)
+
+    def save_daily_report(self, start, end, driver_ids):
+        return self.custom_saving_report(start, end, DailyReport, driver_ids)
 
     def get_earnings_per_driver(self, driver, start_time, end_time):
         report = self.generate_report(start_time, end_time, driver=driver)
@@ -302,7 +295,13 @@ class UberRequest(Fleet, Synchronizer):
                     'vin_code': vehicle['vin']})
             return vehicles_list
 
-    def get_fleet_orders(self, start, end):
+    def get_fleet_orders(self, start, end, driver=None):
+        if driver:
+            uber_orders = FleetOrder.objects.filter(accepted_time__range=(start, end),
+                                                    driver=driver, fleet=self.name).count()
+            report = self.generate_report(start, end, driver=driver)
+            if not report or not report[0].get("totalTrips") or uber_orders == report[0].get("totalTrips"):
+                return
         uber_driver = SeleniumTools(self.partner.id)
         uber_driver.download_payments_order(start, end)
         uber_driver.save_trips_report(start, end)

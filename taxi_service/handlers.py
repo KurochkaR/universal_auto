@@ -1,10 +1,12 @@
 import json
+from datetime import datetime, time
 from decimal import Decimal
 
 from celery.result import AsyncResult
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.serializers.json import DjangoJSONEncoder
-from django.db.models import F, Q
+from django.db.models import F, Q, Sum
+from django.db.models.functions import Coalesce
 from django.http import JsonResponse, HttpResponse
 from django.forms.models import model_to_dict
 from django.contrib.auth import logout, authenticate
@@ -12,8 +14,14 @@ from django.shortcuts import render
 from django.template.loader import render_to_string
 from django.utils import timezone
 
+from app.bolt_sync import BoltRequest
 from app.models import SubscribeUsers, Manager, CustomUser, DriverPayments, Bonus, Penalty, Vehicle, PenaltyBonus, \
-    BonusCategory, PenaltyCategory, Driver, FleetsDriversVehiclesRate, PartnerEarnings
+    BonusCategory, PenaltyCategory, Driver, FleetsDriversVehiclesRate, CustomReport, Fleet, FleetOrder, DriverReshuffle, \
+    PaymentsStatus, PartnerEarnings
+from auto.utils import payment_24hours_create, summary_report_create
+from auto_bot.handlers.driver_manager.utils import calculate_bolt_kasa, create_driver_payments, \
+    check_correct_bolt_report
+from auto_bot.handlers.order.utils import check_vehicle
 from taxi_service.forms import MainOrderForm, CommentForm, BonusForm
 from taxi_service.utils import (update_order_sum_or_status, restart_order,
                                 partner_logout, login_in_investor,
@@ -21,7 +29,7 @@ from taxi_service.utils import (update_order_sum_or_status, restart_order,
                                 active_vehicles_gps, order_confirm,
                                 check_aggregators, add_shift, delete_shift, upd_shift)
 
-from auto.tasks import update_driver_data, get_session, fleets_cash_trips
+from auto.tasks import update_driver_data, get_session, fleets_cash_trips, create_daily_payment, get_rent_information
 
 
 class PostRequestHandler:
@@ -85,9 +93,8 @@ class PostRequestHandler:
         task = get_session.apply_async(args=[request.user.pk, aggregator, login, password],
                                        queue=f'beat_tasks_{request.user.pk}')
         json_data = JsonResponse({'task_id': task.id}, safe=False)
-        response = HttpResponse(json_data, content_type='application/json')
 
-        return response
+        return json_data
 
     @staticmethod
     def handler_handler_logout(request):
@@ -164,8 +171,7 @@ class PostRequestHandler:
             partner = manager.managers_partner.pk
         upd = update_driver_data.apply_async(args=[partner], queue=f'beat_tasks_{partner}')
         json_data = JsonResponse({'task_id': upd.id}, safe=False)
-        response = HttpResponse(json_data, content_type='application/json')
-        return response
+        return json_data
 
     @staticmethod
     def handler_free_access(request):
@@ -410,6 +416,95 @@ class PostRequestHandler:
         return JsonResponse({'data': 'success', 'cash_rate': driver.cash_rate})
 
     @staticmethod
+    def handler_get_driver_payment_list(request):
+        driver_filter = {"manager": request.user.pk, "schema__isnull": False} if request.user.is_manager() \
+            else {"partner": request.user.pk, "schema__isnull": False}
+        reshuffles = DriverReshuffle.objects.filter(
+            swap_time__date=timezone.localtime()).values_list("driver_start", flat=True)
+        drivers = Driver.objects.get_active(**driver_filter)
+        driver_info = [{'id': driver.id, 'name': f"{driver.second_name} {driver.name}"}
+                       for driver in drivers if not driver.schema.is_weekly() and driver.id in reshuffles]
+        return JsonResponse({'drivers': driver_info})
+
+    @staticmethod
+    def handler_create_new_payment(request):
+        partner_pk = request.user.manager.managers_partner.pk if request.user.is_manager() else request.user.pk
+        driver_id = request.POST.get('driver_id')
+        if not driver_id:
+            driver_id = DriverPayments.objects.get(pk=request.POST.get('payment_id')).driver_id
+        if Driver.objects.get(pk=int(driver_id)).driver_status == Driver.WITH_CLIENT:
+            json_data = JsonResponse({'error': 'Водій виконує замовлення, спробуйте пізніше'}, status=400)
+        else:
+            create_payment = create_daily_payment.apply_async(kwargs={"driver_pk": driver_id},
+                                                              queue=f'beat_tasks_{partner_pk}')
+            json_data = JsonResponse({'task_id': create_payment.id}, safe=False)
+        return json_data
+
+    @staticmethod
+    def handler_incorrect_payment(request):
+        partner_pk = request.user.manager.managers_partner.pk if request.user.is_manager() else request.user.pk
+        data = request.POST
+        create_payment = create_daily_payment.apply_async(kwargs={"payment_id": int(data['payment_id'])},
+                                                          queue=f'beat_tasks_{partner_pk}')
+        json_data = JsonResponse({'task_id': create_payment.id}, safe=False)
+        return json_data
+
+    @staticmethod
+    def handler_correction_bolt(request):
+        partner_pk = request.user.manager.managers_partner.pk if request.user.is_manager() else request.user.pk
+        data = request.POST
+        payment = DriverPayments.objects.get(pk=int(data['payment_id']))
+        start = timezone.make_aware(datetime.combine(payment.report_to, time.min))
+        fleet = Fleet.objects.filter(name="Bolt", partner=partner_pk).first()
+        no_price = FleetOrder.objects.filter(price=0, state=FleetOrder.COMPLETED, fleet="Bolt",
+                                             driver=payment.driver, accepted_time__range=(start, payment.report_to))
+        if no_price.exists():
+            json_data = JsonResponse({'error': "Вибачте, не всі замовлення розраховані агрегатором, спробуйте пізніше"},
+                                     status=400)
+        else:
+            bolt_order_kasa = calculate_bolt_kasa(payment.driver, start, payment.report_to)[1]
+            custom_data = {
+                "report_from": start,
+                "report_to": payment.report_to,
+                "fleet": fleet,
+                "driver": payment.driver,
+                "total_amount_cash": Decimal(data['bolt_cash']),
+                "total_amount": bolt_order_kasa['total_price'],
+                "tips": bolt_order_kasa['total_tips'],
+                "partner_id": partner_pk,
+                "bonuses": 0,
+                "cancels": 0,
+                "fee": -(bolt_order_kasa['total_price'] - Decimal(data['bolt_kasa'])),
+                "total_amount_without_fee": Decimal(data['bolt_kasa']),
+                "compensations": 0,
+                "refunds": 0,
+                "total_rides": bolt_order_kasa['total_count'],
+                "vehicle": check_vehicle(payment.driver, payment.report_to)
+            }
+            custom, created = CustomReport.objects.get_or_create(driver=payment.driver,
+                                                                 report_to__date=payment.report_to,
+                                                                 fleet__name="Bolt",
+                                                                 defaults=custom_data)
+            if not created:
+                custom.total_amount_without_fee = Decimal(data['bolt_kasa']) - custom.bonuses
+                custom.total_amount_cash = Decimal(data['bolt_cash'])
+                custom.report_to = payment.report_to
+                custom.save()
+            status = check_correct_bolt_report(start, payment.report_to, payment.driver)
+            if status == PaymentsStatus.INCORRECT:
+                json_data = JsonResponse({'error': "Вибачте, сума замовлень не співпадає з наданою сумою"}, status=400)
+            else:
+                payment_24hours_create(payment.report_from, payment.report_to, fleet, payment.driver, partner_pk)
+                summary_report_create(payment.report_from, payment.report_to, payment.driver, payment.partner)
+                payment_data = create_driver_payments(start, timezone.localtime(payment.report_to), payment.driver,
+                                                      payment.driver.schema)[0]
+                for key, value in payment_data.items():
+                    setattr(payment, key, value)
+                    payment.save()
+                json_data = JsonResponse({'success': data})
+        return json_data
+
+    @staticmethod
     def handler_debt_repayment(request):
         penalty_id = request.POST.get('penalty_id')
         debt_repayment = request.POST.get('debt_repayment')
@@ -468,9 +563,10 @@ class GetRequestHandler:
     @staticmethod
     def handle_check_task(request):
         upd = AsyncResult(request.GET.get('task_id'))
-        answer = upd.get()[1] if upd.ready() else 'in progress'
-        json_data = JsonResponse({'data': answer}, safe=False)
-        response = HttpResponse(json_data, content_type='application/json')
+        if upd.status == "SUCCESS":
+            response = JsonResponse({'data': upd.status, 'result': upd.result}, safe=False)
+        else:
+            response = JsonResponse({'data': upd.status}, safe=False)
         return response
 
     @staticmethod
@@ -493,7 +589,7 @@ class GetRequestHandler:
                 "data": "За водієм не закріплено жодного автомобіля! Для додавання бонусу або штрафу створіть зміну водію!"},
                 status=404)
 
-        form_html = render_to_string('dashboard/_bonus-penalty-form.html', {'bonus_form': bonus_form})
+        form_html = render_to_string('dashboard/forms/_bonus-penalty-form.html', {'bonus_form': bonus_form})
 
         return JsonResponse({"data": form_html})
 

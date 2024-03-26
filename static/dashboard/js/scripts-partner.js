@@ -329,13 +329,13 @@ function fetchSummaryReportData(period, start, end) {
 			} else {
 				$('.weekly-income-dates').text(gettext('З ') + startDate + ' ' + gettext('по') + ' ' + endDate);
 			}
-			$('.weekly-income-rent').text(totalDistance);
-			$('.weekly-income-amount').text(data[0]["kasa"]);
-			$('.not-closed-payments').text(data[0]["total_payment"]);
-			$('.weekly-spending-driver').text(data[0]["total_driver_spending"]);
-			$('.weekly-spending-vehicle').text(data[0]["total_vehicle_spending"]);
-			$('.rent-earning').text(data[0]["rent_earnings"]);
-			$('.unpaid-rent').text(data[0]["total_distance"]);
+			$('.weekly-income-rent').text(totalDistance + "км");
+			$('.weekly-income-amount').text(data[0]["kasa"] + "₴");
+			$('.not-closed-payments').text(data[0]["total_payment"] + "₴");
+			$('.weekly-spending-driver').text(data[0]["total_driver_spending"] + "₴");
+			$('.weekly-spending-vehicle').text(data[0]["total_vehicle_spending"] + "₴");
+			$('.rent-earning').text(data[0]["rent_earnings"] + "₴");
+			$('.unpaid-rent').text(data[0]["total_distance"] + "км");
 
 			const driversWithPayments = data[0]['drivers'].filter(driver => driver.payment_amount !== null);
 			const table = $('.driver-table');
@@ -438,9 +438,9 @@ function fetchCarEfficiencyData(period, vehicleId, vehicle_lc, start, end) {
 				$('.car-select').css('display', 'none');
 			}
 
-			$('.weekly-clean-amount').text(data["earning"].toFixed(2));
-			$('.income-km').text(data["total_mileage"].toFixed(2));
-			$('.income-efficiency').text(data["average_efficiency"].toFixed(2));
+			$('.weekly-clean-amount').text(data["earning"].toFixed(2) + "₴");
+			$('.income-km').text(data["total_mileage"].toFixed(2) + "км");
+			$('.income-efficiency').text(data["average_efficiency"].toFixed(2) + "грн/км");
 		},
 		error: function (error) {
 			console.error(error);
@@ -449,31 +449,6 @@ function fetchCarEfficiencyData(period, vehicleId, vehicle_lc, start, end) {
 }
 
 $(document).ready(function () {
-
-	$(".sidebar-list-item.admin").on("click", function () {
-
-		let adminPanelURL = $(this).data("url");
-
-		if (adminPanelURL) {
-			window.open(adminPanelURL, "_blank");
-		}
-	});
-
-	$("#logout-dashboard").click(function () {
-		$.ajax({
-			type: "POST",
-			url: ajaxPostUrl,
-			data: {
-				csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val(),
-				action: "logout_invest",
-			},
-			success: function (response) {
-				if (response.logged_out === true) {
-					window.location.href = "/";
-				}
-			}
-		});
-	});
 
 	function initializeCustomSelect(customSelect, selectedOption, optionsList, iconDown, datePicker, vehicleId, vehicle_lc) {
 		iconDown.click(function () {

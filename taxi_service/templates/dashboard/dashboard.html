@@ -53,7 +53,7 @@
       <div class="card">
         {% if partner_group %}
           <div class="title-card">
-            <h2>{% trans 'Дохід ' %}<i class="fas fa-hryvnia"></i></h2>
+            <h2>{% trans 'Дохід &#128184;' %}</h2>
           </div>
           <div class="custom-dropdown-card">
             <h3>{% trans 'Загальний' %}</h3>
@@ -68,8 +68,7 @@
             <span class="rent-earning"></span>
           </div>
           <div class="custom-dropdown-card">
-            <h3 class="not-closed">{% trans 'Не закриті виплати' %}<i class="fas fa-eye" style="margin-left: 10px;"></i>
-            </h3>
+            <h3 class="not-closed">{% trans 'Не закриті виплати &#128064;' %}</h3>
             <span class="not-closed-payments"></span>
           </div>
         {% else %}
@@ -82,7 +81,7 @@
       <div class="card">
         {% if partner_group %}
           <div class="title-card">
-            <h2>{% trans 'Витрати ' %}<i class="fas fa-hryvnia"></i></h2>
+            <h2>{% trans 'Витрати  &#128184;' %}</h2>
           </div>
           <div class="custom-dropdown-card">
             <h3>{% trans 'Витрати водія' %}</h3>
@@ -96,7 +95,7 @@
       </div>
       <div class="card">
         <div class="title-card">
-          <h2>{% trans 'Пробіг, км' %}</h2>
+          <h2>{% trans 'Пробіг' %}</h2>
         </div>
         <div class="custom-dropdown-card">
           <h3>{% trans 'Холостий' %}</h3>
@@ -113,7 +112,7 @@
       </div>
       <div class="card">
         <div class="title-card">
-          <h2>{% trans 'Ефективність, грн/км' %}</h2>
+          <h2>{% trans 'Ефективність' %}</h2>
         </div>
         <div class="custom-dropdown-card">
           <h3>{% trans 'Середня ефективність автомобілів' %}</h3>
@@ -200,6 +199,8 @@
     </div>
   </div>
   {% include 'dashboard/_confirmation-update-database.html' %}
+  {% include 'dashboard/forms/_password-change-form.html' %}
+  {% include 'dashboard/forms/_aggregator-form.html' %}
 </main>
 <!-- End Main Manager-->
 </div>
