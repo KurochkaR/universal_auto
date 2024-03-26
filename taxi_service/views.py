@@ -58,6 +58,7 @@ class PostRequestView(View):
             "switch_cash": handler.handler_switch_cash,
             "switch_auto_cash": handler.handler_switch_auto_cash,
             "change_cash_percent": handler.handler_change_cash_percent,
+            "debt_repayment": handler.handler_debt_repayment
         }
 
         if action in method:

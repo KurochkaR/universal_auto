@@ -10,9 +10,10 @@ from django.forms.models import model_to_dict
 from django.contrib.auth import logout, authenticate
 from django.shortcuts import render
 from django.template.loader import render_to_string
+from django.utils import timezone
 
 from app.models import SubscribeUsers, Manager, CustomUser, DriverPayments, Bonus, Penalty, Vehicle, PenaltyBonus, \
-    BonusCategory, PenaltyCategory, Driver, FleetsDriversVehiclesRate
+    BonusCategory, PenaltyCategory, Driver, FleetsDriversVehiclesRate, PartnerEarnings
 from taxi_service.forms import MainOrderForm, CommentForm, BonusForm
 from taxi_service.utils import (update_order_sum_or_status, restart_order,
                                 partner_logout, login_in_investor,
@@ -407,6 +408,32 @@ class PostRequestHandler:
         driver.save(update_fields=['cash_rate'])
 
         return JsonResponse({'data': 'success', 'cash_rate': driver.cash_rate})
+
+    @staticmethod
+    def handler_debt_repayment(request):
+        penalty_id = request.POST.get('penalty_id')
+        debt_repayment = request.POST.get('debt_repayment')
+        penalty = Penalty.objects.get(pk=penalty_id)
+        partner_pk = request.user.manager.managers_partner.pk if request.user.is_manager() else request.user.pk
+
+        if not Decimal(debt_repayment):
+            return JsonResponse({'data': 'success'})
+
+        PartnerEarnings.objects.create(
+            partner_id=partner_pk,
+            earning=Decimal(debt_repayment),
+            driver=penalty.driver,
+            vehicle=penalty.vehicle,
+            report_from=timezone.localtime(),
+            report_to=timezone.localtime()
+        )
+
+        if penalty.amount == Decimal(debt_repayment):
+            penalty.delete()
+        else:
+            penalty.amount -= Decimal(debt_repayment)
+            penalty.save(update_fields=['amount'])
+        return JsonResponse({'data': 'success'})
 
     @staticmethod
     def handle_unknown_action():

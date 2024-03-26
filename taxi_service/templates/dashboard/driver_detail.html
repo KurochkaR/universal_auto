@@ -236,11 +236,12 @@
               <div class="btns">
                 <div class="debt-repayment">
                   <button class="debt-repayment-btn">Погасити</button>
-                  <div class="debt-repayment-input-container">
-                    <input type="text" class="debt-repayment-input" value="{{ penalty.amount }}">
-                    <i class="fa fa-check check-icon" aria-hidden="true"></i>
-                  </div>
                 </div>
+                <div class="debt-repayment-input-container">
+                  <input type="text" class="debt-repayment-input" value="{{ penalty.amount }}">
+                  <i class="fa fa-check check-icon" aria-hidden="true"></i>
+                </div>
+                {% comment %}{% endcomment %}
                 <button class="edit-penalty-btn" data-id="{{ penalty.id }}">
                   <svg width="30" height="27" viewBox="0 0 31 28" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <g clip-path="url(#clip0_1230_9247)">
