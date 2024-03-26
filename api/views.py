@@ -38,7 +38,12 @@ class SummaryReportListView(CombinedPermissionsMixin, generics.ListAPIView):
         start, end, format_start, format_end = get_start_end(self.kwargs['period'])
         queryset = ManagerFilterMixin.get_queryset(CustomReport, self.request.user).select_related('driver__user_ptr')
         filtered_qs = queryset.filter(report_from__range=(start, end))
-        kasa = filtered_qs.aggregate(kasa=Coalesce(Sum('total_amount_without_fee'), Decimal(0)))['kasa']
+        kasa_bonus = filtered_qs.aggregate(
+            kasa=Coalesce(Sum('total_amount_without_fee'), Decimal(0)),
+            bonus=Coalesce(Sum('bonuses'), Decimal(0))
+        )
+
+        kasa = kasa_bonus['kasa'] + kasa_bonus['bonus']
 
         rent_amount_subquery = RentInformation.objects.filter(
             report_from__range=(start, end)
@@ -161,13 +166,6 @@ class CarEfficiencyListView(CombinedPermissionsMixin, generics.ListAPIView):
             partner=self.request.user,
             report_from__range=(start, end)
         ).aggregate(earning=Coalesce(Sum('earning'), Decimal(0)))['earning']
-
-        efficient_vehicles = Vehicle.objects.filter(
-            Q(carefficiency__report_from__gte=start),
-            Q(carefficiency__report_from__lte=end),
-            Q(carefficiency__vehicle_id=F('id')),
-            Q(partner=self.request.user)
-        ).distinct()
 
         return filtered_qs, earning
 

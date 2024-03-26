@@ -207,9 +207,13 @@ def polymorphic_efficiency_create(create_model, partner_pk, driver, start, end, 
 
 
 def calendar_weekly_report(partner_pk, start_date, end_date, format_start, format_end):
-    total_earnings = \
+    earnings_bonus = \
         CustomReport.objects.filter(report_from__range=(start_date, end_date), partner=partner_pk).aggregate(
-            kasa=Coalesce(Sum('total_amount_without_fee'), Decimal(0)))['kasa']
+            kasa=Coalesce(Sum('total_amount_without_fee'), Decimal(0)),
+            bonus=Coalesce(Sum('bonuses'), Decimal(0))
+        )
+
+    total_earnings = earnings_bonus['kasa'] + earnings_bonus['bonus']
 
     vehicles_count = Vehicle.objects.get_active(partner=partner_pk).count()
     maximum_working_time = (24 * 7 * vehicles_count) * 3600
