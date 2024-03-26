@@ -9,7 +9,7 @@
       <h2 class="income-drivers-date"></h2>
     </div>
     <div class="filter">
-      <label for="period">{% trans 'Виберіть період:' %}</label>
+      <label for="period">{% trans 'Оберіть період:' %}</label>
       <div class="custom-select-drivers" id="period">
         <span class="selected-option-drivers" data-value="yesterday">{% trans 'Вчора' %}</span>
         <i class="fas fa-angle-down"></i>
@@ -71,6 +71,8 @@
     </div>
   </div>
   <div class="driver-container"></div>
+  {% include 'dashboard/forms/_password-change-form.html' %}
+  {% include 'dashboard/forms/_aggregator-form.html' %}
   {% include 'dashboard/_confirmation-update-database.html' %}
 {% endblock %}
 

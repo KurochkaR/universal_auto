@@ -497,7 +497,7 @@ class DriverPaymentsListView(CombinedPermissionsMixin, generics.ListAPIView):
         period = self.kwargs.get('period')
 
         if not period:
-            queryset = qs.filter(status__in=[PaymentsStatus.CHECKING, PaymentsStatus.PENDING])
+            queryset = qs.filter(status__in=[PaymentsStatus.CHECKING, PaymentsStatus.INCORRECT, PaymentsStatus.PENDING])
         else:
             start, end, format_start, format_end = get_start_end(period)
             queryset = qs.filter(report_to__range=(start, end),

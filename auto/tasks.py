@@ -20,7 +20,8 @@ from app.models import (RawGPS, Vehicle, Order, Driver, JobApplication, ParkSett
                         InvestorPayments, VehicleSpending, DriverReshuffle, DriverPayments,
                         TaskScheduler, DriverEffVehicleKasa, Schema, CustomReport, Fleet,
                         VehicleGPS, PartnerEarnings, Investor, Bonus, Penalty, PaymentsStatus,
-                        FleetsDriversVehiclesRate, DriverEfficiencyFleet, WeeklyReport, SalaryCalculation, Category)
+                        FleetsDriversVehiclesRate, DriverEfficiencyFleet, WeeklyReport, SalaryCalculation, Category,
+                        PenaltyCategory)
 from django.db.models import Sum, IntegerField, FloatField, DecimalField, Q
 from django.db.models.functions import Cast, Coalesce
 from app.utils import get_schedule, create_task
@@ -132,26 +133,16 @@ def auto_send_task_bot(self):
     requests.post(webhook_url, json=message_data)
 
 
-@app.task(bind=True, ignore_result=False, retry_backoff=30, max_retries=3)
+@app.task(bind=True, ignore_result=False)
 def get_session(self, partner_pk, aggregator='Uber', login=None, password=None):
     try:
         fleet = Fleet.objects.get(name=aggregator, partner=partner_pk, deleted_at__isnull=False)
     except ObjectDoesNotExist:
         fleet = Fleet.objects.get(name=aggregator, partner=None)
-    try:
-        token = fleet.create_session(partner_pk, password, login)
-        if token:
-            success = login_in(aggregator=aggregator, partner_id=partner_pk,
-                               login_name=login, password=password, token=token)
-            return partner_pk, success
-    except AuthenticationError as e:
-        logger.error(e)
-        success = False
-        return partner_pk, success
-    except Exception as e:
-        logger.error(e)
-        retry_delay = retry_logic(e, self.request.retries + 1)
-        raise self.retry(exc=e, countdown=retry_delay)
+    token = fleet.create_session(partner_pk, password, login)
+    if token:
+        login_in(aggregator=aggregator, partner_id=partner_pk,
+                 login_name=login, password=password, token=token)
 
 
 @app.task(bind=True, queue='bot_tasks')
@@ -211,15 +202,18 @@ def get_today_orders(self, partner_pk):
 
 
 @app.task(bind=True, retry_backoff=30, max_retries=3)
-def add_distance_for_order(self, partner_pk, day=None):
+def add_distance_for_order(self, partner_pk, day=None, driver=None):
     gps_query = UaGpsSynchronizer.objects.filter(partner=partner_pk)
     end = timezone.make_aware(datetime.strptime(day, "%Y-%m-%d")) if day else timezone.localtime()
     start = end - timedelta(days=1)
+    filter_query = Q(partner=partner_pk, vehicle__isnull=False,
+                     state=FleetOrder.COMPLETED, distance__isnull=True, finish_time__isnull=False,
+                     vehicle__gps__isnull=False, date_order__range=(start, end))
+
     if gps_query.exists():
-        orders = FleetOrder.objects.filter(partner=partner_pk, vehicle__isnull=False,
-                                           state=FleetOrder.COMPLETED,
-                                           distance__isnull=True, finish_time__isnull=False,
-                                           vehicle__gps__isnull=False, date_order__range=(start, end))
+        if driver:
+            filter_query &= Q(driver=driver)
+        orders = FleetOrder.objects.filter(filter_query)
         gps = gps_query.first()
         gps.get_order_distance(orders)
 
@@ -231,14 +225,20 @@ def check_card_cash_value(self, partner_pk):
         yesterday = timezone.make_aware(datetime.combine(today, time.min)) - timedelta(days=1)
         start_week = timezone.make_aware(datetime.combine(today, time.min)) - timedelta(days=today.weekday())
         for driver in Driver.objects.get_active(partner=partner_pk, schema__isnull=False, cash_control=True):
-            start = start_week if driver.schema.is_weekly() else get_time_for_task(driver.schema_id)[2]
+            if driver.schema.is_weekly():
+                start = start_week
+            else:
+                start_time = get_time_for_task(driver.schema_id)[2]
+                today_start = timezone.make_aware(datetime.combine(timezone.localtime(), driver.schema.shift_time))
+                start = today_start if timezone.localtime() > today_start  else start_time
             rent = calculate_rent(start_week, today, driver) if driver.schema.is_weekly() else (
                 calculate_rent(yesterday, today, driver))
+            penalties = driver.get_penalties()
             rent_payment = rent * driver.schema.rent_price
-            kasa, card = get_today_statistic(partner_pk, start, today, driver)[:2]
+            kasa, card = get_today_statistic(start, today, driver)[:2]
             if kasa > driver.schema.cash:
-                ratio = (card - rent_payment) / kasa
-                without_rent = card / kasa
+                ratio = (card - rent_payment - penalties) / kasa
+                without_rent = (card - penalties) / kasa
                 rate = driver.cash_rate if driver.cash_rate else driver.schema.rate
                 enable = int(ratio > (1 - rate))
                 rent_enable = int(without_rent > (1 - rate))
@@ -251,14 +251,14 @@ def check_card_cash_value(self, partner_pk):
                         result = fleet.disable_cash(driver_rate.driver_external_id, enable)
                         disabled.append(result)
                 if disabled:
+                    calc_text = f"Готівка {int(kasa - card)}"
+                    if penalties:
+                        calc_text += f" борг {int(penalties)}"
                     if rent_payment:
-                        calc_text = f"Готівка {int(kasa - card)} + холостий пробіг {int(rent_payment)}/{int(kasa)} =" \
-                                    f" {int((1 - ratio) * 100)}%\n"
-                    else:
-                        calc_text = f"Готівка {int(kasa - card)} /{int(kasa)} = {int((1 - ratio) * 100)}%\n"
+                        calc_text += f" холостий пробіг {int(rent_payment)}/{int(kasa)}"
+                    calc_text += f" = {int((1 - ratio) * 100)}%\n"
                     if enable:
                         text = f"\U0001F7E2 {driver} система увімкнула отримання замовлень за готівку.\n" + calc_text
-
                     elif rent_enable:
                         text = f"\U0001F534 {driver} системою вимкнено готівкові замовлення.\n" \
                                f"Причина: холостий пробіг\n" + calc_text + f", перепробіг {int(rent)} км\n"
@@ -311,11 +311,32 @@ def download_daily_report(self, schemas, day=None):
             start, end = get_time_for_task(schema, day)[:2]
             fleets = Fleet.objects.filter(partner=schema_obj.partner, deleted_at=None).exclude(name='Gps')
             for fleet in fleets:
-                fleet.save_custom_report(start, end, schema)
+                driver_ids = Driver.objects.get_active(
+                    schema=schema, fleetsdriversvehiclesrate__fleet=fleet).values_list(
+                    'fleetsdriversvehiclesrate__driver_external_id', flat=True)
+                fleet.save_daily_custom(start, end, driver_ids)
     except Exception as e:
         logger.error(e)
         retry_delay = retry_logic(e, self.request.retries + 1)
         raise self.retry(exc=e, countdown=retry_delay)
+
+
+@app.task(bind=True, retry_backoff=30, max_retries=4)
+def download_nightly_report(self, partner_pk, day=None):
+    try:
+        for schema in Schema.objects.filter(partner=partner_pk):
+            start, end = get_time_for_task(schema.pk, day)[2:]
+            fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name='Gps')
+            for fleet in fleets:
+                driver_ids = Driver.objects.get_active(
+                    schema=schema, fleetsdriversvehiclesrate__fleet=fleet).values_list(
+                    'fleetsdriversvehiclesrate__driver_external_id', flat=True)
+                fleet.save_custom_report(start, end, driver_ids)
+    except Exception as e:
+        logger.error(e)
+        retry_delay = retry_logic(e, self.request.retries + 1)
+        raise self.retry(exc=e, countdown=retry_delay)
+    # save_report_to_ninja_payment(start, end, partner_pk, schema)
 
 
 @app.task(bind=True, retry_backoff=30, max_retries=4)
@@ -326,7 +347,9 @@ def download_weekly_report(self, partner_pk):
         start = timezone.make_aware(datetime.combine(end - timedelta(days=6), time.min))
         fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name='Gps')
         for fleet in fleets:
-            fleet.save_weekly_report(start, end)
+            driver_ids = Driver.objects.get_active(fleetsdriversvehiclesrate__fleet=self).values_list(
+                'fleetsdriversvehiclesrate__driver_external_id', flat=True)
+            fleet.save_weekly_report(start, end, driver_ids)
         #     for report in reports:
         #         compare_reports(fleet, start, end, report.driver, report, CustomReport, partner_pk)
         # for driver in Driver.objects.get_active(partner=partner_pk):
@@ -365,31 +388,13 @@ def check_daily_report(self, partner_pk, start=None, end=None):
         raise self.retry(exc=e, countdown=retry_delay)
 
 
-@app.task(bind=True, retry_backoff=30, max_retries=4)
-def download_nightly_report(self, partner_pk, day=None):
-    try:
-        for schema in Schema.objects.filter(partner=partner_pk):
-            start, end = get_time_for_task(schema.pk, day)[2:]
-            fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name='Gps')
-            for fleet in fleets:
-                if isinstance(fleet, UberRequest):
-                    fleet.save_custom_report(start, end, schema)
-                else:
-                    fleet.save_custom_report(start, end, schema, custom=True)
-    except Exception as e:
-        logger.error(e)
-        retry_delay = retry_logic(e, self.request.retries + 1)
-        raise self.retry(exc=e, countdown=retry_delay)
-    # save_report_to_ninja_payment(start, end, partner_pk, schema)
-
-
 @app.task(bind=True)
 def generate_payments(self, schemas, day=None):
     for driver in Driver.objects.get_active(schema__in=schemas):
-        fleets = FleetsDriversVehiclesRate.objects.filter(
-            driver=driver, deleted_at=None).values_list("fleet", flat=True)
+        end, start_time = get_time_for_task(driver.schema.pk, day)[1:3]
+        start = timezone.make_aware(datetime.combine(start_time, time.max.replace(microsecond=0)))
+        fleets = Fleet.objects.filter(fleetsdriversvehiclesrate__driver=driver, deleted_at=None)
         for fleet in fleets:
-            end, start = get_time_for_task(driver.schema.pk, day)[1:3]
             payment_24hours_create(start, end, fleet, driver, driver.partner)
 
 
@@ -459,26 +464,28 @@ def get_car_efficiency(self, partner_pk, day=None):
 
 
 @app.task(bind=True)
-def get_driver_efficiency(self, schemas, day=None):
-    schema_obj = Schema.objects.filter(pk__in=schemas).first()
-    if Fleet.objects.filter(partner=schema_obj.partner, deleted_at=None, name="Gps").exists():
-        for driver in Driver.objects.get_active(schema__in=schemas):
-            end, start = get_time_for_task(driver.schema.id, day)[1:3]
+def get_driver_efficiency(self, partner_pk, day=None):
+    date = datetime.strptime(day, "%Y-%m-%d") if day else timezone.localtime()
+    start = timezone.make_aware(datetime.combine(date - timedelta(days=1), time.min))
+    end = timezone.make_aware(datetime.combine(start, time.max))
+    if Fleet.objects.filter(partner=partner_pk, deleted_at=None, name="Gps").exists():
+        for driver in Driver.objects.get_active(partner=partner_pk):
             polymorphic_efficiency_create(DriverEfficiency, driver.partner.pk, driver,
-                                          start, end, SummaryReport)
+                                          start, end, CustomReport)
 
 
 @app.task(bind=True)
-def get_driver_efficiency_fleet(self, schemas, day=None):
-    schema_obj = Schema.objects.filter(pk__in=schemas).first()
-    if Fleet.objects.filter(partner=schema_obj.partner, deleted_at=None, name="Gps").exists():
-        for driver in Driver.objects.get_active(schema__in=schemas):
-            end, start = get_time_for_task(driver.schema.id, day)[1:3]
+def get_driver_efficiency_fleet(self, partner_pk, day=None):
+    date = datetime.strptime(day, "%Y-%m-%d") if day else timezone.localtime()
+    start = timezone.make_aware(datetime.combine(date - timedelta(days=1), time.min))
+    end = timezone.make_aware(datetime.combine(start, time.max))
+    if Fleet.objects.filter(partner=partner_pk, deleted_at=None, name="Gps").exists():
+        for driver in Driver.objects.get_active(partner=partner_pk):
             fleets = FleetsDriversVehiclesRate.objects.filter(
                 driver=driver, deleted_at=None).values_list("fleet", flat=True)
             for fleet in fleets:
                 polymorphic_efficiency_create(DriverEfficiencyFleet, driver.partner.pk, driver,
-                                              start, end, Payments, fleet)
+                                              start, end, CustomReport, fleet)
 
 
 @app.task(bind=True)
@@ -525,15 +532,10 @@ def update_driver_status(self, partner_pk, photo=None):
 
 @app.task(bind=True, ignore_result=False)
 def update_driver_data(self, partner_pk, manager_id=None):
-    try:
-        fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None)
-        for synchronization_class in fleets:
-            synchronization_class.synchronize()
-        success = True
-    except Exception as e:
-        logger.error(e)
-        success = False
-    return manager_id, success
+    fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None)
+    for synchronization_class in fleets:
+        synchronization_class.synchronize()
+    return manager_id
 
 
 @app.task(bind=True, queue='bot_tasks', retry_backoff=30, max_retries=4)
@@ -582,14 +584,32 @@ def detaching_the_driver_from_the_car(self, partner_pk, licence_plate, eta):
 
 
 @app.task(bind=True, retry_backoff=30, max_retries=4)
-def get_rent_information(self, schemas, day=None):
+def get_rent_information(self, schemas=None, day=None, driver=None, payment=None):
     try:
-        for schema in schemas:
-            schema_obj = Schema.objects.get(pk=schema)
-            end, start = get_time_for_task(schema, day)[1:3]
-            gps = UaGpsSynchronizer.objects.get(partner=schema_obj.partner, deleted_at=None)
-            gps.save_daily_rent(start, end, schema)
-            logger.info('write rent report')
+        if driver:
+            drivers = Driver.objects.filter(pk=driver)
+            end = timezone.localtime()
+            start_schema = timezone.make_aware(datetime.combine(timezone.localtime() - timedelta(days=1),
+                                               drivers.first().schema.shift_time))
+            last_payment = DriverPayments.objects.filter(
+                driver=driver,
+                report_to__date=start_schema).order_by("-report_from").last()
+            if last_payment and last_payment.report_to > start_schema:
+                start = timezone.localtime(last_payment.report_to)
+            else:
+                start = start_schema
+        elif payment:
+            driver_payment = DriverPayments.objects.get(pk=payment)
+            drivers = Driver.objects.filter(pk=driver_payment.driver_id)
+            start = driver_payment.report_from
+            end = driver_payment.report_to
+        else:
+            schema_obj = Schema.objects.filter(pk__in=schemas).first()
+            end, start = get_time_for_task(schema_obj.pk, day)[1:3]
+            drivers = Driver.objects.get_active(schema__in=schemas)
+        gps = UaGpsSynchronizer.objects.get(partner=drivers.first().partner, deleted_at=None)
+        gps.save_daily_rent(start, end, drivers)
+        logger.info('write rent report')
     except ObjectDoesNotExist:
         return
     except Exception as e:
@@ -613,21 +633,14 @@ def get_today_rent(self, partner_pk):
 
 @app.task(bind=True, ignore_result=False, retry_backoff=30, max_retries=4)
 def fleets_cash_trips(self, partner_pk, pk, enable):
-    try:
-        driver = Driver.objects.get(pk=pk)
-        fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name='Gps')
+    driver = Driver.objects.get(pk=pk)
+    fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name='Gps')
 
-        for fleet in fleets:
-            driver_rate = FleetsDriversVehiclesRate.objects.filter(
-                driver=driver, fleet=fleet).first()
-            if driver_rate:
-                fleet.disable_cash(driver_rate.driver_external_id, enable)
-
-    except Exception as e:
-        logger.error(e)
-        retry_delay = retry_logic(e, self.request.retries + 1)
-        raise self.retry(exc=e, countdown=retry_delay)
-    return partner_pk, 'success'
+    for fleet in fleets:
+        driver_rate = FleetsDriversVehiclesRate.objects.filter(
+            driver=driver, fleet=fleet).first()
+        if driver_rate:
+            fleet.disable_cash(driver_rate.driver_external_id, enable)
 
 
 @app.task(bind=True, retry_backoff=30, max_retries=4)
@@ -680,9 +693,8 @@ def send_daily_statistic(self, schemas):
             if result:
                 for num, key in enumerate(result[0], 1):
                     if result[0][key]:
-                        driver_msg = "{} {}\nКаса: {:.2f} (+{:.2f})\n Оренда: {:.2f}км (+{:.2f})\n\n".format(
-                            key, schema_obj.title, result[0][key], result[1].get(key, 0), result[2].get(key, 0),
-                            result[3].get(key, 0))
+                        driver_msg = "{} {}\nКаса: {:.2f} (+{:.2f})\nХолостий пробіг: {:.2f}км (+{:.2f})\n\n".format(
+                            key, schema_obj.title, result[0][key], result[1].get(key, 0), result[2].get(key, 0), result[3].get(key, 0))
                         driver_dict_msg[key.pk] = driver_msg
                         message += f"{num}.{driver_msg}"
                 if schema_obj.partner.pk in dict_msg:
@@ -1135,78 +1147,100 @@ def save_report_to_ninja_payment(start, end, partner_pk, schema, fleet_name='Nin
 
 @app.task(bind=True)
 def calculate_driver_reports(self, schemas, day=None):
-    for schema in schemas:
-        schema_obj = Schema.objects.get(pk=schema)
-        today = datetime.combine(timezone.localtime(), time.max)
-        end_week = timezone.make_aware(datetime.combine(today - timedelta(days=today.weekday() + 1),
-                                                        time.max.replace(microsecond=0)))
-        start_week = timezone.make_aware(datetime.combine(end_week - timedelta(days=6), time.min))
-        if schema_obj.is_weekly():
+    today = datetime.combine(timezone.localtime(), time.max)
+    end_week = timezone.make_aware(datetime.combine(today - timedelta(days=today.weekday() + 1),
+                                                    time.max.replace(microsecond=0)))
+    start_week = timezone.make_aware(datetime.combine(end_week - timedelta(days=6), time.min))
+    for driver in Driver.objects.get_active(schema__in=schemas):
+        if driver.schema.is_weekly():
             if not today.weekday():
                 start = start_week
                 end = end_week
             else:
-                return
+                continue
         else:
-            end, start = get_time_for_task(schema, day)[1:3]
-        for driver in Driver.objects.get_active(schema=schema):
-            reshuffles = check_reshuffle(driver, start, end)
-            report_kasa = SummaryReport.objects.filter(driver=driver, report_from__range=(start, end)).aggregate(
-                kasa=Coalesce(Sum('total_amount_without_fee'), 0, output_field=DecimalField()))['kasa']
-            if reshuffles:
-                bolt_weekly = WeeklyReport.objects.filter(report_from=start_week, report_to=end_week,
-                                                          driver=driver, fleet__name="Bolt").aggregate(
-                    bonuses=Coalesce(Sum('bonuses'), 0, output_field=DecimalField()),
-                    kasa=Coalesce(Sum('total_amount_without_fee'), 0, output_field=DecimalField()),
-                    compensations=Coalesce(Sum('compensations'), 0, output_field=DecimalField()),
-                )
-                bonus = bolt_weekly['bonuses'] if schema_obj.is_weekly() and not today.weekday() else None
+            end, start = get_time_for_task(driver.schema_id, day)[1:3]
+        reshuffles = check_reshuffle(driver, start, end)
+        if reshuffles:
+            bolt_weekly = WeeklyReport.objects.filter(report_from=start_week, report_to=end_week,
+                                                      driver=driver, fleet__name="Bolt").aggregate(
+                bonuses=Coalesce(Sum('bonuses'), 0, output_field=DecimalField()),
+                kasa=Coalesce(Sum('total_amount_without_fee'), 0, output_field=DecimalField()),
+                compensations=Coalesce(Sum('compensations'), 0, output_field=DecimalField()),
+            )
+            bonus = bolt_weekly['bonuses'] if driver.schema.is_weekly() and not today.weekday() else None
 
-                data = create_driver_payments(start, end, driver, schema_obj, bonuses=bonus)
-                if all([not schema_obj.is_weekly(), not today.weekday(), bolt_weekly['bonuses']]):
-                    vehicle_bonus = {}
-                    weekly_reshuffles = check_reshuffle(driver, start_week, end_week)
-                    for shift in weekly_reshuffles:
-                        shift_bolt_kasa = calculate_bolt_kasa(driver, shift.swap_vehicle,
-                                                              shift.swap_time, shift.end_time)
-                        reshuffle_bonus = shift_bolt_kasa / (
-                                bolt_weekly['kasa'] - bolt_weekly['compensations'] - bolt_weekly['bonuses']) * \
-                                          bolt_weekly['bonuses']
-                        if not vehicle_bonus.get(shift.swap_vehicle):
-                            vehicle_bonus[shift.swap_vehicle] = reshuffle_bonus
-                        else:
-                            vehicle_bonus[shift.swap_vehicle] += reshuffle_bonus
-                    for car, bonus in vehicle_bonus.items():
-                        amount = bonus * driver.schema.rate
-                        vehicle_amount = bonus * (1 - driver.schema.rate)
-                        PartnerEarnings.objects.get_or_create(report_from=start_week,
-                                                              report_to=end_week,
-                                                              vehicle=car,
-                                                              partner=driver.partner,
-                                                              defaults={
-                                                                  "status": PaymentsStatus.COMPLETED,
-                                                                  "earning": vehicle_amount})
-                        bolt_category = Category.objects.get(title="Бонуси Bolt")
-                        Bonus.objects.create(driver=driver, vehicle=car, amount=amount, category=bolt_category)
-                payment, created = DriverPayments.objects.get_or_create(report_from=start,
-                                                                        report_to=end,
-                                                                        driver=driver,
-                                                                        defaults=data)
-                if created:
-                    Bonus.objects.filter(driver=driver, driver_payments__isnull=True).update(driver_payments=payment)
-                    Penalty.objects.filter(driver=driver, driver_payments__isnull=True).update(driver_payments=payment)
-                    payment.earning = Decimal(payment.earning) + payment.get_bonuses() - payment.get_penalties()
-                    payment.save(update_fields=['earning'])
-            # elif not reshuffles and report_kasa:
-            #     last_payment = DriverPayments.objects.filter(driver=driver).last()
-            #     if last_payment:
-            #         driver_reports = SummaryReport.objects.filter(report_from__range=(last_payment.report_from, end),
-            #                                                       driver=driver).aggregate(
-            #             cash=Coalesce(Sum('total_amount_cash'), 0, output_field=DecimalField()),
-            #             kasa=Coalesce(Sum('total_amount_without_fee'), 0, output_field=DecimalField()))
-            #         get_corrections(last_payment.report_from, last_payment.report_to, driver, driver_reports)
-            #     else:
-            #         get_corrections(start, end, driver)
+            data = create_driver_payments(start, end, driver, driver.schema, bonuses=bonus)[0]
+            if all([not driver.schema.is_weekly(), not today.weekday(), bolt_weekly['bonuses']]):
+                vehicle_bonus = {}
+                weekly_reshuffles = check_reshuffle(driver, start_week, end_week)
+                for shift in weekly_reshuffles:
+                    shift_bolt_kasa = calculate_bolt_kasa(driver, shift.swap_time, shift.end_time,
+                                                          vehicle=shift.swap_vehicle)[0]
+                    reshuffle_bonus = shift_bolt_kasa / (bolt_weekly['kasa'] - bolt_weekly['compensations'] - bolt_weekly['bonuses']) * bolt_weekly['bonuses']
+                    if not vehicle_bonus.get(shift.swap_vehicle):
+                        vehicle_bonus[shift.swap_vehicle] = reshuffle_bonus
+                    else:
+                        vehicle_bonus[shift.swap_vehicle] += reshuffle_bonus
+                for car, bonus in vehicle_bonus.items():
+                    amount = bonus * driver.schema.rate
+                    vehicle_amount = bonus * (1 - driver.schema.rate)
+                    PartnerEarnings.objects.get_or_create(report_from=start_week,
+                                                          report_to=end_week,
+                                                          vehicle=car,
+                                                          partner=driver.partner,
+                                                          defaults={
+                                                              "status": PaymentsStatus.COMPLETED,
+                                                              "earning": vehicle_amount})
+                    bolt_category = Category.objects.get(title="Бонуси Bolt")
+                    Bonus.objects.create(driver=driver, vehicle=car, amount=amount, category=bolt_category)
+            if driver.driver_status == Driver.WITH_CLIENT:
+                data['status'] = PaymentsStatus.INCORRECT
+            payment, created = DriverPayments.objects.get_or_create(report_to__date=end,
+                                                                    driver=driver,
+                                                                    defaults=data)
+            if created:
+                Bonus.objects.filter(driver=driver, driver_payments__isnull=True).update(driver_payments=payment)
+                Penalty.objects.filter(driver=driver, driver_payments__isnull=True).update(driver_payments=payment)
+                payment.earning = Decimal(payment.earning) + payment.get_bonuses() - payment.get_penalties()
+                payment.save(update_fields=['earning'])
+
+
+@app.task(bind=True, ignore_result=False)
+def create_daily_payment(self, **kwargs):
+    if kwargs.get("driver_pk"):
+        driver = Driver.objects.get(pk=kwargs.get("driver_pk"))
+        start = timezone.make_aware(datetime.combine(timezone.localtime(), time.min))
+        end = timezone.localtime()
+    else:
+        payment = DriverPayments.objects.get(pk=kwargs.get("payment_id"))
+        driver = payment.driver
+        start = timezone.make_aware(datetime.combine(payment.report_to, time.min))
+        end = payment.report_to
+    fleets = Fleet.objects.filter(fleetsdriversvehiclesrate__driver=driver, deleted_at=None)
+    for fleet in fleets:
+        driver_ids = Driver.objects.get_active(fleetsdriversvehiclesrate__fleet=fleet, id=driver.id).values_list(
+            'fleetsdriversvehiclesrate__driver_external_id', flat=True)
+        fleet.get_fleet_orders(start, end, driver)
+        fleet.save_daily_custom(start, end, driver_ids)
+        payment_24hours_create(start - timedelta(minutes=1), end, fleet, driver, driver.partner)
+    add_distance_for_order(driver.partner, driver=driver.id)
+    report = summary_report_create(start, end, driver, driver.partner)
+    get_rent_information(driver=driver.id) if kwargs.get("driver_pk") else (
+        get_rent_information(payment=kwargs.get("payment_id")))
+    if report:
+        data, no_price = create_driver_payments(start, end, driver, driver.schema)
+        payment, created = DriverPayments.objects.get_or_create(report_to__date=end,
+                                                                driver=driver,
+                                                                defaults=data)
+        if not created:
+            for key, value in data.items():
+                setattr(payment, key, value)
+            payment.save()
+        response = {"status": payment.status, "id": payment.id, "order": no_price}
+    else:
+        response = {"status": "error"}
+    return response
 
 
 @app.task(bind=True)
@@ -1248,12 +1282,10 @@ def calculate_vehicle_earnings(self, payment_pk):
     for vehicle, income in vehicles_income.items():
         vehicle_bonus = Penalty.objects.filter(vehicle=vehicle, driver_payments=payment).aggregate(
             total_amount=Coalesce(Sum('amount'), Decimal(0)))['total_amount']
-        vehicle_penalty = \
-            Bonus.objects.filter(vehicle=vehicle, driver_payments=payment).exclude(
-                category__title="Бонуси Bolt").aggregate(
-                total_amount=Coalesce(Sum('amount'), Decimal(0)))['total_amount']
+        vehicle_penalty = Bonus.objects.filter(vehicle=vehicle, driver_payments=payment).exclude(category__title="Бонуси Bolt").aggregate(
+            total_amount=Coalesce(Sum('amount'), Decimal(0)))['total_amount']
         earning = income + vehicle_bonus - vehicle_penalty
-        PartnerEarnings.objects.get_or_create(
+        PartnerEarnings.objects.update_or_create(
             report_from=payment.report_from,
             report_to=payment.report_to,
             vehicle_id=vehicle.id,
@@ -1264,13 +1296,49 @@ def calculate_vehicle_earnings(self, payment_pk):
                 "earning": earning,
             }
         )
+    # bonus_dict = Penalty.objects.filter(
+    #     driver_payments=payment).exclude(vehicle__in=vehicles_income.keys()).values('vehicle').aggregate(
+    #         total_amount=Coalesce(Sum('amount'), Decimal(0)))
+    # bonus_without_income = {entry['vehicle']: entry['total_amount'] for entry in bonus_dict}
+    # penalty_dict = Penalty.objects.filter(
+    #     driver_payments=payment).exclude(vehicle__in=vehicles_income.keys()).values('vehicle').aggregate(
+    #     total_amount=Coalesce(Sum('amount'), Decimal(0)))
+    # penalty_without_income = {entry['vehicle']: entry['total_amount'] for entry in penalty_dict}
+    # net_amount_per_vehicle = {}
+    # for vehicle_id, bonus_entry in bonus_without_income.items():
+    #     total_bonus_amount = bonus_entry['total_amount']
+    #     total_penalty_amount = 0
+    #
+    #     if vehicle_id in penalty_without_income:
+    #         total_penalty_amount = penalty_without_income[vehicle_id]['total_amount']
+    #
+    #     net_amount = total_bonus_amount - total_penalty_amount
+    #     net_amount_per_vehicle[vehicle_id] = net_amount
+    #
+    # for vehicle_id, penalty_entry in penalty_without_income.items():
+    #     if vehicle_id not in net_amount_per_vehicle:
+    #         total_penalty_amount = penalty_entry['total_amount']
+    #         net_amount_per_vehicle[vehicle_id] = -total_penalty_amount
+    #
+    # for vehicle, income in net_amount_per_vehicle.items():
+    #     PartnerEarnings.objects.get_or_create(
+    #         report_from=payment.report_from,
+    #         report_to=payment.report_to,
+    #         vehicle_id=vehicle,
+    #         driver=driver,
+    #         partner=driver.partner,
+    #         defaults={
+    #             "status": PaymentsStatus.COMPLETED,
+    #             "earning": income,
+    #         }
+    #     )
 
 
 @app.task(bind=True)
 def calculate_vehicle_spending(self, payment_pk):
     payment = InvestorPayments.objects.get(pk=payment_pk)
     spending = -payment.earning
-    PartnerEarnings.objects.get_or_create(
+    PartnerEarnings.objects.update_or_create(
         report_from=payment.report_from,
         report_to=payment.report_to,
         vehicle_id=payment.vehicle.id,
@@ -1285,8 +1353,10 @@ def calculate_vehicle_spending(self, payment_pk):
 def calculate_failed_earnings(self, payment_pk):
     payment = DriverPayments.objects.get(pk=payment_pk)
     vehicle_income = get_failed_income(payment)
+    total_income = 0
+    vehicles = len(vehicle_income)
     for vehicle, income in vehicle_income.items():
-        PartnerEarnings.objects.get_or_create(
+        PartnerEarnings.objects.update_or_create(
             report_from=payment.report_from,
             report_to=payment.report_to,
             vehicle_id=vehicle.id,
@@ -1297,6 +1367,19 @@ def calculate_failed_earnings(self, payment_pk):
                 "earning": income,
             }
         )
+        total_income += income
+    for vehicle, income in vehicle_income.items():
+        if total_income:
+            debt = Decimal(round((income / total_income) * abs(payment.earning), 2))
+        else:
+            debt = Decimal(round(abs(payment.earning) / vehicles, 2))
+        format_start = payment.report_from.strftime("%d.%m")
+        format_end = payment.report_to.strftime("%d.%m")
+        description = f"Борг з {format_start} по {format_end}"
+        category, _ = PenaltyCategory.objects.get_or_create(title="Борг по виплаті")
+        Penalty.objects.create(vehicle=vehicle, driver=payment.driver,
+                               amount=debt, description=description,
+                               category=category)
 
 
 @app.task(bind=True)
@@ -1317,12 +1400,9 @@ def get_information_from_fleets(self, partner_pk, schemas, day=None):
         add_distance_for_order.si(partner_pk, day).set(queue=f'beat_tasks_{partner_pk}'),
         generate_payments.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
         generate_summary_report.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
-        get_driver_efficiency.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
-        get_driver_efficiency_fleet.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
         get_rent_information.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
         calculate_driver_reports.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
         send_daily_statistic.si(schemas).set(queue=f'beat_tasks_{partner_pk}'),
-        send_driver_efficiency.si(schemas).set(queue=f'beat_tasks_{partner_pk}'),
         send_driver_report.si(schemas).set(queue=f'beat_tasks_{partner_pk}')
     )
     task_chain()
@@ -1337,8 +1417,6 @@ def get_all(self, partner_pk, schemas, day=None):
         generate_payments.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
         generate_summary_report.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
         get_rent_information.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
-        get_driver_efficiency.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
-        get_driver_efficiency_fleet.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
         calculate_driver_reports.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
     )
     task_chain()
@@ -1385,9 +1463,9 @@ def update_schedule(self):
         create_task('get_information_from_fleets', schema.partner.pk, schedule, schema.pk)
 
 
-@app.on_after_finalize.connect
-def run_periodic_tasks(sender, **kwargs):
+# @app.on_after_finalize.connect
+# def run_periodic_tasks(sender, **kwargs):
     # sender.add_periodic_task(crontab(minute="*/2"), send_time_order.s())
-    sender.add_periodic_task(crontab(minute='*/20'), raw_gps_handler.s(queue='beat_tasks_1'))
+    # sender.add_periodic_task(crontab(minute='*/20'), raw_gps_handler.s(queue='beat_tasks_1'))
     # sender.add_periodic_task(crontab(minute="*/2"), order_not_accepted.s())
     # sender.add_periodic_task(crontab(minute="*/4"), check_personal_orders.s())

@@ -29,7 +29,7 @@ $(document).ready(function () {
 	};
 
 	let currentDate = new Date(today);
-	currentDate.setDate(currentDate.getDate() - 3);
+	currentDate.setDate(currentDate.getDate() - 6);
 	let formattedStartDate = formatDateForDatabase(currentDate);
 
 	let endDate = new Date(currentDate);

@@ -30,7 +30,7 @@ def calculate_fired_driver(sender, instance, **kwargs):
         end = timezone.localtime().date()
         if end.weekday():
             start = end - timedelta(days=end.weekday())
-            data = create_driver_payments(start, end, instance, instance.schema, delete=True)
+            data = create_driver_payments(start, end, instance, instance.schema, delete=True)[0]
             DriverPayments.objects.get_or_create(report_from=start,
                                                  report_to=end,
                                                  driver=instance,

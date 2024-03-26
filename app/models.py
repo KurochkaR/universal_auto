@@ -416,6 +416,18 @@ class Driver(User):
             print(self)
             return
 
+    def get_bonuses(self, vehicle=None):
+        filter_query = Q(bonus__isnull=False)
+        if vehicle:
+            filter_query &= Q(vehicle=vehicle)
+        return self.penaltybonus_set.filter(filter_query).aggregate(Sum('amount'))['amount__sum'] or 0
+
+    def get_penalties(self, vehicle=None):
+        filter_query = Q(penalty__isnull=False)
+        if vehicle:
+            filter_query &= Q(vehicle=vehicle)
+        return self.penaltybonus_set.filter(filter_query).aggregate(Sum('amount'))['amount__sum'] or 0
+
     def __str__(self) -> str:
         return f'{self.second_name} {self.name}'
 
@@ -428,6 +440,7 @@ class FiredDriver(Driver):
 
 
 class PaymentsStatus(models.TextChoices):
+    INCORRECT = 'incorrect', 'Потребує поправок'
     CHECKING = 'checking', 'Перевіряється'
     PENDING = 'pending', 'Очікується'
     COMPLETED = 'completed', 'Виплачений'

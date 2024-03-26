@@ -1,0 +1,45 @@
+{% load static %}
+{% load i18n %}
+<form id="partnerForm" novalidate>
+        <div class="settings-content">
+        <div class="settings-head">
+              <h2>{% trans 'Компанії агрегаторів' %}</h2>
+          <span class="shift-close-btn"><svg width="24" height="24" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M27 2.59668L15 14.9938M3 27.3909L15 14.9938M15 14.9938L3 2.59668L27 27.3909" stroke="white" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" />
+</svg></span>
+        </div>
+            {% csrf_token %}
+            <h3>{% trans 'Виберіть агрегатор:' %}</h3>
+            <div class="partner-options">
+              <input type="radio" id="uberOption" name="partner" value="Uber">
+              <label for="uberOption">Uber</label>
+
+              <input type="radio" id="boltOption" name="partner" value="Bolt">
+              <label for="boltOption">Bolt</label>
+
+              <input type="radio" id="uklonOption" name="partner" value="Uklon">
+              <label for="uklonOption">Uklon</label>
+
+              <input type="radio" id="gpsOption" name="partner" value="Gps">
+              <label for="gpsOption">Gps</label>
+            </div>
+            <p class="error-message" id="loginErrorMessage"
+               style="display:none; color: red">{% trans 'Вказано неправильний логін або пароль' %}</p>
+            <input type="text" id="partnerLogin" name="partnerLogin" placeholder="{% trans 'Логін' %}" required>
+            <input class="showPassword partnerPassword" type="password" id="partnerPassword" name="partnerPassword"
+                   placeholder="{% trans 'Пароль' %}" required>
+            <div class="loader-login"></div>
+
+
+          <div class="opt-partnerForm">
+            <a class="helper-token" href="https://storage.googleapis.com/jobdriver-bucket/docs/gps-token.webp" data-lightbox="image">Де взяти токен gps?</a>
+            <span class="circle-password"></span>
+            <span class="showPasswordText">{% trans 'Показати пароль' %}</span>
+            <button type="button" class="login-btn">{% trans 'Увійти' %}</button>
+          </div>
+            <div class="login-ok">
+              <span class='successful-message'>{% trans "Зв'язок встановлено!" %}</span>
+              <button class='logout-btn' data-form='logout'>{% trans "Розірвати зв'язок" %}</button>
+            </div>
+          </div>
+      </form>

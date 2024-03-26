@@ -1,0 +1,20 @@
+{% load static %}
+{% load i18n %}
+<form method="post" id="payment-driver-list" action="choose-driver" novalidate>
+  {% csrf_token %}
+  <div class="title-choose-driver">
+    <h2>{% trans "Оберіть водія" %}</h2>
+    <span class="modal-payments-date"></span>
+    <span class="shift-close-btn">
+      <i class="fas fa-times"></i>
+    </span>
+  </div>
+    <div class="driver-search-container">
+      <h2>{% trans "Водії" %}</h2>
+      <span class="search-driver">
+            <i class="fa fa-search"></i>
+      </span>
+      <input type="text" id="search-driver" placeholder="Пошук водія" name="search-driver">
+    </div>
+        <div class="create-payment-list"></div>
+</form>
