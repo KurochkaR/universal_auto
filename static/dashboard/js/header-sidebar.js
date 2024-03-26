@@ -2,6 +2,11 @@
 
 let sidebarOpen = false;
 let sidebar = document.getElementById("sidebar");
+const gridContainer = $(".grid-container");
+const sidebarToggle = $("#sidebar-toggle");
+const sidebarTitle = $(".sidebar-title");
+const sidebarListItems = $("#sidebar .sidebar-list-item span");
+const sidebarToggleIcon = sidebarToggle.find("i");
 
 // Визначте змінну для стану бічного бару
 
@@ -12,23 +17,33 @@ function toggleSidebar() {
 		// Закрити бічний бар
 		sidebar.classList.remove("sidebar-responsive");
 		sidebarOpen = false;
+		$(".logo-1").show();
+        $(".logo-2").hide();
 	} else {
 		// Відкрити бічний бар
 		sidebar.classList.add("sidebar-responsive");
 		sidebarOpen = true;
+		sidebarListItems.each(function(index) {
+          $(this).css("display", "block");
+          $(this).css("opacity", 1);
+        });
+        $(".logo-1").hide();
+        $(".logo-2").show();
 	}
 }
 
 $(document).click(function (event) {
     var form = $(".change-password-btn")
     var header = $(".header-right")
-    if (!form.is(event.target) && form.has(event.target).length === 0 && !header.is(event.target) && header.has(event.target).length === 0) {
+    if ((!form.is(event.target) &&
+        form.has(event.target).length === 0 &&
+        !header.is(event.target) &&
+        header.has(event.target).length === 0) || $("#changePassword").is(event.target) ) {
         form.hide();
     }
 });
 
 $(document).ready(function () {
-
 	$("#logout-dashboard").click(function () {
 		$.ajax({
 			type: "POST",
@@ -93,17 +108,10 @@ $(document).ready(function () {
 		areaChart.resetSeries();
 	});
 
-  const gridContainer = $(".grid-container");
-  const sidebarToggle = $("#sidebar-toggle");
-  const sidebarTitle = $(".sidebar-title");
-  const sidebarListItems = $("#sidebar .sidebar-list-item span");
-  const sidebarToggleIcon = sidebarToggle.find("i");
-
   let isSidebarOpen = false;
 
   function toggleSidebar() {
     isSidebarOpen = !isSidebarOpen;
-
     if (isSidebarOpen) {
       gridContainer.css("grid-template-columns", "375px 1fr 1fr 1fr");
       sidebarTitle.css("padding", "10px 25px 50px 25px");

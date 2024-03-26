@@ -110,14 +110,15 @@ function driverPayment(period = null, start = null, end = null, paymentStatus = 
 						row.append('<td>' + confirmButton + '</td>');
 					}
 					if (response[i].status === 'Потребує поправок') {
+					    row.addClass('incorrect');
 					    showAllButton.show(0);
 					    if (response[i].payment_type === "DAY" && moment().startOf('day').isSame(responseDate.startOf('day'))) {
-						    row.append('<td>' + calculateBtn + '</td>')
+						    row.append('<td>' + calculateBtn + '</td>');
+						    row.append('<td>' + incorrectBtn + '</td>');
 						} else {
+						    row.append('<td></td>');
 						    row.append('<td></td>')
 						}
-						row.append('<td>' + incorrectBtn + '</td>');
-						row.addClass('incorrect');
 					}
 
 					if (response[i].status === 'Виплачений' || response[i].status === 'Не сплачений') {
@@ -247,7 +248,6 @@ $(document).ready(function () {
                 .then( function (response) {
                     if (response.data === "SUCCESS") {
                         $("#loadingModal").hide();
-                        console.log(response);
                         if (response.result.status === 'incorrect' && response.result.order === false) {
                             $(".bolt-confirm-button").data("payment-id", response.result.id)
                             $("#bolt-confirmation-form").show();
@@ -302,7 +302,6 @@ $(document).ready(function () {
                 checkTaskStatus(response.task_id)
                 .then( function (response) {
                     if (response.data === "SUCCESS") {
-                    console.log(response);
                         $("#loadingModal").hide();
                         if (response.result.status === 'incorrect' && response.result.order === false) {
                             $(".bolt-confirm-button").data("payment-id", response.result.id)
@@ -331,6 +330,7 @@ $(document).ready(function () {
 
     $(this).on('click', '.bolt-confirm-button', function (e) {
         e.preventDefault();
+        $("#bolt-confirmation-form").hide();
         itemId = $(this).data('payment-id');
         $("#bolt-amount, #bolt-cash").each(function() {
             var sanitizedValue = $(this).val();
@@ -352,13 +352,11 @@ $(document).ready(function () {
 			        csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
 		    },
 			success: function (response) {
-			    $("#bolt-confirmation-form").hide();
 			    $('.modal-overlay').hide();
 				driverPayment(null, null, null, paymentStatus = "on_inspection");
 			},
 			error: function (xhr, textStatus, errorThrown) {
 			    if (xhr.status === 400) {
-                    $("#bolt-confirmation-form").hide();
                     $('.modal-overlay').hide();
                     let error = xhr.responseJSON.error;
                     $('#loadingModal').show();

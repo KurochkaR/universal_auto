@@ -18,43 +18,46 @@ $(document).ready(function () {
 
 	$(this).on('click', '.update-database', function () {
 		$(".confirmation-box h2").text("Бажаєте оновити базу даних?");
+		$("#confirmation-btn-on").data("confirmUpdate", true)
 		$(".confirmation-update-database").show();
 	});
 
 	$("#confirmation-btn-on").click(function () {
         $(".confirmation-update-database").hide();
-        $("#loadingModal").css("display", "block");
-        $(".loading-content").css("display", "block");
-        $("#loadingMessage").text(gettext("Зачекайте, будь ласка, поки оновлюється база даних..."));
-        $.ajax({
-            type: "POST",
-            url: ajaxPostUrl,
-            data: {
-                csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val(),
-                action: "upd_database",
-            },
-            success: function (response) {
-                checkTaskStatus(response.task_id)
-                .then(function (response) {
-                    if (response.data === "SUCCESS") {
-                        $(".loading-content").css("display", "flex");
-                        $("#loadingMessage").text(gettext("Базу даних оновлено"));
-                        $("#loader").css("display", "none");
-                        $("#checkmark").css("display", "block");
-                    } else {
-                        $("#loadingMessage").text(gettext("Помилка оновлення бази даних. Спробуйте пізніше"));
-                        $("#loader").css("display", "none");
-                        $("#checkmark").css("display", "none");
-                    }
-                    setTimeout(function() {
-                    $("#loadingModal").css("display", "none");
-                    }, 3000);
-                })
-                .catch(function (error) {
-                    console.error('Error:', error);
-                });
-            },
-        });
+        if ($(this).data("confirmUpdate", true)) {
+            $("#loadingModal").css("display", "block");
+            $(".loading-content").css("display", "block");
+            $("#loadingMessage").text(gettext("Зачекайте, будь ласка, поки оновлюється база даних..."));
+            $.ajax({
+                type: "POST",
+                url: ajaxPostUrl,
+                data: {
+                    csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val(),
+                    action: "upd_database",
+                },
+                success: function (response) {
+                    checkTaskStatus(response.task_id)
+                    .then(function (response) {
+                        if (response.data === "SUCCESS") {
+                            $(".loading-content").css("display", "flex");
+                            $("#loadingMessage").text(gettext("Базу даних оновлено"));
+                            $("#loader").css("display", "none");
+                            $("#checkmark").css("display", "block");
+                        } else {
+                            $("#loadingMessage").text(gettext("Помилка оновлення бази даних. Спробуйте пізніше"));
+                            $("#loader").css("display", "none");
+                            $("#checkmark").css("display", "none");
+                        }
+                        setTimeout(function() {
+                        $("#loadingModal").css("display", "none");
+                        }, 3000);
+                    })
+                    .catch(function (error) {
+                        console.error('Error:', error);
+                    });
+                },
+            });
+        }
 	});
 
 	$("#confirmation-btn-off").click(function () {
@@ -70,6 +73,7 @@ $(document).ready(function () {
 	}
 
 	$("#settingBtnContainer").click(function () {
+	    sidebar.classList.remove("sidebar-responsive");
 	    $.ajax({
             url: ajaxGetUrl,
             type: "GET",

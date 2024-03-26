@@ -169,7 +169,6 @@ class PostRequestHandler:
         else:
             manager = Manager.objects.get(pk=request.user.pk)
             partner = manager.managers_partner.pk
-        print(partner)
         upd = update_driver_data.apply_async(args=[partner], queue=f'beat_tasks_{partner}')
         json_data = JsonResponse({'task_id': upd.id}, safe=False)
         return json_data
@@ -564,7 +563,7 @@ class GetRequestHandler:
                 "data": "За водієм не закріплено жодного автомобіля! Для додавання бонусу або штрафу створіть зміну водію!"},
                 status=404)
 
-        form_html = render_to_string('dashboard/_bonus-penalty-form.html', {'bonus_form': bonus_form})
+        form_html = render_to_string('dashboard/forms/_bonus-penalty-form.html', {'bonus_form': bonus_form})
 
         return JsonResponse({"data": form_html})
 

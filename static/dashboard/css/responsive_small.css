@@ -1,0 +1,112 @@
+@media screen and (max-width: 576px) {
+    .error-message {
+        margin: 0px 10px;
+        font-size: 10px;
+    }
+    /*   header-sidebar  styles   */
+
+/*    .header-left {
+		display: none;
+	}*/
+	#account_circle {
+		font-size: 30px !important;
+		margin-right: 25px;
+	}
+
+	.change-password-btn {
+	    right: 7px;
+	}
+
+	#passwordForm {
+        height: 345px;
+        width: 320px;
+    }
+
+    .title-form {
+        padding: 15px 0px;
+        width: 100%;
+        margin: 0;
+    }
+
+    .context-title {
+        font-size: 10px;
+        padding: 0px 20px;
+    }
+
+    .passwordBodyForm {
+        padding: 15px 25px 0px 25px;
+    }
+
+    .passwordBodyForm label {
+        font-size: 12px;
+    }
+
+    .passwordBodyForm input {
+        padding: 7px;
+        margin-bottom: 10px;
+    }
+
+    #passwordForm #submitPassword {
+        padding: 5px 10px;
+        font-size: 15px;
+    }
+
+    .head-title {
+        margin-left: 20px;
+        font-size: 20px;
+        font-weight:600;
+    }
+
+	.sidebar-toggle {
+		display: none;
+	}
+
+	.sidebar-list {
+		margin-top: 0;
+		width: 480px;
+	}
+
+	#partnerForm {
+        padding: 15px 20px;
+        border-radius: 37px;
+        width: 270px;
+        max-height: 500px;
+    }
+
+    .settings-content h2 {
+        font-size: 20px;
+    }
+
+    .settings-content h3 {
+        font-size: 17px;
+    }
+
+    .partner-options {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        margin: 15px 0px;
+    }
+
+    #partnerForm label {
+        margin: 7px 10px;
+    }
+
+    #partnerForm input {
+        width: 83%;
+        padding: 10px 13px;
+        margin: 5px 10px;
+    }
+
+    .opt-partnerForm {
+        margin: 10px;
+    }
+
+    .settings-content .login-btn {
+        font-size: 15px;
+        padding: 10px;
+    }
+
+    .showPasswordText {
+        font-size: 13px;
+    }
+}

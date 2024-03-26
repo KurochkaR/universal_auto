@@ -386,7 +386,8 @@ def check_daily_report(self, partner_pk, start=None, end=None):
 @app.task(bind=True)
 def generate_payments(self, schemas, day=None):
     for driver in Driver.objects.get_active(schema__in=schemas):
-        end, start = get_time_for_task(driver.schema.pk, day)[1:3]
+        end, start_time = get_time_for_task(driver.schema.pk, day)[1:3]
+        start = timezone.make_aware(datetime.combine(start_time, time.max.replace(microsecond=0)))
         fleets = Fleet.objects.filter(fleetsdriversvehiclesrate__driver=driver, deleted_at=None)
         for fleet in fleets:
             payment_24hours_create(start, end, fleet, driver, driver.partner)
