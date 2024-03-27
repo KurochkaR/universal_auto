@@ -20,6 +20,7 @@ function toggleSidebar() {
 		$(".logo-1").show();
 		$(".logo-2").hide();
 		$("#logout-dashboard").hide();
+		$(".fas.fa-power-off").hide();
 	} else {
 		// Відкрити бічний бар
 		sidebar.classList.add("sidebar-responsive");
@@ -31,8 +32,10 @@ function toggleSidebar() {
 		$(".logo-1").hide();
 		$(".logo-2").show();
 		$("#logout-dashboard").show();
+		$(".fas.fa-power-off").hide();
 	}
 }
+
 
 $(document).click(function (event) {
 	var form = $(".change-password-btn")
@@ -46,7 +49,7 @@ $(document).click(function (event) {
 });
 
 $(document).ready(function () {
-	$("#logout-dashboard").click(function () {
+	$("#logout-dashboard, .fas.fa-power-off").click(function () {
 		$.ajax({
 			type: "POST",
 			url: ajaxPostUrl,
@@ -121,6 +124,7 @@ $(document).ready(function () {
 			$("#logout-dashboard").show();
 			$(".logo-1").hide();
 			$(".logo-2").show();
+			$(".fas.fa-power-off").hide();
 
 			setTimeout(function () {
 				sidebarListItems.each(function (index) {
@@ -142,6 +146,7 @@ $(document).ready(function () {
 				$(this).css("display", "none");
 				$(this).css("transition-delay", "0s");
 				$(this).css("opacity", 0);
+				$(".fas.fa-power-off").show();
 			});
 		}
 	}

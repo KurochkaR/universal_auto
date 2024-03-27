@@ -1113,6 +1113,13 @@ img.brand-vehicle {
 	background: #fff;
 }
 
+i.fas.fa-power-off {
+	font-size: 32px;
+	margin-left: 15px;
+	margin-top: 15px;
+	cursor: pointer;
+}
+
 .change-password-btn {
 	display: none;
 	position: absolute;
