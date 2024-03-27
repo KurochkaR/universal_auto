@@ -137,7 +137,6 @@ class UaGpsSynchronizer(Fleet):
         if orders:
             return result_list
         else:
-            print(result_list)
             road_distance = sum(item[0] for item in result_list)
             road_time = sum((result[1] for result in result_list), timedelta())
             return road_distance, road_time
@@ -166,7 +165,8 @@ class UaGpsSynchronizer(Fleet):
                                                   state=FleetOrder.COMPLETED,
                                                   accepted_time__gte=start_report,
                                                   accepted_time__lt=end_report).order_by('accepted_time')
-            order_params, previous_finish_time = self.get_order_parameters(completed, end_report, reshuffle.swap_vehicle)
+            order_params, previous_finish_time = self.get_order_parameters(completed, end_report,
+                                                                           reshuffle.swap_vehicle)
 
             parameters.extend(order_params)
             if (timezone.localtime(start_report).time() == time.min or
@@ -197,14 +197,14 @@ class UaGpsSynchronizer(Fleet):
         road_dict = {}
         if not schema_drivers:
             schema_drivers = DriverReshuffle.objects.filter(
-                partner=self.partner, swap_time__date=timezone.localtime()).values_list(
+                partner=self.partner, swap_time__date=timezone.localtime(),
+                driver_start__isnull=False).values_list(
                 'driver_start', flat=True)
         drivers = Driver.objects.filter(pk__in=schema_drivers)
         for driver in drivers:
             if RentInformation.objects.filter(report_from__date=start, driver=driver) and len(drivers) != 1:
                 continue
             road_dict[driver] = self.get_driver_rent(start, end, driver)
-            print(road_dict)
         return road_dict
 
     def get_order_distance(self, orders):
@@ -308,7 +308,7 @@ class UaGpsSynchronizer(Fleet):
     def calc_total_km(self, driver, start, end):
         driver_vehicles = []
         total_km = 0
-        reshuffles = check_reshuffle(driver, start, end)
+        reshuffles = check_reshuffle(driver, start, end, gps=True)
         for reshuffle in reshuffles:
             driver_vehicles.append(reshuffle.swap_vehicle)
             start_report, end_report = find_reshuffle_period(reshuffle, start, end)
@@ -324,7 +324,6 @@ class UaGpsSynchronizer(Fleet):
     def calculate_driver_vehicle_rent(self, start, end, driver, result):
         distance, road_time = result[0], result[1]
         total_km = self.calc_total_km(driver, start, end)[0]
-        print(f"totalkm={total_km}, {start}, {end}")
         rent_distance = total_km - distance
         data = {
             "report_from": start,
@@ -386,16 +385,15 @@ class UaGpsSynchronizer(Fleet):
                 kasa, card, mileage, orders, canceled_orders = get_today_statistic(start, end_time, driver)
                 time_now = timezone.localtime(end_time)
                 if kasa and mileage:
-                    text += f"Водій: {driver} час {time_now.strftime('%H:%M')} \n"\
-                            f"Каса: {round(kasa, 2)}\n"\
-                            f"Виконано замовлень: {orders}\n"\
-                            f"Скасовано замовлень: {canceled_orders}\n"\
-                            f"Пробіг під замовленням: {mileage}\n"\
-                            f"Ефективність: {round(kasa / mileage, 2)}\n"\
+                    text += f"Водій: {driver} час {time_now.strftime('%H:%M')} \n" \
+                            f"Каса: {round(kasa, 2)}\n" \
+                            f"Виконано замовлень: {orders}\n" \
+                            f"Скасовано замовлень: {canceled_orders}\n" \
+                            f"Пробіг під замовленням: {mileage}\n" \
+                            f"Ефективність: {round(kasa / mileage, 2)}\n" \
                             f"Холостий пробіг: {rent_distance}\n\n"
                 else:
                     text += f"Водій {driver} ще не виконав замовлень\n" \
                             f"Холостий пробіг: {rent_distance}\n\n"
             if timezone.localtime().time() > time(7, 0):
                 send_long_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"), text=text)
-
