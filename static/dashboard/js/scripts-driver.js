@@ -42,6 +42,9 @@
 // circularChart.setOption(circularChartOptions);
 $(document).ready(function () {
 	checkCash();
+	$('.debt-repayment-input').val(function (i, value) {
+		return value.replace(',', '.');
+	});
 	const bonusRadio = document.getElementById('driver-bonus-radio');
 	const penaltyRadio = document.getElementById('driver-penalty-radio');
 	const bonusBlock = document.querySelector('.driver-bonus-item');
