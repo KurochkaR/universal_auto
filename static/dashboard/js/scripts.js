@@ -10,8 +10,9 @@ $(document).ajaxStop(function () {
 });
 
 $(document).ajaxError(function (event, xhr, settings) {
+	console.error('Error:', xhr);
 	var status = xhr.status;
-	if (status === 403 || status === 404) {
+	if (status === 403) {
 		window.location.href = '/';
 	}
 });

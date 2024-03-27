@@ -348,7 +348,7 @@ class PostRequestHandler:
 
                 return JsonResponse({'data': 'success'})
             else:
-                return JsonResponse({'error': 'Bonus not found'}, status=404)
+                return JsonResponse({'error': 'Bonus not found'}, status=400)
         else:
             errors = {field: form.errors[field][0] for field in form.errors}
             return JsonResponse({'errors': errors}, status=400)
@@ -369,7 +369,7 @@ class PostRequestHandler:
             instance.delete()
             return JsonResponse({'data': 'success'})
         else:
-            return JsonResponse({'error': 'Bonus not found'}, status=404)
+            return JsonResponse({'error': 'Bonus not found'}, status=400)
 
     @staticmethod
     def handler_calculate_payments(request):
