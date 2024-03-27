@@ -508,8 +508,8 @@ class PostRequestHandler:
     def add_debt_payment(request):
         data = request.POST
         payment = DriverPayments.objects.get(pk=data.get('payment'))
-        payment.earning += int(data.get("amount"))
-        payment.kasa += int(data.get("amount"))
+        payment.earning += Decimal(data.get("amount"))
+        payment.kasa += Decimal(data.get("amount"))
         payment.save(update_fields=['earning', 'salary', 'kasa'])
         json_data = JsonResponse({'success': data})
         return json_data

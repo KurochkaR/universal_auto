@@ -574,12 +574,14 @@ $(document).ready(function () {
 
 	driverTableTbody.on('click', '.pay-btn, .not-pay-btn', function () {
 		var id = $(this).closest('tr').data('id');
+		var maxValue = Math.abs(parseFloat($(this).closest('tr').find('.payment-earning').text()));
 		if ($(this).hasClass('pay-btn')) {
 			var status = 'completed';
 			$(".confirmation-box h2").text("Ви впевнені, що хочете закрити платіж ?");
 		} else {
 		    var status = 'failed';
 		    $(".confirmation-box h2").text("Вкажіть суму яку повернув водій?");
+		    $(".confirmation-box input").data('maxVal', maxValue)
 		    $(".confirmation-box input").show();
 		    $("#confirmation-btn-off").text("Підтвердити")
 		    $("#confirmation-btn-off").data('id', id).data('status', status);
@@ -600,6 +602,9 @@ $(document).ready(function () {
 		$(".close-payment").addClass('confirmation-btn-on').removeClass('close-payment');
 		$(".close-payment-with-debt").addClass('confirmation-btn-off').removeClass('close-payment-with-debt');
 	});
+    $(this).on("input", "#amount", function() {
+        validNumberInput($(this).data("maxVal"), $(this))
+    });
 
 	$(this).on("click", ".close-payment-with-debt", function () {
 		var id = $(this).data('id');
