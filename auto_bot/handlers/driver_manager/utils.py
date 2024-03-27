@@ -656,7 +656,8 @@ def get_failed_income(payment):
                     cash = Decimal(bolt_cash['total_price'] + bolt_cash['total_tips'])
                     orders_total_cash += cash
                 else:
-                    kasa, cash = fleet.get_earnings_per_driver(payment.driver, start_period, end_period)
+                    kasa, cash = fleet.get_earnings_per_driver(payment.driver, start_period, end_period).exclude(
+                        name="NinjaFleet")
                 total_kasa += Decimal(kasa)
                 total_cash += Decimal(cash)
             total_income = total_kasa - total_cash
