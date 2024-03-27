@@ -394,7 +394,7 @@ def generate_payments(self, schemas, day=None):
         end, start_time = get_time_for_task(driver.schema.pk, day)[1:3]
         start = timezone.make_aware(datetime.combine(start_time, time.max.replace(microsecond=0)))
         fleets = Fleet.objects.filter(fleetsdriversvehiclesrate__driver=driver, deleted_at=None).exclude(
-            name="NinjaFleet")
+            name="Ninja")
         for fleet in fleets:
             payment_24hours_create(start, end, fleet, driver, driver.partner)
 
@@ -1185,7 +1185,7 @@ def calculate_driver_reports(self, schemas, day=None):
                     shift_bolt_kasa = calculate_bolt_kasa(driver, shift.swap_time, shift.end_time,
                                                           vehicle=shift.swap_vehicle)[0]
                     reshuffle_bonus = shift_bolt_kasa / (
-                                bolt_weekly['kasa'] - bolt_weekly['compensations'] - bolt_weekly['bonuses']) * \
+                            bolt_weekly['kasa'] - bolt_weekly['compensations'] - bolt_weekly['bonuses']) * \
                                       bolt_weekly['bonuses']
                     if not vehicle_bonus.get(shift.swap_vehicle):
                         vehicle_bonus[shift.swap_vehicle] = reshuffle_bonus
@@ -1227,7 +1227,7 @@ def create_daily_payment(self, **kwargs):
         start = timezone.make_aware(datetime.combine(payment.report_to, time.min))
         end = payment.report_to
     fleets = Fleet.objects.filter(fleetsdriversvehiclesrate__driver=driver, deleted_at=None).exclude(
-        name="NinjaFleet")
+        name="Ninja")
     for fleet in fleets:
         driver_ids = Driver.objects.get_active(fleetsdriversvehiclesrate__fleet=fleet, id=driver.id).values_list(
             'fleetsdriversvehiclesrate__driver_external_id', flat=True)
@@ -1293,8 +1293,9 @@ def calculate_vehicle_earnings(self, payment_pk):
         vehicle_bonus = Penalty.objects.filter(vehicle=vehicle, driver_payments=payment).aggregate(
             total_amount=Coalesce(Sum('amount'), Decimal(0)))['total_amount']
         vehicle_penalty = \
-        Bonus.objects.filter(vehicle=vehicle, driver_payments=payment).exclude(category__title="Бонуси Bolt").aggregate(
-            total_amount=Coalesce(Sum('amount'), Decimal(0)))['total_amount']
+            Bonus.objects.filter(vehicle=vehicle, driver_payments=payment).exclude(
+                category__title="Бонуси Bolt").aggregate(
+                total_amount=Coalesce(Sum('amount'), Decimal(0)))['total_amount']
         earning = income + vehicle_bonus - vehicle_penalty
         PartnerEarnings.objects.update_or_create(
             report_from=payment.report_from,

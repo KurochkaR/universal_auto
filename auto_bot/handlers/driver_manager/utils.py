@@ -591,7 +591,7 @@ def calculate_income_partner(driver, start, end, spending_rate, rent, driver_ren
             total_rent = 0
 
         fleets = Fleet.objects.filter(fleetsdriversvehiclesrate__driver=driver, deleted_at=None).exclude(
-            name="NinjaFleet")
+            name="Ninja")
         for fleet in fleets:
             if isinstance(fleet, BoltRequest):
                 total_gross_kasa += calculate_bolt_kasa(driver, start_period, end_period, vehicle=vehicle)[0]
@@ -639,7 +639,7 @@ def get_failed_income(payment):
             start_period, end_period = find_reshuffle_period(reshuffle, start_report, end_report)
             vehicle = reshuffle.swap_vehicle
             fleets = Fleet.objects.filter(fleetsdriversvehiclesrate__driver=payment.driver, deleted_at=None).exclude(
-                name="NinjaFleet")
+                name="Ninja")
             for fleet in fleets:
                 if isinstance(fleet, BoltRequest):
                     bolt_orders = FleetOrder.objects.filter(
@@ -656,8 +656,7 @@ def get_failed_income(payment):
                     cash = Decimal(bolt_cash['total_price'] + bolt_cash['total_tips'])
                     orders_total_cash += cash
                 else:
-                    kasa, cash = fleet.get_earnings_per_driver(payment.driver, start_period, end_period).exclude(
-                        name="NinjaFleet")
+                    kasa, cash = fleet.get_earnings_per_driver(payment.driver, start_period, end_period)
                 total_kasa += Decimal(kasa)
                 total_cash += Decimal(cash)
             total_income = total_kasa - total_cash
@@ -679,7 +678,7 @@ def get_today_statistic(start, end, driver):
     kasa = 0
     card = 0
     fleets = Fleet.objects.filter(fleetsdriversvehiclesrate__driver=driver, deleted_at=None).exclude(
-        name="NinjaFleet")
+        name="Ninja")
     orders = FleetOrder.objects.filter(accepted_time__gt=start,
                                        state=FleetOrder.COMPLETED,
                                        driver=driver).order_by('-finish_time')
