@@ -307,7 +307,7 @@ $(document).ready(function () {
 			var $input = $('.debt-repayment-input-container:visible');
 			$input.hide();
 			var category = $input.closest('.driver-bonus-penalty-info').find('.penalty-category span').text();
-			if (category !== 'Штраф по виплаті') {
+			if (category !== 'Борг по виплаті') {
 				$input.closest('.driver-bonus-penalty-info').find('.edit-penalty-btn, .delete-bonus-penalty-btn').show();
 			}
 			$('.debt-repayment-btn').show();
@@ -322,7 +322,7 @@ $(document).ready(function () {
 		var $input = $('.debt-repayment-input-container:visible');
 		$input.hide();
 		var category = $input.closest('.driver-bonus-penalty-info').find('.penalty-category span').text();
-		if (category !== 'Штраф по виплаті') {
+		if (category !== 'Борг по виплаті') {
 			$input.closest('.driver-bonus-penalty-info').find('.edit-penalty-btn, .delete-bonus-penalty-btn, .debt-repayment-btn').show();
 		} else {
 			$input.closest('.driver-bonus-penalty-info').find('.debt-repayment-btn').show();
@@ -335,8 +335,8 @@ $(document).ready(function () {
 		var $this = $(this);
 		var category = getCategory($this);
 
-		$this.find('.debt-repayment-btn').show().css('width', category === 'Штраф по виплаті' ? '165px' : 'auto');
-		$this.find('.edit-penalty-btn, .delete-bonus-penalty-btn').toggle(category !== 'Штраф по виплаті');
+		$this.find('.debt-repayment-btn').show().css('width', category === 'Борг по виплаті' ? '165px' : 'auto');
+		$this.find('.edit-penalty-btn, .delete-bonus-penalty-btn').toggle(category !== 'Борг по виплаті');
 	});
 
 	const confirmationDebt = $('.confirmation-debt-repayment');
