@@ -17,7 +17,7 @@ from django.utils import timezone
 from app.bolt_sync import BoltRequest
 from app.models import SubscribeUsers, Manager, CustomUser, DriverPayments, Bonus, Penalty, Vehicle, PenaltyBonus, \
     BonusCategory, PenaltyCategory, Driver, FleetsDriversVehiclesRate, CustomReport, Fleet, FleetOrder, DriverReshuffle, \
-    PaymentsStatus
+    PaymentsStatus, PartnerEarnings
 from auto.utils import payment_24hours_create, summary_report_create
 from auto_bot.handlers.driver_manager.utils import calculate_bolt_kasa, create_driver_payments, \
     check_correct_bolt_report
@@ -348,7 +348,7 @@ class PostRequestHandler:
 
                 return JsonResponse({'data': 'success'})
             else:
-                return JsonResponse({'error': 'Bonus not found'}, status=404)
+                return JsonResponse({'error': 'Bonus not found'}, status=400)
         else:
             errors = {field: form.errors[field][0] for field in form.errors}
             return JsonResponse({'errors': errors}, status=400)
@@ -369,7 +369,7 @@ class PostRequestHandler:
             instance.delete()
             return JsonResponse({'data': 'success'})
         else:
-            return JsonResponse({'error': 'Bonus not found'}, status=404)
+            return JsonResponse({'error': 'Bonus not found'}, status=400)
 
     @staticmethod
     def handler_calculate_payments(request):
@@ -505,6 +505,32 @@ class PostRequestHandler:
         return json_data
 
     @staticmethod
+    def handler_debt_repayment(request):
+        penalty_id = request.POST.get('penalty_id')
+        debt_repayment = request.POST.get('debt_repayment')
+        penalty = Penalty.objects.get(pk=penalty_id)
+        partner_pk = request.user.manager.managers_partner.pk if request.user.is_manager() else request.user.pk
+
+        if not Decimal(debt_repayment):
+            return JsonResponse({'data': 'success'})
+
+        PartnerEarnings.objects.create(
+            partner_id=partner_pk,
+            earning=Decimal(debt_repayment),
+            driver=penalty.driver,
+            vehicle=penalty.vehicle,
+            report_from=timezone.localtime(),
+            report_to=timezone.localtime()
+        )
+
+        if penalty.amount == Decimal(debt_repayment):
+            penalty.delete()
+        else:
+            penalty.amount -= Decimal(debt_repayment)
+            penalty.save(update_fields=['amount'])
+        return JsonResponse({'data': 'success'})
+
+    @staticmethod
     def handle_unknown_action():
         return JsonResponse({}, status=400)
 
@@ -574,7 +600,8 @@ class GetRequestHandler:
 
         fleet_driver_rate = FleetsDriversVehiclesRate.objects.filter(Q(driver=driver) & ~Q(fleet__name='Ninja'))
         driver_pay_cash = all(rate.pay_cash for rate in fleet_driver_rate)
-        driver_cash_rate = int(driver.cash_rate * 100) if driver.cash_rate != 0 else int(driver.schema.rate * 100)
+        driver_cash_rate = int(driver.schema.rate * 100) if driver.cash_rate == 0 and driver.schema else int(
+            driver.cash_rate * 100)
         driver_cash_control = driver.cash_control
 
         return JsonResponse({
@@ -585,4 +612,4 @@ class GetRequestHandler:
 
     @staticmethod
     def handle_unknown_action():
-        return JsonResponse({"data": "i'm here now"}, status=400)
+        return JsonResponse({}, status=400)

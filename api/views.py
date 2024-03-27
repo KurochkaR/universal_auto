@@ -38,7 +38,12 @@ class SummaryReportListView(CombinedPermissionsMixin, generics.ListAPIView):
         start, end, format_start, format_end = get_start_end(self.kwargs['period'])
         queryset = ManagerFilterMixin.get_queryset(CustomReport, self.request.user).select_related('driver__user_ptr')
         filtered_qs = queryset.filter(report_from__range=(start, end))
-        kasa = filtered_qs.aggregate(kasa=Coalesce(Sum('total_amount_without_fee'), Decimal(0)))['kasa']
+        kasa_bonus = filtered_qs.aggregate(
+            kasa=Coalesce(Sum('total_amount_without_fee'), Decimal(0)),
+            bonus=Coalesce(Sum('bonuses'), Decimal(0))
+        )
+
+        kasa = kasa_bonus['kasa'] + kasa_bonus['bonus']
 
         rent_amount_subquery = RentInformation.objects.filter(
             report_from__range=(start, end)
@@ -162,13 +167,6 @@ class CarEfficiencyListView(CombinedPermissionsMixin, generics.ListAPIView):
             report_from__range=(start, end)
         ).aggregate(earning=Coalesce(Sum('earning'), Decimal(0)))['earning']
 
-        efficient_vehicles = Vehicle.objects.filter(
-            Q(carefficiency__report_from__gte=start),
-            Q(carefficiency__report_from__lte=end),
-            Q(carefficiency__vehicle_id=F('id')),
-            Q(partner=self.request.user)
-        ).distinct()
-
         return filtered_qs, earning
 
     def list(self, request, *args, **kwargs):
@@ -251,23 +249,9 @@ class DriverEfficiencyListView(CombinedPermissionsMixin,
         start, end, format_start, format_end = get_start_end(self.kwargs['period'])
         queryset = ManagerFilterMixin.get_queryset(DriverEfficiency, self.request.user)
         filtered_qs = queryset.filter(report_from__range=(start, end))
+        dynamic_fleet = get_dynamic_fleet()
+        dynamic_fleet['rent_distance'] = Sum('rent_distance')
         qs_efficient = filtered_qs.values('driver_id').annotate(**get_dynamic_fleet())
-        idling_mileage = RentInformation.objects.filter(
-            report_from__range=(start, end),
-            driver__in=qs_efficient.values_list('driver_id', flat=True)
-        ).values('driver').annotate(
-            idling_mileage=Sum('rent_distance')
-        )
-
-        qs_efficient_driver_ids = [item['driver_id'] for item in qs_efficient]
-        idling_mileage_driver_ids = [item['driver'] for item in idling_mileage]
-        all_driver_ids = set(qs_efficient_driver_ids + idling_mileage_driver_ids)
-
-        merged_results = {}
-        for driver_id in all_driver_ids:
-            driver_info = next((item for item in qs_efficient if item['driver_id'] == driver_id), {})
-            driver_info.update(next((item for item in idling_mileage if item['driver'] == driver_id), {}))
-            merged_results[driver_id] = driver_info
 
         efficient_driver_ids = set(qs_efficient.values_list('driver_id', flat=True))
         reshuffled_drivers = DriverReshuffle.objects.filter(
@@ -293,16 +277,15 @@ class DriverEfficiencyListView(CombinedPermissionsMixin,
                 'accept_percent': 0,
                 'road_time': timedelta(),
                 'mileage': 0,
-                'idling_mileage': 0,
+                'rent_distance': 0,
                 'efficiency': 0
             }
             for driver_info in reshuffled_drivers_info
         ]
-        additional_drivers_dict = {driver_info['driver_id']: driver_info for driver_info in additional_drivers_info}
-        merged_results = list(merged_results.update(additional_drivers_dict) or merged_results.values())
 
+        qs = list(qs_efficient) + additional_drivers_info
         return [
-            {'start': format_start, 'end': format_end, 'drivers_efficiency': merged_results}]
+            {'start': format_start, 'end': format_end, 'drivers_efficiency': qs}]
 
 
 class DriverEfficiencyFleetListView(CombinedPermissionsMixin,

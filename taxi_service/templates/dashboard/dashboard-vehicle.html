@@ -32,11 +32,13 @@
     <label for="end_report_driver">{% trans 'Кінцева дата:' %}</label>
     <input type="date" id="end_report_driver" name="end_date">
     <input class="apply-filter-button_driver" type="button" onclick="applyCustomDateRange('vehicle')"
-           value="{% trans 'Фільтрувати'%}">
+           value="{% trans 'Фільтрувати' %}">
     <div id="error_message" style="display: none; color: red;"></div>
   </div>
 
   <div class="payback-car"></div>
+  {% include 'dashboard/forms/_password-change-form.html' %}
+  {% include 'dashboard/forms/_aggregator-form.html' %}
   {% include 'dashboard/_confirmation-update-database.html' %}
 </main>
 
@@ -44,10 +46,10 @@
 </div>
 <!-- Scripts -->
 <script>
-  const VehicleImg = "{% static 'app/images/index-one-block-2.webp' %}";
-  const logoImageUrl = "{% static 'app/images/logo-2.svg' %}";
-  let ajaxPostUrl = "{% url 'post_request' %}";
-  let ajaxGetUrl = "{% url 'get_request' %}";
+	const VehicleImg = "{% static 'app/images/index-one-block-2.webp' %}";
+	const logoImageUrl = "{% static 'app/images/logo-2.svg' %}";
+	let ajaxPostUrl = "{% url 'post_request' %}";
+	let ajaxGetUrl = "{% url 'get_request' %}";
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.3/dist/jquery.min.js" defer></script>

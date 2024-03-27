@@ -160,7 +160,8 @@ class BonusForm(ModelForm):
         category_queryset = Category.objects.filter(Q(partner=filter_partner) |
                                                     Q(partner__isnull=True),
                                                     filter_category)
-        category_choices = list(category_queryset.exclude(title="Бонуси Bolt").values_list('id', 'title'))
+        category_choices = list(
+            category_queryset.exclude(title__in=["Бонуси Bolt", "Штраф по виплаті"]).values_list('id', 'title'))
         category_choices.append(('add_new_category', _('Додати нову категорію')))
         self.fields['category'].choices = category_choices
         self.fields['description'].required = False

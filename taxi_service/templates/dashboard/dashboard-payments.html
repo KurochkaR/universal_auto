@@ -4,85 +4,76 @@
 
 <!-- Content -->
 {% block content %}
-<div class="modal-overlay" style="display: none;"></div>
-<div class="info-driver">
-  <div class="title-driver">
-    <h2>{% trans 'Виплати водіям' %}</h2>
-    <button class="create-payment"><span>{% trans 'Створити виплату' %}</span></button>
-  </div>
-  <div class="radio-btn-box">
-    <input type="radio" id="on_inspection" name="payment-status" value="on_inspection" checked>
-    <label for="on_inspection">{% trans 'На перевірці' %}</label>
-    <input type="radio" id="not_closed" name="payment-status" value="not_closed">
-    <label for="not_closed">{% trans 'Не закриті' %}</label>
-    <input type="radio" id="closed" name="payment-status" value="closed">
-    <label for="closed">{% trans 'Закриті' %}</label>
-  </div>
-  <div class="filter-driver-payments">
-    <label for="period">{% trans 'Виберіть період:' %}</label>
-    <div class="custom-select-payments" id="period">
-      <span class="selected-option-payments">{% trans 'Вчора' %}</span>
-      <i class="fas fa-angle-down"></i>
-      <ul class="options-payments">
-        <li data-value="yesterday">{% trans 'Вчора' %}</li>
-        <li data-value="current_week">{% trans 'Поточний тиждень' %}</li>
-        <li data-value="last_week">{% trans 'Минулий тиждень' %}</li>
-        <li data-value="current_month">{% trans 'Поточний місяць' %}</li>
-        <li data-value="last_month">{% trans 'Минулий місяць' %}</li>
-        <li data-value="current_quarter">{% trans 'Поточний квартал' %}</li>
-        <li data-value="last_quarter">{% trans 'Минулий квартал' %}</li>
-        <li data-value="custom">{% trans 'Вибрати період >' %}</li>
-      </ul>
+  <div class="modal-overlay" style="display: none;"></div>
+  <div class="info-driver">
+    <div class="title-driver">
+      <h2>{% trans 'Виплати водіям' %}</h2>
+      <button class="create-payment"><span>{% trans 'Створити виплату' %}</span></button>
+    </div>
+    <div class="radio-btn-box">
+      <input type="radio" id="on_inspection" name="payment-status" value="on_inspection" checked>
+      <label for="on_inspection">{% trans 'На перевірці' %}</label>
+      <input type="radio" id="not_closed" name="payment-status" value="not_closed">
+      <label for="not_closed">{% trans 'Не закриті' %}</label>
+      <input type="radio" id="closed" name="payment-status" value="closed">
+      <label for="closed">{% trans 'Закриті' %}</label>
+    </div>
+    <div class="filter-driver-payments">
+      <label for="period">{% trans 'Виберіть період:' %}</label>
+      <div class="custom-select-payments" id="period">
+        <span class="selected-option-payments">{% trans 'Вчора' %}</span>
+        <i class="fas fa-angle-down"></i>
+        <ul class="options-payments">
+          <li data-value="yesterday">{% trans 'Вчора' %}</li>
+          <li data-value="current_week">{% trans 'Поточний тиждень' %}</li>
+          <li data-value="last_week">{% trans 'Минулий тиждень' %}</li>
+          <li data-value="current_month">{% trans 'Поточний місяць' %}</li>
+          <li data-value="last_month">{% trans 'Минулий місяць' %}</li>
+          <li data-value="current_quarter">{% trans 'Поточний квартал' %}</li>
+          <li data-value="last_quarter">{% trans 'Минулий квартал' %}</li>
+          <li data-value="custom">{% trans 'Вибрати період >' %}</li>
+        </ul>
+      </div>
+    </div>
+    <div id="datePickerPayments" style="display: none;">
+      <label for="start_report_driver">{% trans 'Початкова дата:' %}</label>
+      <input type="date" id="start_report_driver" name="start_date">
+      <label for="end_report_driver">{% trans 'Кінцева дата:' %}</label>
+      <input type="date" id="end_report_driver" name="end_date">
+      <input class="apply-filter-button_driver" type="button" onclick="applyCustomDateRange('payments')"
+             value="{% trans 'Фільтрувати' %}">
+      <div id="error_message" style="display: none; color: red;"></div>
+    </div>
+    <div class="table-container">
+      <table class="driver-table">
+        <thead>
+        <tr class="tr-driver-title">
+          <th class="sortable" data-sort="period">{% trans 'Період виплати' %}</th>
+          <th class="sortable" data-sort="driver">{% trans 'Водій' %}</th>
+          <th class="sortable" data-sort="kasa">{% trans 'Каса' %}</th>
+          <th class="sortable" data-sort="cash">{% trans 'Готівка' %}</th>
+          <th class="sortable" data-sort="rent">{% trans 'Холостий пробіг' %}</th>
+          <th class="sortable" data-sort="bonus">{% trans 'Бонуси' %}</th>
+          <th class="sortable" data-sort="fines">{% trans 'Штрафи' %}</th>
+          <th class="sortable" data-sort="driver-rate">{% trans '% водія' %}</th>
+          <th class="sortable" data-sort="earning">{% trans 'Виплата' %}</th>
+          <th class="sortable" data-sort="status">{% trans 'Розрахунок виплат' %}</th>
+          <th class="sortable" data-sort="button">
+            <button class="send-all-button">{% trans 'Відправити звіт водіям' %}</button>
+          </th>
+        </tr>
+        </thead>
+        <tbody>
+        </tbody>
+      </table>
     </div>
   </div>
-  <div id="datePickerPayments" style="display: none;">
-    <label for="start_report_driver">{% trans 'Початкова дата:' %}</label>
-    <input type="date" id="start_report_driver" name="start_date">
-    <label for="end_report_driver">{% trans 'Кінцева дата:' %}</label>
-    <input type="date" id="end_report_driver" name="end_date">
-    <input class="apply-filter-button_driver" type="button" onclick="applyCustomDateRange('payments')"
-           value="{% trans 'Фільтрувати'%}">
-    <div id="error_message" style="display: none; color: red;"></div>
-  </div>
-  <table class="driver-table">
-    <thead>
-    <tr class="tr-driver-title">
-      <th class="sortable" data-sort="period">{% trans 'Період виплати' %}</th>
-      <th class="sortable" data-sort="driver">{% trans 'Водій' %}</th>
-      <th class="sortable" data-sort="kasa">{% trans 'Каса' %}</th>
-      <th class="sortable" data-sort="cash">{% trans 'Готівка' %}</th>
-      <th class="sortable" data-sort="rent">{% trans 'Холостий пробіг' %}</th>
-      <th class="sortable" data-sort="bonus">{% trans 'Бонуси' %}</th>
-      <th class="sortable" data-sort="fines">{% trans 'Штрафи' %}</th>
-      <th class="sortable" data-sort="driver-rate">{% trans '% водія' %}</th>
-      <th class="sortable" data-sort="earning">{% trans 'Виплата' %}</th>
-      <th class="sortable" data-sort="status">{% trans 'Розрахунок виплат' %}</th>
-      <th class="sortable" data-sort="button">
-        <button class="send-all-button">{% trans 'Відправити звіт водіям' %}</button>
-      </th>
-    </tr>
-    </thead>
-    <tr>
-      <td></td>
-      <td></td>
-      <td></td>
-      <td></td>
-      <td></td>
-      <td></td>
-      <td></td>
-      <td></td>
-      <td></td>
-      <td></td>
-      <td></td>
-    </tr>
-  </table>
-</div>
-<div id="formContainer"></div>
-{% include 'dashboard/forms/_password-change-form.html' %}
-{% include 'dashboard/forms/_aggregator-form.html' %}
-{% include 'dashboard/forms/_payment-driver-list.html' %}
-{% include 'dashboard/forms/_bolt-confirmation-form.html' %}
-{% include 'dashboard/_confirmation-update-database.html' %}
+  <div id="formContainer"></div>
+  {% include 'dashboard/forms/_password-change-form.html' %}
+  {% include 'dashboard/forms/_aggregator-form.html' %}
+  {% include 'dashboard/forms/_payment-driver-list.html' %}
+  {% include 'dashboard/forms/_bolt-confirmation-form.html' %}
+  {% include 'dashboard/_confirmation-update-database.html' %}
 {% endblock %}
 {% block js %}
   <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.3/dist/jquery.min.js" defer></script>

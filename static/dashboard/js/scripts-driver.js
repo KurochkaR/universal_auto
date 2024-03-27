@@ -42,6 +42,9 @@
 // circularChart.setOption(circularChartOptions);
 $(document).ready(function () {
 	checkCash();
+	$('.debt-repayment-input').val(function (i, value) {
+		return value.replace(',', '.');
+	});
 	const bonusRadio = document.getElementById('driver-bonus-radio');
 	const penaltyRadio = document.getElementById('driver-penalty-radio');
 	const bonusBlock = document.querySelector('.driver-bonus-item');
@@ -176,24 +179,24 @@ $(document).ready(function () {
 			},
 			dataType: 'json',
 			success: function (response) {
-			    if (response.task_id) {
-                    checkTaskStatus(response.task_id)
-                    .then(function (response) {
-                        if (response.data === 'SUCCESS') {
-                        // message
-                        } else {
-                        // message
-                        }
-                        checkCash();
-                        $('#loader-confirmation-cash').hide()
-                    })
-                    .catch( function (error){
-                        console.error('Error:', error)
-                    })
-                } else {
-                    checkCash();
-                    $('#loader-confirmation-cash').hide()
-                }
+				if (response.task_id) {
+					checkTaskStatus(response.task_id)
+						.then(function (response) {
+							if (response.data === 'SUCCESS') {
+								// message
+							} else {
+								// message
+							}
+							checkCash();
+							$('#loader-confirmation-cash').hide()
+						})
+						.catch(function (error) {
+							console.error('Error:', error)
+						})
+				} else {
+					checkCash();
+					$('#loader-confirmation-cash').hide()
+				}
 			},
 
 		});
@@ -290,16 +293,105 @@ $(document).ready(function () {
 		cashPercent.focus();
 	});
 
-	$(this).on("input", "#cash-percent", function () {
-		var inputValue = $(this).val();
-		var sanitizedValue = inputValue.replace(/[^0-9]/g, '');
-
-		var integerValue = parseInt(sanitizedValue, 10);
-
-		if (isNaN(integerValue) || integerValue < 0) {
-			integerValue = 0;
-		}
-		sanitizedValue = Math.min(Math.max(integerValue, 0), 100);
-		$(this).val(sanitizedValue);
+	$(this).on("input", ".debt-repayment-input", function () {
+		var penaltyAmount = $(this).closest('.driver-bonus-penalty-info').find('.penalty-amount span').text();
+		validNumberInput(parseFloat(penaltyAmount.replace(',', '.')), $(this));
 	});
+
+	$(this).on("input", "#cash-percent", function () {
+		validNumberInput(100, $(this));
+	});
+
+	function getCategory(element) {
+		return $(element).find('.penalty-category span').text();
+	}
+
+	$(document).on('click', function (event) {
+		if (!$(event.target).closest('.debt-repayment-input-container').length) {
+			var $input = $('.debt-repayment-input-container:visible');
+			$input.hide();
+			var category = $input.closest('.driver-bonus-penalty-info').find('.penalty-category span').text();
+			if (category !== 'Борг по виплаті') {
+				$input.closest('.driver-bonus-penalty-info').find('.edit-penalty-btn, .delete-bonus-penalty-btn').show();
+			}
+			$('.debt-repayment-btn').show();
+		}
+	});
+
+	$(this).on('click', '.debt-repayment-btn', function (event) {
+		event.stopPropagation();
+		var $container = $(this).closest('.driver-bonus-penalty-info');
+
+		$(this).hide();
+		var $input = $('.debt-repayment-input-container:visible');
+		$input.hide();
+		var category = $input.closest('.driver-bonus-penalty-info').find('.penalty-category span').text();
+		if (category !== 'Борг по виплаті') {
+			$input.closest('.driver-bonus-penalty-info').find('.edit-penalty-btn, .delete-bonus-penalty-btn, .debt-repayment-btn').show();
+		} else {
+			$input.closest('.driver-bonus-penalty-info').find('.debt-repayment-btn').show();
+		}
+		$container.find('.debt-repayment-input-container').css('display', 'flex');
+		$container.find('.edit-penalty-btn, .delete-bonus-penalty-btn').hide();
+	});
+
+	$('.driver-bonus-penalty-info').each(function () {
+		var $this = $(this);
+		var category = getCategory($this);
+
+		$this.find('.debt-repayment-btn').show().css('width', category === 'Борг по виплаті' ? '165px' : 'auto');
+		$this.find('.edit-penalty-btn, .delete-bonus-penalty-btn').toggle(category !== 'Борг по виплаті');
+	});
+
+	const confirmationDebt = $('.confirmation-debt-repayment');
+	$(document).on('click', '.debt-repayment-input-container i', function () {
+		const driversDebt = parseFloat($(this).closest('.driver-bonus-penalty-info').find('.penalty-amount span').text());
+		const repaymentDebt = parseFloat($(this).closest('.debt-repayment-input-container').find('input').val());
+		const penalty_id = $(this).closest('.driver-bonus-penalty-info').data('id');
+
+		if (driversDebt === repaymentDebt) {
+			$('.confirmation-debt-repayment h2').text('Ви впевнені, що хочете закрити штраф?');
+		} else {
+			$('.confirmation-debt-repayment h2').text('Водій повернув ' + repaymentDebt + ' ₴ штрафу?');
+		}
+
+		confirmationDebt.attr('data-repayment', driversDebt === repaymentDebt ? driversDebt : repaymentDebt);
+		confirmationDebt.attr('data-penalty_id', penalty_id);
+		confirmationDebt.show();
+	});
+
+
+	$('#debt-repayment-on').click(function () {
+		$.ajax({
+			url: ajaxPostUrl,
+			type: 'POST',
+			data: {
+				action: 'debt_repayment',
+				penalty_id: confirmationDebt.data('penalty_id'),
+				debt_repayment: confirmationDebt.data('repayment'),
+				csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
+			},
+			dataType: 'json',
+			success: function (response) {
+				window.location.reload();
+			}
+		});
+	});
+
+	$('#debt-repayment-off').click(function () {
+		$('.confirmation-debt-repayment').hide();
+	});
+
 });
+
+function validNumberInput(maxValue = 100, element) {
+	var inputValue = element.val();
+	var sanitizedValue = inputValue.replace(/[^0-9.]/g, '');
+
+	var integerValue = parseFloat(sanitizedValue);
+	if (isNaN(integerValue) || integerValue < 0) {
+		integerValue = 0;
+	}
+	sanitizedValue = Math.min(Math.max(integerValue, 0), maxValue);
+	element.val(sanitizedValue);
+}

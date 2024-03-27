@@ -1,24 +1,21 @@
 import os
 
 import jwt
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import Q, F
+from django.db.models import F
 
 from django.urls import reverse
 from django.shortcuts import render, redirect
-from django.contrib.auth import login, logout
-from django.core.paginator import Paginator
-from django.http import HttpResponseRedirect
+from django.contrib.auth import login
+from django.http import HttpResponseRedirect, JsonResponse
 from django.utils import timezone
 from django.views.generic import View, TemplateView, DetailView
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 
-from api.views import CarsInformationListView
-from taxi_service.forms import SubscriberForm, MainOrderForm, BonusForm
+from taxi_service.forms import SubscriberForm
 from taxi_service.handlers import PostRequestHandler, GetRequestHandler
 from taxi_service.seo_keywords import *
-from app.models import Driver, Vehicle, CustomUser, BonusCategory, PenaltyCategory, DriverReshuffle, Bonus, Penalty
+from app.models import Driver, Vehicle, CustomUser, DriverReshuffle, Bonus, Penalty
 from auto_bot.main import bot
 
 
@@ -26,71 +23,82 @@ class PostRequestView(View):
     def post(self, request):
         handler = PostRequestHandler()
         action = request.POST.get("action")
+        if action == "login_invest":
+            return handler.handler_success_login_investor(request)
+        if request.user.is_authenticated:
 
-        method = {
-            "order": handler.handler_order_form,
-            "subscribe": handler.handler_subscribe_form,
-            "send_comment": handler.handler_comment_form,
-            "order_sum": handler.handler_update_order,
-            "user_opt_out": handler.handler_update_order,
-            "increase_price": handler.handler_restarting_order,
-            "continue_search": handler.handler_restarting_order,
-            "login": handler.handler_success_login,
-            "logout": handler.handler_handler_logout,
-            "login_invest": handler.handler_success_login_investor,
-            "logout_invest": handler.handler_logout_investor,
-            "change_password": handler.handler_change_password,
-            "send_reset_code": handler.handler_change_password,
-            "update_password": handler.handler_change_password,
-            "upd_database": handler.handler_update_database,
-            "free_access_or_consult": handler.handler_free_access,
-            "add_shift": handler.handler_add_shift,
-            "delete_shift": handler.handler_delete_shift,
-            "delete_all_shift": handler.handler_delete_shift,
-            "update_shift": handler.handler_update_shift,
-            "update_all_shift": handler.handler_update_shift,
-            "add-bonus": handler.handler_add_bonus_or_penalty,
-            "add-penalty": handler.handler_add_bonus_or_penalty,
-            "upd-status-payment": handler.handler_upd_payment_status,
-            "upd_bonus_penalty": handler.handler_upd_bonus_penalty,
-            "delete_bonus_penalty": handler.handler_delete_bonus_penalty,
-            "calculate-payments": handler.handler_calculate_payments,
-            "switch_cash": handler.handler_switch_cash,
-            "switch_auto_cash": handler.handler_switch_auto_cash,
-            "change_cash_percent": handler.handler_change_cash_percent,
-            "payment-driver-list": handler.handler_get_driver_payment_list,
-            "create-new-payment": handler.handler_create_new_payment,
-            "update_incorrect_payment": handler.handler_incorrect_payment,
-            "correction_bolt_payment": handler.handler_correction_bolt
-        }
+            method = {
+                "order": handler.handler_order_form,
+                "subscribe": handler.handler_subscribe_form,
+                "send_comment": handler.handler_comment_form,
+                "order_sum": handler.handler_update_order,
+                "user_opt_out": handler.handler_update_order,
+                "increase_price": handler.handler_restarting_order,
+                "continue_search": handler.handler_restarting_order,
+                "login": handler.handler_success_login,
+                "logout": handler.handler_handler_logout,
+                "login_invest": handler.handler_success_login_investor,
+                "logout_invest": handler.handler_logout_investor,
+                "change_password": handler.handler_change_password,
+                "send_reset_code": handler.handler_change_password,
+                "update_password": handler.handler_change_password,
+                "upd_database": handler.handler_update_database,
+                "free_access_or_consult": handler.handler_free_access,
+                "add_shift": handler.handler_add_shift,
+                "delete_shift": handler.handler_delete_shift,
+                "delete_all_shift": handler.handler_delete_shift,
+                "update_shift": handler.handler_update_shift,
+                "update_all_shift": handler.handler_update_shift,
+                "add-bonus": handler.handler_add_bonus_or_penalty,
+                "add-penalty": handler.handler_add_bonus_or_penalty,
+                "upd-status-payment": handler.handler_upd_payment_status,
+                "upd_bonus_penalty": handler.handler_upd_bonus_penalty,
+                "delete_bonus_penalty": handler.handler_delete_bonus_penalty,
+                "calculate-payments": handler.handler_calculate_payments,
+                "switch_cash": handler.handler_switch_cash,
+                "switch_auto_cash": handler.handler_switch_auto_cash,
+                "change_cash_percent": handler.handler_change_cash_percent,
+                "payment-driver-list": handler.handler_get_driver_payment_list,
+                "create-new-payment": handler.handler_create_new_payment,
+                "update_incorrect_payment": handler.handler_incorrect_payment,
+                "correction_bolt_payment": handler.handler_correction_bolt,
+                "debt_repayment": handler.handler_debt_repayment,
+            }
 
-        if action in method:
-            return method[action](request)
+            if action in method:
+                return method[action](request)
+            else:
+                return handler.handle_unknown_action()
         else:
-            return handler.handle_unknown_action()
+            return JsonResponse({}, status=403)
 
 
 class GetRequestView(View):
     def get(self, request):
         handler = GetRequestHandler()
         action = request.GET.get("action")
-        method = {
-            "active_vehicles_locations": handler.handle_active_vehicles_locations,
-            "order_confirm": handler.handle_order_confirm,
-            "aggregators": handler.handle_check_aggregators,
-            "check_task": handler.handle_check_task,
-            "render_bonus": handler.handle_render_bonus_form,
-            "render_bonus_driver": handler.handle_render_bonus_form,
-            "check_cash": handler.handle_check_cash,
-        }
+        if request.user.is_authenticated:
 
-        if action in method:
-            return method[action](request)
+            method = {
+                "active_vehicles_locations": handler.handle_active_vehicles_locations,
+                "order_confirm": handler.handle_order_confirm,
+                "aggregators": handler.handle_check_aggregators,
+                "check_task": handler.handle_check_task,
+                "render_bonus": handler.handle_render_bonus_form,
+                "render_bonus_driver": handler.handle_render_bonus_form,
+                "check_cash": handler.handle_check_cash,
+            }
+
+            if action in method:
+                return method[action](request)
+            else:
+                return handler.handle_unknown_action()
         else:
-            return handler.handle_unknown_action()
+            return JsonResponse({}, status=403)
 
 
 class BaseContextView(TemplateView):
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["subscribe_form"] = SubscriberForm()
@@ -155,14 +163,17 @@ class PriceView(BaseContextView, TemplateView):
 
 # DASHBOARD VIEWS ->
 
-
-class BaseDashboardView(LoginRequiredMixin, TemplateView):
+class BaseDashboardView(TemplateView):
     login_url = "index"
 
     def dispatch(self, request, *args, **kwargs):
-        if self.request.user.is_superuser:
-            return redirect(reverse('admin:index'))
-        return super().dispatch(request, *args, **kwargs)
+        if request.user.is_authenticated:
+            if self.request.user.is_superuser:
+                return redirect(reverse('admin:index'))
+
+            # if not request.user.is_authenticated:
+            #     return redirect(reverse('index'))
+            return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         user = self.request.user
@@ -218,6 +229,11 @@ class DriversView(BaseDashboardView):
 class DriverDetailView(DetailView):
     model = Driver
     template_name = 'dashboard/driver_detail.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return redirect(reverse('index'))
+        return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         driver_id = self.kwargs['pk']
