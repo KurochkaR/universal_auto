@@ -1,24 +1,21 @@
 import os
 
 import jwt
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import Q, F
+from django.db.models import F
 
 from django.urls import reverse
 from django.shortcuts import render, redirect
-from django.contrib.auth import login, logout
-from django.core.paginator import Paginator
-from django.http import HttpResponseRedirect
+from django.contrib.auth import login
+from django.http import HttpResponseRedirect, JsonResponse
 from django.utils import timezone
 from django.views.generic import View, TemplateView, DetailView
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 
-from api.views import CarsInformationListView
-from taxi_service.forms import SubscriberForm, MainOrderForm, BonusForm
+from taxi_service.forms import SubscriberForm
 from taxi_service.handlers import PostRequestHandler, GetRequestHandler
 from taxi_service.seo_keywords import *
-from app.models import Driver, Vehicle, CustomUser, BonusCategory, PenaltyCategory, DriverReshuffle, Bonus, Penalty
+from app.models import Driver, Vehicle, CustomUser, DriverReshuffle, Bonus, Penalty
 from auto_bot.main import bot
 
 
@@ -27,7 +24,6 @@ class PostRequestView(View):
         handler = PostRequestHandler()
         action = request.POST.get("action")
         if action == "login_invest":
-            print("LOGIN")
             return handler.handler_success_login_investor(request)
         if request.user.is_authenticated:
 
@@ -74,10 +70,10 @@ class PostRequestView(View):
             else:
                 return handler.handle_unknown_action()
         else:
-            return HttpResponseRedirect('/')
+            return JsonResponse({}, status=403)
 
 
-class GetRequestView(View, LoginRequiredMixin):
+class GetRequestView(View):
     def get(self, request):
         handler = GetRequestHandler()
         action = request.GET.get("action")
@@ -98,10 +94,11 @@ class GetRequestView(View, LoginRequiredMixin):
             else:
                 return handler.handle_unknown_action()
         else:
-            return HttpResponseRedirect(reverse('index'))
+            return JsonResponse({}, status=403)
 
 
 class BaseContextView(TemplateView):
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["subscribe_form"] = SubscriberForm()
@@ -166,14 +163,16 @@ class PriceView(BaseContextView, TemplateView):
 
 # DASHBOARD VIEWS ->
 
-
-class BaseDashboardView(LoginRequiredMixin, TemplateView):
+class BaseDashboardView(TemplateView):
     login_url = "index"
 
     def dispatch(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             if self.request.user.is_superuser:
                 return redirect(reverse('admin:index'))
+
+            # if not request.user.is_authenticated:
+            #     return redirect(reverse('index'))
             return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):

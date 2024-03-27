@@ -9,6 +9,13 @@ $(document).ajaxStop(function () {
 	$('#overlay').hide();
 });
 
+$(document).ajaxError(function (event, xhr, settings) {
+	var status = xhr.status;
+	if (status === 403 || status === 404) {
+		window.location.href = '/';
+	}
+});
+
 $(document).ready(function () {
 
 	$("#admin-link").click(function () {
@@ -211,8 +218,8 @@ $(document).ready(function () {
 							partner === "Gps" ? $("#loginErrorMessage").text("Вказано неправильний токен") : $("#loginErrorMessage").text("Вказано неправильний логін або пароль");
 							$("#loginErrorMessage").show();
 
-//                        $("#partnerLogin").val("").addClass("error-border");
-//                        $("#partnerPassword").val("").addClass("error-border");
+							//$("#partnerLogin").val("").addClass("error-border");
+							//$("#partnerPassword").val("").addClass("error-border");
 						}
 						hideLoader(partnerForm);
 					})
@@ -482,10 +489,6 @@ function openForm(paymentId, bonusPenaltyId, itemType, driverId) {
 		},
 
 		error: function (xhr, status, error) {
-			console.log(xhr)
-			if (xhr.status === 400) {
-				window.location.href = '/';
-			}
 			var errorMessage = xhr.responseJSON.data
 			$('#errorText').text(errorMessage);
 			$('#errorModal').show();

@@ -612,4 +612,4 @@ class GetRequestHandler:
 
     @staticmethod
     def handle_unknown_action():
-        return JsonResponse({"data": "i'm here now"}, status=400)
+        return JsonResponse({}, status=400)
