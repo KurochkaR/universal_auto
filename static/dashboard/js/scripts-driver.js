@@ -291,7 +291,8 @@ $(document).ready(function () {
 	});
 
 	$(this).on("input", ".debt-repayment-input", function () {
-		validNumberInput(parseFloat($(this).attr('value')), $(this));
+		var penaltyAmount = $(this).closest('.driver-bonus-penalty-info').find('.penalty-amount span').text();
+		validNumberInput(parseFloat(penaltyAmount.replace(',', '.')), $(this));
 	});
 
 	$(this).on("input", "#cash-percent", function () {
@@ -382,10 +383,9 @@ $(document).ready(function () {
 
 function validNumberInput(maxValue = 100, element) {
 	var inputValue = element.val();
-	var sanitizedValue = inputValue.replace(/[^0-9]/g, '');
+	var sanitizedValue = inputValue.replace(/[^0-9.]/g, '');
 
-	var integerValue = parseInt(sanitizedValue, 10);
-
+	var integerValue = parseFloat(sanitizedValue);
 	if (isNaN(integerValue) || integerValue < 0) {
 		integerValue = 0;
 	}
