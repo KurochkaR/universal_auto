@@ -61,7 +61,8 @@ class PostRequestView(View):
             "payment-driver-list": handler.handler_get_driver_payment_list,
             "create-new-payment": handler.handler_create_new_payment,
             "update_incorrect_payment": handler.handler_incorrect_payment,
-            "correction_bolt_payment": handler.handler_correction_bolt
+            "correction_bolt_payment": handler.handler_correction_bolt,
+            "add-debt-payment": handler.add_debt_payment
         }
 
         if action in method:

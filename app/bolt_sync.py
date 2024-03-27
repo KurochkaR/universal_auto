@@ -310,7 +310,7 @@ class BoltRequest(Fleet, Synchronizer):
         format_end = end.strftime("%Y-%m-%d")
         payload = {
             "offset": 0,
-            "limit": 100,
+            "limit": 200,
             "from_date": format_start,
             "to_date": format_end,
             "orders_state_statuses": [
@@ -330,6 +330,8 @@ class BoltRequest(Fleet, Synchronizer):
             report = self.get_target_url(f'{self.base_url}getOrdersHistory', self.param(), payload, method="POST")
             if report.get('data'):
                 for order in report['data']['rows']:
+                    if driver and driver.get_driver_external_id(self) != str(order['driver_id']):
+                        continue
                     driver_qs = Driver.objects.filter(
                         fleetsdriversvehiclesrate__driver_external_id=str(order['driver_id']),
                         fleetsdriversvehiclesrate__fleet=self, partner=self.partner)

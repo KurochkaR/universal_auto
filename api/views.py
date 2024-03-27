@@ -509,7 +509,7 @@ class DriverPaymentsListView(CombinedPermissionsMixin, generics.ListAPIView):
             Q(swap_time__lte=OuterRef('report_to'))
         ).values('swap_vehicle').annotate(vehicles=ArrayAgg('swap_vehicle', distinct=True)).values('vehicles')[:1]
         queryset = queryset.select_related('driver__user_ptr').prefetch_related(
-            Prefetch('penaltybonus_set', queryset=PenaltyBonus.objects.all(),
+            Prefetch('penaltybonus_set', queryset=PenaltyBonus.objects.all().select_related('vehicle', 'category'),
                      to_attr='prefetched_penaltybonuses')).annotate(
             full_name=Concat(
                 F("driver__user_ptr__name"),
