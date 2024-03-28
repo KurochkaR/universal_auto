@@ -1,6 +1,7 @@
 function driverPayment(period = null, start = null, end = null, paymentStatus = null) {
+	console.log('function', paymentStatus);
 	if (period === null) {
-		var url = `/api/driver_payments/`;
+		var url = `/api/driver_payments/${paymentStatus}/`;
 	} else if (period === 'custom') {
 		var url = `/api/driver_payments/${start}&${end}/`;
 	} else {
@@ -12,6 +13,7 @@ function driverPayment(period = null, start = null, end = null, paymentStatus = 
 		type: 'GET',
 		dataType: 'json',
 		success: function (response) {
+			console.log('response', response);
 			$(".apply-filter-button_driver").prop("disabled", false);
 			var tableBody = $('.driver-table tbody');
 			tableBody.empty();
