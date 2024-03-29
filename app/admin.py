@@ -1076,7 +1076,7 @@ class DriverAdmin(SoftDeleteAdmin):
             if db_field.name == 'manager':
                 kwargs['queryset'] = db_field.related_model.objects.filter(
                     managers_partner=request.user).only('first_name', 'last_name')
-        if request.user.is_manager():
+        elif request.user.is_manager():
             if db_field.name == 'schema':
                 manager = Manager.objects.get(pk=request.user.pk)
                 kwargs['queryset'] = db_field.related_model.objects.filter(
