@@ -611,21 +611,21 @@ class VehicleRent(models.Model):
     partner = models.ForeignKey(Partner, on_delete=models.CASCADE, verbose_name='Партнер')
 
 
-class NinjaFleet(Fleet):
-
-    @staticmethod
-    def start_report_interval(day):
-        return timezone.localize(datetime.combine(day, time.min))
-
-    @staticmethod
-    def end_report_interval(day):
-        return timezone.localize(datetime.combine(day, time.max))
-
-    def download_report(self, day=None):
-        report = Payments.objects.filter(report_from=self.start_report_interval(day),
-                                         report_to=self.end_report_interval(day),
-                                         fleet=self)
-        return list(report)
+# class NinjaFleet(Fleet):
+#
+#     @staticmethod
+#     def start_report_interval(day):
+#         return timezone.localize(datetime.combine(day, time.min))
+#
+#     @staticmethod
+#     def end_report_interval(day):
+#         return timezone.localize(datetime.combine(day, time.max))
+#
+#     def download_report(self, day=None):
+#         report = Payments.objects.filter(report_from=self.start_report_interval(day),
+#                                          report_to=self.end_report_interval(day),
+#                                          fleet=self)
+#         return list(report)
 
 
 class Client(User):

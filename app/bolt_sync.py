@@ -8,6 +8,7 @@ from _decimal import Decimal
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.files import File
+from django.db.models import Q, Case, When, Value, F
 from django.utils import timezone
 
 from django.db import models, transaction
@@ -297,7 +298,7 @@ class BoltRequest(Fleet, Synchronizer):
             })
         return driver_list
 
-    def get_fleet_orders(self, start, end, driver=None):
+    def get_fleet_orders(self, start, end, driver=None, driver_ids=None):
         bolt_states = {
             "client_did_not_show": FleetOrder.CLIENT_CANCEL,
             "finished": FleetOrder.COMPLETED,
@@ -310,7 +311,7 @@ class BoltRequest(Fleet, Synchronizer):
         format_end = end.strftime("%Y-%m-%d")
         payload = {
             "offset": 0,
-            "limit": 200,
+            "limit": 100,
             "from_date": format_start,
             "to_date": format_end,
             "orders_state_statuses": [
@@ -325,68 +326,84 @@ class BoltRequest(Fleet, Synchronizer):
         offset = 0
         limit = payload["limit"]
         batch_data = []
+        orders = []
         while True:
             payload["offset"] = offset
             report = self.get_target_url(f'{self.base_url}getOrdersHistory', self.param(), payload, method="POST")
             if report.get('data'):
-                for order in report['data']['rows']:
-                    if driver and driver.get_driver_external_id(self) != str(order['driver_id']):
-                        continue
-                    driver_qs = Driver.objects.filter(
-                        fleetsdriversvehiclesrate__driver_external_id=str(order['driver_id']),
-                        fleetsdriversvehiclesrate__fleet=self, partner=self.partner)
-                    if driver_qs.exists():
-                        driver = driver_qs.first()
-                        price = order.get('total_price', 0)
-                        tip = order.get("tip", 0)
-                        date_order = timezone.make_aware(datetime.fromtimestamp(order['driver_assigned_time']))
-                        if FleetOrder.objects.filter(order_id=order['order_id'], partner=self.partner,
-                                                     date_order=date_order).exists():
-                            vehicle = check_vehicle(driver, date_time=date_order)
-                            if not vehicle:
-                                vehicle = Vehicle.objects.get(licence_plate=normalized_plate(order['car_reg_number']))
-                            FleetOrder.objects.filter(order_id=order['order_id'], partner=self.partner).update(
-                                price=price, tips=tip, vehicle=vehicle)
-                            continue
-                        try:
-                            finish = timezone.make_aware(
-                                datetime.fromtimestamp(order['order_stops'][-1]['arrived_at']))
-                        except TypeError:
-                            finish = None
-                        vehicle = Vehicle.objects.filter(licence_plate=normalized_plate(order['car_reg_number'])).first()
-                        data = {"order_id": order['order_id'],
-                                "fleet": self.name,
-                                "driver": driver,
-                                "from_address": order['pickup_address'],
-                                "accepted_time": date_order,
-                                "state": bolt_states.get(order['order_try_state']),
-                                "finish_time": finish,
-                                "payment": PaymentTypes.map_payments(order['payment_method']),
-                                "destination": order['order_stops'][-1]['address'],
-                                "vehicle": vehicle,
-                                "price": price,
-                                "tips": tip,
-                                "partner": self.partner,
-                                "date_order": date_order
-                                }
-                        fleet_order = FleetOrder(**data)
-                        batch_data.append(fleet_order)
-                        calendar_vehicle = check_vehicle(driver)
-                        if calendar_vehicle != vehicle:
-                            redis_instance().hset(f"wrong_vehicle_{self.partner.pk}", driver.pk,
-                                                  vehicle.licence_plate)
-                            redis_instance().expire(f"wrong_vehicle_{self.partner.pk}", 600)
-
+                orders.extend(report['data']['rows'])
                 if offset + limit < report['data']['total_rows']:
                     offset += limit
+                    tm.sleep(0.5)
                 else:
-                    with transaction.atomic():
-                        FleetOrder.objects.bulk_create(batch_data)
                     break
             else:
-                with transaction.atomic():
-                    FleetOrder.objects.bulk_create(batch_data)
                 break
+        filter_condition = Q(date_order__in=[
+            timezone.make_aware(datetime.fromtimestamp(order['driver_assigned_time'])) for order in orders
+        ],
+            order_id__in=[order['order_id'] for order in orders],
+            partner=self.partner)
+        db_orders = FleetOrder.objects.filter(filter_condition)
+        existing_orders = db_orders.values_list('order_id', flat=True)
+        zero_price_orders = db_orders.filter(Q(price=0))
+        zero_filtered = [order for order in orders if order['order_id'] in zero_price_orders]
+
+        order_prices_dict = {order['order_id']: (order.get('total_price', 0), order.get("tip", 0))
+                             for order in zero_filtered}
+        zero_price_orders.update(
+            price=Case(
+                *[When(order_id=order_id, then=Value(total_price[0])) for order_id, total_price in
+                  order_prices_dict.items()],
+                default=F('price')
+            ),
+            tips=Case(
+                *[When(order_id=order_id, then=Value(total_price[1])) for order_id, total_price in
+                  order_prices_dict.items()],
+                default=F('tips')
+            )
+        )
+        calendar_errors = {}
+        filtered_orders = [order for order in orders if str(order['order_id']) not in existing_orders]
+        for order in filtered_orders:
+            if driver and driver.get_driver_external_id(self) != str(order['driver_id']):
+                continue
+            driver_order = Driver.objects.filter(
+                fleetsdriversvehiclesrate__driver_external_id=str(order['driver_id']),
+                fleetsdriversvehiclesrate__fleet=self, partner=self.partner).first()
+            price = order.get('total_price', 0)
+            tip = order.get("tip", 0)
+            date_order = timezone.make_aware(datetime.fromtimestamp(order['driver_assigned_time']))
+            calendar_vehicle = check_vehicle(driver_order, date_time=date_order)
+            vehicle = Vehicle.objects.filter(licence_plate=normalized_plate(order['car_reg_number'])).first()
+            if calendar_vehicle != vehicle and not calendar_errors.get(driver_order.pk):
+                calendar_errors[driver_order.pk] = vehicle.licence_plate
+            try:
+                finish = timezone.make_aware(
+                    datetime.fromtimestamp(order['order_stops'][-1]['arrived_at']))
+            except TypeError:
+                finish = None
+            data = {"order_id": order['order_id'],
+                    "fleet": self.name,
+                    "driver": driver_order,
+                    "from_address": order['pickup_address'],
+                    "accepted_time": date_order,
+                    "state": bolt_states.get(order['order_try_state']),
+                    "finish_time": finish,
+                    "payment": PaymentTypes.map_payments(order['payment_method']),
+                    "destination": order['order_stops'][-1]['address'],
+                    "vehicle": calendar_vehicle,
+                    "price": price,
+                    "tips": tip,
+                    "partner": self.partner,
+                    "date_order": date_order
+                    }
+
+            fleet_order = FleetOrder(**data)
+            batch_data.append(fleet_order)
+        with transaction.atomic():
+            FleetOrder.objects.bulk_create(batch_data)
+        return calendar_errors
 
     def get_drivers_status(self, photo=None):
         with_client = []

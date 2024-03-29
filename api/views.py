@@ -250,8 +250,8 @@ class DriverEfficiencyListView(CombinedPermissionsMixin,
         queryset = ManagerFilterMixin.get_queryset(DriverEfficiency, self.request.user)
         filtered_qs = queryset.filter(report_from__range=(start, end))
         dynamic_fleet = get_dynamic_fleet()
-        dynamic_fleet['rent_distance'] = Sum('rent_distance')
-        qs_efficient = filtered_qs.values('driver_id').annotate(**get_dynamic_fleet())
+        dynamic_fleet['rent_distance'] = Sum(F('rent_distance'))
+        qs_efficient = filtered_qs.values('driver_id').annotate(**dynamic_fleet)
 
         efficient_driver_ids = set(qs_efficient.values_list('driver_id', flat=True))
         reshuffled_drivers = DriverReshuffle.objects.filter(
@@ -425,7 +425,7 @@ class DriverReshuffleListView(CombinedPermissionsMixin, generics.ListAPIView):
 
     def get_queryset(self):
         vehicles = ManagerFilterMixin.get_queryset(Vehicle, self.request.user)
-        active_vehicles = vehicles.filter(deleted_at=None)
+        active_vehicles = vehicles.filter(deleted_at=None).select_related('branding')
         start, end, format_start, format_end = get_start_end(self.kwargs['period'])
         qs = DriverReshuffle.objects.filter(
             swap_vehicle__in=active_vehicles,

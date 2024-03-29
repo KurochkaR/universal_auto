@@ -19,7 +19,7 @@ from selenium.webdriver import DesiredCapabilities
 from selenium.common import TimeoutException, NoSuchElementException, InvalidArgumentException
 
 from app.models import FleetOrder, Vehicle, FleetsDriversVehiclesRate, UberService, UberSession, \
-    UaGpsService, NewUklonService, ParkSettings
+    UaGpsService, NewUklonService, ParkSettings, Driver
 from app.uklon_sync import UklonRequest
 from auto import settings
 from auto_bot.handlers.order.utils import check_vehicle
@@ -355,42 +355,41 @@ class SeleniumTools:
 
         self.logger.info(self.file_pattern(start, end))
         file_path = self.payments_order_file_name(start, end)
+        calendar_errors = {}
         if file_path is not None:
             with open(file_path, encoding="utf-8") as file:
                 reader = csv.reader(file)
                 next(reader)
-                for row in reader:
-                    if FleetOrder.objects.filter(order_id=row[0], fleet="Uber", partner=self.partner).exists():
-                        continue
+                existing_ids = FleetOrder.objects.filter(order_id__in=[row[0] for row in reader],
+                                                         fleet="Uber",
+                                                         partner=self.partner).values_list('order_id', flat=True)
+                orders = [row for row in reader if row[0] not in existing_ids]
+                for order in orders:
                     try:
-                        finish = timezone.make_aware(datetime.strptime(row[8], "%Y-%m-%d %H:%M:%S"))
+                        finish = timezone.make_aware(datetime.strptime(order[8], "%Y-%m-%d %H:%M:%S"))
                     except ValueError:
                         finish = None
-                    driver = FleetsDriversVehiclesRate.objects.filter(driver_external_id=row[1],
-                                                                      partner=self.partner).first()
-                    if driver:
-                        if row[5] == "AA3410YA":
-                            row[5] = "AA4314YA"
-                        vehicle = Vehicle.objects.get(licence_plate=row[5])
-                        data = {"order_id": row[0],
-                                "driver": driver.driver,
-                                "fleet": "Uber",
-                                "from_address": row[9],
-                                "destination": row[10],
-                                "accepted_time": timezone.make_aware(datetime.strptime(row[7], "%Y-%m-%d %H:%M:%S")),
-                                "finish_time": finish,
-                                "state": states.get(row[12]),
-                                "vehicle": vehicle,
-                                "partner_id": self.partner,
-                                "date_order": timezone.make_aware(datetime.strptime(row[7], "%Y-%m-%d %H:%M:%S"))}
-                        FleetOrder.objects.create(**data)
-                        calendar_vehicle = check_vehicle(driver.driver)
-                        if calendar_vehicle != vehicle:
-                            redis_instance().hset(f"wrong_vehicle_{self.partner.pk}", driver.driver.id,
-                                                  vehicle.licence_plate)
-                            redis_instance().expire(f"wrong_vehicle_{self.partner.pk}", 600)
-
+                    driver_order = Driver.objects.filter(
+                        fleetsdriversvehiclesrate__driver_external_id=order[1],
+                        fleetsdriversvehiclesrate__fleet=self, partner=self.partner).first()
+                    calendar_vehicle = check_vehicle(driver_order)
+                    vehicle = Vehicle.objects.get(licence_plate=order[5])
+                    if calendar_vehicle != vehicle and not calendar_errors.get(driver_order.pk):
+                        calendar_errors[driver_order.pk] = vehicle.licence_plate
+                    data = {"order_id": order[0],
+                            "driver": driver_order,
+                            "fleet": "Uber",
+                            "from_address": order[9],
+                            "destination": order[10],
+                            "accepted_time": timezone.make_aware(datetime.strptime(order[7], "%Y-%m-%d %H:%M:%S")),
+                            "finish_time": finish,
+                            "state": states.get(order[12]),
+                            "vehicle": vehicle,
+                            "partner_id": self.partner,
+                            "date_order": timezone.make_aware(datetime.strptime(order[7], "%Y-%m-%d %H:%M:%S"))}
+                    FleetOrder.objects.create(**data)
                 os.remove(file_path)
+        return calendar_errors
 
     def add_driver(self, job_application):
         uklon_id = UklonRequest.objects.filter(partner=self.partner).uklon_id()
