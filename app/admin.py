@@ -14,6 +14,7 @@ from .filters import VehicleEfficiencyUserFilter, DriverEfficiencyUserFilter, Re
     TransactionInvestorUserFilter, ReportUserFilter, VehicleManagerFilter, SummaryReportUserFilter, \
     ChildModelFilter, PartnerPaymentFilter, FleetFilter, FleetDriverFilter, FleetOrderFilter, VehicleSpendingFilter
 from .models import *
+from .ninja_sync import NinjaFleet
 from .utils import get_schedule
 
 
@@ -562,6 +563,13 @@ class PartnerEarningsAdmin(admin.ModelAdmin):
             list_filter = ['partner', 'driver'] + list_filter
         return list_filter
 
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        qs = qs.select_related('driver', 'vehicle', 'partner')
+        if request.user.is_partner():
+            qs = qs.filter(partner=request.user)
+        return qs
+
 
 @admin.register(CarEfficiency)
 class CarEfficiencyAdmin(admin.ModelAdmin):
@@ -757,11 +765,10 @@ class PaymentsOrderAdmin(BaseReportAdmin):
         qs = super().get_queryset(request)
         if request.user.is_partner():
             qs = qs.filter(partner=request.user)
-        if request.user.is_manager():
+        elif request.user.is_manager():
             manager_drivers = Driver.objects.filter(manager=request.user)
             qs = qs.filter(driver__in=manager_drivers)
-        return qs.select_related(
-            'fleet__partner', 'partner', 'driver__partner').prefetch_related(
+        return qs.select_related('partner').prefetch_related(
             Prefetch('fleet', queryset=Fleet.objects.only('name')),
             Prefetch('driver', queryset=Driver.objects.only('name', 'second_name')),
         )
@@ -779,11 +786,12 @@ class SummaryReportAdmin(BaseReportAdmin):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
+        qs = qs.select_related('partner', 'driver')
         if request.user.is_partner():
-            return qs.filter(partner=request.user).select_related('partner', 'driver')
-        if request.user.is_manager():
+            return qs.filter(partner=request.user)
+        elif request.user.is_manager():
             manager_drivers = Driver.objects.filter(manager=request.user)
-            return qs.filter(driver__in=manager_drivers).select_related('partner', 'driver')
+            return qs.filter(driver__in=manager_drivers)
         return qs
 
 
@@ -1076,15 +1084,16 @@ class DriverAdmin(SoftDeleteAdmin):
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
     def save_model(self, request, obj, form, change):
-        fleet = Fleet.objects.get(name='Ninja')
-        chat_id = form.cleaned_data.get('chat_id')
-        if chat_id:
-            FleetsDriversVehiclesRate.objects.get_or_create(fleet=fleet,
-                                                            driver_external_id=chat_id,
-                                                            defaults={
-                                                                'driver': obj,
-                                                                'partner': obj.partner}
-                                                            )
+        fleet = NinjaFleet.objects.filter(partner=obj.partner)
+        if fleet:
+            chat_id = form.cleaned_data.get('chat_id')
+            if chat_id:
+                FleetsDriversVehiclesRate.objects.get_or_create(fleet=fleet.first(),
+                                                                driver_external_id=chat_id,
+                                                                defaults={
+                                                                    'driver': obj,
+                                                                    'partner': obj.partner}
+                                                                )
 
         super().save_model(request, obj, form, change)
 

@@ -4,6 +4,7 @@ from datetime import datetime, time
 import requests
 from _decimal import Decimal
 
+from django.db.models import Q
 from django.utils import timezone
 from django.db import models, transaction
 from requests import JSONDecodeError
@@ -191,7 +192,6 @@ class UklonRequest(Fleet, Synchronizer):
                         driver_external_id=driver_report['driver']['id'],
                         fleet=self, partner=self.partner).driver
                     report, distance = self.parse_json_report(start, end, driver, driver_report)
-                    print(report)
                     CustomReport.objects.update_or_create(report_from=start,
                                                           driver=driver,
                                                           fleet=self,
@@ -373,7 +373,7 @@ class UklonRequest(Fleet, Synchronizer):
                 break
         return drivers
 
-    def get_fleet_orders(self, start, end, driver=None):
+    def get_fleet_orders(self, start, end, driver=None, driver_ids=None):
         states = {"completed": FleetOrder.COMPLETED,
                   "Rider": FleetOrder.CLIENT_CANCEL,
                   "Driver": FleetOrder.DRIVER_CANCEL,
@@ -387,65 +387,65 @@ class UklonRequest(Fleet, Synchronizer):
                   "to": self.report_interval(end)
                   }
         batch_data = []
+        orders = []
         while True:
-            orders = self.response_data(url=f"{Service.get_value('UKLON_1')}orders", params=params)
-            for order in orders['items']:
-                if any([order['status'] in ("running", "accepted", "arrived"), FleetOrder.objects.filter(
-                        date_order=timezone.make_aware(datetime.fromtimestamp(order["pickupTime"])),
-                        order_id=order['id'], partner=self.partner).exists()]):
-                    continue
-                formatted_uuid = str(uuid.UUID(order['driver']['id']))
-                if driver and driver.get_driver_external_id(self) != formatted_uuid:
-                    continue
-                try:
-                    driver_id_query = FleetsDriversVehiclesRate.objects.filter(
-                        fleet=self, partner=self.partner, driver_external_id=formatted_uuid)
-                    if driver_id_query.exists():
-                        driver = driver_id_query.first().driver
-
-                        vehicle = Vehicle.objects.get(licence_plate=normalized_plate(order['vehicle']['licencePlate']))
-                        try:
-                            finish_time = timezone.make_aware(datetime.fromtimestamp(order["completedAt"]))
-                        except KeyError:
-                            finish_time = None
-                        try:
-                            start_time = timezone.make_aware(datetime.fromtimestamp(order["acceptedAt"]))
-                        except KeyError:
-                            start_time = None
-                        if order['status'] != "completed":
-                            state = order["cancellation"]["initiator"]
-                        else:
-                            state = order['status']
-                        data = {"order_id": order['id'],
-                                "fleet": self.name,
-                                "driver": driver,
-                                "from_address": order['route']['points'][0]["address"],
-                                "accepted_time": start_time,
-                                "state": states.get(state),
-                                "finish_time": finish_time,
-                                "destination": order['route']['points'][-1]["address"],
-                                "vehicle": vehicle,
-                                "payment": PaymentTypes.map_payments(order['payment']['paymentType']),
-                                "price": order['payment']['cost'],
-                                "partner": self.partner,
-                                "date_order": timezone.make_aware(datetime.fromtimestamp(order["pickupTime"]))
-                                }
-                        calendar_vehicle = check_vehicle(driver)
-                        if calendar_vehicle != vehicle:
-                            redis_instance().hset(f"wrong_vehicle_{self.partner.pk}", driver.pk,
-                                                  vehicle.licence_plate)
-                            redis_instance().expire(f"wrong_vehicle_{self.partner.pk}", 600)
-                        fleet_order = FleetOrder(**data)
-                        batch_data.append(fleet_order)
-
-                except KeyError:
-                    bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"), text=f"{order}")
-            if orders['cursor']:
-                params['cursor'] = orders['cursor']
+            response = self.response_data(url=f"{Service.get_value('UKLON_1')}orders", params=params)
+            orders.extend(response['items'])
+            if response.get('cursor'):
+                params['cursor'] = response['cursor']
             else:
-                with transaction.atomic():
-                    FleetOrder.objects.bulk_create(batch_data)
                 break
+        filter_condition = Q(date_order__in=[
+                             timezone.make_aware(datetime.fromtimestamp(order["pickupTime"])) for order in orders
+                             ],
+                             order_id__in=[order['id'] for order in orders],
+                             partner=self.partner)
+        existing_orders = FleetOrder.objects.filter(filter_condition).values_list('order_id', flat=True)
+        filtered_orders = [order for order in orders if order['id'] not in existing_orders
+                           and order['status'] not in ("running", "accepted", "arrived")]
+        calendar_errors = {}
+        for order in filtered_orders:
+            formatted_uuid = str(uuid.UUID(order['driver']['id']))
+            if driver and driver.get_driver_external_id(self) != formatted_uuid:
+                continue
+            try:
+                driver_order = Driver.objects.filter(
+                    fleetsdriversvehiclesrate__driver_external_id=formatted_uuid,
+                    fleetsdriversvehiclesrate__fleet=self, partner=self.partner).first()
+                calendar_vehicle = check_vehicle(driver_order)
+                vehicle = Vehicle.objects.get(licence_plate=normalized_plate(order['vehicle']['licencePlate']))
+                if calendar_vehicle != vehicle and not calendar_errors.get(driver_order.pk):
+                    calendar_errors[driver_order.pk] = vehicle.licence_plate
+                finish_time = timezone.make_aware(datetime.fromtimestamp(order.get("completedAt"))) if order.get(
+                    "completedAt") is not None else None
+                start_time = timezone.make_aware(datetime.fromtimestamp(order.get("acceptedAt"))) if order.get(
+                    "acceptedAt") is not None else None
+
+                state = order["cancellation"]["initiator"] if order['status'] != "completed" else order['status']
+
+                data = {"order_id": order['id'],
+                        "fleet": self.name,
+                        "driver": driver_order,
+                        "from_address": order['route']['points'][0]["address"],
+                        "accepted_time": start_time,
+                        "state": states.get(state),
+                        "finish_time": finish_time,
+                        "destination": order['route']['points'][-1]["address"],
+                        "vehicle": calendar_vehicle,
+                        "payment": PaymentTypes.map_payments(order['payment']['paymentType']),
+                        "price": order['payment']['cost'],
+                        "partner": self.partner,
+                        "date_order": timezone.make_aware(datetime.fromtimestamp(order["pickupTime"]))
+                        }
+                fleet_order = FleetOrder(**data)
+                batch_data.append(fleet_order)
+
+            except KeyError:
+                bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"), text=f"{order}")
+
+        with transaction.atomic():
+            FleetOrder.objects.bulk_create(batch_data)
+        return calendar_errors
 
     def disable_cash(self, driver_id, enable):
         url = f"{Service.get_value('UKLON_1')}{self.uklon_id()}"

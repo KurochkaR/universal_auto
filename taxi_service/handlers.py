@@ -421,9 +421,12 @@ class PostRequestHandler:
             else {"partner": request.user.pk, "schema__isnull": False}
         reshuffles = DriverReshuffle.objects.filter(
             swap_time__date=timezone.localtime()).values_list("driver_start", flat=True)
-        drivers = Driver.objects.get_active(**driver_filter).select_related('schema')
+        driver_filter.update({"id__in": reshuffles})
+        existing_payments = DriverPayments.objects.filter(
+            report_to__date=timezone.localtime()).values_list('driver_id', flat=True)
+        drivers = Driver.objects.get_active(**driver_filter).exclude(id__in=existing_payments).select_related('schema')
         driver_info = [{'id': driver.id, 'name': f"{driver.second_name} {driver.name}"}
-                       for driver in drivers if not driver.schema.is_weekly() and driver.id in reshuffles]
+                       for driver in drivers if not driver.schema.is_weekly()]
         return JsonResponse({'drivers': driver_info})
 
     @staticmethod

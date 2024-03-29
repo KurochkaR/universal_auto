@@ -6,7 +6,7 @@ from _decimal import Decimal
 from django.utils import timezone
 
 from app.models import (Driver, GPSNumber, RentInformation, FleetOrder, CredentialPartner, ParkSettings, Fleet,
-                        Partner, VehicleRent, Vehicle, DriverReshuffle)
+                        Partner, VehicleRent, Vehicle, DriverReshuffle, DriverPayments)
 from auto_bot.handlers.driver_manager.utils import get_today_statistic, find_reshuffle_period
 from auto_bot.handlers.order.utils import check_reshuffle
 from auto_bot.main import bot
@@ -25,7 +25,6 @@ class UaGpsSynchronizer(Fleet):
         }
         response = requests.get(f"{partner_obj.gps_url}wialon/ajax.html", params=params)
         if response.json().get("error"):
-            print(response.json())
             raise AuthenticationError(f"gps token incorrect.")
         # token = SeleniumTools(partner).create_gps_session(login, password, partner_obj.gps_url)
         return args[1]
@@ -193,7 +192,7 @@ class UaGpsSynchronizer(Fleet):
             total_time += road_time
         return total_distance, total_time, previous_finish_time
 
-    def get_road_distance(self, start, end, schema_drivers=None):
+    def get_road_distance(self, start, end, schema_drivers=None, payment=None):
         road_dict = {}
         if not schema_drivers:
             schema_drivers = DriverReshuffle.objects.filter(
@@ -202,6 +201,12 @@ class UaGpsSynchronizer(Fleet):
                 'driver_start', flat=True)
         drivers = Driver.objects.filter(pk__in=schema_drivers)
         for driver in drivers:
+            if not payment:
+                last_payment = DriverPayments.objects.filter(
+                    driver=driver,
+                    report_to__date=start).order_by("-report_from").last()
+                if last_payment and last_payment.report_to > start:
+                    start = timezone.localtime(last_payment.report_to)
             if RentInformation.objects.filter(report_from__date=start, driver=driver) and len(drivers) != 1:
                 continue
             road_dict[driver] = self.get_driver_rent(start, end, driver)
@@ -249,7 +254,7 @@ class UaGpsSynchronizer(Fleet):
 
     def get_vehicle_rent(self, start, end, driver):
         no_vehicle_gps = []
-        parameters = []
+
         reshuffles = check_reshuffle(driver, start, end)
         unique_vehicle_count = reshuffles.values('swap_vehicle').distinct().count()
         if unique_vehicle_count == 1:
@@ -267,9 +272,11 @@ class UaGpsSynchronizer(Fleet):
                                               driver=driver,
                                               defaults=data)
         else:
+
             for reshuffle in reshuffles:
+                road_distance = 0
+                parameters = []
                 if reshuffle.swap_vehicle.gps:
-                    road_distance = 0
                     start_period, end_period = find_reshuffle_period(reshuffle, start, end)
                     orders = FleetOrder.objects.filter(
                         driver=driver,
@@ -321,8 +328,14 @@ class UaGpsSynchronizer(Fleet):
                 continue
         return total_km, driver_vehicles
 
-    def calculate_driver_vehicle_rent(self, start, end, driver, result):
+    def calculate_driver_vehicle_rent(self, start, end, driver, result, payment=None):
         distance, road_time = result[0], result[1]
+        if not payment:
+            last_payment = DriverPayments.objects.filter(
+                driver=driver,
+                report_to__date=start).order_by("-report_from").last()
+            if last_payment and last_payment.report_to > start:
+                start = timezone.localtime(last_payment.report_to)
         total_km = self.calc_total_km(driver, start, end)[0]
         rent_distance = total_km - distance
         data = {
@@ -346,12 +359,12 @@ class UaGpsSynchronizer(Fleet):
         no_gps_list = self.get_vehicle_rent(start, end, driver)
         return no_gps_list
 
-    def save_daily_rent(self, start, end, drivers):
+    def save_daily_rent(self, start, end, drivers, payment):
         if not redis_instance().exists(f"{self.partner.id}_remove_gps"):
-            in_road = self.get_road_distance(start, end, drivers)
+            in_road = self.get_road_distance(start, end, drivers, payment=payment)
             no_vehicle_gps = []
             for driver, result in in_road.items():
-                no_gps_list = self.calculate_driver_vehicle_rent(start, end, driver, result)
+                no_gps_list = self.calculate_driver_vehicle_rent(start, end, driver, result, payment=payment)
                 no_vehicle_gps.extend(no_gps_list)
             if no_vehicle_gps:
                 result_string = ', '.join([str(obj) for obj in set(no_vehicle_gps)])

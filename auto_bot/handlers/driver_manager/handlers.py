@@ -330,8 +330,7 @@ def send_into_group(sender=None, **kwargs):
                                   default=Partner.objects.get(pk=partner).chat_id,
                                   partner=partner), text=message)
         for pk, message in drivers_messages.items():
-            driver = Driver.objects.get(pk=pk)
-            vehicle = check_vehicle(driver, yesterday)
+            vehicle = check_vehicle(pk, yesterday)
             if vehicle:
                 if vehicle.chat_id and message:
                     try:
