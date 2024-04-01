@@ -298,7 +298,7 @@ def download_weekly_report(self, partner_pk):
         start = timezone.make_aware(datetime.combine(end - timedelta(days=6), time.min))
         fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name='Gps')
         for fleet in fleets:
-            driver_ids = Driver.objects.get_active(fleetsdriversvehiclesrate__fleet=self).values_list(
+            driver_ids = Driver.objects.get_active(fleetsdriversvehiclesrate__fleet=fleet).values_list(
                 'fleetsdriversvehiclesrate__driver_external_id', flat=True)
             fleet.save_weekly_report(start, end, driver_ids)
         #     for report in reports:
