@@ -4049,6 +4049,7 @@ span.circle {
 }
 
 thead tr th {
+	min-width: 75px;
 	position: sticky;
 	top: 0;
 }
