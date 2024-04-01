@@ -28,6 +28,11 @@ function applyDateRange() {
 // ---------- CHARTS ---------- //
 
 var barChart = echarts.init(document.getElementById('bar-chart'));
+window.addEventListener('resize', function () {
+	barChart.resize();
+	areaChart.resize();
+	threeChart.resize();
+});
 
 // BAR CHART
 let barChartOptions = {
