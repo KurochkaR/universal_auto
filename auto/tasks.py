@@ -231,8 +231,8 @@ def check_card_cash_value(self, partner_pk):
                     if penalties:
                         calc_text += f" борг {int(penalties)}"
                     if rent_payment:
-                        calc_text += f" холостий пробіг {int(rent_payment)}/{int(kasa)}"
-                    calc_text += f" = {int((1 - ratio) * 100)}%\n"
+                        calc_text += f" холостий пробіг {int(rent_payment)}"
+                    calc_text += f" / {int(kasa)} = {int((1 - ratio) * 100)}%\n"
                     if enable:
                         text = f"\U0001F7E2 {driver} система увімкнула отримання замовлень за готівку.\n" + calc_text
                     elif rent_enable:
