@@ -108,7 +108,6 @@ def summary_report_create(start, end, driver, partner_pk):
     payments = Payments.objects.filter(report_to__range=(start, end),
                                        report_to__gt=start,
                                        driver=driver, partner=partner_pk).order_by("report_from")
-    vehicle = check_vehicle(driver, date_time=end)
     if payments.exists():
         fields = ("total_rides", "total_distance", "total_amount_cash",
                   "total_amount_on_card", "total_amount", "tips",
@@ -121,7 +120,6 @@ def summary_report_create(start, end, driver, partner_pk):
         default_values['report_to'] = payments.first().report_to
         report, created = SummaryReport.objects.get_or_create(report_from=payments.first().report_from,
                                                               driver=driver,
-                                                              vehicle=vehicle,
                                                               partner=partner_pk,
                                                               defaults=default_values)
         if not created:
@@ -187,8 +185,8 @@ def polymorphic_efficiency_create(create_model, partner_pk, driver, start, end, 
         'partner_id': partner_pk
     }
     if create_model == DriverEfficiency:
-        rent_mileage = mileage - road_mileage[driver.id][0]
-        data['rent_mileage'] = rent_mileage
+        rent_mileage = mileage - road_mileage[driver][0] if road_mileage.get(driver) else 0
+        data['rent_distance'] = rent_mileage
 
     efficiency_filter['defaults'] = data
     result, created = create_model.objects.get_or_create(**efficiency_filter)

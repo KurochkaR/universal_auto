@@ -421,9 +421,12 @@ class PostRequestHandler:
             else {"partner": request.user.pk, "schema__isnull": False}
         reshuffles = DriverReshuffle.objects.filter(
             swap_time__date=timezone.localtime()).values_list("driver_start", flat=True)
-        drivers = Driver.objects.get_active(**driver_filter)
+        driver_filter.update({"id__in": reshuffles})
+        existing_payments = DriverPayments.objects.filter(
+            report_to__date=timezone.localtime()).values_list('driver_id', flat=True)
+        drivers = Driver.objects.get_active(**driver_filter).exclude(id__in=existing_payments).select_related('schema')
         driver_info = [{'id': driver.id, 'name': f"{driver.second_name} {driver.name}"}
-                       for driver in drivers if not driver.schema.is_weekly() and driver.id in reshuffles]
+                       for driver in drivers if not driver.schema.is_weekly()]
         return JsonResponse({'drivers': driver_info})
 
     @staticmethod
@@ -489,8 +492,8 @@ class PostRequestHandler:
                 custom.total_amount_without_fee = Decimal(data['bolt_kasa']) - custom.bonuses
                 custom.total_amount_cash = Decimal(data['bolt_cash'])
                 custom.report_to = payment.report_to
-                custom.save()
-            status = check_correct_bolt_report(start, payment.report_to, payment.driver)
+                custom.save(update_fields=["total_amount_without_fee", "total_amount_cash", "report_to"])
+            status = check_correct_bolt_report(start, payment.report_to, payment.driver)[0]
             if status == PaymentsStatus.INCORRECT:
                 json_data = JsonResponse({'error': "Вибачте, сума замовлень не співпадає з наданою сумою"}, status=400)
             else:
@@ -500,8 +503,18 @@ class PostRequestHandler:
                                                       payment.driver.schema)[0]
                 for key, value in payment_data.items():
                     setattr(payment, key, value)
-                    payment.save()
+                payment.save()
                 json_data = JsonResponse({'success': data})
+        return json_data
+
+    @staticmethod
+    def add_debt_payment(request):
+        data = request.POST
+        payment = DriverPayments.objects.get(pk=data.get('payment'))
+        payment.earning += Decimal(data.get("amount"))
+        payment.kasa += Decimal(data.get("amount"))
+        payment.save(update_fields=['earning', 'salary', 'kasa'])
+        json_data = JsonResponse({'success': data})
         return json_data
 
     @staticmethod

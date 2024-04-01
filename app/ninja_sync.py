@@ -1,16 +1,19 @@
 import requests
 
+from app.models import Partner, Fleet
 from auto import settings
 from scripts.redis_conn import redis_instance
 
 
-class NinjaRequest:
+class NinjaFleet(Fleet):
 
-    def __init__(self, user, password):
-        self.user = user
-        self.password = password
-        self.redis = redis_instance()
-        self.base_url = settings.CSRF_TRUSTED_ORIGINS[0]
+    # def __init__(self, partner, *args, **kwargs):
+    #     user_obj = Partner.objects.get(pk=partner)
+    #     self.user = user_obj.username
+    #     self.password = user_obj.password
+    #     self.redis = redis_instance()
+    #     self.base_url = settings.CSRF_TRUSTED_ORIGINS[0]
+    #     super().__init__(*args, **kwargs)
 
     def get_token(self):
         data = {
@@ -19,7 +22,6 @@ class NinjaRequest:
         }
         headers = {'Content-Type': 'application/json'}
         response = requests.post(f'{self.base_url}/api/token-auth/', json=data, headers=headers)
-
         if response.status_code == 200:
             token = response.json().get('token')
             redis_instance().set(f'token_{self.user}', token, ex=3600)

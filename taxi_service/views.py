@@ -63,6 +63,7 @@ class PostRequestView(View):
                 "update_incorrect_payment": handler.handler_incorrect_payment,
                 "correction_bolt_payment": handler.handler_correction_bolt,
                 "debt_repayment": handler.handler_debt_repayment,
+                "add-debt-payment": handler.add_debt_payment,
             }
 
             if action in method:

@@ -1861,6 +1861,7 @@ select:focus {
 }
 
 #bolt-amount,
+#amount,
 #bolt-cash {
 	border: 3px solid var(--color-primary);
 	border-radius: 62px;
@@ -2213,6 +2214,7 @@ span#vehicle-bonus-error {
 
 .confirmation-box .btn-box {
 	display: flex;
+	gap: 50px;
 	justify-content: space-evenly;
 	margin-top: 20px;
 }
@@ -2220,10 +2222,10 @@ span#vehicle-bonus-error {
 .confirmation-box .btn-box button {
 	border-radius: 62px;
 	border: none;
-	width: 195px;
-	height: 39px;
-	box-shadow: 0 4px 4px 0 rgba(0, 0, 0, 0.25);
-	background: var(--color-primary);
+    width: 40%;
+    height: 39px;
+    box-shadow: 0 4px 4px 0 rgba(0, 0, 0, 0.25);
+    background: var(--color-primary);
 	color: #FFF;
 	font-size: 20px;
 	font-style: normal;

@@ -295,17 +295,26 @@ class UberRequest(Fleet, Synchronizer):
                     'vin_code': vehicle['vin']})
             return vehicles_list
 
-    def get_fleet_orders(self, start, end, driver=None):
+    def get_fleet_orders(self, start, end, driver=None, driver_ids=None) -> dict:
         if driver:
             uber_orders = FleetOrder.objects.filter(accepted_time__range=(start, end),
                                                     driver=driver, fleet=self.name).count()
             report = self.generate_report(start, end, driver=driver)
             if not report or not report[0].get("totalTrips") or uber_orders == report[0].get("totalTrips"):
-                return
+                return {}
+        else:
+            uber_orders = FleetOrder.objects.filter(accepted_time__range=(start, end), fleet=self.name).count()
+            reports = self.generate_report(start, end, driver_ids=driver_ids)
+            total_trips = 0
+            for report in reports:
+                total_trips += report.get("totalTrips")
+            if not total_trips or uber_orders == total_trips:
+                return {}
         uber_driver = SeleniumTools(self.partner.id)
         uber_driver.download_payments_order(start, end)
-        uber_driver.save_trips_report(start, end)
+        calendar_errors = uber_driver.save_trips_report(start, end)
         uber_driver.quit()
+        return calendar_errors
 
     def disable_cash(self, driver_id, enable):
         date = datetime.now()

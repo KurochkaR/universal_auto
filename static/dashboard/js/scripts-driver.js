@@ -384,14 +384,4 @@ $(document).ready(function () {
 
 });
 
-function validNumberInput(maxValue = 100, element) {
-	var inputValue = element.val();
-	var sanitizedValue = inputValue.replace(/[^0-9.]/g, '');
 
-	var integerValue = parseFloat(sanitizedValue);
-	if (isNaN(integerValue) || integerValue < 0) {
-		integerValue = 0;
-	}
-	sanitizedValue = Math.min(Math.max(integerValue, 0), maxValue);
-	element.val(sanitizedValue);
-}

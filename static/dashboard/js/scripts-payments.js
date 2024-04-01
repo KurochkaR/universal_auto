@@ -599,15 +599,30 @@ $(document).ready(function () {
 
 	driverTableTbody.on('click', '.pay-btn, .not-pay-btn', function () {
 		var id = $(this).closest('tr').data('id');
+		var amountValue = $(this).closest('tr').find('.payment-earning').text()
+		var maxValue = Math.abs(parseFloat(amountValue));
 		if ($(this).hasClass('pay-btn')) {
 			var status = 'completed';
+			$(".confirmation-box h2").text("Ви впевнені, що хочете закрити платіж ?");
+			$("#confirmation-btn-on").text("Так");
+			$("#confirmation-btn-off").text("Ні");
+			$(".confirmation-box input").hide();
 		} else {
-			var status = 'failed';
+		    var status = 'failed';
+		    $(".confirmation-box h2").text("Вкажіть суму яку повернув водій?");
+		    $(".confirmation-box input").data('maxVal', maxValue)
+		    $(".confirmation-box input").val(maxValue);
+		    $(".confirmation-box input").show();
+		    $("#confirmation-btn-off").text("Підтвердити")
+		    $("#confirmation-btn-off").data('id', id).data('status', status);
+		    $("#confirmation-btn-on").text("Водій не розрахувався")
+		    $(".confirmation-btn-off").addClass('close-payment-with-debt').removeClass('confirmation-btn-off');
 		}
-		$(".confirmation-box h2").text("Ви впевнені, що хочете закрити платіж ?");
-		$(".confirmation-update-database").show();
-		$("#confirmation-btn-on").data('id', id).data('status', status);
+
+        $("#confirmation-btn-on").data('id', id).data('status', status);
 		$(".confirmation-btn-on").addClass('close-payment').removeClass('confirmation-btn-on');
+		$(".confirmation-update-database").show();
+
 	});
 
 	$(this).on("click", ".close-payment", function () {
@@ -616,6 +631,36 @@ $(document).ready(function () {
 		updStatusDriverPayments(id, status, paymentStatus = "not_closed");
 		$(".confirmation-update-database").hide();
 		$(".close-payment").addClass('confirmation-btn-on').removeClass('close-payment');
+		$(".close-payment-with-debt").addClass('confirmation-btn-off').removeClass('close-payment-with-debt');
+	});
+
+    $(this).on("input", "#amount", function() {
+        validNumberInput($(this).data("maxVal"), $(this))
+    });
+
+	$(this).on("click", ".close-payment-with-debt", function () {
+		var id = $(this).data('id');
+		var status = $(this).data('status');
+        var amount = $("#amount").val()
+		$.ajax({
+			url: ajaxPostUrl,
+			type: 'POST',
+			data: {
+				amount: amount,
+				payment: id,
+				action: 'add-debt-payment',
+				csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
+			},
+			success: function (response) {
+				updStatusDriverPayments(id, status, paymentStatus = "not_closed");
+		        $(".confirmation-update-database").hide();
+		        $(".close-payment-with-debt").addClass('confirmation-btn-off').removeClass('close-payment-with-debt');
+		        $(".close-payment").addClass('confirmation-btn-on').removeClass('close-payment');
+			},
+			error: function (error) {
+				console.error("Error:", error);
+			}
+		});
 	});
 
 	$('.send-all-button').on('click', function () {
