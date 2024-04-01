@@ -598,32 +598,36 @@ $(document).ready(function () {
 	});
 
 	driverTableTbody.on('click', '.pay-btn, .not-pay-btn', function () {
-		var id = $(this).closest('tr').data('id');
-		var amountValue = $(this).closest('tr').find('.payment-earning').text()
+		var $closestTr = $(this).closest('tr');
+		var id = $closestTr.data('id');
+		var $confirmationBox = $(".confirmation-box");
+		var $confirmationBtnOn = $("#confirmation-btn-on");
+		var $confirmationBtnOff = $("#confirmation-btn-off");
+		var $confirmationInput = $(".confirmation-box input");
+		var amountValue = $closestTr.find('.payment-earning').text();
 		var maxValue = Math.abs(parseFloat(amountValue));
+		var status, confirmationTextOn, confirmationTextOff;
+
 		if ($(this).hasClass('pay-btn')) {
-			var status = 'completed';
-			$(".confirmation-box h2").text("Ви впевнені, що хочете закрити платіж ?");
-			$("#confirmation-btn-on").text("Так");
-			$("#confirmation-btn-off").text("Ні");
-			$(".confirmation-box input").hide();
+			status = 'completed';
+			confirmationTextOn = "Так";
+			confirmationTextOff = "Ні";
+			$confirmationBox.find("h2").text("Ви впевнені, що хочете закрити платіж ?");
+			$confirmationInput.hide();
 		} else {
-		    var status = 'failed';
-		    $(".confirmation-box h2").text("Вкажіть суму яку повернув водій?");
-		    $(".confirmation-box input").data('maxVal', maxValue)
-		    $(".confirmation-box input").val(maxValue);
-		    $(".confirmation-box input").show();
-		    $("#confirmation-btn-off").text("Підтвердити")
-		    $("#confirmation-btn-off").data('id', id).data('status', status);
-		    $("#confirmation-btn-on").text("Водій не розрахувався")
-		    $(".confirmation-btn-off").addClass('close-payment-with-debt').removeClass('confirmation-btn-off');
+			status = 'failed';
+			confirmationTextOn = "Водій не розрахувався";
+			confirmationTextOff = "Підтвердити";
+			$confirmationBox.find("h2").text("Вкажіть суму яку повернув водій?");
+			$confirmationInput.data('maxVal', maxValue).val(maxValue).show();
+			$confirmationBtnOff.data('id', id).data('status', status).addClass('close-payment-with-debt').removeClass('confirmation-btn-off');
 		}
 
-        $("#confirmation-btn-on").data('id', id).data('status', status);
-		$(".confirmation-btn-on").addClass('close-payment').removeClass('confirmation-btn-on');
+		$confirmationBtnOn.text(confirmationTextOn).data('id', id).data('status', status).addClass('close-payment').removeClass('confirmation-btn-on');
+		$confirmationBtnOff.text(confirmationTextOff);
 		$(".confirmation-update-database").show();
-
 	});
+
 
 	$(this).on("click", ".close-payment", function () {
 		var id = $(this).data('id');
@@ -634,14 +638,14 @@ $(document).ready(function () {
 		$(".close-payment-with-debt").addClass('confirmation-btn-off').removeClass('close-payment-with-debt');
 	});
 
-    $(this).on("input", "#amount", function() {
-        validNumberInput($(this).data("maxVal"), $(this))
-    });
+	$(this).on("input", "#amount", function () {
+		validNumberInput($(this).data("maxVal"), $(this))
+	});
 
 	$(this).on("click", ".close-payment-with-debt", function () {
 		var id = $(this).data('id');
 		var status = $(this).data('status');
-        var amount = $("#amount").val()
+		var amount = $("#amount").val()
 		$.ajax({
 			url: ajaxPostUrl,
 			type: 'POST',
@@ -653,9 +657,9 @@ $(document).ready(function () {
 			},
 			success: function (response) {
 				updStatusDriverPayments(id, status, paymentStatus = "not_closed");
-		        $(".confirmation-update-database").hide();
-		        $(".close-payment-with-debt").addClass('confirmation-btn-off').removeClass('close-payment-with-debt');
-		        $(".close-payment").addClass('confirmation-btn-on').removeClass('close-payment');
+				$(".confirmation-update-database").hide();
+				$(".close-payment-with-debt").addClass('confirmation-btn-off').removeClass('close-payment-with-debt');
+				$(".close-payment").addClass('confirmation-btn-on').removeClass('close-payment');
 			},
 			error: function (error) {
 				console.error("Error:", error);
