@@ -3,65 +3,138 @@ $(document).ready(function () {
 	const today = new Date();
 	const daysToShow = 14;
 
-	function formatDateForDatabase(date) {
-		const year = date.getFullYear();
-		const month = (date.getMonth() + 1).toString().padStart(2, '0');
-		const day = date.getDate().toString().padStart(2, '0');
-
-		const formattedDate = `${year}-${month}-${day}`;
-		return formattedDate;
-	}
+	let cachedCar = null;
+	let carDate = null;
 
 	function formatDateString(inputDateString) {
-		var parts = inputDateString.split('-');
+		const parts = inputDateString.split('-');
+
 		if (parts.length === 3) {
-			var formattedDate = parts[2] + '.' + parts[1] + '.' + parts[0];
-			return formattedDate;
+			return moment(inputDateString).format('DD.MM.YYYY')
 		}
 		return inputDateString;
 	}
 
+	const formatDateForDatabase = (date) => moment(date).format('YYYY-MM-DD');
+	const formatDate = (date) => moment(date).format('DD.MM');
+	const formatTime = (date) => moment(date).format('HH:mm');
 
-	const formatTime = (date) => {
-		const hours = date.getHours().toString().padStart(2, '0');
-		const minutes = date.getMinutes().toString().padStart(2, '0');
-		return hours + ':' + minutes;
-	};
+	function isYesterdayOrEarlier(date) {
+		// replace it with moment js
+		const todayDate = new Date();
+		const yesterday = new Date(todayDate);
+		yesterday.setDate(yesterday.getDate() - 1);
+		return date < yesterday;
 
-	let currentDate = new Date(today);
-	currentDate.setDate(currentDate.getDate() - 6);
-	let formattedStartDate = formatDateForDatabase(currentDate);
+	}
 
-	let endDate = new Date(currentDate);
-	endDate.setDate(endDate.getDate() + daysToShow - 1);
-	let formattedEndDate = formatDateForDatabase(endDate);
+	function renderDriverPhotos(currentCar, carDate, daysToShow) {
+		for (let i = 0; i < daysToShow; i++) {
+			const day = new Date(carDate);
+			day.setDate(carDate.getDate() + i);
+			const formattedDate = formatDateForDatabase(day);
 
-	fetchCalendarData(formattedStartDate, formattedEndDate);
+			const isDriverPhotoVisible = currentCar.reshuffles.some(function (driver) {
+				return driver.date === formattedDate && driver.driver_photo;
+			});
+
+			if (isDriverPhotoVisible) {
+				const driverPhotoContainer = $(`#${currentCar.swap_licence}`).find(`#${formattedDate}`).find('.driver-photo-container').empty();
+
+				currentCar.reshuffles.forEach(function (driver) {
+					if (driver.date === formattedDate) {
+						const driverPhoto = $('<div>').addClass('driver-photo');
+						driverPhoto.attr('data-name', driver.driver_name).attr('data-id-driver', driver.driver_id).attr('data-id-vehicle', driver.vehicle_id).attr('reshuffle-id', driver.reshuffle_id);
+
+						const driverImage = renderPhoto(driver);
+
+						var startShiftFormatted = driver.start_shift.split(':').slice(0, 2).join(':');
+						var endShiftFormatted = driver.end_shift.split(':').slice(0, 2).join(':');
+						const driverInfo = $('<div>').addClass('driver-info-reshuffle');
+						const driverDate = $('<p>').addClass('driver-date').text(driver.date);
+						const driverName = $('<p>').addClass('driver-name').text(driver.driver_name);
+						const driverTime = $('<p>').addClass('driver-time').text(startShiftFormatted + ' - ' + endShiftFormatted);
+
+						driverInfo.append(driverDate, driverName, driverTime);
+						driverPhoto.append(driverInfo, driverImage);
+						driverPhotoContainer.append(driverPhoto);
+					}
+				});
+			}
+		}
+
+		$(".driver-photo").hover(function () {
+			$(this).find(".driver-info-reshuffle").css("display", "flex");
+		}, function () {
+			$(this).find(".driver-info-reshuffle").css("display", "none");
+		});
+
+		$('.driver-photo-container').each(function (index, container) {
+			var photos = $(container).find('.driver-photo img');
+
+			if (photos.length > 3) {
+				$(container).addClass('photo-small-2');
+			} else if (photos.length > 2) {
+				$(container).addClass('photo-small');
+			}
+		});
+	}
+
+	function handleButtonClick(increaseDays, vehicleLC, renderCalendar) {
+		if (cachedCar && cachedCar === vehicleLC) {
+			carDate.setDate(carDate.getDate() + increaseDays);
+		} else {
+			carDate = new Date();
+			carDate.setDate(carDate.getDate() + (increaseDays > 0 ? 4 : -10));
+			cachedCar = vehicleLC;
+		}
+
+		const formattedStartDate = formatDateForDatabase(carDate);
+
+		let endDate = new Date(carDate);
+		endDate.setDate(endDate.getDate() + daysToShow - 1);
+		let formattedEndDate = formatDateForDatabase(endDate);
+
+		renderCalendar(carDate);
+
+		apiUrl = `/api/reshuffle/${formattedStartDate}&${formattedEndDate}/`;
+		$.ajax({
+			url: apiUrl,
+			type: 'GET',
+			dataType: 'json',
+			success: function (data) {
+				if (!data.length || !(currentCar = data.find(car => car.swap_licence === vehicleLC))) {
+					return;
+				}
+
+				renderDriverPhotos(currentCar, carDate, daysToShow);
+			},
+			error: function (error) {
+				console.error(error);
+			}
+		});
+	}
 
 	function reshuffleHandler(data) {
-		data.sort((a, b) => {
-			if (a.swap_licence < b.swap_licence) {
-				return -1;
-			}
-			if (a.swap_licence > b.swap_licence) {
-				return 1;
-			}
-			return 0;
-		});
-		$('.driver-calendar').empty();
+		const driverCalendar = $('.driver-calendar');
+		driverCalendar.empty();
+
+		data.sort((a, b) => a.swap_licence.localeCompare(b.swap_licence));
 
 		const calendarHTML = data.map(function (carData) {
 			let brandImage = '';
+
 			if (carData.vehicle_brand) {
-				const vehicleBrand = carData.vehicle_brand;
-				if (vehicleBrand === "Uklon") {
-					brandImage = '<img class="brand-vehicle" src="https://storage.googleapis.com/jobdriver-bucket/docs/brand-uklon.png" alt="Бренд авто">';
-				} else if (vehicleBrand === "Bolt") {
-					brandImage = '<img class="brand-vehicle" src="https://storage.googleapis.com/jobdriver-bucket/docs/brand-bolt.png" alt="Бренд авто">';
-				} else if (vehicleBrand === "Uber") {
-					brandImage = '<img class="brand-vehicle" src="https://storage.googleapis.com/jobdriver-bucket/docs/brand-uber.png" alt="Бренд авто">';
-				}
+				const vehicleBrand = carData.vehicle_brand.toLowerCase();
+				const logos = {
+					uklon: 'https://storage.googleapis.com/jobdriver-bucket/docs/brand-uklon.png',
+					bolt: 'https://storage.googleapis.com/jobdriver-bucket/docs/brand-bolt.png',
+					uber: 'https://storage.googleapis.com/jobdriver-bucket/docs/brand-uber.png',
+				};
+
+				brandImage = '<img class="brand-vehicle" src="' + logos[vehicleBrand] + '" alt="Бренд авто">';
 			}
+
 			return `
 			<div class="calendar-container" id="${carData.swap_licence}">
 				<div class="car-image">
@@ -93,18 +166,18 @@ $(document).ready(function () {
 						<path d="M3 17L8 12L3 7V17Z" fill="#141E17" stroke="#141E17" stroke-width="5"/>
 					</svg>
 				</div>
-			</div>
-			`
+			</div>`
 		}).join('');
-		$('.driver-calendar').append(calendarHTML);
 
-		$('.calendar-container').each(function () {
-			const calendarDetail = $(this).find('.calendar-detail');
-			const investPrevButton = $(this).find('#investPrevButton');
-			const investNextButton = $(this).find('#investNextButton');
+		driverCalendar.append(calendarHTML);
+
+		$('.calendar-container', driverCalendar).each(function () {
+			const calendarDetail = $('.calendar-detail', this);
+			const investPrevButton = $('#investPrevButton', this);
+			const investNextButton = $('#investNextButton', this);
 			const vehicleLC = $(this).attr('id');
 
-			const driverList = data.find(carDate => carDate.swap_licence === vehicleLC);
+			const driverList = data.find(driver => driver.swap_licence === vehicleLC);
 
 			function renderCalendar(startDate) {
 				calendarDetail.empty();
@@ -180,20 +253,21 @@ $(document).ready(function () {
 						card.append(driverPhotoContainer);
 					}
 
-					if (isToday(day)) {
+					if (moment(day).isSame(new Date(), "day")) {
 						card.addClass('today');
 					} else if (isYesterdayOrEarlier(day)) {
 						card.addClass('yesterday');
 					}
 
 					calendarDetail.append(card);
+					const driverReshuffle = $(this).find(".driver-info-reshuffle")
 					$(".driver-photo").hover(function () {
-						$(this).find(".driver-info-reshuffle").css("display", "flex");
+						driverReshuffle.css("display", "flex");
 					}, function () {
-						$(this).find(".driver-info-reshuffle").css("display", "none");
+						driverReshuffle.css("display", "none");
 					});
 				}
-				;
+
 				$('.driver-photo-container').each(function (index, container) {
 					var photos = $(container).find('.driver-photo img');
 
@@ -203,128 +277,16 @@ $(document).ready(function () {
 						$(container).addClass('photo-small');
 					}
 				});
-			};
-
-			function formatDate(date) {
-				const day = String(date.getDate()).padStart(2, '0');
-				const month = String(date.getMonth() + 1).padStart(2, '0');
-				return `${day}.${month}`;
-			}
-
-			function isToday(someDate) {
-				const todayDate = new Date();
-				return (
-					someDate.getDate() === todayDate.getDate() &&
-					someDate.getMonth() === todayDate.getMonth() &&
-					someDate.getFullYear() === todayDate.getFullYear()
-				);
-			}
-
-			function isYesterdayOrEarlier(someDate) {
-				const todayDate = new Date();
-				return someDate < todayDate;
 			}
 
 			renderCalendar(currentDate);
 
-			let cachedCar = null;
-			let carDate = null;
-
-			function renderDriverPhotos(currentCar, carDate, daysToShow) {
-				for (let i = 0; i < daysToShow; i++) {
-					const day = new Date(carDate);
-					day.setDate(carDate.getDate() + i);
-					const formattedDate = formatDateForDatabase(day);
-
-					const isDriverPhotoVisible = currentCar.reshuffles.some(function (driver) {
-						return driver.date === formattedDate && driver.driver_photo;
-					});
-
-					if (isDriverPhotoVisible) {
-						const driverPhotoContainer = $(`#${currentCar.swap_licence}`).find(`#${formattedDate}`).find('.driver-photo-container').empty();
-
-						currentCar.reshuffles.forEach(function (driver) {
-							if (driver.date === formattedDate) {
-								const driverPhoto = $('<div>').addClass('driver-photo');
-								driverPhoto.attr('data-name', driver.driver_name).attr('data-id-driver', driver.driver_id).attr('data-id-vehicle', driver.vehicle_id).attr('reshuffle-id', driver.reshuffle_id);
-
-								const driverImage = renderPhoto(driver);
-
-								var startShiftFormatted = driver.start_shift.split(':').slice(0, 2).join(':');
-								var endShiftFormatted = driver.end_shift.split(':').slice(0, 2).join(':');
-								const driverInfo = $('<div>').addClass('driver-info-reshuffle');
-								const driverDate = $('<p>').addClass('driver-date').text(driver.date);
-								const driverName = $('<p>').addClass('driver-name').text(driver.driver_name);
-								const driverTime = $('<p>').addClass('driver-time').text(startShiftFormatted + ' - ' + endShiftFormatted);
-
-								driverInfo.append(driverDate, driverName, driverTime);
-								driverPhoto.append(driverInfo);
-								driverPhoto.append(driverImage);
-								driverPhotoContainer.append(driverPhoto);
-							}
-						});
-					}
-				}
-
-				$(".driver-photo").hover(function () {
-					$(this).find(".driver-info-reshuffle").css("display", "flex");
-				}, function () {
-					$(this).find(".driver-info-reshuffle").css("display", "none");
-				});
-
-				$('.driver-photo-container').each(function (index, container) {
-					var photos = $(container).find('.driver-photo img');
-
-					if (photos.length > 3) {
-						$(container).addClass('photo-small-2');
-					} else if (photos.length > 2) {
-						$(container).addClass('photo-small');
-					}
-				});
-			}
-
-			function handleButtonClick(increaseDays) {
-				if (cachedCar && cachedCar === vehicleLC) {
-					carDate.setDate(carDate.getDate() + increaseDays);
-				} else {
-					carDate = new Date();
-					carDate.setDate(carDate.getDate() + (increaseDays > 0 ? 4 : -10));
-					cachedCar = vehicleLC;
-				}
-
-				const formattedStartDate = formatDateForDatabase(carDate);
-
-				let endDate = new Date(carDate);
-				endDate.setDate(endDate.getDate() + daysToShow - 1);
-				let formattedEndDate = formatDateForDatabase(endDate);
-
-				renderCalendar(carDate);
-
-				apiUrl = `/api/reshuffle/${formattedStartDate}&${formattedEndDate}/`;
-
-				$.ajax({
-					url: apiUrl,
-					type: 'GET',
-					dataType: 'json',
-					success: function (data) {
-						if (!data.length || !(currentCar = data.find(car => car.swap_licence === vehicleLC))) {
-							return;
-						}
-
-						renderDriverPhotos(currentCar, carDate, daysToShow);
-					},
-					error: function (error) {
-						console.error(error);
-					}
-				});
-			}
-
 			investNextButton.on('click', function () {
-				handleButtonClick(7);
+				handleButtonClick(7, vehicleLC, renderCalendar);
 			});
 
 			investPrevButton.on('click', function () {
-				handleButtonClick(-7);
+				handleButtonClick(-7, vehicleLC, renderCalendar);
 			});
 		});
 
@@ -350,13 +312,12 @@ $(document).ready(function () {
 			shiftVehicleInput.val(vehicleId);
 			$('.modal-overlay').show();
 
-			const shiftBtn = $('.shift-btn').hide();
-			const recurrence = $('.recurrence').hide();
 			const deleteBtn = $('.delete-btn').show();
 			const deleteAllBtn = $('.delete-all-btn').show();
 			const updBtn = $('.upd-btn').show();
 			const updAllBtn = $('.upd-all-btn').show();
-			const shiftVehicle = $('.shift-vehicle').show();
+			$('.shift-vehicle').show();
+			$('.shift-btn').hide();
 			shiftForm.show();
 			validateInputTime(startTimeInput[0], 'startTime');
 			validateInputTime(endTimeInput[0], 'endTime');
@@ -555,6 +516,7 @@ $(document).ready(function () {
 
 	function fetchCalendarData(formattedStartDate, formattedEndDate) {
 		apiUrl = `/api/reshuffle/${formattedStartDate}&${formattedEndDate}/`;
+
 		$.ajax({
 			url: apiUrl,
 			type: 'GET',
@@ -603,6 +565,15 @@ $(document).ready(function () {
 		});
 	}
 
+	let currentDate = new Date(today);
+	currentDate.setDate(currentDate.getDate() - 3);
+	let formattedStartDate = formatDateForDatabase(currentDate);
+
+	let endDate = new Date(currentDate);
+	endDate.setDate(endDate.getDate() + daysToShow - 1);
+	let formattedEndDate = formatDateForDatabase(endDate);
+
+	fetchCalendarData(formattedStartDate, formattedEndDate);
 
 	handleSearchChange($("#search-vehicle-calendar"), "swap_licence", null, $("#search-shift-driver"));
 	handleSearchChange($("#search-shift-driver"), null, "reshuffles", $("#search-vehicle-calendar"));
