@@ -227,62 +227,88 @@ $(document).ready(function () {
 		e.preventDefault();
 		const driverId = $(this).data('driver-id');
 		const paymentId = $(this).closest('tr').data('id');
-		$('#payment-driver-list').hide();
-		$('.create-payment').css('background', '#a1e8b9')
-		$('.modal-overlay').hide();
-		$("#loadingModal").show();
-		$("#loadingMessage").text(gettext("Створюється нова виплата"));
-		$("#loader").show();
-		$.ajax({
-			url: ajaxPostUrl,
-			type: 'POST',
-			data: {
-				driver_id: driverId,
-				payment_id: paymentId,
-				action: 'create-new-payment',
-				csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
-			},
-			success: function (response) {
-				checkTaskStatus(response.task_id)
-					.then(function (response) {
-						if (response.data === "SUCCESS") {
-							$("#loadingModal").hide();
-							if (response.result.status === 'incorrect' && response.result.order === false) {
-								$(".bolt-confirm-button").data("payment-id", response.result.id)
-								$("#bolt-confirmation-form").show();
-								$('.modal-overlay').show();
-							} else if (response.result.status === 'error') {
-								$('#loadingModal').show();
-								$('#loadingMessage').text("Немає звітів по водію за цей період")
-								$("#loader").hide();
-								setTimeout(function () {
-									$('#loadingModal').hide();
-								}, 3000);
+		const confirmationText = $(this).hasClass('calculate-payment-btn') ?
+			"Ви справді хочете розрахувати на зараз?" :
+			"Ви впевнені, що хочете створити нову виплату?";
+		const confirmationBox = `
+			<div class="confirmation-calculate-payment">
+				<div class="container">
+					<div class="confirmation-box">
+						<h2>${confirmationText}</h2>
+						<div class="btn-box">
+							<button class="confirm-yes">Так</button>
+							<button class="confirm-no">Ні</button>
+						</div>
+					</div>
+				</div>
+			</div>`;
+		$('body').append(confirmationBox);
+		$('.confirmation-calculate-payment').show();
 
-							} else {
-								driverPayment(null, null, null, paymentStatus = "on_inspection");
+		$('.confirm-yes').on('click', function () {
+			$('.confirmation-calculate-payment').remove();
+			$('#payment-driver-list').hide();
+			$('.create-payment').css('background', '#a1e8b9')
+			$('.modal-overlay').hide();
+			$("#loadingModal").show();
+			$("#loadingMessage").text(gettext("Створюється нова виплата"));
+			$("#loader").show();
+			$.ajax({
+				url: ajaxPostUrl,
+				type: 'POST',
+				data: {
+					driver_id: driverId,
+					payment_id: paymentId,
+					action: 'create-new-payment',
+					csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
+				},
+				success: function (response) {
+					checkTaskStatus(response.task_id)
+						.then(function (response) {
+							if (response.data === "SUCCESS") {
+								$("#loadingModal").hide();
+								if (response.result.status === 'incorrect' && response.result.order === false) {
+									$(".bolt-confirm-button").data("payment-id", response.result.id)
+									$("#bolt-confirmation-form").show();
+									$('.modal-overlay').show();
+								} else if (response.result.status === 'error') {
+									$('#loadingModal').show();
+									$('#loadingMessage').text("Немає звітів по водію за цей період")
+									$("#loader").hide();
+									setTimeout(function () {
+										$('#loadingModal').hide();
+									}, 3000);
+
+								} else {
+									driverPayment(null, null, null, paymentStatus = "on_inspection");
+								}
 							}
-						}
-					})
-					.catch(function (error) {
-						console.error('Error:', error)
-					})
-			},
-			error: function (xhr, textStatus, errorThrown) {
-				if (xhr.status === 400) {
-					let error = xhr.responseJSON.error;
-					$('#loadingModal').show();
-					$('#loadingMessage').text(xhr.responseJSON.error)
-					$("#loader").hide();
-					setTimeout(function () {
-						$('#loadingModal').hide();
-					}, 3000);
-				} else {
-					console.error('Помилка запиту: ' + textStatus);
-				}
-			},
+						})
+						.catch(function (error) {
+							console.error('Error:', error)
+						})
+				},
+				error: function (xhr, textStatus, errorThrown) {
+					if (xhr.status === 400) {
+						let error = xhr.responseJSON.error;
+						$('#loadingModal').show();
+						$('#loadingMessage').text(xhr.responseJSON.error)
+						$("#loader").hide();
+						setTimeout(function () {
+							$('#loadingModal').hide();
+						}, 3000);
+					} else {
+						console.error('Помилка запиту: ' + textStatus);
+					}
+				},
+			});
 		});
-	})
+
+		$('.confirm-no').on('click', function () {
+			$('.confirmation-calculate-payment').remove();
+		});
+	});
+
 
 	$(this).on('click', '.incorrect-payment-btn', function () {
 		paymentId = $(this).closest('tr').data('id')
