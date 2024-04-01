@@ -510,7 +510,7 @@ def get_driver_efficiency_report(manager_id, start=None, end=None):
                                           reverse=True))
     for k, v in sorted_effective_driver.items():
         report[k] = [f"{vk}: {vv}\n" for vk, vv in v.items()]
-    return report
+    return report, start, end
 
 
 def calculate_bolt_kasa(driver, start_period, end_period, vehicle=None):

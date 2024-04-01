@@ -685,16 +685,17 @@ def send_efficiency_report(self, partner_pk):
 def send_driver_efficiency(self, partner_pk):
     driver_dict_msg = {}
     dict_msg = {}
-    message = ''
     managers = list(Manager.objects.filter(managers_partner=partner_pk).values_list('chat_id', flat=True))
     if not managers:
         managers = [Partner.objects.filter(pk=partner_pk).values_list('chat_id', flat=True).first()]
     for manager in managers:
-        result = get_driver_efficiency_report(manager_id=manager)
+        result, start, end = get_driver_efficiency_report(manager_id=manager)
         if result:
+            date_msg = f"Статистика з {start.strftime('%d.%m')} по {end.strftime('%d.%m')}\n"
+            message = date_msg
             for k, v in result.items():
                 driver_msg = f"{k}\n" + "".join(v)
-                driver_dict_msg[k.pk] = driver_msg
+                driver_dict_msg[k.pk] = date_msg + driver_msg
                 message += driver_msg + "\n"
             if partner_pk in dict_msg:
                 dict_msg[partner_pk] += message

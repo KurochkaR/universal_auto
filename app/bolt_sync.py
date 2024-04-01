@@ -353,12 +353,12 @@ class BoltRequest(Fleet, Synchronizer):
                              for order in zero_filtered}
         zero_price_orders.update(
             price=Case(
-                *[When(order_id=order_id, then=Value(total_price[0])) for order_id, total_price in
+                *[When(order_id=str(order_id), then=Value(total_price[0])) for order_id, total_price in
                   order_prices_dict.items()],
                 default=F('price')
             ),
             tips=Case(
-                *[When(order_id=order_id, then=Value(total_price[1])) for order_id, total_price in
+                *[When(order_id=str(order_id), then=Value(total_price[1])) for order_id, total_price in
                   order_prices_dict.items()],
                 default=F('tips')
             )

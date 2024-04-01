@@ -416,16 +416,12 @@ class Driver(User):
             print(self)
             return
 
-    def get_bonuses(self, vehicle=None):
-        filter_query = Q(bonus__isnull=False)
-        if vehicle:
-            filter_query &= Q(vehicle=vehicle)
+    def get_bonuses(self):
+        filter_query = Q(bonus__isnull=False, driver_payments__isnull=True)
         return self.penaltybonus_set.filter(filter_query).aggregate(Sum('amount'))['amount__sum'] or 0
 
-    def get_penalties(self, vehicle=None):
-        filter_query = Q(penalty__isnull=False)
-        if vehicle:
-            filter_query &= Q(vehicle=vehicle)
+    def get_penalties(self):
+        filter_query = Q(penalty__isnull=False, driver_payments__isnull=True)
         return self.penaltybonus_set.filter(filter_query).aggregate(Sum('amount'))['amount__sum'] or 0
 
     def __str__(self) -> str:

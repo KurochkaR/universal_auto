@@ -138,18 +138,18 @@ def get_drivers_statistics(update, context):
 
 def get_efficiency_for_drivers(update, context):
     query = update.callback_query
-    message = ''
     if query.data == "Driver_custom":
         query.edit_message_text(start_report_text)
         redis_instance().hset(str(update.effective_chat.id), 'state', START_DRIVER_EFF)
     else:
         query.edit_message_text(generate_text)
-        result = get_driver_efficiency_report(manager_id=query.from_user.id)
+        result, start, end = get_driver_efficiency_report(manager_id=query.from_user.id)
         if result:
+            message = f"Статистика з {start.strftime('%d.%m')} по {end.strftime('%d.%m')}\n"
             for k, v in result.items():
                 message += f"{k}\n" + "".join(v) + "\n"
         else:
-            message += no_drivers_report_text
+            message = no_drivers_report_text
         try:
             query.edit_message_text(message)
             query.edit_message_reply_markup(reply_markup=inline_manager_kb())
@@ -179,13 +179,13 @@ def create_driver_eff(update, context):
         if start > end:
             start, end = end, start
         msg = update.message.reply_text(generate_text)
-        result = get_driver_efficiency_report(update.message.chat_id, start=start, end=end)
-        message = ''
+        result, start_stats, end_stats = get_driver_efficiency_report(update.message.chat_id, start=start, end=end)
         if result:
+            message = f"Статистика з {start_stats.strftime('%d.%m')} по {end_stats.strftime('%d.%m')}\n"
             for k, v in result.items():
                 message += f"{k}\n" + "".join(v) + "\n"
         else:
-            message += no_drivers_report_text
+            message = no_drivers_report_text
         try:
             bot.edit_message_text(chat_id=update.effective_chat.id, text=message,
                                   message_id=msg.message_id, reply_markup=inline_manager_kb())
