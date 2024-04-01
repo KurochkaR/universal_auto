@@ -21,11 +21,11 @@ p, span, div {
 	font-family: var(--font-secondary);
 }
 
-.material-icons-outlined {
-	vertical-align: middle;
-	line-height: 1px;
-	color: #53785E;
-}
+/*.material-icons-outlined {*/
+/*	vertical-align: middle;*/
+/*	line-height: 1px;*/
+/*	color: #53785E;*/
+/*}*/
 
 .grid-container {
 	display: grid;

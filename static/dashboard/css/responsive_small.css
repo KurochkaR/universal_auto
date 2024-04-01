@@ -1,16 +1,61 @@
+:root {
+	--font-family: "Open Sans", sans-serif;
+	--second-family: "Montserrat", sans-serif;
+	--third-family: "Inter", sans-serif;
+}
+
 @media screen and (max-width: 576px) {
 	.error-message {
-		margin: 0px 10px;
+		margin: 0 10px;
 		font-size: 10px;
 	}
 
-	/*   header-sidebar  styles   */
-	/*    .header-left {
-			display: none;
-		}*/
+	.header {
+		grid-area: header;
+		height: 37px;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		box-shadow: 0 6px 7px -3px rgba(0, 0, 0, 0.35);
+		padding: 0;
+	}
+
+	.menu-icon {
+		width: 33px;
+		height: 20px;
+		cursor: pointer;
+		margin-left: 36px;
+	}
+
+	.stripes {
+		width: 100%;
+		height: 100%;
+		display: flex;
+		flex-direction: column;
+		justify-content: space-between;
+	}
+
+	.stripe {
+		width: 33px;
+		height: 9px;
+		background-color: #EC6323;
+	}
+
+	.top-stripe {
+		border-radius: 25px;
+	}
+
+	.bottom-stripe {
+		border-radius: 25px;
+		margin-left: 5px;
+	}
+
 	#account_circle {
-		font-size: 30px !important;
-		margin-right: 25px;
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 20px;
+		color: #141e17;
+		margin-right: 40px;
 	}
 
 	.change-password-btn {
