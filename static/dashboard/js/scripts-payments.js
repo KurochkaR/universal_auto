@@ -1,19 +1,13 @@
 function driverPayment(period = null, start = null, end = null, paymentStatus = null) {
-	console.log('function', paymentStatus);
-	if (period === null) {
-		var url = `/api/driver_payments/${paymentStatus}/`;
-	} else if (period === 'custom') {
-		var url = `/api/driver_payments/${start}&${end}/`;
-	} else {
-		var url = `/api/driver_payments/${period}/`;
-	}
+	const url = period === null ? `/api/driver_payments/${paymentStatus}/` :
+		period === 'custom' ? `/api/driver_payments/${start}&${end}/` :
+			`/api/driver_payments/${period}/`;
 
 	$.ajax({
 		url: url,
 		type: 'GET',
 		dataType: 'json',
 		success: function (response) {
-			console.log('response', response);
 			$(".apply-filter-button_driver").prop("disabled", false);
 			var tableBody = $('.driver-table tbody');
 			tableBody.empty();
@@ -26,40 +20,44 @@ function driverPayment(period = null, start = null, end = null, paymentStatus = 
 			var payBtn = '<button class="pay-btn">Отримано</button>';
 			var notPayBtn = '<button class="not-pay-btn">Не отримано</button>';
 			var statusTh = $('th[data-sort="status"]');
+
 			if (paymentStatus === 'closed') {
 				$('th[data-sort="button"]').hide();
 				statusTh.text("Статус виплати");
 			}
+
 			if (paymentStatus === 'not_closed') {
 				statusTh.text("Дії");
 				$('th[data-sort="button"]').hide();
 			}
-			for (var i = 0; i < response.length; i++) {
-				if ((paymentStatus === 'on_inspection' && (response[i].status === 'Перевіряється' || response[i].status === 'Потребує поправок')) ||
-					(paymentStatus === 'not_closed' && response[i].status === 'Очікується') ||
-					(paymentStatus === 'closed' && (response[i].status === 'Виплачений' || response[i].status === 'Не сплачений'))) {
 
+			for (const payment of response) {
+				const {
+					id: dataId, status, payment_type, report_from, report_to, bonuses_list,
+					penalties_list, full_name, kasa, cash, rent, rate, earning, bonuses, penalties
+				} = payment;
+				if ((paymentStatus === 'on_inspection' && (status === 'Перевіряється' || status === 'Потребує поправок')) ||
+					(paymentStatus === 'not_closed' && status === 'Очікується') ||
+					(paymentStatus === 'closed' && (status === 'Виплачений' || status === 'Не сплачений'))) {
 
-					var dataId = response[i].id;
-					var responseDate = moment(response[i].report_to, "DD.MM.YYYY HH:mm");
+					var responseDate = moment(report_to, "DD.MM.YYYY HH:mm");
 					var rowBonus = '<tr class="tr-driver-payments" data-id="' + dataId + '">' +
 						'<td colspan="11" class="bonus-table"><table class="bonus-penalty-table"><tr class="title-bonus-penalty">' +
 						'<th class="edit-bonus-penalty">Тип</th>' +
 						'<th class="edit-bonus-penalty">Сума</th>' +
 						'<th class="edit-bonus-penalty">Категорія</th>' +
 						'<th class="edit-bonus-penalty">Автомобіль</th>' +
-						(response[i].status === 'Перевіряється' ? '<th class="edit-bonus-penalty">Дії</th>' : '') + '</tr>';
+						(status === 'Перевіряється' ? '<th class="edit-bonus-penalty">Дії</th>' : '') + '</tr>';
 
-					function generateRow(items, type, editClass, deleteClass) {
+					function generateRow(items, type) {
 						var rowBon = '';
-						for (var j = 0; j < items.length; j++) {
-							var item = items[j];
+						for (const item of items) {
 							rowBon += '<tr class="description-bonus-penalty">';
 							rowBon += '<td class="' + type + '-type" data-bonus-penalty-id="' + item.id + '">' + (type === 'bonus' ? 'Бонус' : 'Штраф') + '</td>';
 							rowBon += '<td class="' + type + '-amount">' + item.amount + '</td>';
 							rowBon += '<td class="' + type + '-category">' + item.category + '</td>';
 							rowBon += '<td class="' + type + '-car">' + item.vehicle + '</td>';
-							if (response[i].status === 'Перевіряється' && item.category !== 'Бонуси Bolt') {
+							if (status === 'Перевіряється' && item.category !== 'Бонуси Bolt') {
 								rowBon += '<td><button class="edit-' + type + '-btn" data-bonus-penalty-id="' + item.id + '" data-type="edit"><i class="fa fa-pencil-alt"></i></button> <button class="delete-bonus-penalty-btn" data-bonus-penalty-id="' + item.id + '" data-type="delete"><i class="fa fa-times"></i></button></td>';
 							}
 							rowBon += '</tr>';
@@ -67,54 +65,54 @@ function driverPayment(period = null, start = null, end = null, paymentStatus = 
 						return rowBon;
 					}
 
-					rowBonus += generateRow(response[i].bonuses_list, 'bonus', 'edit-bonus-btn', 'delete-bonus-penalty-btn');
-					rowBonus += generateRow(response[i].penalties_list, 'penalty', 'edit-penalty-btn', 'delete-bonus-penalty-btn');
+					rowBonus += generateRow(bonuses_list, 'bonus', 'edit-bonus-btn', 'delete-bonus-penalty-btn');
+					rowBonus += generateRow(penalties_list, 'penalty', 'edit-penalty-btn', 'delete-bonus-penalty-btn');
 					rowBonus += '</table></td></tr>';
 					var row = $('<tr class="tr-driver-payments">');
-					row.attr('data-id', response[i].id);
-					row.append('<td>' + response[i].report_from + ' <br> ' + response[i].report_to + '</td>');
-					row.append('<td class="driver-name cell-with-triangle" title="Натиснути для огляду бонусів та штрафів">' + response[i].full_name + ' <i class="fa fa-caret-down"></i></td>');
-					row.append('<td>' + response[i].kasa + '</td>');
-					row.append('<td>' + response[i].cash + '</td>');
-					row.append('<td>' + response[i].rent + '</td>');
-					if (response[i].status === 'Перевіряється') {
+					row.attr('data-id', dataId);
+					row.append('<td>' + report_from + ' <br> ' + report_to + '</td>');
+					row.append('<td class="driver-name cell-with-triangle" title="Натиснути для огляду бонусів та штрафів">' + full_name + ' <i class="fa fa-caret-down"></i></td>');
+					row.append('<td>' + kasa + '</td>');
+					row.append('<td>' + cash + '</td>');
+					row.append('<td>' + rent + '</td>');
+					if (status === 'Перевіряється') {
 
 
-						row.append('<td>' + '<div style="display: flex;justify-content: space-evenly; align-items: center;">' + response[i].bonuses + addButtonBonus + '</div>' + '</td>');
-						row.append('<td>' + '<div style="display: flex;justify-content: space-evenly; align-items: center;">' + response[i].penalties + addButtonPenalty + '</div>' + '</td>');
-						row.append('<td class="driver-rate" title="Натиснути для зміни відсотка"><div style="display: flex; justify-content: space-evenly; align-items: center;"><span class="rate-payment">' + response[i].rate + '</span><input type="text" class="driver-rate-input" placeholder="100" style="display: none;"><i class="fa fa-check check-icon"></i><i class="fa fa-pencil-alt pencil-icon"></i></div></td>');
+						row.append('<td>' + '<div style="display: flex;justify-content: space-evenly; align-items: center;">' + bonuses + addButtonBonus + '</div>' + '</td>');
+						row.append('<td>' + '<div style="display: flex;justify-content: space-evenly; align-items: center;">' + penalties + addButtonPenalty + '</div>' + '</td>');
+						row.append('<td class="driver-rate" title="Натиснути для зміни відсотка"><div style="display: flex; justify-content: space-evenly; align-items: center;"><span class="rate-payment">' + rate + '</span><input type="text" class="driver-rate-input" placeholder="100" style="display: none;"><i class="fa fa-check check-icon"></i><i class="fa fa-pencil-alt pencil-icon"></i></div></td>');
 					} else {
-						row.append('<td>' + '<div class="no-pencil-rate" style="display: flex;justify-content: space-evenly; align-items: center;">' + response[i].bonuses + '</div>' + '</td>');
-						row.append('<td>' + '<div class="no-pencil-rate" style="display: flex;justify-content: space-evenly; align-items: center;">' + response[i].penalties + '</div>' + '</td>');
-						row.append('<td><div style="display: flex;justify-content: space-evenly; align-items: center;"><span class="rate-payment no-pencil-rate" >' + response[i].rate + ' </span></div></td>')
+						row.append('<td>' + '<div class="no-pencil-rate" style="display: flex;justify-content: space-evenly; align-items: center;">' + bonuses + '</div>' + '</td>');
+						row.append('<td>' + '<div class="no-pencil-rate" style="display: flex;justify-content: space-evenly; align-items: center;">' + penalties + '</div>' + '</td>');
+						row.append('<td><div style="display: flex;justify-content: space-evenly; align-items: center;"><span class="rate-payment no-pencil-rate" >' + rate + ' </span></div></td>')
 
 					}
-					row.append('<td class="payment-earning">' + response[i].earning + '</td>');
+					row.append('<td class="payment-earning">' + earning + '</td>');
 					var showAllButton = $('.send-all-button');
 					showAllButton.hide(0);
-					if (response[i].status === 'Очікується') {
+					if (status === 'Очікується') {
 						row.append('<td><div class="box-btn-upd">' + arrowBtn + payBtn + notPayBtn + '</div></td>');
-						if (response[i].earning > 0) {
+						if (earning > 0) {
 							row.find('.not-pay-btn').remove();
 							row.find('.pay-btn').text('Сплатити');
 
 						}
 					}
-					if (response[i].status === 'Перевіряється') {
+					if (status === 'Перевіряється') {
 						showAllButton.show(0);
 						statusTh.text("Перерахування виплат");
 						$('th[data-sort="button"]').show();
-						if (response[i].payment_type === "DAY" && moment().startOf('day').isSame(responseDate.startOf('day'))) {
+						if (payment_type === "DAY" && moment().startOf('day').isSame(responseDate.startOf('day'))) {
 							row.append('<td>' + calculateBtn + '</td>')
 						} else {
 							row.append('<td></td>')
 						}
 						row.append('<td>' + confirmButton + '</td>');
 					}
-					if (response[i].status === 'Потребує поправок') {
+					if (status === 'Потребує поправок') {
 						row.addClass('incorrect');
 						showAllButton.show(0);
-						if (response[i].payment_type === "DAY" && moment().startOf('day').isSame(responseDate.startOf('day'))) {
+						if (payment_type === "DAY" && moment().startOf('day').isSame(responseDate.startOf('day'))) {
 							row.append('<td>' + calculateBtn + '</td>');
 							row.append('<td>' + incorrectBtn + '</td>');
 						} else {
@@ -123,8 +121,8 @@ function driverPayment(period = null, start = null, end = null, paymentStatus = 
 						}
 					}
 
-					if (response[i].status === 'Виплачений' || response[i].status === 'Не сплачений') {
-						row.append('<td>' + response[i].status + '</td>');
+					if (status === 'Виплачений' || status === 'Не сплачений') {
+						row.append('<td>' + status + '</td>');
 					}
 
 					tableBody.append(row);
@@ -136,6 +134,7 @@ function driverPayment(period = null, start = null, end = null, paymentStatus = 
 				$targetElement.find('.bonus-table').show();
 			}
 		}
+
 	});
 	var clickedDate = sessionStorage.getItem('clickedDate');
 	var clickedId = sessionStorage.getItem('clickedId');
@@ -217,9 +216,7 @@ $(document).ready(function () {
 		});
 
 		populateButtons(filteredDrivers);
-	});
 
-	$("#search-driver").on("keypress", function (e) {
 		if (e.which === 13) {
 			e.preventDefault();
 			$(this).blur();
@@ -228,8 +225,8 @@ $(document).ready(function () {
 
 	$(this).on('click', '.driver-button, .calculate-payment-btn', function (e) {
 		e.preventDefault();
-		driverId = $(this).data('driver-id');
-		paymentId = $(this).closest('tr').data('id');
+		const driverId = $(this).data('driver-id');
+		const paymentId = $(this).closest('tr').data('id');
 		$('#payment-driver-list').hide();
 		$('.create-payment').css('background', '#a1e8b9')
 		$('.modal-overlay').hide();

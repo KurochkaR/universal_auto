@@ -31,11 +31,12 @@ $(document).ready(function () {
 	});
 
 	$("#confirmation-btn-on").click(function () {
-		$(".confirmation-update-database").hide();
+		$(".confirmation-update-database").hide(0);
+
 		if ($(this).data("confirmUpdate")) {
-			$("#loadingModal").css("display", "block");
-			$(".loading-content").css("display", "block");
+			$("#loadingModal, .loading-content").show(0);
 			$("#loadingMessage").text(gettext("Зачекайте, будь ласка, поки оновлюється база даних..."));
+
 			$.ajax({
 				type: "POST",
 				url: ajaxPostUrl,
@@ -49,15 +50,14 @@ $(document).ready(function () {
 							if (response.data === "SUCCESS") {
 								$(".loading-content").css("display", "flex");
 								$("#loadingMessage").text(gettext("Базу даних оновлено"));
-								$("#loader").css("display", "none");
-								$("#checkmark").css("display", "block");
+								$("#loader").hide(0);
+								$("#checkmark").show(0);
 							} else {
 								$("#loadingMessage").text(gettext("Помилка оновлення бази даних. Спробуйте пізніше"));
-								$("#loader").css("display", "none");
-								$("#checkmark").css("display", "none");
+								$("#loader, #checkmark").hide(0);
 							}
 							setTimeout(function () {
-								$("#loadingModal").css("display", "none");
+								$("#loadingModal").hide(0);
 							}, 3000);
 						})
 						.catch(function (error) {
@@ -159,7 +159,7 @@ $(document).ready(function () {
 	}
 
 	function showAllHideConnect(aggregator) {
-		if (aggregator !== 'Gps') {
+		if (aggregator.toLowerCase() !== 'gps') {
 			$("#partnerLogin").show();
 			$(".helper-token").hide();
 			$(".showPasswordText").show();
@@ -178,9 +178,8 @@ $(document).ready(function () {
 		$(".opt-partnerForm").show()
 		$(".login-ok").hide()
 		$("#loginErrorMessage").hide()
-		aggregator === 'Uklon' ? partnerLoginField.val('+380') : partnerLoginField.val('');
+		aggregator.toLowerCase() === 'uklon' ? partnerLoginField.val('+380') : partnerLoginField.val('');
 	}
-
 
 	$('[name="partner"]').click(function () {
 		$('[name="partner"]').not(this).next('label').css({
@@ -233,8 +232,8 @@ $(document).ready(function () {
 
 
 	function sendLogautDataToServer(partner) {
-		$("#partnerLogin").val("")
-		$("#partnerPassword").val("")
+		$("#partnerLogin, #partnerPassword").val("")
+
 		$.ajax({
 			type: "POST",
 			url: ajaxPostUrl,
@@ -378,7 +377,6 @@ $(document).ready(function () {
 				$('#modal-add-bonus')[0].reset();
 				$('#modal-add-bonus').hide();
 				$button.removeClass('disabled');
-				console.log(paymentId);
 				if (paymentId === undefined || paymentId === null) {
 					window.location.reload();
 				} else {
@@ -469,20 +467,25 @@ function openForm(paymentId, bonusPenaltyId, itemType, driverId) {
 		},
 		success: function (response) {
 			$('#formContainer').html(response.data);
-			$('#modal-add-bonus').data('id', paymentId);
-			$('#modal-add-bonus').data('bonus-penalty-id', bonusPenaltyId);
-			$('#modal-add-bonus').data('category-type', itemType);
-			$('#modal-add-bonus').data('driver-id', driverId);
-			$('#modal-add-bonus').data('payment-id', paymentId);
+			const modalAddBonusData = {
+				'id': paymentId,
+				'bonus-penalty-id': bonusPenaltyId,
+				'category-type': itemType,
+				'driver-id': driverId,
+				'payment-id': paymentId
+			};
+			const modalAddBonus = $('#modal-add-bonus');
+			modalAddBonus.data(modalAddBonusData);
+			const addBonusBtn = $('#add-bonus-btn');
 			var headingText = itemType === 'bonus' ? (bonusPenaltyId ? 'Редагування бонуса' : 'Додавання бонуса') :
 				(bonusPenaltyId ? 'Редагування штрафа' : 'Додавання штрафа');
 			var buttonText = bonusPenaltyId ? 'Редагувати' : 'Додати';
 			var buttonId = itemType === 'bonus' ? (bonusPenaltyId ? 'edit-button-bonus-penalty' : 'add-bonus-btn') :
 				(bonusPenaltyId ? 'edit-button-bonus-penalty' : 'add-penalty-btn');
-			$('#add-bonus-btn').text(buttonText);
-			$('.title-add-bonus h2').text(headingText);
-			$('#add-bonus-btn').prop('id', buttonId);
-			$('#modal-add-bonus').show();
+			addBonusBtn.text(buttonText);
+			$('.title-form h2').text(headingText);
+			addBonusBtn.prop('id', buttonId);
+			modalAddBonus.show();
 			var selectedValue = $('#bonus-category').val();
 			if (selectedValue === 'add_new_category') {
 				$('.new-category-field').css('display', 'flex');
