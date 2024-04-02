@@ -6,6 +6,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import F
 from django.utils import timezone
 from django_celery_beat.models import PeriodicTask
+from telegram import ParseMode
 from telegram.error import BadRequest
 
 from app.uagps_sync import UaGpsSynchronizer
@@ -50,7 +51,8 @@ def create_payments(sender, instance, created, **kwargs):
             message = message_driver_report(instance.driver, instance)
             try:
                 sleep(0.5)
-                bot.send_message(chat_id=instance.driver.chat_id, text=message)
+                bot.send_message(chat_id=instance.driver.chat_id, text=message,
+                                 parse_mode=ParseMode.HTML)
             except BadRequest as e:
                 if e.message == 'Chat not found':
                     bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"),

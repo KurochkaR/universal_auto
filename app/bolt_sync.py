@@ -282,7 +282,7 @@ class BoltRequest(Fleet, Synchronizer):
             driver_params['id'] = driver['id']
             driver_info = self.get_target_url(f'{self.base_url}getDriver', driver_params)
             if driver_info['message'] != 'OK':
-                tm.sleep(1)
+                tm.sleep(0.5)
                 try:
                     driver_info = self.get_target_url(f'{self.base_url}getDriver', driver_params)
                 except Exception as e:
@@ -346,9 +346,8 @@ class BoltRequest(Fleet, Synchronizer):
             partner=self.partner)
         db_orders = FleetOrder.objects.filter(filter_condition)
         existing_orders = db_orders.values_list('order_id', flat=True)
-        zero_price_orders = db_orders.filter(Q(price=0))
-        zero_filtered = [order for order in orders if order['order_id'] in zero_price_orders]
-
+        zero_price_orders = db_orders.filter(Q(price=0)).values_list('order_id', flat=True)
+        zero_filtered = [order for order in orders if str(order['order_id']) in zero_price_orders]
         order_prices_dict = {order['order_id']: (order.get('total_price', 0), order.get("tip", 0))
                              for order in zero_filtered}
         zero_price_orders.update(

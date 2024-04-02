@@ -20,7 +20,7 @@ from api.serializers import SummaryReportSerializer, CarEfficiencySerializer, Ca
     DriverEfficiencyFleetRentSerializer, DriverInformationSerializer
 from app.models import SummaryReport, CarEfficiency, Vehicle, DriverEfficiency, RentInformation, DriverReshuffle, \
     PartnerEarnings, InvestorPayments, DriverPayments, PaymentsStatus, PenaltyBonus, Penalty, Bonus, \
-    DriverEfficiencyFleet, VehicleSpending, Driver, BonusCategory, CustomReport
+    DriverEfficiencyFleet, VehicleSpending, Driver, BonusCategory, CustomReport, SalaryCalculation
 from taxi_service.utils import get_start_end
 
 
@@ -36,6 +36,7 @@ class SummaryReportListView(CombinedPermissionsMixin, generics.ListAPIView):
 
     def get_queryset(self):
         start, end, format_start, format_end = get_start_end(self.kwargs['period'])
+        start_week = timezone.localtime().date() - timedelta(days=timezone.localtime().weekday())
         queryset = ManagerFilterMixin.get_queryset(CustomReport, self.request.user).select_related('driver__user_ptr')
         filtered_qs = queryset.filter(report_from__range=(start, end))
         kasa_bonus = filtered_qs.aggregate(
@@ -61,6 +62,17 @@ class SummaryReportListView(CombinedPermissionsMixin, generics.ListAPIView):
             payment_amount=Sum('kasa'),
             rent_distance=Sum('rent_distance')
         )
+        weekly_payments = filtered_qs.filter(driver__schema__salary_calculation=SalaryCalculation.WEEK,
+                                             report_from__gte=start_week).values(
+            'driver_id').annotate(
+            payment_amount=Coalesce(Sum('total_amount_without_fee'), Decimal(0)) + Coalesce(Sum('bonuses'), Decimal(0)),
+        )
+
+        for item in weekly_payments:
+            driver_id = item['driver_id']
+            if driver_id not in payment_amount:
+                payment_amount[driver_id] = item['payment_amount']
+            payment_amount[driver_id] += item['payment_amount']
 
         driver_payments_list = payment_amount_subquery.filter(
             report_from__range=(start, end),
