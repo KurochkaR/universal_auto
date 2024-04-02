@@ -260,11 +260,10 @@ $(document).ready(function () {
 					}
 
 					calendarDetail.append(card);
-					const driverReshuffle = $(this).find(".driver-info-reshuffle")
 					$(".driver-photo").hover(function () {
-						driverReshuffle.css("display", "flex");
+						$(this).find(".driver-info-reshuffle").css("display", "flex");
 					}, function () {
-						driverReshuffle.css("display", "none");
+						$(this).find(".driver-info-reshuffle").css("display", "none");
 					});
 				}
 
@@ -282,11 +281,11 @@ $(document).ready(function () {
 			renderCalendar(currentDate);
 
 			investNextButton.on('click', function () {
-				handleButtonClick(7, vehicleLC, renderCalendar);
+				handleButtonClick(10, vehicleLC, renderCalendar);
 			});
 
 			investPrevButton.on('click', function () {
-				handleButtonClick(-7, vehicleLC, renderCalendar);
+				handleButtonClick(-10, vehicleLC, renderCalendar);
 			});
 		});
 
@@ -566,7 +565,7 @@ $(document).ready(function () {
 	}
 
 	let currentDate = new Date(today);
-	currentDate.setDate(currentDate.getDate() - 3);
+	currentDate.setDate(currentDate.getDate() - 6);
 	let formattedStartDate = formatDateForDatabase(currentDate);
 
 	let endDate = new Date(currentDate);

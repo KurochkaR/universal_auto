@@ -290,6 +290,7 @@ def is_conflict(driver, vehicle, start_time, end_time, reshuffle=None):
         swap_time__lte=end_time,
         end_time__gt=start_time
     )
+
     conflicts = reshuffles.filter(
         (Q(swap_time__range=(start_time, end_time)) | Q(end_time__range=(start_time, end_time))) |
         (Q(swap_time__lte=start_time, end_time__gte=end_time))
@@ -297,12 +298,14 @@ def is_conflict(driver, vehicle, start_time, end_time, reshuffle=None):
 
     if reshuffle:
         conflicts = conflicts.exclude(id=reshuffle)
+        accident_conflicts = accident_conflicts.exclude(id=reshuffle)
 
     overlapping_shifts = conflicts.filter(
         (Q(swap_time__lte=start_time) & Q(end_time__gt=start_time)) |
         (Q(swap_time__lt=end_time) & Q(end_time__gte=end_time)) |
         (Q(swap_time__gte=start_time) & Q(end_time__lte=end_time))
     )
+
     if overlapping_shifts.exists() or accident_conflicts.exists():
         conflicting_shift = overlapping_shifts.first() if overlapping_shifts.exists() else accident_conflicts.first()
         conflicting_time = (f"{timezone.localtime(conflicting_shift.swap_time).strftime('%Y-%m-%d %H:%M:%S')} "
