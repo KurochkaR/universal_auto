@@ -302,6 +302,17 @@ img.logo-1 {
 	padding: 20px 20px;
 }
 
+.main-container .weekly-income-dates {
+	position: relative;
+	bottom: 25px;
+	float: right;
+	color: var(--color-secondary);
+	font-size: 30px;
+	font-style: normal;
+	font-weight: 700;
+	line-height: normal;
+}
+
 .main-title {
 	display: flex;
 	justify-content: flex-start;
@@ -435,6 +446,7 @@ input[type="button"] {
 
 .main-cards,
 .main-cards-partner {
+	width: 100%;
 	display: grid;
 	grid-template-columns: repeat(4, 1fr);
 	gap: 20px;
@@ -1461,6 +1473,13 @@ select:focus {
 	align-items: center;
 	gap: 15px;
 	margin: 0px;
+}
+
+.custom-dropdown-card .not-closed span {
+	font-size: 15px;
+	font-style: normal;
+	font-weight: 400;
+	line-height: normal;
 }
 
 .not-closed-payments,
