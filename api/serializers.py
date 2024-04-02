@@ -9,6 +9,7 @@ class AggregateReportSerializer(serializers.Serializer):
     total_card = serializers.DecimalField(max_digits=10, decimal_places=2)
     total_cash = serializers.DecimalField(max_digits=10, decimal_places=2)
     payment_amount = serializers.DecimalField(max_digits=10, decimal_places=2)
+    weekly_payments = serializers.DecimalField(max_digits=10, decimal_places=2)
 
 
 class CarDetailSerializer(serializers.Serializer):

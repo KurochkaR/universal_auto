@@ -692,7 +692,8 @@ def send_driver_efficiency(self, partner_pk):
     for manager in managers:
         result, start, end = get_driver_efficiency_report(manager_id=manager)
         if result:
-            date_msg = f"Статистика з {start.strftime('%d.%m')} по {end.strftime('%d.%m')}\n"
+            print(start, end)
+            date_msg = f"Статистика з {start.strftime('%d.%m %H:%M')} по {end.strftime('%d.%m %H:%M')}\n"
             message = date_msg
             for k, v in result.items():
                 driver_msg = f"{k}\n" + "".join(v)
@@ -1401,6 +1402,7 @@ def update_schedule(self):
                     defaults={
                         'interval': interval_schedule,
                         'start_time': next_execution_datetime,
+                        'queue': f"beat_tasks_{partner.pk}",
                         'args': [partner.pk]
                     }
                 )

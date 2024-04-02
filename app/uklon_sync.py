@@ -178,7 +178,7 @@ class UklonRequest(Fleet, Synchronizer):
 
     def save_daily_custom(self, start, end, driver_ids):
         param = {'dateFrom': self.report_interval(start),
-                 'dateTo': self.report_interval(end) + 60,
+                 'dateTo': self.report_interval(end),
                  'limit': 50,
                  }
         offset = 0
@@ -205,7 +205,7 @@ class UklonRequest(Fleet, Synchronizer):
     def save_custom_report(self, start, end, driver_ids):
         start_time = datetime.combine(start, time.min)
         param = {'dateFrom': self.report_interval(start_time),
-                 'dateTo': self.report_interval(end) + 60,
+                 'dateTo': self.report_interval(end),
                  'limit': 50,
                  }
         offset = 0
@@ -256,7 +256,7 @@ class UklonRequest(Fleet, Synchronizer):
 
     def save_report(self, start, end, model):
         param = {'dateFrom': self.report_interval(start),
-                 'dateTo': self.report_interval(end) + 60,
+                 'dateTo': self.report_interval(end),
                  'limit': 50,
                  }
         offset = 0
@@ -293,12 +293,11 @@ class UklonRequest(Fleet, Synchronizer):
         return self.save_report(start, end, DailyReport)
 
     def get_earnings_per_driver(self, driver, start, end):
-        print(start, end)
         total_amount_without_fee = total_amount_cash = 0
         driver_id = driver.get_driver_external_id(self)
         if driver_id:
             param = {'dateFrom': int(start.timestamp()),
-                     'dateTo': int(end.timestamp()) + 60,
+                     'dateTo': int(end.timestamp()),
                      'limit': '50', 'offset': '0',
                      'driverId': driver_id
                      }
