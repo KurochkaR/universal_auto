@@ -68,12 +68,6 @@ class SummaryReportListView(CombinedPermissionsMixin, generics.ListAPIView):
             payment_amount=Coalesce(Sum('total_amount_without_fee'), Decimal(0)) + Coalesce(Sum('bonuses'), Decimal(0)),
         )
 
-        for item in weekly_payments:
-            driver_id = item['driver_id']
-            if driver_id not in payment_amount:
-                payment_amount[driver_id] = item['payment_amount']
-            payment_amount[driver_id] += item['payment_amount']
-
         driver_payments_list = payment_amount_subquery.filter(
             report_from__range=(start, end),
             status__in=[PaymentsStatus.COMPLETED],
@@ -116,11 +110,14 @@ class SummaryReportListView(CombinedPermissionsMixin, generics.ListAPIView):
             payment_amount=Subquery(payment_amount.filter(
                 driver_id=OuterRef('driver_id')).values('payment_amount'), output_field=DecimalField()),
             rent_distance=Subquery(payment_amount.filter(
-                driver_id=OuterRef('driver_id')).values('rent_distance'), output_field=DecimalField())
+                driver_id=OuterRef('driver_id')).values('rent_distance'), output_field=DecimalField()),
+            weekly_payments=Subquery(weekly_payments.filter(
+                driver_id=OuterRef('driver_id')).values('payment_amount'), output_field=DecimalField()),
         )
         rent_earnings = sum_rent - total_compensation_bonus
         total_rent = queryset.aggregate(total_rent=Sum('rent_amount'))['total_rent'] or 0
-        total_payment = queryset.aggregate(total_payment=Sum('payment_amount'))['total_payment'] or 0
+        total_payment = queryset.aggregate(total_payment=Coalesce(
+            Sum('payment_amount'), Decimal(0)) + Coalesce(Sum('weekly_payments'), Decimal(0)))['total_payment']
         total_distance = queryset.aggregate(total_distance=Sum('rent_distance'))['total_distance'] or 0
         queryset = queryset.exclude(total_kasa=0).order_by('full_name')
         return [

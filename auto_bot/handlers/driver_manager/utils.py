@@ -2,7 +2,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta, time
 
 from _decimal import Decimal
-from django.db.models import Sum, Avg, DecimalField, ExpressionWrapper, F, Value, Q, Count, Func
+from django.db.models import Sum, Avg, DecimalField, ExpressionWrapper, F, Value, Q, Count, Func, Case, When
 from django.db.models.functions import Coalesce
 from django.utils import timezone
 from telegram.error import BadRequest
@@ -430,6 +430,26 @@ def get_efficiency(manager_id=None, start=None, end=None):
 
 def calculate_efficiency_driver(driver, start, end):
     efficiency_objects = DriverEfficiency.objects.filter(report_from__range=(start, end), driver=driver)
+    # annotated_efficiency = efficiency_objects.annotate(
+    #     total_orders=Sum('total_orders'),
+    #     completed_orders=Sum('total_orders_accepted'),
+    #     total_distance=Sum('mileage'),
+    #     total_hours=Sum('road_time'),
+    #     total_rent=Sum('rent_distance'),
+    #     total_kasa=Sum('total_kasa'),
+    #     accept_percent=Case(
+    #         When(total_orders=0, then=100),
+    #         default=ExpressionWrapper((F('completed_orders') / F('total_orders')) * 100, output_field=DecimalField()),
+    #     ),
+    #     avg_price=Case(
+    #         When(completed_orders=0, then=0),
+    #         default=ExpressionWrapper(F('total_kasa') / F('completed_orders'), output_field=DecimalField()),
+    #     ),
+    #     efficiency=Case(
+    #         When(total_distance=0, then=0),
+    #         default=ExpressionWrapper(F('total_kasa') / F('total_distance'), output_field=DecimalField()),
+    #     )
+    # )
 
     unique_vehicles = set()
     driver_vehicles = []
@@ -469,25 +489,24 @@ def calculate_efficiency_driver(driver, start, end):
 
 def get_driver_efficiency_report(manager_id, start=None, end=None):
     drivers = get_drivers_vehicles_list(manager_id, Driver)[0]
-    yesterday = timezone.localtime().date() - timedelta(days=1)
-    report_time = timezone.make_aware(datetime.combine(timezone.localtime().date(), time.max.replace(microsecond=0)))
-    drivers = drivers.filter(schema__isnull=False)
+    start_today = timezone.make_aware(datetime.combine(timezone.localtime(), time.min))
+    yesterday = start_today - timedelta(days=1)
     if not start and not end:
-        end = report_time - timedelta(days=1)
-        start = report_time - timedelta(days=report_time.weekday()) if report_time.weekday() else \
-            report_time - timedelta(weeks=1)
-    else:
+        if timezone.localtime().weekday():
+            start = start_today - timedelta(days=timezone.localtime().weekday())
+        else:
+            start = start_today - timedelta(weeks=1)
+        end = timezone.make_aware(datetime.combine(yesterday, time.max.replace(microsecond=0)))
         drivers = drivers.filter(schema__isnull=False)
     effective_driver = {}
     report = {}
-
     for driver in drivers:
         effect = calculate_efficiency_driver(driver, start, end)
         if effect[0]:
             total_kasa, total_rent = calculate_daily_reports(start, end, driver)
             licence_plates = ', '.join(effect[6])
-            if end == yesterday:
-                yesterday_effect = calculate_efficiency_driver(driver, end, end)
+            if end.date() == yesterday.date():
+                yesterday_effect = calculate_efficiency_driver(driver, yesterday, end)
                 day_kasa, rent_daily = calculate_daily_reports(end, end, driver)
                 efficiency = yesterday_effect[0]
                 car_plates = ', '.join(yesterday_effect[6])
