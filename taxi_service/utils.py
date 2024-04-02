@@ -79,7 +79,11 @@ def restart_order(id_order, car_delivery_price, action):
 def get_dates(period=None):
     current_date = datetime.combine(timezone.localtime(), time.min)
 
-    if period == 'yesterday':
+    if period == 'today':
+        start_date = current_date
+        end_date = current_date.replace(hour=23, minute=59, second=59, microsecond=999999)
+
+    elif period == 'yesterday':
         previous_date = current_date - timedelta(days=1)
         start_date = previous_date.replace(hour=0, minute=0, second=0, microsecond=0)
         end_date = previous_date.replace(hour=23, minute=59, second=59, microsecond=999999)
@@ -152,7 +156,7 @@ def get_dates(period=None):
 
 
 def get_start_end(period):
-    if period in ('yesterday', 'current_week', 'current_month', 'current_quarter',
+    if period in ('today', 'yesterday', 'current_week', 'current_month', 'current_quarter',
                   'last_week', 'last_month', 'last_quarter'):
         start, end = get_dates(period)
         format_start = start.strftime("%d.%m.%Y")

@@ -29,6 +29,9 @@ function driverPayment(period = null, start = null, end = null, paymentStatus = 
 			if (paymentStatus === 'not_closed') {
 				statusTh.text("Дії");
 				$('th[data-sort="button"]').hide();
+				$('#datePickerPayments').hide();
+			} else {
+				$('#datePickerPayments').hide();
 			}
 
 			for (const payment of response) {
@@ -441,7 +444,7 @@ $(document).ready(function () {
 	}
 	$('input[name="payment-status"]').change(function () {
 		if ($(this).val() === 'closed') {
-			driverPayment(period = 'yesterday', null, null, paymentStatus = $(this).val());
+			driverPayment(period = 'today', null, null, paymentStatus = $(this).val());
 			$('.filter-driver-payments').css('display', 'flex');
 		} else {
 			driverPayment(null, null, null, paymentStatus = $(this).val());
@@ -597,7 +600,8 @@ $(document).ready(function () {
 		updStatusDriverPayments(id, status = 'checking', paymentStatus = "not_closed");
 	});
 
-	driverTableTbody.on('click', '.pay-btn, .not-pay-btn', function () {
+	driverTableTbody.on('click', '.pay-btn, .not-pay-btn', function (e) {
+		e.stopPropagation();
 		var $closestTr = $(this).closest('tr');
 		var id = $closestTr.data('id');
 		var $confirmationBox = $(".confirmation-box");
@@ -626,6 +630,12 @@ $(document).ready(function () {
 		$confirmationBtnOn.text(confirmationTextOn).data('id', id).data('status', status).addClass('close-payment').removeClass('confirmation-btn-on');
 		$confirmationBtnOff.text(confirmationTextOff);
 		$(".confirmation-update-database").show();
+	});
+
+	$(document).on('click', function (event) {
+		if (!$(event.target).closest('.confirmation-update-database').length) {
+			$(".confirmation-update-database").hide();
+		}
 	});
 
 
