@@ -56,7 +56,7 @@ def find_reshuffle_period(reshuffle, start, end):
 def create_driver_payments(start, end, driver, schema, bonuses=None, driver_report=None, delete=None):
     reports = SummaryReport.objects.filter(report_to__range=(start, end),
                                            report_to__gt=start,
-                                           driver=driver)
+                                           driver=driver).order_by('-report_from')
     if not driver_report:
         driver_report = reports.aggregate(
             cash=Coalesce(Sum('total_amount_cash'), 0, output_field=DecimalField()),
@@ -88,16 +88,21 @@ def create_driver_payments(start, end, driver, schema, bonuses=None, driver_repo
             (schema.plan - kasa) * Decimal(1 - schema.rate)
             if kasa < schema.plan else 0) - rent_value
                            )
-    start_schema = timezone.make_aware(datetime.combine(timezone.localtime() - timedelta(days=1),
-                                                        schema.shift_time))
-    last_payment = DriverPayments.objects.filter(
-        driver=driver,
-        report_to__date=start_schema).order_by("-report_from").last()
-    if last_payment and last_payment.report_to > start_schema:
-        report_from = timezone.localtime(last_payment.report_to)
+    if schema.is_weekly():
+        report_from = start
+        no_price = False
+        status = PaymentsStatus.CHECKING
     else:
-        report_from = start_schema
-    status, no_price = check_correct_bolt_report(start, end, driver)
+        start_schema = timezone.make_aware(datetime.combine(timezone.localtime() - timedelta(days=1),
+                                                            schema.shift_time))
+        last_payment = DriverPayments.objects.filter(
+            driver=driver,
+            report_to__date=start_schema).order_by("-report_from").last()
+        if last_payment and last_payment.report_to > start_schema:
+            report_from = timezone.localtime(last_payment.report_to)
+        else:
+            report_from = start_schema
+        status, no_price = check_correct_bolt_report(start, end, driver)
     data = {"report_from": report_from,
             "report_to": reports.first().report_to,
             "rent_distance": rent,
@@ -293,8 +298,15 @@ def generate_message_report(chat_id, schema_id=None, daily=None):
 
 
 def message_driver_report(driver, payment):
-    driver_message = ''
-    driver_message += f"{driver} каса: {payment.kasa}\n"
+    reports = Payments.objects.filter(
+        driver=driver,
+        report_from__range=(payment.report_from, payment.report_to)).values('fleet__name').annotate(
+        fleet_kasa=Coalesce(Sum('total_amount_without_fee'), Decimal(0)))
+    driver_message = (f"<b>{driver}</b>\n<u>Виплата з {timezone.localtime(payment.report_from).strftime('%d.%m %H:%M')}"
+                      f" по {timezone.localtime(payment.report_to).strftime('%d.%m %H:%M')}</u>\n")
+    driver_message += f"Загальна каса: {payment.kasa}\n"
+    for report in reports:
+        driver_message += f"{report['fleet__name']} каса: {report['fleet_kasa']}\n"
     if payment.rent:
         driver_message += "Холостий пробіг: {0} * {1} = {2}\n".format(
             payment.rent_distance, payment.rent_price, payment.rent)
@@ -317,8 +329,10 @@ def message_driver_report(driver, payment):
 
     bonuses = payment.get_bonuses()
     penalties = payment.get_penalties()
-    driver_message += " + Бонуси: {0} - Штрафи: {1}".format(bonuses, penalties)
-
+    if bonuses:
+        driver_message += " + Бонуси: {0}".format(bonuses)
+    if penalties:
+        driver_message += " - Штрафи: {0}".format(penalties)
     if payment.rent:
         driver_message += f" - Холостий пробіг {payment.rent}"
     driver_message += f" = {payment.earning}\n"
@@ -554,18 +568,19 @@ def get_vehicle_income(driver, start, end, spending_rate, rent):
     driver_bonus = {}
     weekly_reshuffles = check_reshuffle(driver, start_week, end_week)
     for shift in weekly_reshuffles:
-        shift_bolt_kasa = calculate_bolt_kasa(driver, shift.swap_time, shift.end_time, vehicle=shift.swap_vehicle)[0]
-        reshuffle_bonus = shift_bolt_kasa / Decimal(
-            (bolt_weekly['kasa'] - bolt_weekly['compensations'] - bolt_weekly['bonuses']) * bolt_weekly['bonuses'])
-        if not driver_bonus.get(shift.swap_vehicle.pk):
-            driver_bonus[shift.swap_vehicle.pk] = reshuffle_bonus
-        else:
-            driver_bonus[shift.swap_vehicle.pk] += reshuffle_bonus
+        if bolt_weekly['bonuses']:
+            shift_bolt_kasa = calculate_bolt_kasa(driver, shift.swap_time, shift.end_time, vehicle=shift.swap_vehicle)[0]
+            reshuffle_bonus = shift_bolt_kasa / Decimal(
+                (bolt_weekly['kasa'] - bolt_weekly['compensations'] - bolt_weekly['bonuses'])) * bolt_weekly['bonuses']
+            if not driver_bonus.get(shift.swap_vehicle.pk):
+                driver_bonus[shift.swap_vehicle.pk] = reshuffle_bonus
+            else:
+                driver_bonus[shift.swap_vehicle.pk] += reshuffle_bonus
     for car, bonus in driver_bonus.items():
         if not vehicle_income.get(car):
-            vehicle_income[car] = bonus * (1 - driver.schema.rate)
+            vehicle_income[car] = bonus * spending_rate
         else:
-            vehicle_income[car] += bonus * (1 - driver.schema.rate)
+            vehicle_income[car] += bonus * spending_rate
 
     return vehicle_income
 
@@ -592,6 +607,7 @@ def calculate_income_partner(driver, start, end, spending_rate, rent, driver_ren
             else:
                 total_gross_kasa += Decimal(fleet.get_earnings_per_driver(driver, start_period, end_period)[0])
         total_kasa = Decimal(total_gross_kasa) * spending_rate
+
         if not vehicle_income.get(vehicle):
             vehicle_income[vehicle] = total_kasa
         else:
@@ -606,7 +622,7 @@ def calculate_income_partner(driver, start, end, spending_rate, rent, driver_ren
     if compensations:
         vehicles = len(vehicle_income.values())
         for key in vehicle_income:
-            vehicle_income[key] += compensations / vehicles * (1 - driver.schema.rate)
+            vehicle_income[key] += compensations / vehicles * spending_rate
     return vehicle_income
 
 

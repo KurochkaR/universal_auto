@@ -201,7 +201,7 @@ class UaGpsSynchronizer(Fleet):
                 'driver_start', flat=True)
         drivers = Driver.objects.filter(pk__in=schema_drivers)
         for driver in drivers:
-            if not payment:
+            if not driver.schema.is_weekly() and not payment:
                 last_payment = DriverPayments.objects.filter(
                     driver=driver,
                     report_to__date=start).order_by("-report_from").last()
@@ -242,13 +242,13 @@ class UaGpsSynchronizer(Fleet):
                 report = self.get_params_for_report(self.get_timestamp(timezone.localtime(order.accepted_time)),
                                                     self.get_timestamp(timezone.localtime(end_report)),
                                                     vehicle.gps.gps_id)
-                previous_finish_time = end_report
             elif order.finish_time <= previous_finish_time:
                 continue
             else:
                 report = self.get_params_for_report(self.get_timestamp(timezone.localtime(previous_finish_time)),
                                                     self.get_timestamp(timezone.localtime(end_report)),
                                                     vehicle.gps.gps_id)
+            previous_finish_time = end_report
             parameters.append(report)
         return parameters, previous_finish_time
 
@@ -330,7 +330,7 @@ class UaGpsSynchronizer(Fleet):
 
     def calculate_driver_vehicle_rent(self, start, end, driver, result, payment=None):
         distance, road_time = result[0], result[1]
-        if not payment:
+        if not payment and not driver.schema.is_weekly():
             last_payment = DriverPayments.objects.filter(
                 driver=driver,
                 report_to__date=start).order_by("-report_from").last()

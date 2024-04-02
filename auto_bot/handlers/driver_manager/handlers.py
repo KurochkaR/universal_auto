@@ -2,7 +2,7 @@
 from datetime import datetime, timedelta, time
 from celery.signals import task_postrun
 from django.utils import timezone
-from telegram import ReplyKeyboardRemove
+from telegram import ReplyKeyboardRemove, ParseMode
 from telegram.error import BadRequest
 
 from app.models import Manager, Vehicle, User, Driver, FleetsDriversVehiclesRate, Fleet, JobApplication, \
@@ -350,7 +350,6 @@ def send_vehicle_efficiency(sender=None, **kwargs):
                                   partner=partner), text=message)
 
 
-
 @task_postrun.connect
 def send_week_report(sender=None, **kwargs):
     if sender == send_driver_report:
@@ -358,7 +357,7 @@ def send_week_report(sender=None, **kwargs):
         for messages in result:
             if messages:
                 for user, message in messages.items():
-                    bot.send_message(chat_id=user, text=message)
+                    bot.send_message(chat_id=user, text=message, parse_mode=ParseMode.HTML)
 
 
 def get_partner_vehicles(update, context):
