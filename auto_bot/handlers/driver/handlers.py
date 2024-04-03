@@ -4,6 +4,7 @@ from telegram import ReplyKeyboardRemove, InlineKeyboardMarkup
 from telegram.ext import ConversationHandler
 
 from app.models import Driver, Vehicle, ReportDriveDebt, Event
+from auto.tasks import add_screen_to_payment
 from auto_bot.handlers.driver.keyboards import service_auto_buttons, inline_debt_keyboard, inline_dates_kb
 from auto_bot.handlers.driver.static_text import *
 from auto_bot.handlers.driver_job.utils import save_storage_photo
@@ -19,12 +20,14 @@ def bolt_report_photo_callback(update, context):
 
 
 def upload_bolt_report_photo(update, context):
-    chat_id = update.effective_chat.id
+    chat_id = str(update.effective_chat.id)
+    driver = Driver.get_by_chat_id(chat_id)
     if update.message.photo:
-        redis_instance().hdel(str(chat_id), 'photo_state')
+        redis_instance().hdel(chat_id, 'photo_state')
         image = update.message.photo[-1].get_file()
         filename = f'bolt/reports/{image["file_unique_id"]}.jpg'
         save_storage_photo(image, filename)
+        add_screen_to_payment.apply_async(args=[filename, driver.pk], queue=f'beat_tasks_{driver.partner.pk}')
         update.message.reply_text("Дякую дані збережено для розрахунку виплати")
         # context.bot.send_photo(update.effective_chat.id,
         #                        'https://www.autoconsulting.com.ua/pictures/_upload/1582561870fbTo_h.jpg')
