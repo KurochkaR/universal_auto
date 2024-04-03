@@ -486,12 +486,20 @@ class DriverPaymentsListView(CombinedPermissionsMixin, generics.ListAPIView):
 
     def get_queryset(self):
         qs = ManagerFilterMixin.get_queryset(DriverPayments, self.request.user)
-        period = self.kwargs.get('period')
+        status = self.kwargs.get('status')
 
-        if not period:
-            queryset = qs.filter(status__in=[PaymentsStatus.CHECKING, PaymentsStatus.INCORRECT, PaymentsStatus.PENDING])
+        def get_status(item):
+            switcher = {
+                'completed': [PaymentsStatus.COMPLETED, PaymentsStatus.FAILED],
+                'on_inspection': [PaymentsStatus.CHECKING, PaymentsStatus.INCORRECT],
+                'not_closed': [PaymentsStatus.PENDING]
+            }
+            return switcher.get(item, [])
+
+        if status in ['completed', 'on_inspection', 'not_closed']:
+            queryset = qs.filter(status__in=get_status(status))
         else:
-            start, end, format_start, format_end = get_start_end(period)
+            start, end, format_start, format_end = get_start_end(status)
             queryset = qs.filter(report_to__range=(start, end),
                                  status__in=[PaymentsStatus.COMPLETED, PaymentsStatus.FAILED],
                                  )

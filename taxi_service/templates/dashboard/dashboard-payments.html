@@ -21,9 +21,10 @@
     <div class="filter-driver-payments">
       <label for="period">{% trans 'Виберіть період:' %}</label>
       <div class="custom-select-payments" id="period">
-        <span class="selected-option-payments">{% trans 'Вчора' %}</span>
+        <span class="selected-option-payments">{% trans 'Сьогодні' %}</span>
         <i class="fas fa-angle-down"></i>
         <ul class="options-payments">
+          <li data-value="today">{% trans 'Сьогодні' %}</li>
           <li data-value="yesterday">{% trans 'Вчора' %}</li>
           <li data-value="current_week">{% trans 'Поточний тиждень' %}</li>
           <li data-value="last_week">{% trans 'Минулий тиждень' %}</li>

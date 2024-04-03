@@ -14,6 +14,5 @@ urlpatterns = [
     path("drivers_efficiency/<str:period>/<str:aggregators>/", DriverEfficiencyFleetListView.as_view()),
     path("drivers_efficiency/<str:period>/", DriverEfficiencyListView.as_view()),
     path("reshuffle/<str:period>/", DriverReshuffleListView.as_view()),
-    path("driver_payments/", DriverPaymentsListView.as_view()),
-    path("driver_payments/<str:period>/", DriverPaymentsListView.as_view()),
+    path("driver_payments/<str:status>/", DriverPaymentsListView.as_view()),
 ]

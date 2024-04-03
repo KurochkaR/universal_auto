@@ -79,7 +79,11 @@ def restart_order(id_order, car_delivery_price, action):
 def get_dates(period=None):
     current_date = datetime.combine(timezone.localtime(), time.min)
 
-    if period == 'yesterday':
+    if period == 'today':
+        start_date = current_date
+        end_date = current_date.replace(hour=23, minute=59, second=59, microsecond=999999)
+
+    elif period == 'yesterday':
         previous_date = current_date - timedelta(days=1)
         start_date = previous_date.replace(hour=0, minute=0, second=0, microsecond=0)
         end_date = previous_date.replace(hour=23, minute=59, second=59, microsecond=999999)
@@ -152,7 +156,7 @@ def get_dates(period=None):
 
 
 def get_start_end(period):
-    if period in ('yesterday', 'current_week', 'current_month', 'current_quarter',
+    if period in ('today', 'yesterday', 'current_week', 'current_month', 'current_quarter',
                   'last_week', 'last_month', 'last_quarter'):
         start, end = get_dates(period)
         format_start = start.strftime("%d.%m.%Y")
@@ -286,6 +290,7 @@ def is_conflict(driver, vehicle, start_time, end_time, reshuffle=None):
         swap_time__lte=end_time,
         end_time__gt=start_time
     )
+
     conflicts = reshuffles.filter(
         (Q(swap_time__range=(start_time, end_time)) | Q(end_time__range=(start_time, end_time))) |
         (Q(swap_time__lte=start_time, end_time__gte=end_time))
@@ -293,12 +298,14 @@ def is_conflict(driver, vehicle, start_time, end_time, reshuffle=None):
 
     if reshuffle:
         conflicts = conflicts.exclude(id=reshuffle)
+        accident_conflicts = accident_conflicts.exclude(id=reshuffle)
 
     overlapping_shifts = conflicts.filter(
         (Q(swap_time__lte=start_time) & Q(end_time__gt=start_time)) |
         (Q(swap_time__lt=end_time) & Q(end_time__gte=end_time)) |
         (Q(swap_time__gte=start_time) & Q(end_time__lte=end_time))
     )
+
     if overlapping_shifts.exists() or accident_conflicts.exists():
         conflicting_shift = overlapping_shifts.first() if overlapping_shifts.exists() else accident_conflicts.first()
         conflicting_time = (f"{timezone.localtime(conflicting_shift.swap_time).strftime('%Y-%m-%d %H:%M:%S')} "

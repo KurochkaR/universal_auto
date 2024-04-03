@@ -333,6 +333,14 @@ $(document).ready(function () {
 		}
 		$container.find('.debt-repayment-input-container').css('display', 'flex');
 		$container.find('.edit-penalty-btn, .delete-bonus-penalty-btn').hide();
+		$('.debt-repayment-input-container').find('input[type="text"]').focus();
+	});
+
+	$('.debt-repayment-input-container').find('input[type="text"]').on('keydown', function (event) {
+		if (event.which === 13) {
+			console.log("Клавіша Enter була натиснута.");
+			$(this).closest('.driver-bonus-penalty-info').find('.debt-repayment-input-container i').click();
+		}
 	});
 
 	$('.driver-bonus-penalty-info').each(function () {
