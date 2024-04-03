@@ -11,7 +11,7 @@ from app.bolt_sync import BoltRequest
 from app.models import CarEfficiency, Driver, SummaryReport, \
     Vehicle, RentInformation, DriverEfficiency, DriverSchemaRate, SalaryCalculation, \
     DriverPayments, FleetOrder, VehicleRent, Schema, Fleet, CustomUser, CustomReport, PaymentTypes, Payments, \
-    WeeklyReport, PaymentsStatus, ParkSettings, Manager
+    WeeklyReport, PaymentsStatus, ParkSettings, Manager, PartnerEarnings, Bonus, Category
 from auto_bot.handlers.order.utils import check_reshuffle, check_vehicle
 from auto_bot.main import bot
 from auto_bot.utils import send_long_message
@@ -51,6 +51,33 @@ def find_reshuffle_period(reshuffle, start, end):
     else:
         start_period, end_period = reshuffle.swap_time, end
     return start_period, end_period
+
+
+def add_bonus_earnings(start_week, end_week, driver, bolt_weekly):
+    vehicle_bonus = {}
+    weekly_reshuffles = check_reshuffle(driver, start_week, end_week)
+    for shift in weekly_reshuffles:
+        shift_bolt_kasa = calculate_bolt_kasa(driver, shift.swap_time, shift.end_time,
+                                              vehicle=shift.swap_vehicle)[0]
+        reshuffle_bonus = shift_bolt_kasa / (
+                bolt_weekly['kasa'] - bolt_weekly['compensations'] - bolt_weekly['bonuses']) * \
+                          bolt_weekly['bonuses']
+        if not vehicle_bonus.get(shift.swap_vehicle):
+            vehicle_bonus[shift.swap_vehicle] = reshuffle_bonus
+        else:
+            vehicle_bonus[shift.swap_vehicle] += reshuffle_bonus
+    for car, bonus in vehicle_bonus.items():
+        amount = bonus * driver.schema.rate
+        vehicle_amount = bonus * (1 - driver.schema.rate)
+        PartnerEarnings.objects.get_or_create(report_from=start_week,
+                                              report_to=end_week,
+                                              vehicle=car,
+                                              partner=driver.partner,
+                                              defaults={
+                                                  "status": PaymentsStatus.COMPLETED,
+                                                  "earning": vehicle_amount})
+        bolt_category = Category.objects.get_or_create(title="Бонуси Bolt")
+        Bonus.objects.create(driver=driver, vehicle=car, amount=amount, category=bolt_category)
 
 
 def create_driver_payments(start, end, driver, schema, bonuses=None, driver_report=None, delete=None):

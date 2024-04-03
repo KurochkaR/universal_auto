@@ -16,7 +16,7 @@ from auto_bot.handlers.driver_manager.handlers import add_job_application_to_fle
 from auto_bot.handlers.comment.handlers import comment, save_comment
 from auto_bot.handlers.service_manager.handlers import numberplate_car
 from auto_bot.handlers.driver.handlers import sending_report, get_debt_photo, save_debt_report, \
-    take_a_day_off_or_sick_leave, numberplate, status_car, choose_day_off_or_sick
+    take_a_day_off_or_sick_leave, numberplate, status_car, choose_day_off_or_sick, upload_bolt_report_photo
 from auto_bot.handlers.owner.handlers import driver_total_weekly_rating, drivers_rating, payments, get_card, \
     correct_transfer, wrong_transfer, get_my_commission, get_sum_for_portmone, commission
 from auto_bot.handlers.status.handlers import correct_or_not_auto, get_imei, get_vehicle_of_driver
@@ -106,6 +106,7 @@ def setup_dispatcher(dp):
     # Ordering taxi
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("test_celery", celery_test))
+    dp.add_handler(CallbackQueryHandler(upload_bolt_report_photo, pattern="photo_bolt_report"))
     dp.add_handler(CallbackQueryHandler(more_function, pattern="Other_user|Other_manager|More_driver|Other_owner"))
     # incomplete auth
     dp.add_handler(MessageHandler(Filters.contact, update_phone_number))

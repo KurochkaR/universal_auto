@@ -6,7 +6,20 @@ from telegram.ext import ConversationHandler
 from app.models import Driver, Vehicle, ReportDriveDebt, Event
 from auto_bot.handlers.driver.keyboards import service_auto_buttons, inline_debt_keyboard, inline_dates_kb
 from auto_bot.handlers.driver.static_text import *
+from auto_bot.handlers.driver_job.utils import save_storage_photo
 from auto_bot.handlers.main.keyboards import markup_keyboard_onetime, back_to_main_menu
+
+
+def upload_bolt_report_photo(update, context):
+    if update.message.photo:
+        image = update.message.photo[-1].get_file()
+        filename = f'bolt/reports/{image["file_unique_id"]}.jpg'
+        save_storage_photo(image, filename)
+        update.message.reply_text("Дякую дані збережено для розрахунку виплати")
+        # context.bot.send_photo(update.effective_chat.id,
+        #                        'https://www.autoconsulting.com.ua/pictures/_upload/1582561870fbTo_h.jpg')
+    else:
+        update.message.reply_text("Будь ласка, надішліть знімок екрану з поточним звітом Bolt")
 
 
 def status_car(update, context):

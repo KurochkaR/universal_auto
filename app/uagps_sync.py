@@ -196,7 +196,7 @@ class UaGpsSynchronizer(Fleet):
         road_dict = {}
         if not schema_drivers:
             schema_drivers = DriverReshuffle.objects.filter(
-                partner=self.partner, swap_time__date=timezone.localtime(),
+                partner=self.partner, swap_time__range=(start, end),
                 driver_start__isnull=False).values_list(
                 'driver_start', flat=True)
         drivers = Driver.objects.filter(pk__in=schema_drivers)
