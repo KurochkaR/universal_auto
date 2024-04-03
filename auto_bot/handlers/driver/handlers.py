@@ -25,7 +25,7 @@ def upload_bolt_report_photo(update, context):
     if update.message.photo:
         redis_instance().hdel(chat_id, 'photo_state')
         image = update.message.photo[-1].get_file()
-        filename = f'reports/{image["file_unique_id"]}.jpg'
+        filename = f'bolt/reports/{image["file_unique_id"]}.jpg'
         save_storage_photo(image, filename)
         add_screen_to_payment.apply_async(args=[filename, driver.pk], queue=f'beat_tasks_{driver.partner.pk}')
         update.message.reply_text("Дякую дані збережено для розрахунку виплати")
