@@ -297,7 +297,7 @@ class UklonRequest(Fleet, Synchronizer):
         driver_id = driver.get_driver_external_id(self)
         if driver_id:
             param = {'dateFrom': int(start.timestamp()),
-                     'dateTo': int(end.timestamp()) + 60,
+                     'dateTo': int(end.timestamp()),
                      'limit': '50', 'offset': '0',
                      'driverId': driver_id
                      }

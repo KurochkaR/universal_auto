@@ -1,5 +1,5 @@
 import json
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 from decimal import Decimal
 
 from celery.result import AsyncResult
@@ -497,7 +497,7 @@ class PostRequestHandler:
             if status == PaymentsStatus.INCORRECT:
                 json_data = JsonResponse({'error': "Вибачте, сума замовлень не співпадає з наданою сумою"}, status=400)
             else:
-                payment_24hours_create(payment.report_from, payment.report_to, fleet, payment.driver, partner_pk)
+                payment_24hours_create(start - timedelta(minutes=1), payment.report_to, fleet, payment.driver, partner_pk)
                 summary_report_create(payment.report_from, payment.report_to, payment.driver, payment.partner)
                 payment_data = create_driver_payments(start, timezone.localtime(payment.report_to), payment.driver,
                                                       payment.driver.schema)[0]

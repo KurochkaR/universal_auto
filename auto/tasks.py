@@ -198,7 +198,6 @@ def add_distance_for_order(self, partner_pk, day=None, driver=None):
 def check_card_cash_value(self, partner_pk):
     try:
         today = timezone.localtime()
-        yesterday = timezone.make_aware(datetime.combine(today, time.min)) - timedelta(days=1)
         start_week = timezone.make_aware(datetime.combine(today, time.min)) - timedelta(days=today.weekday())
         for driver in Driver.objects.get_active(partner=partner_pk, schema__isnull=False, cash_control=True):
             if driver.schema.is_weekly():
@@ -207,8 +206,7 @@ def check_card_cash_value(self, partner_pk):
                 start_time = get_time_for_task(driver.schema_id)[2]
                 today_start = timezone.make_aware(datetime.combine(timezone.localtime(), driver.schema.shift_time))
                 start = today_start if timezone.localtime() > today_start else start_time
-            rent = calculate_rent(start_week, today, driver) if driver.schema.is_weekly() else (
-                calculate_rent(yesterday, today, driver))
+            rent = calculate_rent(start_week, today, driver) if driver.schema.is_weekly() else 0
             penalties = driver.get_penalties()
             rent_payment = rent * driver.schema.rent_price
             kasa, card = get_today_statistic(start, today, driver)[:2]
@@ -248,8 +246,6 @@ def check_card_cash_value(self, partner_pk):
         logger.error(e)
         retry_delay = retry_logic(e, self.request.retries + 1)
         raise self.retry(exc=e, countdown=retry_delay)
-
-
 
 
 @app.task(bind=True, retry_backoff=30, max_retries=4)
@@ -562,7 +558,12 @@ def get_rent_information(self, schemas=None, day=None, driver=None, payment=None
             end = driver_payment.report_to
         else:
             schema_obj = Schema.objects.filter(pk__in=schemas).first()
-            end, start = get_time_for_task(schema_obj.pk, day)[1:3]
+            if schema_obj.is_weekly():
+                date = datetime.strptime(day, "%Y-%m-%d") if day else timezone.localtime()
+                start = timezone.make_aware(datetime.combine(date - timedelta(days=1), time.min))
+                end = timezone.make_aware(datetime.combine(start, time.max.replace(microsecond=0)))
+            else:
+                end, start = get_time_for_task(schema_obj.pk, day)[1:3]
             drivers = Driver.objects.get_active(schema__in=schemas)
         gps = UaGpsSynchronizer.objects.get(partner=drivers.first().partner, deleted_at=None)
         gps.save_daily_rent(start, end, drivers, payment=payment)
@@ -691,7 +692,8 @@ def send_driver_efficiency(self, partner_pk):
     for manager in managers:
         result, start, end = get_driver_efficiency_report(manager_id=manager)
         if result:
-            date_msg = f"Статистика з {start.strftime('%d.%m')} по {end.strftime('%d.%m')}\n"
+            print(start, end)
+            date_msg = f"Статистика з {start.strftime('%d.%m %H:%M')} по {end.strftime('%d.%m %H:%M')}\n"
             message = date_msg
             for k, v in result.items():
                 driver_msg = f"{k}\n" + "".join(v)
@@ -1104,7 +1106,7 @@ def save_report_to_ninja_payment(start, end, partner_pk, schema, fleet_name='Nin
 
 @app.task(bind=True)
 def calculate_driver_reports(self, schemas, day=None):
-    today = datetime.combine(timezone.localtime(), time.max)
+    today = timezone.make_aware(datetime.combine(timezone.localtime(), time.max))
     end_week = timezone.make_aware(datetime.combine(today - timedelta(days=today.weekday() + 1),
                                                     time.max.replace(microsecond=0)))
     start_week = timezone.make_aware(datetime.combine(end_week - timedelta(days=6), time.min))
@@ -1126,7 +1128,6 @@ def calculate_driver_reports(self, schemas, day=None):
                 compensations=Coalesce(Sum('compensations'), 0, output_field=DecimalField()),
             )
             bonus = bolt_weekly['bonuses'] if driver.schema.is_weekly() and not today.weekday() else None
-
             data = create_driver_payments(start, end, driver, driver.schema, bonuses=bonus)[0]
             if all([not driver.schema.is_weekly(), not today.weekday(), bolt_weekly['bonuses']]):
                 vehicle_bonus = {}
@@ -1153,7 +1154,7 @@ def calculate_driver_reports(self, schemas, day=None):
                                                               "earning": vehicle_amount})
                     bolt_category = Category.objects.get(title="Бонуси Bolt")
                     Bonus.objects.create(driver=driver, vehicle=car, amount=amount, category=bolt_category)
-            if driver.driver_status == Driver.WITH_CLIENT:
+            if driver.driver_status == Driver.WITH_CLIENT and not driver.schema.is_weekly():
                 data['status'] = PaymentsStatus.INCORRECT
             payment, created = DriverPayments.objects.get_or_create(report_to__date=end,
                                                                     driver=driver,
@@ -1401,6 +1402,7 @@ def update_schedule(self):
                     defaults={
                         'interval': interval_schedule,
                         'start_time': next_execution_datetime,
+                        'queue': f"beat_tasks_{partner.pk}",
                         'args': [partner.pk]
                     }
                 )
