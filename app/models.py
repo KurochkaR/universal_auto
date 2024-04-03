@@ -471,6 +471,7 @@ class DriverPayments(Earnings):
     rent_price = models.IntegerField(default=6, verbose_name='Ціна оренди')
     rent = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Оренда авто')
     rate = models.IntegerField(default=0, verbose_name='Відсоток водія')
+    bolt_screen = models.ImageField(blank=True, null=True, upload_to='bolt', verbose_name="Фото звіту Bolt")
 
     driver = models.ForeignKey(Driver, on_delete=models.CASCADE, verbose_name="Водій")
 
