@@ -421,6 +421,10 @@ i.fas.fa-angle-down {
 #datePickerPayments {
 	display: none;
 	margin-top: 20px;
+	align-content: center;
+	align-items: center;
+	flex-direction: row;
+	justify-content: flex-start;
 }
 
 #start_date, #end_date,
