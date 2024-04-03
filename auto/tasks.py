@@ -1151,8 +1151,10 @@ def calculate_driver_reports(self, schemas, day=None):
                 payment.earning = Decimal(payment.earning) + payment.get_bonuses() - payment.get_penalties()
                 payment.save(update_fields=['earning'])
     for driver in driver_list:
+        keyboard_markup = inline_bolt_report_keyboard()
         bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"),
-                         text=f"Не вдалося отримати дані Bolt, {driver}", reply_markup=inline_bolt_report_keyboard())
+                         text=f"Не вдалося отримати дані Bolt, {driver}",
+                         reply_markup=keyboard_markup)
 
 
 @app.task(bind=True)
