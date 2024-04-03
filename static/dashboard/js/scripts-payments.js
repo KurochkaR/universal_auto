@@ -1,11 +1,7 @@
 function driverPayment(period = null, start = null, end = null, paymentStatus = null) {
-	if (period === null) {
-		var url = `/api/driver_payments/`;
-	} else if (period === 'custom') {
-		var url = `/api/driver_payments/${start}&${end}/`;
-	} else {
-		var url = `/api/driver_payments/${period}/`;
-	}
+	const url = period === null ? `/api/driver_payments/${paymentStatus}/` :
+		period === 'custom' ? `/api/driver_payments/${start}&${end}/` :
+			`/api/driver_payments/${period}/`;
 
 	$.ajax({
 		url: url,
@@ -24,40 +20,47 @@ function driverPayment(period = null, start = null, end = null, paymentStatus = 
 			var payBtn = '<button class="pay-btn">Отримано</button>';
 			var notPayBtn = '<button class="not-pay-btn">Не отримано</button>';
 			var statusTh = $('th[data-sort="status"]');
+
 			if (paymentStatus === 'closed') {
 				$('th[data-sort="button"]').hide();
 				statusTh.text("Статус виплати");
 			}
+
 			if (paymentStatus === 'not_closed') {
 				statusTh.text("Дії");
 				$('th[data-sort="button"]').hide();
+				$('#datePickerPayments').hide();
+			} else {
+				$('#datePickerPayments').hide();
 			}
-			for (var i = 0; i < response.length; i++) {
-				if ((paymentStatus === 'on_inspection' && (response[i].status === 'Перевіряється' || response[i].status === 'Потребує поправок')) ||
-					(paymentStatus === 'not_closed' && response[i].status === 'Очікується') ||
-					(paymentStatus === 'closed' && (response[i].status === 'Виплачений' || response[i].status === 'Не сплачений'))) {
 
+			for (const payment of response) {
+				const {
+					id: dataId, status, payment_type, report_from, report_to, bonuses_list,
+					penalties_list, full_name, kasa, cash, rent, rate, earning, bonuses, penalties
+				} = payment;
+				if ((paymentStatus === 'on_inspection' && (status === 'Перевіряється' || status === 'Потребує поправок')) ||
+					(paymentStatus === 'not_closed' && status === 'Очікується') ||
+					(paymentStatus === 'closed' && (status === 'Виплачений' || status === 'Не сплачений'))) {
 
-					var dataId = response[i].id;
-					var responseDate = moment(response[i].report_to, "DD.MM.YYYY HH:mm");
+					var responseDate = moment(report_to, "DD.MM.YYYY HH:mm");
 					var rowBonus = '<tr class="tr-driver-payments" data-id="' + dataId + '">' +
 						'<td colspan="11" class="bonus-table"><table class="bonus-penalty-table"><tr class="title-bonus-penalty">' +
 						'<th class="edit-bonus-penalty">Тип</th>' +
 						'<th class="edit-bonus-penalty">Сума</th>' +
 						'<th class="edit-bonus-penalty">Категорія</th>' +
 						'<th class="edit-bonus-penalty">Автомобіль</th>' +
-						(response[i].status === 'Перевіряється' ? '<th class="edit-bonus-penalty">Дії</th>' : '') + '</tr>';
+						(status === 'Перевіряється' ? '<th class="edit-bonus-penalty">Дії</th>' : '') + '</tr>';
 
-					function generateRow(items, type, editClass, deleteClass) {
+					function generateRow(items, type) {
 						var rowBon = '';
-						for (var j = 0; j < items.length; j++) {
-							var item = items[j];
+						for (const item of items) {
 							rowBon += '<tr class="description-bonus-penalty">';
 							rowBon += '<td class="' + type + '-type" data-bonus-penalty-id="' + item.id + '">' + (type === 'bonus' ? 'Бонус' : 'Штраф') + '</td>';
 							rowBon += '<td class="' + type + '-amount">' + item.amount + '</td>';
 							rowBon += '<td class="' + type + '-category">' + item.category + '</td>';
 							rowBon += '<td class="' + type + '-car">' + item.vehicle + '</td>';
-							if (response[i].status === 'Перевіряється' && item.category !== 'Бонуси Bolt') {
+							if (status === 'Перевіряється' && item.category !== 'Бонуси Bolt') {
 								rowBon += '<td><button class="edit-' + type + '-btn" data-bonus-penalty-id="' + item.id + '" data-type="edit"><i class="fa fa-pencil-alt"></i></button> <button class="delete-bonus-penalty-btn" data-bonus-penalty-id="' + item.id + '" data-type="delete"><i class="fa fa-times"></i></button></td>';
 							}
 							rowBon += '</tr>';
@@ -65,54 +68,54 @@ function driverPayment(period = null, start = null, end = null, paymentStatus = 
 						return rowBon;
 					}
 
-					rowBonus += generateRow(response[i].bonuses_list, 'bonus', 'edit-bonus-btn', 'delete-bonus-penalty-btn');
-					rowBonus += generateRow(response[i].penalties_list, 'penalty', 'edit-penalty-btn', 'delete-bonus-penalty-btn');
+					rowBonus += generateRow(bonuses_list, 'bonus', 'edit-bonus-btn', 'delete-bonus-penalty-btn');
+					rowBonus += generateRow(penalties_list, 'penalty', 'edit-penalty-btn', 'delete-bonus-penalty-btn');
 					rowBonus += '</table></td></tr>';
 					var row = $('<tr class="tr-driver-payments">');
-					row.attr('data-id', response[i].id);
-					row.append('<td>' + response[i].report_from + ' <br> ' + response[i].report_to + '</td>');
-					row.append('<td class="driver-name cell-with-triangle" title="Натиснути для огляду бонусів та штрафів">' + response[i].full_name + ' <i class="fa fa-caret-down"></i></td>');
-					row.append('<td>' + response[i].kasa + '</td>');
-					row.append('<td>' + response[i].cash + '</td>');
-					row.append('<td>' + response[i].rent + '</td>');
-					if (response[i].status === 'Перевіряється') {
+					row.attr('data-id', dataId);
+					row.append('<td>' + report_from + ' <br> ' + report_to + '</td>');
+					row.append('<td class="driver-name cell-with-triangle" title="Натиснути для огляду бонусів та штрафів">' + full_name + ' <i class="fa fa-caret-down"></i></td>');
+					row.append('<td>' + kasa + '</td>');
+					row.append('<td>' + cash + '</td>');
+					row.append('<td>' + rent + '</td>');
+					if (status === 'Перевіряється') {
 
 
-						row.append('<td>' + '<div style="display: flex;justify-content: space-evenly; align-items: center;">' + response[i].bonuses + addButtonBonus + '</div>' + '</td>');
-						row.append('<td>' + '<div style="display: flex;justify-content: space-evenly; align-items: center;">' + response[i].penalties + addButtonPenalty + '</div>' + '</td>');
-						row.append('<td class="driver-rate" title="Натиснути для зміни відсотка"><div style="display: flex; justify-content: space-evenly; align-items: center;"><span class="rate-payment">' + response[i].rate + '</span><input type="text" class="driver-rate-input" placeholder="100" style="display: none;"><i class="fa fa-check check-icon"></i><i class="fa fa-pencil-alt pencil-icon"></i></div></td>');
+						row.append('<td>' + '<div style="display: flex;justify-content: space-evenly; align-items: center;">' + bonuses + addButtonBonus + '</div>' + '</td>');
+						row.append('<td>' + '<div style="display: flex;justify-content: space-evenly; align-items: center;">' + penalties + addButtonPenalty + '</div>' + '</td>');
+						row.append('<td class="driver-rate" title="Натиснути для зміни відсотка"><div style="display: flex; justify-content: space-evenly; align-items: center;"><span class="rate-payment">' + rate + '</span><input type="text" class="driver-rate-input" placeholder="100" style="display: none;"><i class="fa fa-check check-icon"></i><i class="fa fa-pencil-alt pencil-icon"></i></div></td>');
 					} else {
-						row.append('<td>' + '<div class="no-pencil-rate" style="display: flex;justify-content: space-evenly; align-items: center;">' + response[i].bonuses + '</div>' + '</td>');
-						row.append('<td>' + '<div class="no-pencil-rate" style="display: flex;justify-content: space-evenly; align-items: center;">' + response[i].penalties + '</div>' + '</td>');
-						row.append('<td><div style="display: flex;justify-content: space-evenly; align-items: center;"><span class="rate-payment no-pencil-rate" >' + response[i].rate + ' </span></div></td>')
+						row.append('<td>' + '<div class="no-pencil-rate" style="display: flex;justify-content: space-evenly; align-items: center;">' + bonuses + '</div>' + '</td>');
+						row.append('<td>' + '<div class="no-pencil-rate" style="display: flex;justify-content: space-evenly; align-items: center;">' + penalties + '</div>' + '</td>');
+						row.append('<td><div style="display: flex;justify-content: space-evenly; align-items: center;"><span class="rate-payment no-pencil-rate" >' + rate + ' </span></div></td>')
 
 					}
-					row.append('<td class="payment-earning">' + response[i].earning + '</td>');
+					row.append('<td class="payment-earning">' + earning + '</td>');
 					var showAllButton = $('.send-all-button');
 					showAllButton.hide(0);
-					if (response[i].status === 'Очікується') {
+					if (status === 'Очікується') {
 						row.append('<td><div class="box-btn-upd">' + arrowBtn + payBtn + notPayBtn + '</div></td>');
-						if (response[i].earning > 0) {
+						if (earning > 0) {
 							row.find('.not-pay-btn').remove();
 							row.find('.pay-btn').text('Сплатити');
 
 						}
 					}
-					if (response[i].status === 'Перевіряється') {
+					if (status === 'Перевіряється') {
 						showAllButton.show(0);
 						statusTh.text("Перерахування виплат");
 						$('th[data-sort="button"]').show();
-						if (response[i].payment_type === "DAY" && moment().startOf('day').isSame(responseDate.startOf('day'))) {
+						if (payment_type === "DAY" && moment().startOf('day').isSame(responseDate.startOf('day'))) {
 							row.append('<td>' + calculateBtn + '</td>')
 						} else {
 							row.append('<td></td>')
 						}
 						row.append('<td>' + confirmButton + '</td>');
 					}
-					if (response[i].status === 'Потребує поправок') {
+					if (status === 'Потребує поправок') {
 						row.addClass('incorrect');
 						showAllButton.show(0);
-						if (response[i].payment_type === "DAY" && moment().startOf('day').isSame(responseDate.startOf('day'))) {
+						if (payment_type === "DAY" && moment().startOf('day').isSame(responseDate.startOf('day'))) {
 							row.append('<td>' + calculateBtn + '</td>');
 							row.append('<td>' + incorrectBtn + '</td>');
 						} else {
@@ -121,8 +124,8 @@ function driverPayment(period = null, start = null, end = null, paymentStatus = 
 						}
 					}
 
-					if (response[i].status === 'Виплачений' || response[i].status === 'Не сплачений') {
-						row.append('<td>' + response[i].status + '</td>');
+					if (status === 'Виплачений' || status === 'Не сплачений') {
+						row.append('<td>' + status + '</td>');
 					}
 
 					tableBody.append(row);
@@ -134,6 +137,7 @@ function driverPayment(period = null, start = null, end = null, paymentStatus = 
 				$targetElement.find('.bonus-table').show();
 			}
 		}
+
 	});
 	var clickedDate = sessionStorage.getItem('clickedDate');
 	var clickedId = sessionStorage.getItem('clickedId');
@@ -215,9 +219,7 @@ $(document).ready(function () {
 		});
 
 		populateButtons(filteredDrivers);
-	});
 
-	$("#search-driver").on("keypress", function (e) {
 		if (e.which === 13) {
 			e.preventDefault();
 			$(this).blur();
@@ -226,64 +228,90 @@ $(document).ready(function () {
 
 	$(this).on('click', '.driver-button, .calculate-payment-btn', function (e) {
 		e.preventDefault();
-		driverId = $(this).data('driver-id');
-		paymentId = $(this).closest('tr').data('id');
-		$('#payment-driver-list').hide();
-		$('.create-payment').css('background', '#a1e8b9')
-		$('.modal-overlay').hide();
-		$("#loadingModal").show();
-		$("#loadingMessage").text(gettext("Створюється нова виплата"));
-		$("#loader").show();
-		$.ajax({
-			url: ajaxPostUrl,
-			type: 'POST',
-			data: {
-				driver_id: driverId,
-				payment_id: paymentId,
-				action: 'create-new-payment',
-				csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
-			},
-			success: function (response) {
-				checkTaskStatus(response.task_id)
-					.then(function (response) {
-						if (response.data === "SUCCESS") {
-							$("#loadingModal").hide();
-							if (response.result.status === 'incorrect' && response.result.order === false) {
-								$(".bolt-confirm-button").data("payment-id", response.result.id)
-								$("#bolt-confirmation-form").show();
-								$('.modal-overlay').show();
-							} else if (response.result.status === 'error') {
-								$('#loadingModal').show();
-								$('#loadingMessage').text("Немає звітів по водію за цей період")
-								$("#loader").hide();
-								setTimeout(function () {
-									$('#loadingModal').hide();
-								}, 3000);
+		const driverId = $(this).data('driver-id');
+		const paymentId = $(this).closest('tr').data('id');
+		const confirmationText = $(this).hasClass('calculate-payment-btn') ?
+			"Ви справді хочете розрахувати на зараз?" :
+			"Ви впевнені, що хочете створити нову виплату?";
+		const confirmationBox = `
+			<div class="confirmation-calculate-payment">
+				<div class="container">
+					<div class="confirmation-box">
+						<h2>${confirmationText}</h2>
+						<div class="btn-box">
+							<button class="confirm-yes">Так</button>
+							<button class="confirm-no">Ні</button>
+						</div>
+					</div>
+				</div>
+			</div>`;
+		$('body').append(confirmationBox);
+		$('.confirmation-calculate-payment').show();
 
-							} else {
-								driverPayment(null, null, null, paymentStatus = "on_inspection");
+		$('.confirm-yes').on('click', function () {
+			$('.confirmation-calculate-payment').remove();
+			$('#payment-driver-list').hide();
+			$('.create-payment').css('background', '#a1e8b9')
+			$('.modal-overlay').hide();
+			$("#loadingModal").show();
+			$("#loadingMessage").text(gettext("Створюється нова виплата"));
+			$("#loader").show();
+			$.ajax({
+				url: ajaxPostUrl,
+				type: 'POST',
+				data: {
+					driver_id: driverId,
+					payment_id: paymentId,
+					action: 'create-new-payment',
+					csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
+				},
+				success: function (response) {
+					checkTaskStatus(response.task_id)
+						.then(function (response) {
+							if (response.data === "SUCCESS") {
+								$("#loadingModal").hide();
+								if (response.result.status === 'incorrect' && response.result.order === false) {
+									$(".bolt-confirm-button").data("payment-id", response.result.id)
+									$("#bolt-confirmation-form").show();
+									$('.modal-overlay').show();
+								} else if (response.result.status === 'error') {
+									$('#loadingModal').show();
+									$('#loadingMessage').text("Немає звітів по водію за цей період")
+									$("#loader").hide();
+									setTimeout(function () {
+										$('#loadingModal').hide();
+									}, 3000);
+
+								} else {
+									driverPayment(null, null, null, paymentStatus = "on_inspection");
+								}
 							}
-						}
-					})
-					.catch(function (error) {
-						console.error('Error:', error)
-					})
-			},
-			error: function (xhr, textStatus, errorThrown) {
-				if (xhr.status === 400) {
-					let error = xhr.responseJSON.error;
-					$('#loadingModal').show();
-					$('#loadingMessage').text(xhr.responseJSON.error)
-					$("#loader").hide();
-					setTimeout(function () {
-						$('#loadingModal').hide();
-					}, 3000);
-				} else {
-					console.error('Помилка запиту: ' + textStatus);
-				}
-			},
+						})
+						.catch(function (error) {
+							console.error('Error:', error)
+						})
+				},
+				error: function (xhr, textStatus, errorThrown) {
+					if (xhr.status === 400) {
+						let error = xhr.responseJSON.error;
+						$('#loadingModal').show();
+						$('#loadingMessage').text(xhr.responseJSON.error)
+						$("#loader").hide();
+						setTimeout(function () {
+							$('#loadingModal').hide();
+						}, 3000);
+					} else {
+						console.error('Помилка запиту: ' + textStatus);
+					}
+				},
+			});
 		});
-	})
+
+		$('.confirm-no').on('click', function () {
+			$('.confirmation-calculate-payment').remove();
+		});
+	});
+
 
 	$(this).on('click', '.incorrect-payment-btn', function () {
 		paymentId = $(this).closest('tr').data('id')
@@ -416,7 +444,7 @@ $(document).ready(function () {
 	}
 	$('input[name="payment-status"]').change(function () {
 		if ($(this).val() === 'closed') {
-			driverPayment(period = 'yesterday', null, null, paymentStatus = $(this).val());
+			driverPayment(period = 'today', null, null, paymentStatus = $(this).val());
 			$('.filter-driver-payments').css('display', 'flex');
 		} else {
 			driverPayment(null, null, null, paymentStatus = $(this).val());
@@ -572,33 +600,44 @@ $(document).ready(function () {
 		updStatusDriverPayments(id, status = 'checking', paymentStatus = "not_closed");
 	});
 
-	driverTableTbody.on('click', '.pay-btn, .not-pay-btn', function () {
-		var id = $(this).closest('tr').data('id');
-		var amountValue = $(this).closest('tr').find('.payment-earning').text()
+	driverTableTbody.on('click', '.pay-btn, .not-pay-btn', function (e) {
+		e.stopPropagation();
+		var $closestTr = $(this).closest('tr');
+		var id = $closestTr.data('id');
+		var $confirmationBox = $(".confirmation-box");
+		var $confirmationBtnOn = $("#confirmation-btn-on");
+		var $confirmationBtnOff = $("#confirmation-btn-off");
+		var $confirmationInput = $(".confirmation-box input");
+		var amountValue = $closestTr.find('.payment-earning').text();
 		var maxValue = Math.abs(parseFloat(amountValue));
+		var status, confirmationTextOn, confirmationTextOff;
+
 		if ($(this).hasClass('pay-btn')) {
-			var status = 'completed';
-			$(".confirmation-box h2").text("Ви впевнені, що хочете закрити платіж ?");
-			$("#confirmation-btn-on").text("Так");
-			$("#confirmation-btn-off").text("Ні");
-			$(".confirmation-box input").hide();
+			status = 'completed';
+			confirmationTextOn = "Так";
+			confirmationTextOff = "Ні";
+			$confirmationBox.find("h2").text("Ви впевнені, що хочете закрити платіж ?");
+			$confirmationInput.hide();
 		} else {
-		    var status = 'failed';
-		    $(".confirmation-box h2").text("Вкажіть суму яку повернув водій?");
-		    $(".confirmation-box input").data('maxVal', maxValue)
-		    $(".confirmation-box input").val(maxValue);
-		    $(".confirmation-box input").show();
-		    $("#confirmation-btn-off").text("Підтвердити")
-		    $("#confirmation-btn-off").data('id', id).data('status', status);
-		    $("#confirmation-btn-on").text("Водій не розрахувався")
-		    $(".confirmation-btn-off").addClass('close-payment-with-debt').removeClass('confirmation-btn-off');
+			status = 'failed';
+			confirmationTextOn = "Водій не розрахувався";
+			confirmationTextOff = "Підтвердити";
+			$confirmationBox.find("h2").text("Вкажіть суму яку повернув водій?");
+			$confirmationInput.data('maxVal', maxValue).val(maxValue).show();
+			$confirmationBtnOff.data('id', id).data('status', status).addClass('close-payment-with-debt').removeClass('confirmation-btn-off');
 		}
 
-        $("#confirmation-btn-on").data('id', id).data('status', status);
-		$(".confirmation-btn-on").addClass('close-payment').removeClass('confirmation-btn-on');
+		$confirmationBtnOn.text(confirmationTextOn).data('id', id).data('status', status).addClass('close-payment').removeClass('confirmation-btn-on');
+		$confirmationBtnOff.text(confirmationTextOff);
 		$(".confirmation-update-database").show();
-
 	});
+
+	$(document).on('click', function (event) {
+		if (!$(event.target).closest('.confirmation-update-database').length) {
+			$(".confirmation-update-database").hide();
+		}
+	});
+
 
 	$(this).on("click", ".close-payment", function () {
 		var id = $(this).data('id');
@@ -609,14 +648,14 @@ $(document).ready(function () {
 		$(".close-payment-with-debt").addClass('confirmation-btn-off').removeClass('close-payment-with-debt');
 	});
 
-    $(this).on("input", "#amount", function() {
-        validNumberInput($(this).data("maxVal"), $(this))
-    });
+	$(this).on("input", "#amount", function () {
+		validNumberInput($(this).data("maxVal"), $(this))
+	});
 
 	$(this).on("click", ".close-payment-with-debt", function () {
 		var id = $(this).data('id');
 		var status = $(this).data('status');
-        var amount = $("#amount").val()
+		var amount = $("#amount").val()
 		$.ajax({
 			url: ajaxPostUrl,
 			type: 'POST',
@@ -628,9 +667,9 @@ $(document).ready(function () {
 			},
 			success: function (response) {
 				updStatusDriverPayments(id, status, paymentStatus = "not_closed");
-		        $(".confirmation-update-database").hide();
-		        $(".close-payment-with-debt").addClass('confirmation-btn-off').removeClass('close-payment-with-debt');
-		        $(".close-payment").addClass('confirmation-btn-on').removeClass('close-payment');
+				$(".confirmation-update-database").hide();
+				$(".close-payment-with-debt").addClass('confirmation-btn-off').removeClass('close-payment-with-debt');
+				$(".close-payment").addClass('confirmation-btn-on').removeClass('close-payment');
 			},
 			error: function (error) {
 				console.error("Error:", error);

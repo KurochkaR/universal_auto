@@ -2109,7 +2109,8 @@ span#vehicle-bonus-error {
 
 .confirmation-update-database,
 .confirmation-cash-control,
-.confirmation-debt-repayment {
+.confirmation-debt-repayment,
+.confirmation-calculate-payment {
 	display: none;
 	background-color: var(--color-primary);
 	padding: 20px;
@@ -2121,7 +2122,7 @@ span#vehicle-bonus-error {
 	border-radius: 62px;
 	width: 50%;
 	height: auto;
-	z-index: 10
+	z-index: 15;
 }
 
 .confirmation-box {
@@ -2273,19 +2274,25 @@ input.driver-rate-input {
 	position: relative;
 	cursor: pointer;
 	color: #38423B;
+	border-radius: 25px;
+	box-shadow: 0 4px 4px 0 rgba(0, 0, 0, 0.25);
+	padding: 5px 15px;
 }
 
-.radio-btn-box input[type="radio"]#on_inspection:checked + label::before,
-.radio-btn-box input[type="radio"]#not_closed:checked + label::before,
-.radio-btn-box input[type="radio"]#closed:checked + label::before {
-	content: "";
-	position: absolute;
-	bottom: 0;
-	left: 0;
-	width: 100%;
-	height: 4px;
-	background-color: var(--color-primary);
+input[type="radio"]#on_inspection:checked + label,
+input[type="radio"]#not_closed:checked + label,
+input[type="radio"]#closed:checked + label {
+	background-color: var(--color-secondary);
+	color: #fff;
 }
+
+input[type="radio"]#on_inspection + label,
+input[type="radio"]#not_closed + label,
+input[type="radio"]#closed + label {
+	background-color: #FFF;
+	color: #38423B;
+}
+
 
 .payments-content {
 	display: flex;
@@ -2337,7 +2344,6 @@ input.driver-rate-input {
 	width: 106px;
 	height: 41px;
 	background: var(--color-primary);
-	color: #141E17;
 	font-weight: 700;
 	font-size: 12px;
 	text-align: center;
@@ -2465,31 +2471,40 @@ input.driver-rate-input {
 }
 
 .driver-radio-buttons label {
-	display: inline-block;
-	margin-right: 15px;
-	position: relative;
-	cursor: pointer;
 	font-style: normal;
 	line-height: normal;
 	font-family: var(--font-primary);
 	font-weight: 400;
 	font-size: 20px;
-	color: #141e17;
+	display: inline-block;
+	margin-right: 10px;
+	position: relative;
+	cursor: pointer;
+	color: #38423B;
+	border-radius: 25px;
+	box-shadow: 0 4px 4px 0 rgba(0, 0, 0, 0.25);
+	padding: 5px 15px;
+	background: var(--color-primary);
 }
 
-.driver-radio-buttons input[type="radio"]#driver-list-radio:checked + label::before,
-.driver-radio-buttons input[type="radio"]#driver-efficiency-radio:checked + label::before,
-.driver-radio-buttons input[type="radio"]#driver-payments-radio:checked + label::before,
-.driver-radio-buttons input[type="radio"]#driver-bonus-radio:checked + label::before,
-.driver-radio-buttons input[type="radio"]#driver-penalty-radio:checked + label::before {
-	content: "";
-	position: absolute;
-	bottom: -5px;
-	left: 0;
-	width: 100%;
-	height: 3px;
+.driver-radio-buttons input[type="radio"]#driver-list-radio:checked + label,
+.driver-radio-buttons input[type="radio"]#driver-efficiency-radio:checked + label,
+.driver-radio-buttons input[type="radio"]#driver-payments-radio:checked + label,
+.driver-radio-buttons input[type="radio"]#driver-bonus-radio:checked + label,
+.driver-radio-buttons input[type="radio"]#driver-penalty-radio:checked + label {
 	background-color: var(--color-secondary);
+	color: #fff;
 }
+
+.driver-radio-buttons input[type="radio"]#driver-list-radio + label,
+.driver-radio-buttons input[type="radio"]#driver-efficiency-radio + label,
+.driver-radio-buttons input[type="radio"]#driver-payments-radio + label,
+.driver-radio-buttons input[type="radio"]#driver-bonus-radio + label,
+.driver-radio-buttons input[type="radio"]#driver-penalty-radio + label {
+	background-color: var(--color-primary);
+	color: #38423B;
+}
+
 
 /* Стилі для контейнера з чекбоксами */
 
@@ -3965,6 +3980,7 @@ span.circle {
 }
 
 thead tr th {
+	min-width: 75px;
 	position: sticky;
 	top: 0;
 }

@@ -20,7 +20,7 @@ from api.serializers import SummaryReportSerializer, CarEfficiencySerializer, Ca
     DriverEfficiencyFleetRentSerializer, DriverInformationSerializer
 from app.models import SummaryReport, CarEfficiency, Vehicle, DriverEfficiency, RentInformation, DriverReshuffle, \
     PartnerEarnings, InvestorPayments, DriverPayments, PaymentsStatus, PenaltyBonus, Penalty, Bonus, \
-    DriverEfficiencyFleet, VehicleSpending, Driver, BonusCategory, CustomReport
+    DriverEfficiencyFleet, VehicleSpending, Driver, BonusCategory, CustomReport, SalaryCalculation
 from taxi_service.utils import get_start_end
 
 
@@ -36,6 +36,7 @@ class SummaryReportListView(CombinedPermissionsMixin, generics.ListAPIView):
 
     def get_queryset(self):
         start, end, format_start, format_end = get_start_end(self.kwargs['period'])
+        start_week = timezone.localtime().date() - timedelta(days=timezone.localtime().weekday())
         queryset = ManagerFilterMixin.get_queryset(CustomReport, self.request.user).select_related('driver__user_ptr')
         filtered_qs = queryset.filter(report_from__range=(start, end))
         kasa_bonus = filtered_qs.aggregate(
@@ -60,6 +61,11 @@ class SummaryReportListView(CombinedPermissionsMixin, generics.ListAPIView):
         ).values('driver_id').annotate(
             payment_amount=Sum('kasa'),
             rent_distance=Sum('rent_distance')
+        )
+        weekly_payments = filtered_qs.filter(driver__schema__salary_calculation=SalaryCalculation.WEEK,
+                                             report_from__gte=start_week).values(
+            'driver_id').annotate(
+            payment_amount=Coalesce(Sum('total_amount_without_fee'), Decimal(0)) + Coalesce(Sum('bonuses'), Decimal(0)),
         )
 
         driver_payments_list = payment_amount_subquery.filter(
@@ -104,11 +110,14 @@ class SummaryReportListView(CombinedPermissionsMixin, generics.ListAPIView):
             payment_amount=Subquery(payment_amount.filter(
                 driver_id=OuterRef('driver_id')).values('payment_amount'), output_field=DecimalField()),
             rent_distance=Subquery(payment_amount.filter(
-                driver_id=OuterRef('driver_id')).values('rent_distance'), output_field=DecimalField())
+                driver_id=OuterRef('driver_id')).values('rent_distance'), output_field=DecimalField()),
+            weekly_payments=Subquery(weekly_payments.filter(
+                driver_id=OuterRef('driver_id')).values('payment_amount'), output_field=DecimalField()),
         )
         rent_earnings = sum_rent - total_compensation_bonus
         total_rent = queryset.aggregate(total_rent=Sum('rent_amount'))['total_rent'] or 0
-        total_payment = queryset.aggregate(total_payment=Sum('payment_amount'))['total_payment'] or 0
+        total_payment = queryset.aggregate(total_payment=Coalesce(
+            Sum('payment_amount'), Decimal(0)) + Coalesce(Sum('weekly_payments'), Decimal(0)))['total_payment']
         total_distance = queryset.aggregate(total_distance=Sum('rent_distance'))['total_distance'] or 0
         queryset = queryset.exclude(total_kasa=0).order_by('full_name')
         return [
@@ -477,12 +486,20 @@ class DriverPaymentsListView(CombinedPermissionsMixin, generics.ListAPIView):
 
     def get_queryset(self):
         qs = ManagerFilterMixin.get_queryset(DriverPayments, self.request.user)
-        period = self.kwargs.get('period')
+        status = self.kwargs.get('status')
 
-        if not period:
-            queryset = qs.filter(status__in=[PaymentsStatus.CHECKING, PaymentsStatus.INCORRECT, PaymentsStatus.PENDING])
+        def get_status(item):
+            switcher = {
+                'completed': [PaymentsStatus.COMPLETED, PaymentsStatus.FAILED],
+                'on_inspection': [PaymentsStatus.CHECKING, PaymentsStatus.INCORRECT],
+                'not_closed': [PaymentsStatus.PENDING]
+            }
+            return switcher.get(item, [])
+
+        if status in ['completed', 'on_inspection', 'not_closed']:
+            queryset = qs.filter(status__in=get_status(status))
         else:
-            start, end, format_start, format_end = get_start_end(period)
+            start, end, format_start, format_end = get_start_end(status)
             queryset = qs.filter(report_to__range=(start, end),
                                  status__in=[PaymentsStatus.COMPLETED, PaymentsStatus.FAILED],
                                  )

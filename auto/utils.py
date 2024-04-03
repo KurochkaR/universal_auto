@@ -96,7 +96,7 @@ def payment_24hours_create(start, end, fleet, driver, partner_pk):
             total_distance=Coalesce(Sum('total_distance'), Decimal(0)),
             total_rides=Coalesce(Sum('total_rides'), Value(0)))
         data["partner"] = Partner.objects.get(pk=partner_pk)
-        data["report_to"] = report.last().report_to
+        data["report_to"] = report.last().report_to if report.last().report_to >= end else end
         Payments.objects.update_or_create(report_from=report.first().report_from,
                                           fleet=fleet,
                                           driver=driver,
