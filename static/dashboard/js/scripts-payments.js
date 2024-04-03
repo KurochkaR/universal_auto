@@ -60,7 +60,7 @@ function driverPayment(period = null, start = null, end = null, paymentStatus = 
 							rowBon += '<td class="' + type + '-amount">' + item.amount + '</td>';
 							rowBon += '<td class="' + type + '-category">' + item.category + '</td>';
 							rowBon += '<td class="' + type + '-car">' + item.vehicle + '</td>';
-							if (status === 'Перевіряється' && item.category !== 'Бонуси Bolt') {
+							if (status === 'Перевіряється' && item.category !== 'Бонуси Bolt' && item.category !== 'Борг по виплаті') {
 								rowBon += '<td><button class="edit-' + type + '-btn" data-bonus-penalty-id="' + item.id + '" data-type="edit"><i class="fa fa-pencil-alt"></i></button> <button class="delete-bonus-penalty-btn" data-bonus-penalty-id="' + item.id + '" data-type="delete"><i class="fa fa-times"></i></button></td>';
 							}
 							rowBon += '</tr>';
