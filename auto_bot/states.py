@@ -2,7 +2,7 @@ import re
 from telegram import ChatAction
 
 from auto_bot.handlers.comment.handlers import save_comment
-from auto_bot.handlers.driver.handlers import change_status_car
+from auto_bot.handlers.driver.handlers import change_status_car, upload_bolt_report_photo
 from auto_bot.handlers.driver_manager.handlers import get_gps_imea, get_n_vehicle, get_fleet_for_job_application, \
     get_vin_code_vehicle, get_licence_plate_vehicle, get_model_vehicle, get_name_vehicle, \
     viewing_status_driver, second_name, email, phone_number, create_user, \
@@ -17,7 +17,7 @@ from auto_bot.handlers.status.handlers import correct_choice
 from auto_bot.handlers.driver_manager.static_text import *
 from auto_bot.handlers.owner.static_text import CARD, SUM, PORTMONE_SUM, PORTMONE_COMMISSION, GENERATE_LINK_PORTMONE
 from auto_bot.handlers.service_manager.static_text import LICENCE_PLATE, PHOTO, START_OF_REPAIR, END_OF_REPAIR
-from auto_bot.handlers.driver.static_text import V_ID, NUMBERPLATE
+from auto_bot.handlers.driver.static_text import V_ID, NUMBERPLATE, BOLT_REPORT_PHOTO
 from auto_bot.handlers.order.static_text import FROM_ADDRESS, TO_THE_ADDRESS, TIME_ORDER, COMMENT, ADD_INFO
 from scripts.redis_conn import redis_instance
 
@@ -38,8 +38,7 @@ def text(update, context):
             ADD_INFO: get_additional_info,
             START_DRIVER_EFF: get_period_driver_eff,
             END_DRIVER_EFF: create_driver_eff,
-            SPENDING_CAR: save_car_spending
-
+            SPENDING_CAR: save_car_spending,
         }
         handler_method = state_handlers.get(state_data)
         return handler_method(update, context)
@@ -102,6 +101,20 @@ def text(update, context):
     #         return end_of_repair(update, context)
     #     elif context.user_data['state_ssm'] == END_OF_REPAIR:
     #         return send_report_to_db_and_driver(update, context)
+
+
+def get_photo(update, context):
+    state_data = redis_instance().hget(str(update.effective_chat.id), "photo_state")
+    if state_data:
+        state_data = int(state_data)
+        state_handlers = {
+            BOLT_REPORT_PHOTO: upload_bolt_report_photo,
+
+        }
+        handler_method = state_handlers.get(state_data)
+        return handler_method(update, context)
+    else:
+        return code(update, context)
 
 
 def code(update, context):

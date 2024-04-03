@@ -1,4 +1,4 @@
-NUMBERPLATE, REPORT, V_ID = range(50, 53)
+NUMBERPLATE, REPORT, V_ID, BOLT_REPORT_PHOTO = range(50, 54)
 
 SERVICEABLE = 'Придатна'
 BROKEN = 'Зламана'

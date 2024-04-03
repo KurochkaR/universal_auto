@@ -5,7 +5,7 @@ import re
 from telegram.ext import CommandHandler, PreCheckoutQueryHandler, MessageHandler, Filters, CallbackQueryHandler, \
     ConversationHandler, Dispatcher
 from auto_bot.main import bot
-from auto_bot.states import text
+from auto_bot.states import text, get_photo
 # handlers
 from auto_bot.handlers.driver_manager.handlers import add_job_application_to_fleet, get_licence_plate_for_gps_imei, \
     get_list_job_application, name, name_vehicle, create, add, \
@@ -16,7 +16,8 @@ from auto_bot.handlers.driver_manager.handlers import add_job_application_to_fle
 from auto_bot.handlers.comment.handlers import comment, save_comment
 from auto_bot.handlers.service_manager.handlers import numberplate_car
 from auto_bot.handlers.driver.handlers import sending_report, get_debt_photo, save_debt_report, \
-    take_a_day_off_or_sick_leave, numberplate, status_car, choose_day_off_or_sick, upload_bolt_report_photo
+    take_a_day_off_or_sick_leave, numberplate, status_car, choose_day_off_or_sick, upload_bolt_report_photo, \
+    bolt_report_photo_callback
 from auto_bot.handlers.owner.handlers import driver_total_weekly_rating, drivers_rating, payments, get_card, \
     correct_transfer, wrong_transfer, get_my_commission, get_sum_for_portmone, commission
 from auto_bot.handlers.status.handlers import correct_or_not_auto, get_imei, get_vehicle_of_driver
@@ -42,46 +43,46 @@ from auto_bot.handlers.status.static_text import CORRECT_AUTO, NOT_CORRECT_AUTO,
 from auto_bot.handlers.driver.static_text import SERVICEABLE, BROKEN
 import warnings
 
-warnings.filterwarnings("ignore", category=UserWarning, module="telegram.ext")
+# warnings.filterwarnings("ignore", category=UserWarning, module="telegram.ext")
 
 
 # Conversations
-debt_conversation = ConversationHandler(
-    entry_points=[CommandHandler('sending_report', sending_report),
-                  CommandHandler('cancel', cancel)],
-    states={
-        'WAIT_FOR_DEBT_OPTION': [CallbackQueryHandler(get_debt_photo, pattern='photo_debt')],
-        'WAIT_FOR_DEBT_PHOTO': [MessageHandler(Filters.all, save_debt_report)]
-    },
-    fallbacks=[CommandHandler('cancel', cancel)],
-)
-
-job_docs_conversation = ConversationHandler(
-    entry_points=[CallbackQueryHandler(update_name, pattern='Job_driver'),
-                  CommandHandler("restart", restart_job_application),
-                  MessageHandler(Filters.regex(r'^\/.*'), cancel)
-                  ],
-    states={
-        "JOB_USER_NAME": [MessageHandler(Filters.text, update_second_name, pass_user_data=True)],
-        "JOB_LAST_NAME": [MessageHandler(Filters.text, update_email, pass_user_data=True)],
-        "JOB_EMAIL": [MessageHandler(Filters.text, update_user_information, pass_user_data=True)],
-        'WAIT_FOR_JOB_OPTION': [CallbackQueryHandler(get_job_photo, pattern="job_photo", pass_user_data=True)],
-        'WAIT_FOR_JOB_PHOTO': [MessageHandler(Filters.photo, upload_photo, pass_user_data=True)],
-        'WAIT_FOR_FRONT_PHOTO': [MessageHandler(Filters.photo, upload_license_front_photo, pass_user_data=True)],
-        'WAIT_FOR_BACK_PHOTO': [MessageHandler(Filters.photo, upload_license_back_photo, pass_user_data=True)],
-        'WAIT_FOR_EXPIRED': [MessageHandler(Filters.text, upload_expired_date, pass_user_data=True)],
-        'WAIT_ANSWER': [CallbackQueryHandler(check_auto, pattern="have_auto", pass_user_data=True),
-                        CallbackQueryHandler(upload_expired_insurance, pattern="no_auto", pass_user_data=True)],
-        'WAIT_FOR_AUTO_YES_OPTION': [MessageHandler(Filters.photo, upload_auto_doc, pass_user_data=True)],
-        'WAIT_FOR_INSURANCE': [MessageHandler(Filters.photo, upload_insurance, pass_user_data=True)],
-        'WAIT_FOR_INSURANCE_EXPIRED': [MessageHandler(Filters.text, upload_expired_insurance, pass_user_data=True)],
-        'JOB_UKLON_CODE': [MessageHandler(Filters.regex(r'^\d{4}$'), uklon_code)]
-    },
-
-    fallbacks=[MessageHandler(Filters.regex(r'^\/.*'), cancel), CommandHandler('cancel', cancel)],
-    allow_reentry=True,
-    per_user=True
-)
+# debt_conversation = ConversationHandler(
+#     entry_points=[CommandHandler('sending_report', sending_report),
+#                   CommandHandler('cancel', cancel)],
+#     states={
+#         'WAIT_FOR_DEBT_OPTION': [CallbackQueryHandler(get_debt_photo, pattern='photo_debt')],
+#         'WAIT_FOR_DEBT_PHOTO': [MessageHandler(Filters.all, save_debt_report)]
+#     },
+#     fallbacks=[CommandHandler('cancel', cancel)],
+# )
+#
+# job_docs_conversation = ConversationHandler(
+#     entry_points=[CallbackQueryHandler(update_name, pattern='Job_driver'),
+#                   CommandHandler("restart", restart_job_application),
+#                   MessageHandler(Filters.regex(r'^\/.*'), cancel)
+#                   ],
+#     states={
+#         "JOB_USER_NAME": [MessageHandler(Filters.text, update_second_name, pass_user_data=True)],
+#         "JOB_LAST_NAME": [MessageHandler(Filters.text, update_email, pass_user_data=True)],
+#         "JOB_EMAIL": [MessageHandler(Filters.text, update_user_information, pass_user_data=True)],
+#         'WAIT_FOR_JOB_OPTION': [CallbackQueryHandler(get_job_photo, pattern="job_photo", pass_user_data=True)],
+#         'WAIT_FOR_JOB_PHOTO': [MessageHandler(Filters.photo, upload_photo, pass_user_data=True)],
+#         'WAIT_FOR_FRONT_PHOTO': [MessageHandler(Filters.photo, upload_license_front_photo, pass_user_data=True)],
+#         'WAIT_FOR_BACK_PHOTO': [MessageHandler(Filters.photo, upload_license_back_photo, pass_user_data=True)],
+#         'WAIT_FOR_EXPIRED': [MessageHandler(Filters.text, upload_expired_date, pass_user_data=True)],
+#         'WAIT_ANSWER': [CallbackQueryHandler(check_auto, pattern="have_auto", pass_user_data=True),
+#                         CallbackQueryHandler(upload_expired_insurance, pattern="no_auto", pass_user_data=True)],
+#         'WAIT_FOR_AUTO_YES_OPTION': [MessageHandler(Filters.photo, upload_auto_doc, pass_user_data=True)],
+#         'WAIT_FOR_INSURANCE': [MessageHandler(Filters.photo, upload_insurance, pass_user_data=True)],
+#         'WAIT_FOR_INSURANCE_EXPIRED': [MessageHandler(Filters.text, upload_expired_insurance, pass_user_data=True)],
+#         'JOB_UKLON_CODE': [MessageHandler(Filters.regex(r'^\d{4}$'), uklon_code)]
+#     },
+#
+#     fallbacks=[MessageHandler(Filters.regex(r'^\/.*'), cancel), CommandHandler('cancel', cancel)],
+#     allow_reentry=True,
+#     per_user=True
+# )
 
 
 def setup_dispatcher(dp):
@@ -106,7 +107,7 @@ def setup_dispatcher(dp):
     # Ordering taxi
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("test_celery", celery_test))
-    dp.add_handler(CallbackQueryHandler(upload_bolt_report_photo, pattern="photo_bolt_report"))
+    dp.add_handler(CallbackQueryHandler(bolt_report_photo_callback, pattern="photo_bolt_report"))
     dp.add_handler(CallbackQueryHandler(more_function, pattern="Other_user|Other_manager|More_driver|Other_owner"))
     # incomplete auth
     dp.add_handler(MessageHandler(Filters.contact, update_phone_number))
@@ -162,7 +163,7 @@ def setup_dispatcher(dp):
         numberplate))
 
     # Sending report(payment debt)
-    dp.add_handler(debt_conversation)
+    # dp.add_handler(debt_conversation)
 
     # Сar registration for today
     dp.add_handler(MessageHandler(Filters.regex(fr'^{NOT_CORRECT_CHOICE}$'), get_vehicle_of_driver))
@@ -232,9 +233,10 @@ def setup_dispatcher(dp):
     #
     # # System commands
     dp.add_handler(CallbackQueryHandler(job_application, pattern='Job_application'))
-    dp.add_handler(job_docs_conversation)
+    # dp.add_handler(job_docs_conversation)
     dp.add_handler(CommandHandler("cancel", cancel))
     dp.add_handler(MessageHandler(Filters.text, text))
+    dp.add_handler(MessageHandler(Filters.photo, get_photo))
     dp.add_error_handler(error_handler)
     #
     # # need fix
