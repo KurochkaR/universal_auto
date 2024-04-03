@@ -6,7 +6,31 @@ from telegram.ext import ConversationHandler
 from app.models import Driver, Vehicle, ReportDriveDebt, Event
 from auto_bot.handlers.driver.keyboards import service_auto_buttons, inline_debt_keyboard, inline_dates_kb
 from auto_bot.handlers.driver.static_text import *
+from auto_bot.handlers.driver_job.utils import save_storage_photo
 from auto_bot.handlers.main.keyboards import markup_keyboard_onetime, back_to_main_menu
+from scripts.redis_conn import redis_instance
+
+
+def bolt_report_photo_callback(update, context):
+    query = update.callback_query
+    query.edit_message_text("Надішліть фото звіту, будь ласка")
+    chat_id = update.effective_chat.id
+    redis_instance().hset(str(chat_id), 'photo_state', BOLT_REPORT_PHOTO)
+
+
+def upload_bolt_report_photo(update, context):
+    chat_id = update.effective_chat.id
+    if update.message.photo:
+        redis_instance().hdel(str(chat_id), 'photo_state')
+        image = update.message.photo[-1].get_file()
+        filename = f'bolt/reports/{image["file_unique_id"]}.jpg'
+        save_storage_photo(image, filename)
+        update.message.reply_text("Дякую дані збережено для розрахунку виплати")
+        # context.bot.send_photo(update.effective_chat.id,
+        #                        'https://www.autoconsulting.com.ua/pictures/_upload/1582561870fbTo_h.jpg')
+    else:
+        update.message.reply_text("Будь ласка, надішліть знімок екрану з поточним звітом")
+        redis_instance().hset(str(chat_id), 'photo_state', BOLT_REPORT_PHOTO)
 
 
 def status_car(update, context):

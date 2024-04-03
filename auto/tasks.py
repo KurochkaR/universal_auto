@@ -30,7 +30,7 @@ from auto.utils import payment_24hours_create, summary_report_create, compare_re
 from auto_bot.handlers.driver_manager.utils import get_daily_report, get_efficiency, generate_message_report, \
     get_driver_efficiency_report, calculate_rent, get_vehicle_income, get_time_for_task, \
     create_driver_payments, calculate_income_partner, get_failed_income, find_reshuffle_period, get_today_statistic, \
-    calculate_bolt_kasa, send_notify_to_check_car
+    calculate_bolt_kasa, send_notify_to_check_car, add_bonus_earnings
 from auto_bot.handlers.order.keyboards import inline_markup_accept, inline_search_kb, inline_client_spot, \
     inline_spot_keyboard, inline_second_payment_kb, inline_reject_order, personal_order_end_kb, \
     personal_driver_end_kb
@@ -692,7 +692,6 @@ def send_driver_efficiency(self, partner_pk):
     for manager in managers:
         result, start, end = get_driver_efficiency_report(manager_id=manager)
         if result:
-            print(start, end)
             date_msg = f"Статистика з {start.strftime('%d.%m %H:%M')} по {end.strftime('%d.%m %H:%M')}\n"
             message = date_msg
             for k, v in result.items():
@@ -1110,52 +1109,38 @@ def calculate_driver_reports(self, schemas, day=None):
     end_week = timezone.make_aware(datetime.combine(today - timedelta(days=today.weekday() + 1),
                                                     time.max.replace(microsecond=0)))
     start_week = timezone.make_aware(datetime.combine(end_week - timedelta(days=6), time.min))
+    driver_list = []
     for driver in Driver.objects.get_active(schema__in=schemas):
+        bolt_weekly = WeeklyReport.objects.filter(report_from=start_week, report_to=end_week,
+                                                  driver=driver, fleet__name="Bolt").aggregate(
+            bonuses=Coalesce(Sum('bonuses'), 0, output_field=DecimalField()),
+            kasa=Coalesce(Sum('total_amount_without_fee'), 0, output_field=DecimalField()),
+            compensations=Coalesce(Sum('compensations'), 0, output_field=DecimalField()),
+        )
         if driver.schema.is_weekly():
             if not today.weekday():
                 start = start_week
                 end = end_week
+                bonus = bolt_weekly['bonuses']
             else:
                 continue
         else:
+            bonus = None
             end, start = get_time_for_task(driver.schema_id, day)[1:3]
         reshuffles = check_reshuffle(driver, start, end)
         if reshuffles:
-            bolt_weekly = WeeklyReport.objects.filter(report_from=start_week, report_to=end_week,
-                                                      driver=driver, fleet__name="Bolt").aggregate(
-                bonuses=Coalesce(Sum('bonuses'), 0, output_field=DecimalField()),
-                kasa=Coalesce(Sum('total_amount_without_fee'), 0, output_field=DecimalField()),
-                compensations=Coalesce(Sum('compensations'), 0, output_field=DecimalField()),
-            )
-            bonus = bolt_weekly['bonuses'] if driver.schema.is_weekly() and not today.weekday() else None
             data = create_driver_payments(start, end, driver, driver.schema, bonuses=bonus)[0]
-            if all([not driver.schema.is_weekly(), not today.weekday(), bolt_weekly['bonuses']]):
-                vehicle_bonus = {}
-                weekly_reshuffles = check_reshuffle(driver, start_week, end_week)
-                for shift in weekly_reshuffles:
-                    shift_bolt_kasa = calculate_bolt_kasa(driver, shift.swap_time, shift.end_time,
-                                                          vehicle=shift.swap_vehicle)[0]
-                    reshuffle_bonus = shift_bolt_kasa / (
-                            bolt_weekly['kasa'] - bolt_weekly['compensations'] - bolt_weekly['bonuses']) * \
-                                      bolt_weekly['bonuses']
-                    if not vehicle_bonus.get(shift.swap_vehicle):
-                        vehicle_bonus[shift.swap_vehicle] = reshuffle_bonus
-                    else:
-                        vehicle_bonus[shift.swap_vehicle] += reshuffle_bonus
-                for car, bonus in vehicle_bonus.items():
-                    amount = bonus * driver.schema.rate
-                    vehicle_amount = bonus * (1 - driver.schema.rate)
-                    PartnerEarnings.objects.get_or_create(report_from=start_week,
-                                                          report_to=end_week,
-                                                          vehicle=car,
-                                                          partner=driver.partner,
-                                                          defaults={
-                                                              "status": PaymentsStatus.COMPLETED,
-                                                              "earning": vehicle_amount})
-                    bolt_category = Category.objects.get(title="Бонуси Bolt")
-                    Bonus.objects.create(driver=driver, vehicle=car, amount=amount, category=bolt_category)
-            if driver.driver_status == Driver.WITH_CLIENT and not driver.schema.is_weekly():
-                data['status'] = PaymentsStatus.INCORRECT
+            if not driver.schema.is_weekly():
+                if not today.weekday() and bolt_weekly['bonuses']:
+                    add_bonus_earnings(start_week, end_week, driver, bolt_weekly)
+                try:
+                    if data['status'] == PaymentsStatus.INCORRECT or BoltRequest.objects.get(
+                            partner=driver.partner).check_driver_status(driver):
+                        driver_list.append(driver)
+                except ObjectDoesNotExist:
+                    pass
+                if driver.driver_status == Driver.WITH_CLIENT:
+                    data['status'] = PaymentsStatus.INCORRECT
             payment, created = DriverPayments.objects.get_or_create(report_to__date=end,
                                                                     driver=driver,
                                                                     defaults=data)
@@ -1164,6 +1149,9 @@ def calculate_driver_reports(self, schemas, day=None):
                 Penalty.objects.filter(driver=driver, driver_payments__isnull=True).update(driver_payments=payment)
                 payment.earning = Decimal(payment.earning) + payment.get_bonuses() - payment.get_penalties()
                 payment.save(update_fields=['earning'])
+    for driver in driver_list:
+        bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"),
+                         text=f"Не вдалося отримати дані Bolt, {driver}")
 
 
 @app.task(bind=True, ignore_result=False)

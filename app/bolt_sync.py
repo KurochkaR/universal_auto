@@ -432,6 +432,14 @@ class BoltRequest(Fleet, Synchronizer):
         return {'wait': wait,
                 'with_client': with_client}
 
+    def check_driver_status(self, driver):
+        report = self.get_target_url(f'{self.base_url}getDriversForLiveMap', self.param())
+        driver_id = driver.get_driver_external_id(self)
+        if report.get('data') and driver_id:
+            road_drivers = [rider['id'] for rider in report['data']['list'] if rider['state'] == 'has_order']
+            if int(driver_id) in road_drivers:
+                return True
+
     def disable_cash(self, driver_id, enable):
         payload = {
             "driver_id": driver_id,
