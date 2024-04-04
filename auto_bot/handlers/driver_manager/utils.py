@@ -588,7 +588,8 @@ def get_vehicle_income(driver, start, end, spending_rate, rent):
     weekly_reshuffles = check_reshuffle(driver, start_week, end_week)
     for shift in weekly_reshuffles:
         if bolt_weekly['bonuses']:
-            shift_bolt_kasa = calculate_bolt_kasa(driver, shift.swap_time, shift.end_time, vehicle=shift.swap_vehicle)[0]
+            shift_bolt_kasa = calculate_bolt_kasa(driver, shift.swap_time, shift.end_time, vehicle=shift.swap_vehicle)[
+                0]
             reshuffle_bonus = shift_bolt_kasa / Decimal(
                 (bolt_weekly['kasa'] - bolt_weekly['compensations'] - bolt_weekly['bonuses'])) * bolt_weekly['bonuses']
             if not driver_bonus.get(shift.swap_vehicle.pk):
@@ -613,7 +614,7 @@ def calculate_income_partner(driver, start, end, spending_rate, rent, driver_ren
     reshuffles = check_reshuffle(driver, start, end)
     rent_vehicle = VehicleRent.objects.filter(driver=driver,
                                               report_from__range=(start, end)).values('vehicle').annotate(
-                                              vehicle_distance=Coalesce(Sum('rent_distance'), Decimal(0)))
+        vehicle_distance=Coalesce(Sum('rent_distance'), Decimal(0)))
     for reshuffle in reshuffles:
         total_gross_kasa = 0
         start_period, end_period = find_reshuffle_period(reshuffle, start, end)
@@ -723,6 +724,9 @@ def get_today_statistic(start, end, driver):
     orders = FleetOrder.objects.filter(accepted_time__gt=start,
                                        state=FleetOrder.COMPLETED,
                                        driver=driver).order_by('-finish_time')
+
+    accepted_times = orders.first().accepted_time.time().strftime('%H:%M')
+
     mileage = orders.aggregate(order_mileage=Coalesce(Sum('distance'), Decimal(0)))['order_mileage']
     canceled_orders = FleetOrder.objects.filter(accepted_time__gt=start,
                                                 state=FleetOrder.DRIVER_CANCEL,
@@ -738,7 +742,7 @@ def get_today_statistic(start, end, driver):
         card += Decimal(fleet_kasa - fleet_cash)
         kasa += Decimal(fleet_kasa)
 
-    return kasa, card, mileage, orders.count(), canceled_orders
+    return kasa, card, mileage, orders.count(), canceled_orders, accepted_times
 
 
 def send_notify_to_check_car(wrong_cars, partner_pk):
