@@ -726,7 +726,7 @@ def get_today_statistic(start, end, driver):
                                        driver=driver).order_by('-finish_time')
     accepted_times = None
     if orders:
-        accepted_times = orders.first().accepted_time.time().strftime('%H:%M')
+        accepted_times = timezone.localtime(orders.last().accepted_time).time().strftime('%H:%M')
 
     mileage = orders.aggregate(order_mileage=Coalesce(Sum('distance'), Decimal(0)))['order_mileage']
     canceled_orders = FleetOrder.objects.filter(accepted_time__gt=start,
