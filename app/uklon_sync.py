@@ -1,6 +1,6 @@
 import json
 import uuid
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 import requests
 from _decimal import Decimal
 
@@ -230,19 +230,19 @@ class UklonRequest(Fleet, Synchronizer):
                             "total_rides": driver_report.get('total_orders_count', 0) - uklon_custom.total_rides,
                             "total_distance": self.to_float(distance, div=1000) - uklon_custom.total_distance,
                             "total_amount_cash": (
-                                        self.find_value(driver_report, *('profit', 'order', 'cash', 'amount')) -
-                                        uklon_custom.total_amount_cash),
+                                    self.find_value(driver_report, *('profit', 'order', 'cash', 'amount')) -
+                                    uklon_custom.total_amount_cash),
                             "total_amount_on_card": (
-                                        self.find_value(driver_report, *('profit', 'order', 'wallet', 'amount')) -
-                                        uklon_custom.total_amount_on_card),
+                                    self.find_value(driver_report, *('profit', 'order', 'wallet', 'amount')) -
+                                    uklon_custom.total_amount_on_card),
                             "total_amount": (self.find_value(driver_report, *('profit', 'order', 'total', 'amount')) -
                                              uklon_custom.total_amount),
                             "tips": self.find_value(driver_report, *('profit', 'tips', 'amount')) - uklon_custom.tips,
                             "fee": self.find_value(driver_report,
                                                    *('loss', 'order', 'wallet', 'amount')) - uklon_custom.fee,
                             "total_amount_without_fee": (
-                                        self.find_value(driver_report, *('profit', 'total', 'amount')) -
-                                        uklon_custom.total_amount_without_fee),
+                                    self.find_value(driver_report, *('profit', 'total', 'amount')) -
+                                    uklon_custom.total_amount_without_fee),
                         })
                     db_report = CustomReport.objects.filter(report_from=start,
                                                             driver=driver,
@@ -295,6 +295,8 @@ class UklonRequest(Fleet, Synchronizer):
     def get_earnings_per_driver(self, driver, start, end):
         total_amount_without_fee = total_amount_cash = 0
         driver_id = driver.get_driver_external_id(self)
+        if (timezone.localtime() - end).total_seconds() > 60:
+            end += timedelta(seconds=60)
         if driver_id:
             param = {'dateFrom': int(start.timestamp()),
                      'dateTo': int(end.timestamp()),
@@ -348,9 +350,11 @@ class UklonRequest(Fleet, Synchronizer):
                     url=f"{Service.get_value('UKLON_1')}{Service.get_value('UKLON_6')}/{driver['id']}/images",
                     params={'image_size': 'sm'})
                 if driver['restrictions']:
-                    manager_restrictions = next((item for item in driver["restrictions"] if item["restricted_by"] == "Manager"), None)
+                    manager_restrictions = next(
+                        (item for item in driver["restrictions"] if item["restricted_by"] == "Manager"), None)
                     if manager_restrictions:
-                        cash_result = next((item for item in manager_restrictions['restriction_items'] if item.get('fleet_id') == self.uklon_id()), None)
+                        cash_result = next((item for item in manager_restrictions['restriction_items'] if
+                                            item.get('fleet_id') == self.uklon_id()), None)
                         pay_cash = not bool(cash_result)
                     else:
                         pay_cash = True
@@ -396,10 +400,10 @@ class UklonRequest(Fleet, Synchronizer):
             else:
                 break
         filter_condition = Q(date_order__in=[
-                             timezone.make_aware(datetime.fromtimestamp(order["pickupTime"])) for order in orders
-                             ],
-                             order_id__in=[order['id'] for order in orders],
-                             partner=self.partner)
+            timezone.make_aware(datetime.fromtimestamp(order["pickupTime"])) for order in orders
+        ],
+            order_id__in=[order['id'] for order in orders],
+            partner=self.partner)
         existing_orders = FleetOrder.objects.filter(filter_condition).values_list('order_id', flat=True)
         filtered_orders = [order for order in orders if order['id'] not in existing_orders
                            and order['status'] not in ("running", "accepted", "arrived")]
