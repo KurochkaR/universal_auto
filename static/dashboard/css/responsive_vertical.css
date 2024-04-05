@@ -135,6 +135,10 @@
 		float: left;
 	}
 
+	#datePicker, #datePickerDriver, #datePickerPayments {
+		margin-top: 45px;
+	}
+
 	.date-picker {
 		width: 100%;
 		display: flex;

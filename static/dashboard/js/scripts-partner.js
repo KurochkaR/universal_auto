@@ -477,7 +477,11 @@ $(document).ready(function () {
 			}
 
 			if (clickedValue === "custom") {
-				datePicker.css("display", "flex");
+				if (window.innerWidth <= 768) {
+					datePicker.css("display", "block");
+				} else {
+					datePicker.css("display", "inline-block");
+				}
 			} else {
 				datePicker.css("display", "none");
 			}
