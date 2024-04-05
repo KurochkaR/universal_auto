@@ -1,0 +1,359 @@
+:root {
+	--font-family: "Open Sans", sans-serif;
+	--second-family: "Montserrat", sans-serif;
+	--third-family: "Inter", sans-serif;
+}
+
+@media screen and (min-width: 769px) and (max-width: 1024px) {
+	.error-message {
+		margin: 0 10px;
+		font-size: 10px;
+	}
+
+	.header {
+		grid-area: header;
+		height: 37px;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		box-shadow: 0 6px 7px -3px rgba(0, 0, 0, 0.35);
+		padding: 0;
+	}
+
+	.menu-icon {
+		width: 33px;
+		height: 20px;
+		cursor: pointer;
+		margin-left: 36px;
+	}
+
+	.stripes {
+		width: 100%;
+		height: 100%;
+		display: flex;
+		flex-direction: column;
+		justify-content: space-between;
+	}
+
+	.stripe {
+		width: 33px;
+		height: 9px;
+		background-color: #EC6323;
+	}
+
+	.top-stripe {
+		border-radius: 25px;
+	}
+
+	.bottom-stripe {
+		border-radius: 25px;
+		margin-left: 5px;
+	}
+
+	.main-cards, .main-cards-partner {
+		grid-template-columns: 1fr;
+		gap: 10px;
+		margin-bottom: 0;
+	}
+
+	.not-closed span {
+		font-size: 14px;
+	}
+
+	#sidebar {
+		position: absolute;
+		top: 37px;
+		grid-area: sidebar;
+		width: 36%;
+		height: 100%;
+		background-color: var(--color-primary);
+		overflow-y: auto;
+		transition: all 0.5s;
+		-webkit-transition: all 0.5s;
+	}
+
+	a.navbar-brand {
+		width: 100%;
+	}
+
+	img.logo-2 {
+		width: 100%;
+	}
+
+	.sidebar-list-item {
+		width: 352px;
+		height: 45px;
+		display: flex;
+		align-items: center;
+		padding: 5px 15px;
+		font-size: 18px;
+		font-weight: 500;
+		color: #141E17;
+	}
+
+	.main-title h2 {
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 18px;
+		color: #141e17;
+	}
+
+	.common-period {
+		display: flex;
+		align-items: center;
+	}
+
+	.common-period label {
+		font-family: var(--second-family);
+		font-weight: 500;
+		font-size: 10px;
+		color: #141e17;
+		margin-top: 10px;
+	}
+
+	.common-period .selected-option {
+		color: #53785E;
+		display: flex;
+		width: 180px;
+		height: 22px;
+		padding: 0 10px;
+		border: 0 solid #ccc;
+		border-radius: 25px;
+		box-shadow: 0 6px 5px 2px #ccc;
+		cursor: pointer;
+		position: absolute;
+		bottom: 30px;
+		right: 15px;
+		font-size: 15px;
+	}
+
+	i.fas.fa-angle-down {
+		top: -30px;
+		font-size: 15px !important;
+		margin-left: 175px;
+	}
+
+	.common-period .options {
+		width: 180px;
+		top: 0;
+		left: 0;
+	}
+
+	.common-period .options li {
+		font-size: 15px;
+	}
+
+	.main-container .weekly-income-dates {
+		color: var(--color-secondary);
+		font-size: 15px;
+		font-style: normal;
+		font-weight: 700;
+		line-height: normal;
+		margin-top: 15px;
+		position: relative;
+		top: 10px;
+	}
+
+	#datePicker label {
+		font-weight: 600;
+		font-size: 10px;
+		margin-right: 5px;
+	}
+
+	#start_report, #end_report {
+		font-size: 10px;
+		margin-right: 5px;
+	}
+
+	input[type="button"] {
+		width: 100%;
+		margin-top: 15px;
+		padding: 6px 5px;
+		font-size: 15px;
+	}
+
+	.main-cards .card h2 {
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 17px;
+		color: #141e17;
+	}
+
+	.card h3 {
+		font-family: var(--second-family);
+		font-weight: 500;
+		font-size: 15px;
+		color: #141e17;
+	}
+
+	.modal-header h2 {
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 16px;
+		color: #141e17;
+	}
+
+	.modal-content {
+		background-color: var(--color-primary);
+		margin: 10% auto;
+		padding: 40px 15px;
+		border: 1px solid #888;
+		border-radius: 62px;
+		width: 90%;
+	}
+
+	.not-closed-payments-table thead tr th {
+		font-size: 15px;
+		position: sticky;
+		top: 0;
+	}
+
+	.not-closed-payments-table td {
+		text-align: left;
+		border-bottom: 1px solid #ddd;
+		font-size: 15px;
+	}
+
+	.card, .card-partner {
+		border-radius: 25px;
+	}
+
+	.charts-card .weekly-income-dates {
+		top: 0;
+	}
+
+	.custom-dropdown .selected-option {
+		border: 1px solid #ccc;
+		padding: 5px 10px;
+		cursor: pointer;
+		width: 215px;
+		text-align: left;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		font-size: 15px;
+	}
+
+	.dropdown-options li {
+		font-size: 15px;
+	}
+
+	.chart-title {
+		font-size: 20px;
+		justify-content: left;
+	}
+
+	#account_circle {
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 20px;
+		color: #141e17;
+		margin-right: 40px;
+	}
+
+	.change-password-btn {
+		right: 7px;
+	}
+
+	#passwordForm {
+		height: 345px;
+		width: 320px;
+	}
+
+	.title-form {
+		padding: 15px 0px;
+		width: 100%;
+		margin: 0;
+	}
+
+	.context-title {
+		font-size: 10px;
+		padding: 0px 20px;
+	}
+
+	.passwordBodyForm {
+		padding: 15px 25px 0px 25px;
+	}
+
+	.passwordBodyForm label {
+		font-size: 12px;
+	}
+
+	.passwordBodyForm input {
+		padding: 7px;
+		margin-bottom: 10px;
+	}
+
+	#passwordForm #submitPassword {
+		padding: 5px 10px;
+		font-size: 15px;
+	}
+
+	.head-title {
+		margin-left: 20px;
+		font-size: 20px;
+		font-weight: 600;
+	}
+
+	.sidebar-toggle {
+		display: none;
+	}
+
+	.sidebar-list {
+		margin-top: 0;
+		width: 100%;
+	}
+
+	#partnerForm {
+		padding: 15px 20px;
+		border-radius: 37px;
+		width: 480px;
+		max-height: 500px;
+	}
+
+	.settings-content h2 {
+		font-size: 20px;
+	}
+
+	.settings-content h3 {
+		font-size: 17px;
+	}
+
+	.partner-options {
+		display: grid;
+		grid-template-columns: repeat(4, 1fr);
+		margin: 15px 0;
+	}
+
+	#partnerForm label {
+		margin: 7px 10px;
+	}
+
+	#partnerForm input {
+		width: 83%;
+		padding: 10px 13px;
+		margin: 5px 10px;
+	}
+
+	.opt-partnerForm {
+		margin: 10px;
+	}
+
+	.settings-content .login-btn {
+		font-size: 15px;
+		padding: 10px;
+	}
+
+	.showPasswordText {
+		font-size: 13px;
+	}
+
+	#logout-dashboard {
+		padding: 10px;
+		font-size: 15px;
+		width: calc(100% - 30px);
+		box-sizing: border-box;
+		margin-left: 15px;
+	}
+
+}
