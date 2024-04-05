@@ -14,7 +14,7 @@ from scripts.redis_conn import redis_instance
 
 def bolt_report_photo_callback(update, context):
     query = update.callback_query
-    query.edit_message_text("Надішліть фото звіту, будь ласка")
+    query.edit_message_text("Надішліть фото поточного звіту Bolt, будь ласка")
     chat_id = update.effective_chat.id
     redis_instance().hset(str(chat_id), 'photo_state', BOLT_REPORT_PHOTO)
 

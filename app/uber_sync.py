@@ -127,7 +127,7 @@ class UberRequest(Fleet, Synchronizer):
     def generate_report(self, start, end, driver_ids=None, driver=None):
         results = {}
         format_start = self.report_interval(start) * 1000
-        format_end = self.report_interval(end) * 1000
+        format_end = self.report_interval(end) * 1000 - 600
         driver_ids = list(driver_ids) if not driver else driver.get_driver_external_id(self)
         if format_start >= format_end or not driver_ids:
             return results
