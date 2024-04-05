@@ -411,10 +411,11 @@ class UaGpsSynchronizer(Fleet):
             in_road = self.get_road_distance(start, end)
             text = "Поточна статистика\n"
             for driver, result in in_road.items():
-                reshuffles = DriverReshuffle.objects.filter(driver_start=driver, swap_time__date=timezone.localtime())
-                start_reshuffle = timezone.localtime(reshuffles.first().swap_time).time().strftime(
-                    '%H:%M') if reshuffles else None
-                text += self.process_driver_data(driver, result, start, end, driver.chat_id, start_reshuffle)
+                reshuffles = DriverReshuffle.objects.filter(driver_start=driver,
+                                                            swap_time__date=timezone.localtime()).order_by('swap_time')
+                start_reshuffle = timezone.localtime(reshuffles.earliest('swap_time').swap_time)
+                text += self.process_driver_data(
+                    driver, result, start, end, driver.chat_id, start_reshuffle.strftime("%H:%M"))
             if timezone.localtime().time() > time(7, 0):
                 send_long_message(
                     chat_id=ParkSettings.get_value("DRIVERS_CHAT", partner=self.partner),
