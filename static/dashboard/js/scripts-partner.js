@@ -342,19 +342,19 @@ function fetchSummaryReportData(period, start, end) {
 			$('.rent-earning').text(data[0]["rent_earnings"] + "₴");
 			$('.unpaid-rent').text(data[0]["total_distance"] + "км");
 
-            const driversWithPayments = data[0]['drivers'].filter(driver => {
-                return driver.payment_amount !== null || driver.weekly_payments !== null;
-            });
+			const driversWithPayments = data[0]['drivers'].filter(driver => {
+				return driver.payment_amount !== null || driver.weekly_payments !== null;
+			});
 			const table = $('.driver-table');
 
 			table.find('tbody').empty();
 
 			driversWithPayments.forEach(driver => {
 				const row = $('<tr></tr>');
-                const totalAmount = parseFloat(driver.payment_amount || 0) + parseFloat(driver.weekly_payments || 0);
+				const totalAmount = parseFloat(driver.payment_amount || 0) + parseFloat(driver.weekly_payments || 0);
 
 				row.append(`<td>${driver.full_name}</td>`);
-                row.append(`<td>${totalAmount}</td>`);
+				row.append(`<td>${totalAmount}</td>`);
 				table.append(row);
 			});
 		},
@@ -477,7 +477,11 @@ $(document).ready(function () {
 			}
 
 			if (clickedValue === "custom") {
-				datePicker.css("display", "block");
+				if (window.innerWidth <= 768) {
+					datePicker.css("display", "block");
+				} else {
+					datePicker.css("display", "inline-block");
+				}
 			} else {
 				datePicker.css("display", "none");
 			}

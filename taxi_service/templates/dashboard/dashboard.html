@@ -24,13 +24,15 @@
         <li data-value="custom">{% trans 'Вибрати період >' %}</li>
       </ul>
     </div>
-    <span class="weekly-income-dates"></span>
   </div>
+  <span class="weekly-income-dates"></span>
   <div id="datePicker" style="display: none;">
-    <label for="start_report">{% trans 'Початкова дата:' %}</label>
-    <input type="date" id="start_report" name="start_date">
-    <label for="end_report">{% trans 'Кінцева дата:' %}</label>
-    <input type="date" id="end_report" name="end_date">
+    <div class="date-picker">
+      <label for="start_report">{% trans 'Початок:' %}</label>
+      <input type="date" id="start_report" name="start_date">
+      <label for="end_report">{% trans 'Кінець:' %}</label>
+      <input type="date" id="end_report" name="end_date">
+    </div>
     <input class="apply-filter-button" type="button" onclick="applyDateRange()"
            value="{% trans 'Фільтрувати' %}">
     <div id="error_message" style="display: none; color: red;"></div>
@@ -68,7 +70,9 @@
             <span class="rent-earning"></span>
           </div>
           <div class="custom-dropdown-card">
-            <h3 class="not-closed">{% trans 'Не закриті виплати &#128064;' %}</h3>
+            <h3 class="not-closed">{% trans 'Не закриті виплати' %}<br>
+              <span>{% trans 'Список не закритих виплат' %} &#128064;</span>
+            </h3>
             <span class="not-closed-payments"></span>
           </div>
         {% else %}
