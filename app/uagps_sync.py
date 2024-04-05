@@ -417,8 +417,6 @@ class UaGpsSynchronizer(Fleet):
                 for fleet in fleets:
                     _, cash = fleet.get_earnings_per_driver(driver, start, end)
                     total_cash += cash
-                print("#" * 10, "Driver", driver, "#" * 10)
-                print("#" * 10, "Total cash", total_cash, "#" * 10)
                 reshuffles = DriverReshuffle.objects.filter(driver_start=driver,
                                                             swap_time__date=timezone.localtime()).order_by('swap_time')
                 start_reshuffle = timezone.localtime(reshuffles.earliest('swap_time').swap_time)
