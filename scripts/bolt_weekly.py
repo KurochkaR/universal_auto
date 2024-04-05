@@ -8,5 +8,5 @@ from scripts.conversion import convertion
 
 
 def run():
-    raw_list = RawGPS.objects.filter(vehiclegps__isnull=True).count()
-    print(raw_list)
+    gps = UaGpsSynchronizer.objects.get(partner=1, deleted_at=None)
+    gps.check_today_rent()
