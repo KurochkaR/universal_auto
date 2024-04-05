@@ -411,6 +411,10 @@ class UaGpsSynchronizer(Fleet):
             in_road = self.get_road_distance(start, end)
             text = "Поточна статистика\n"
             for driver, result in in_road.items():
+                fleets = Fleet.objects.filter(partner=self.partner).exclude(name__in=["Gps", "Bolt"])
+                for fleet in fleets:
+                    kasa, cash = fleet.get_earnings_per_driver(driver, start, end)
+
                 reshuffles = DriverReshuffle.objects.filter(driver_start=driver,
                                                             swap_time__date=timezone.localtime()).order_by('swap_time')
                 start_reshuffle = timezone.localtime(reshuffles.earliest('swap_time').swap_time)
