@@ -553,6 +553,12 @@ class TransactionsConversationAdmin(admin.ModelAdmin):
             display.append('partner')
         return display
 
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if request.user.is_partner():
+            return qs.filter(partner=request.user)
+        return qs.select_related('vehicle', 'investor', 'partner')
+
 
 @admin.register(PartnerEarnings)
 class PartnerEarningsAdmin(admin.ModelAdmin):
