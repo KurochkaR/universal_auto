@@ -15,6 +15,7 @@ paid_inline_buttons = (
 )
 choose_func_text = "Оберіть функцію"
 get_drivers_text = "Інформація оновиться протягом декількох хвилин."
+waiting_task_text = "Генеруємо звіт, зачекайте, будь ласка"
 update_finished = "Інформація оновлена"
 no_drivers_report_text = "У Вас немає звітів по водіях за цей період"
 no_reports_text = "У Вас немає заробітків за цей період"
@@ -35,6 +36,7 @@ spending_saved_text = "Витрати успішно записано."
 generate_text = "Генеруємо звіт"
 pin_vehicle_callback = "pin_vehicle"
 records_per_page = 10
+max_buttons_in_row = 5
 
 manager_buttons = (
     "\U0001F504 Оновити базу водіїв",

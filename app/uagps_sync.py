@@ -139,6 +139,7 @@ class UaGpsSynchronizer(Fleet):
         if orders:
             return result_list
         else:
+            print(result_list)
             road_distance = sum(item[0] for item in result_list)
             road_time = sum((result[1] for result in result_list), timedelta())
             return road_distance, road_time
@@ -237,44 +238,53 @@ class UaGpsSynchronizer(Fleet):
             FleetOrder.objects.bulk_update(updated_orders, fields=['distance', 'road_time'], batch_size=200)
 
     def get_non_order_message(self, start_time, end_time, driver_pk):
-        message = ''
+        parameters = []
+        total_distance = 0
+        total_time = timedelta()
         reshuffles = check_reshuffle(driver_pk, start_time, end_time, gps=True)
-        prev_order_end_time = start_time
+        driver = Driver.objects.get(pk=driver_pk)
+        if reshuffles:
 
-        for reshuffle in reshuffles:
-            empty_time_slots = []
-            parameters = []
-            if timezone.localtime(reshuffle.swap_time) > prev_order_end_time + timedelta(minutes=1):
-                empty_time_slots.append((prev_order_end_time, timezone.localtime(reshuffle.swap_time)))
+            message = f"{driver}\n"
+            prev_order_end_time = start_time
 
-            start, end = find_reshuffle_period(reshuffle, start_time, end_time)
+            for reshuffle in reshuffles:
+                empty_time_slots = []
+                parameters = []
+                if timezone.localtime(reshuffle.swap_time) > prev_order_end_time + timedelta(minutes=1):
+                    empty_time_slots.append((prev_order_end_time, timezone.localtime(reshuffle.swap_time)))
 
-            prev_order_end_time = start
-            orders = FleetOrder.objects.filter(Q(driver=driver_pk,
-                                                 state=FleetOrder.COMPLETED) &
-                                               Q(Q(accepted_time__range=(start, end)) |
-                                                 Q(accepted_time__lt=start,
-                                                   finish_time__gt=start))).order_by('accepted_time')
+                start, end = find_reshuffle_period(reshuffle, start_time, end_time)
 
-            if orders.exists():
-                for order in orders:
-                    if prev_order_end_time < order.accepted_time:
-                        empty_time_slots.append((prev_order_end_time, timezone.localtime(order.accepted_time)))
-                    prev_order_end_time = timezone.localtime(order.finish_time)
-                if prev_order_end_time < end:
-                    empty_time_slots.append((prev_order_end_time, end))
-            else:
-                empty_time_slots.append((start, end))
-            prev_order_end_time = end
-            for slot in empty_time_slots:
-                parameters.append(self.get_params_for_report(self.get_timestamp(slot[0]),
-                                                             self.get_timestamp(slot[1]),
-                                                             reshuffle.swap_vehicle.gps.gps_id))
-            result = self.generate_batch_report(parameters, True)
-            results_with_slots = list(zip(empty_time_slots, result))
-            for slot, result in results_with_slots:
-                if result[0]:
-                    message += f"Час: {slot[0].strftime('%H:%M')} - {slot[1].strftime('%H:%M')} Холостий пробіг: {result[0]}\n"
+                prev_order_end_time = start
+                orders = FleetOrder.objects.filter(Q(driver=driver_pk,
+                                                     state=FleetOrder.COMPLETED) &
+                                                   Q(Q(accepted_time__range=(start, end)) |
+                                                     Q(accepted_time__lt=start,
+                                                       finish_time__gt=start))).order_by('accepted_time')
+
+                if orders.exists():
+                    for order in orders:
+                        if prev_order_end_time < order.accepted_time:
+                            empty_time_slots.append((prev_order_end_time, timezone.localtime(order.accepted_time)))
+                        prev_order_end_time = timezone.localtime(order.finish_time)
+                    if prev_order_end_time < end:
+                        empty_time_slots.append((prev_order_end_time, end))
+                else:
+                    empty_time_slots.append((start, end))
+                prev_order_end_time = end
+                for slot in empty_time_slots:
+                    parameters.append(self.get_params_for_report(self.get_timestamp(slot[0]),
+                                                                 self.get_timestamp(slot[1]),
+                                                                 reshuffle.swap_vehicle.gps.gps_id))
+                result = self.generate_batch_report(parameters, True)
+                results_with_slots = list(zip(empty_time_slots, result))
+                for slot, result in results_with_slots:
+                    if result[0]:
+                        message += f"{slot[0].strftime('%H:%M')} - {slot[1].strftime('%H:%M')} Пробіг: {result[0]}\n"
+        else:
+            message = (f"Відсутні зміни в календарі для корректного розрахунку холостого пробігу у "
+                       f"{driver} з {start_time.strftime('%d.%m %H:%M')} по {end_time.strftime('%d.%m %H:%M')}.")
         return message
 
     def get_order_parameters(self, orders, end, vehicle):
