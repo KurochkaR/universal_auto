@@ -18,6 +18,13 @@ from auto_bot.utils import send_long_message
 from scripts.redis_conn import get_logger
 
 
+def format_hours(total_hours):
+    total_seconds = int(total_hours.total_seconds()) if total_hours else 0
+    hours, remainder = divmod(total_seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    return f"{hours:02}:{minutes:02}:{seconds:02}"
+
+
 def get_time_for_task(schema, day=None):
     """
     Returns time periods
@@ -131,7 +138,7 @@ def create_driver_payments(start, end, driver, schema, bonuses=None, driver_repo
             report_from = start_schema
         status, no_price = check_correct_bolt_report(start, end, driver)
     data = {"report_from": report_from,
-            "report_to": reports.first().report_to,
+            "report_to": reports.first().report_to if reports else end,
             "rent_distance": rent,
             "rent_price": schema.rent_price,
             "kasa": kasa,
@@ -466,21 +473,21 @@ def calculate_efficiency_driver(driver, start, end):
             total_rent=Sum('rent_distance'),
             total_eff_kasa=Sum('total_kasa'))
         accept_eff_percent = 100 if annotated_efficiency['total_eff_orders'] == 0 else (
-                round(annotated_efficiency['completed_orders'] / annotated_efficiency['total_eff_orders'], 2) * 100
+                (annotated_efficiency['completed_orders'] / annotated_efficiency['total_eff_orders']) * 100
         )
 
-        avg_price = 0 if annotated_efficiency['completed_orders'] == 0 else round(
-            annotated_efficiency['total_eff_kasa'] / annotated_efficiency['completed_orders'], 2
+        avg_price = 0 if annotated_efficiency['completed_orders'] == 0 else (
+            annotated_efficiency['total_eff_kasa'] / annotated_efficiency['completed_orders']
         )
 
-        efficiency_avg = 0 if annotated_efficiency['total_distance'] == 0 else round(
-            annotated_efficiency['total_eff_kasa'] / annotated_efficiency['total_distance'], 2
+        efficiency_avg = 0 if annotated_efficiency['total_distance'] == 0 else (
+            annotated_efficiency['total_eff_kasa'] / annotated_efficiency['total_distance']
         )
         vehicles = list(efficiency_objects.values_list('vehicles__licence_plate', flat=True).distinct())
 
-        annotated_efficiency['accept_eff_percent'] = accept_eff_percent
-        annotated_efficiency['avg_price'] = avg_price
-        annotated_efficiency['efficiency_avg'] = efficiency_avg
+        annotated_efficiency['accept_eff_percent'] = float('{:.2f}'.format(accept_eff_percent))
+        annotated_efficiency['avg_price'] = float('{:.2f}'.format(avg_price))
+        annotated_efficiency['efficiency_avg'] = float('{:.2f}'.format(efficiency_avg))
         annotated_efficiency['vehicles'] = vehicles
 
         return annotated_efficiency
@@ -504,8 +511,10 @@ def get_driver_efficiency_report(manager_id, start=None, end=None):
         yesterday_effect = calculate_efficiency_driver(driver, yesterday, end)
         if effect:
             licence_plates = ', '.join(effect['vehicles'])
+            total_hours_formatted = format_hours(effect['total_hours'])
             if end.date() == yesterday.date() and yesterday_effect:
                 car_plates = ', '.join(yesterday_effect['vehicles'])
+                yesterday_hours_formatted = format_hours(yesterday_effect['total_hours'])
                 effective_driver[driver] = {
                     'Автомобілі': f"{licence_plates} ({car_plates})",
                     'Каса': f"{effect['total_eff_kasa']} (+{yesterday_effect['total_eff_kasa']}) грн",
@@ -515,7 +524,7 @@ def get_driver_efficiency_report(manager_id, start=None, end=None):
                     '% прийнятих': f"{effect['accept_eff_percent']} ({yesterday_effect['accept_eff_percent']})",
                     'Cередній чек': f"{effect['avg_price']} ({yesterday_effect['avg_price']}) грн",
                     'Пробіг': f"{effect['total_distance']} (+{yesterday_effect['total_distance']}) км",
-                    'Час в дорозі': f"{effect['total_hours']}(+{yesterday_effect['total_hours']})"
+                    'Час в дорозі': f"{total_hours_formatted}(+{yesterday_hours_formatted})"
                 }
             else:
                 effective_driver[driver] = {
@@ -527,7 +536,7 @@ def get_driver_efficiency_report(manager_id, start=None, end=None):
                     '% прийнятих': f"{effect['accept_eff_percent']}",
                     'Cередній чек': f"{effect['avg_price']} грн",
                     'Пробіг': f"{effect['total_distance']} км",
-                    'Час в дорозі': f"{effect['total_hours']}"
+                    'Час в дорозі': f"{total_hours_formatted}"
                 }
     sorted_effective_driver = dict(sorted(effective_driver.items(),
                                           key=lambda x: float(x[1]['Каса'].split()[0]),

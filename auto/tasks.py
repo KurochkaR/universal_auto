@@ -26,7 +26,8 @@ from django.db.models import Sum, IntegerField, FloatField, DecimalField, Q
 from django.db.models.functions import Cast, Coalesce
 from app.utils import get_schedule, create_task
 from auto.utils import payment_24hours_create, summary_report_create, compare_reports, get_corrections, \
-    get_currency_rate, polymorphic_efficiency_create, calendar_weekly_report
+    get_currency_rate, polymorphic_efficiency_create, calendar_weekly_report, create_share_investor_earn, \
+    create_proportional_investor_earn
 from auto_bot.handlers.driver.keyboards import inline_bolt_report_keyboard
 from auto_bot.handlers.driver_manager.utils import get_daily_report, get_efficiency, generate_message_report, \
     get_driver_efficiency_report, calculate_rent, get_vehicle_income, get_time_for_task, \
@@ -392,10 +393,11 @@ def get_car_efficiency(self, partner_pk, day=None):
                 driver_kasa = 0
                 for fleet in fleets:
                     orders = FleetOrder.objects.filter(
-                        state=FleetOrder.COMPLETED,
+                        state__in=[FleetOrder.COMPLETED, FleetOrder.CLIENT_CANCEL],
                         accepted_time__date=start, driver=driver, fleet=fleet.name, vehicle=vehicle).aggregate(
-                        total_price=Coalesce(Sum('price'), 0))['total_price']
-                    driver_kasa += orders * (1 - fleet.fees)
+                        total_price=Coalesce(Sum('price'), 0),
+                        total_tips=Coalesce(Sum('tips'), 0))
+                    driver_kasa += orders['total_price'] * (1 - fleet.fees) + orders['total_tips']
                 vehicle_drivers[driver] = driver_kasa
                 total_kasa += driver_kasa
         result = max(
@@ -765,39 +767,16 @@ def check_personal_orders(self):
 
 @app.task(bind=True)
 def add_money_to_vehicle(self, partner_pk):
-    today = datetime.combine(timezone.localtime(), time.max)
+    today = timezone.localtime()
     end = timezone.make_aware(datetime.combine(today - timedelta(days=today.weekday() + 1), time.max))
     start = timezone.make_aware(datetime.combine(end - timedelta(days=6), time.min))
-    investor_vehicles = Vehicle.objects.filter(investor_car__isnull=False, partner=partner_pk)
-    kasa = CustomReport.objects.filter(report_from__range=(start, end),
-                                       report_to__lte=end, vehicle__in=investor_vehicles).aggregate(
-        kasa=Coalesce(Sum('total_amount_without_fee'), 0, output_field=DecimalField())
-    )['kasa']
-    for investor in Investor.objects.filter(investors_partner=partner_pk):
-        vehicles = Vehicle.objects.filter(investor_car=investor)
-        if vehicles.exists():
-            vehicle_kasa = kasa / vehicles.count()
-            for vehicle in vehicles:
-                currency = vehicle.currency_back
-                earning = vehicle_kasa * vehicle.investor_percentage
-                if currency != Vehicle.Currency.UAH:
-                    rate = get_currency_rate(currency)
-                    amount_usd = float(earning) / rate
-                    car_earnings = Decimal(str(amount_usd)).quantize(Decimal('0.00'), rounding=ROUND_HALF_UP)
-                else:
-                    car_earnings = earning
-                    rate = 0.00
-                InvestorPayments.objects.get_or_create(
-                    report_from=start,
-                    report_to=end,
-                    vehicle=vehicle,
-                    investor=vehicle.investor_car,
-                    partner_id=partner_pk,
-                    defaults={
-                        "earning": earning,
-                        "currency": currency,
-                        "currency_rate": rate,
-                        "sum_after_transaction": car_earnings})
+    investors = Investor.objects.filter(investors_partner=partner_pk)
+    share_vehicles = Vehicle.filter_by_investor_share_schema(investors)
+    if share_vehicles.exists():
+        create_share_investor_earn(start, end, share_vehicles, partner_pk)
+    proportional_vehicles = Vehicle.filter_by_proportional_schema(investors)
+    if proportional_vehicles.exists():
+        create_proportional_investor_earn(start, end, proportional_vehicles, partner_pk)
 
 
 @app.task(bind=True, queue='beat_tasks')
@@ -1142,14 +1121,15 @@ def calculate_driver_reports(self, schemas, day=None):
                     pass
                 if driver.driver_status == Driver.WITH_CLIENT:
                     data['status'] = PaymentsStatus.INCORRECT
-            payment, created = DriverPayments.objects.get_or_create(report_to__date=end,
-                                                                    driver=driver,
-                                                                    defaults=data)
-            if created:
-                Bonus.objects.filter(driver=driver, driver_payments__isnull=True).update(driver_payments=payment)
-                Penalty.objects.filter(driver=driver, driver_payments__isnull=True).update(driver_payments=payment)
-                payment.earning = Decimal(payment.earning) + payment.get_bonuses() - payment.get_penalties()
-                payment.save(update_fields=['earning'])
+            if data['kasa'] or data['rent']:
+                payment, created = DriverPayments.objects.get_or_create(report_to__date=end,
+                                                                        driver=driver,
+                                                                        defaults=data)
+                if created:
+                    Bonus.objects.filter(driver=driver, driver_payments__isnull=True).update(driver_payments=payment)
+                    Penalty.objects.filter(driver=driver, driver_payments__isnull=True).update(driver_payments=payment)
+                    payment.earning = Decimal(payment.earning) + payment.get_bonuses() - payment.get_penalties()
+                    payment.save(update_fields=['earning'])
     for driver in driver_list:
         keyboard = inline_bolt_report_keyboard()
         bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"),
@@ -1239,7 +1219,8 @@ def calculate_vehicle_earnings(self, payment_pk):
         else:
             vehicles_income = reshuffles_income
     for vehicle, income in vehicles_income.items():
-        vehicle_bonus = Penalty.objects.filter(vehicle=vehicle, driver_payments=payment).aggregate(
+        vehicle_bonus = Penalty.objects.filter(vehicle=vehicle, driver_payments=payment).exclude(
+                category__title="Зарядка").aggregate(
             total_amount=Coalesce(Sum('amount'), Decimal(0)))['total_amount']
         vehicle_penalty = \
             Bonus.objects.filter(vehicle=vehicle, driver_payments=payment).exclude(

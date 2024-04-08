@@ -437,6 +437,7 @@ class UklonRequest(Fleet, Synchronizer):
                         "destination": order['route']['points'][-1]["address"],
                         "vehicle": calendar_vehicle,
                         "payment": PaymentTypes.map_payments(order['payment']['paymentType']),
+                        "tips": self.to_float(order['additionalIncome']['tips']['amount']),
                         "price": order['payment']['cost'],
                         "partner": self.partner,
                         "date_order": timezone.make_aware(datetime.fromtimestamp(order["pickupTime"]))
