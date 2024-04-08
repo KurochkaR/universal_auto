@@ -408,7 +408,7 @@ class UaGpsSynchronizer(Fleet):
         if not redis_instance().exists(f"{self.partner.id}_remove_gps"):
             start = timezone.make_aware(datetime.combine(timezone.localtime(), time.min))
             end = timezone.make_aware(datetime.combine(timezone.localtime(), time.max))
-            in_road = self.get_road_distance(start, end)
+            in_road = self.get_road_distance(start, end, payment=True)
             text = "Поточна статистика\n"
             for driver, result in in_road.items():
                 reshuffles = DriverReshuffle.objects.filter(driver_start=driver,
