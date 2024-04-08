@@ -360,10 +360,11 @@ class SeleniumTools:
             with open(file_path, encoding="utf-8") as file:
                 reader = csv.reader(file)
                 next(reader)
-                existing_ids = FleetOrder.objects.filter(order_id__in=[row[0] for row in reader],
+                rows = [row for row in reader]
+                existing_ids = FleetOrder.objects.filter(order_id__in=[str(row[0]) for row in rows],
                                                          fleet="Uber",
                                                          partner=self.partner).values_list('order_id', flat=True)
-                orders = [row for row in reader if row[0] not in existing_ids]
+                orders = [row for row in rows if row[0] not in existing_ids]
                 for order in orders:
                     try:
                         finish = timezone.make_aware(datetime.strptime(order[8], "%Y-%m-%d %H:%M:%S"))
@@ -371,7 +372,7 @@ class SeleniumTools:
                         finish = None
                     driver_order = Driver.objects.filter(
                         fleetsdriversvehiclesrate__driver_external_id=order[1],
-                        fleetsdriversvehiclesrate__fleet=self, partner=self.partner).first()
+                        fleetsdriversvehiclesrate__fleet__name="Uber", partner=self.partner).first()
                     calendar_vehicle = check_vehicle(driver_order)
                     vehicle = Vehicle.objects.get(licence_plate=order[5])
                     if calendar_vehicle != vehicle and not calendar_errors.get(driver_order.pk):

@@ -530,6 +530,12 @@ class VehicleSpendingAdmin(admin.ModelAdmin):
                     kwargs['queryset'] = db_field.related_model.objects.get_active(partner=user)
                 if user.is_manager():
                     kwargs['queryset'] = db_field.related_model.objects.get_active(manager=user)
+            if db_field.name == 'spending_category':
+                if user.is_partner():
+                    kwargs['queryset'] = db_field.related_model.objects.filter(Q(partner=user))
+                if user.is_manager():
+                    manager = Manager.objects.get(pk=request.user.pk)
+                    kwargs['queryset'] = db_field.related_model.objects.filter(partner=manager.managers_partner)
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
     display_photo.short_description = 'Попередній перегляд'
@@ -1568,3 +1574,24 @@ class DriverFleetEfficiencyAdmin(admin.ModelAdmin):
             Prefetch('fleet', queryset=Fleet.objects.only('name')),
             Prefetch('driver', queryset=Driver.objects.only('name', 'second_name')),
         )
+
+
+@admin.register(SpendingCategory)
+class SpendingCategory(admin.ModelAdmin):
+    list_display = ['title']
+
+    def get_fieldsets(self, request, obj=None):
+        fieldsets = [
+            ('Назва категорії', {'fields': ['title',
+                                   ]}),
+
+        ]
+
+        return fieldsets
+
+    def save_model(self, request, obj, form, change):
+        if request.user.is_partner():
+            obj.partner_id = request.user.pk
+        if request.user.is_manager():
+            obj.partner = request.user.manager.managers_partner
+        super().save_model(request, obj, form, change)

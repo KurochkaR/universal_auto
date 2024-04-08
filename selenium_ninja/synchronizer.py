@@ -61,10 +61,9 @@ class Synchronizer:
         driver = Driver.objects.filter((Q(name=kwargs['name'], second_name=kwargs['second_name']) |
                                         Q(name=kwargs['second_name'], second_name=kwargs['name']) |
                                         Q(phone_number__icontains=kwargs['phone_number'][-10:])
-                                        ) & Q(partner=self.partner.id)).first()
-
+                                        ) & Q(partner=self.partner)).first()
         if not driver and kwargs['email']:
-            driver = Driver.objects.filter(email__icontains=kwargs['email']).first()
+            driver = Driver.objects.filter(email__icontains=kwargs['email'], partner=self.partner).first()
         if not driver:
             data = {"name": kwargs['name'],
                     "second_name": kwargs['second_name'],

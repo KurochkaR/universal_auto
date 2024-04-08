@@ -138,6 +138,9 @@ class Category(PolymorphicModel):
 
 class SpendingCategory(Category):
     pass
+    # class Meta:
+    #     verbose_name = 'Категорія витрат'
+    #     verbose_name_plural = 'Категорії витрат'
 
 
 class PenaltyCategory(Category):
@@ -392,7 +395,7 @@ class VehicleSpending(models.Model):
         verbose_name_plural = 'Витрати'
 
     def __str__(self) -> str:
-        return f'{self.vehicle} {self.get_category_display()}'
+        return f'{self.vehicle} {self.spending_category}'
 
 
 class Driver(User):

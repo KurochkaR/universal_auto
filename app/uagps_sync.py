@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, time
 import requests
 from _decimal import Decimal
 from django.utils import timezone
+from telegram import ParseMode
 
 from app.models import (Driver, GPSNumber, RentInformation, FleetOrder, CredentialPartner, ParkSettings, Fleet,
                         Partner, VehicleRent, Vehicle, DriverReshuffle, DriverPayments)
@@ -371,42 +372,52 @@ class UaGpsSynchronizer(Fleet):
                 bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"),
                                  text=f"У авто {result_string} відсутній gps")
 
+    @staticmethod
+    def generate_text_message(
+            driver, kasa, distance, orders, canceled_orders, accepted_times, rent_distance, road_time, end_time,
+            start_reshuffle):
+        time_now = timezone.localtime(end_time)
+        if kasa and distance:
+            return f"<b>{driver}</b> \n" \
+                   f"<u>Звіт з {start_reshuffle} по {time_now.strftime('%H:%M')}</u> \n\n" \
+                   f"Початок роботи: {accepted_times}\n" \
+                   f"Каса: {round(kasa, 2)}\n" \
+                   f"Виконано замовлень: {orders}\n" \
+                   f"Скасовано замовлень: {canceled_orders}\n" \
+                   f"Пробіг під замовленням: {distance}\n" \
+                   f"Ефективність: {round(kasa / (distance + rent_distance), 2)}\n" \
+                   f"Холостий пробіг: {rent_distance}\n" \
+                   f"Час у дорозі: {road_time}\n\n"
+        else:
+            return f"Водій {driver} ще не виконав замовлень\n" \
+                   f"Холостий пробіг: {rent_distance}\n\n"
+
+    def process_driver_data(self, driver, result, start, end, chat_id, start_reshuffle=None):
+        distance, road_time, end_time = result
+        end_time = end_time or timezone.localtime()
+        total_km = self.calc_total_km(driver, start, end_time)[0]
+        rent_distance = total_km - distance
+        kasa, card, mileage, orders, canceled_orders, accepted_times = get_today_statistic(start, end_time, driver)
+        text = self.generate_text_message(driver, kasa, distance, orders, canceled_orders, accepted_times,
+                                          rent_distance, road_time, end_time, start_reshuffle)
+        # if timezone.localtime().time() > time(7, 0):
+        #     send_long_message(chat_id=chat_id, text=text)
+        return text
+
     def check_today_rent(self):
         if not redis_instance().exists(f"{self.partner.id}_remove_gps"):
             start = timezone.make_aware(datetime.combine(timezone.localtime(), time.min))
             end = timezone.make_aware(datetime.combine(timezone.localtime(), time.max))
-            in_road = self.get_road_distance(start, end)
+            in_road = self.get_road_distance(start, end, payment=True)
             text = "Поточна статистика\n"
             for driver, result in in_road.items():
-                distance, road_time, end_time = result
-                total_km = 0
-                if not end_time:
-                    end_time = timezone.localtime()
-                reshuffles = check_reshuffle(driver, start, end, gps=True)
-                for reshuffle in reshuffles:
-                    if reshuffle.end_time < end_time:
-                        total_km += self.total_per_day(reshuffle.swap_vehicle.gps.gps_id,
-                                                       reshuffle.swap_time,
-                                                       reshuffle.end_time)
-                    elif reshuffle.swap_time < end_time:
-                        total_km += self.total_per_day(reshuffle.swap_vehicle.gps.gps_id,
-                                                       reshuffle.swap_time,
-                                                       end_time)
-                    else:
-                        continue
-                rent_distance = total_km - distance
-                kasa, card, mileage, orders, canceled_orders = get_today_statistic(start, end_time, driver)
-                time_now = timezone.localtime(end_time)
-                if kasa and mileage:
-                    text += f"Водій: {driver} час {time_now.strftime('%H:%M')} \n" \
-                            f"Каса: {round(kasa, 2)}\n" \
-                            f"Виконано замовлень: {orders}\n" \
-                            f"Скасовано замовлень: {canceled_orders}\n" \
-                            f"Пробіг під замовленням: {mileage}\n" \
-                            f"Ефективність: {round(kasa / mileage, 2)}\n" \
-                            f"Холостий пробіг: {rent_distance}\n\n"
-                else:
-                    text += f"Водій {driver} ще не виконав замовлень\n" \
-                            f"Холостий пробіг: {rent_distance}\n\n"
+                reshuffles = DriverReshuffle.objects.filter(driver_start=driver,
+                                                            swap_time__date=timezone.localtime()).order_by('swap_time')
+                start_reshuffle = timezone.localtime(reshuffles.earliest('swap_time').swap_time)
+                text += self.process_driver_data(
+                    driver, result, start, end, driver.chat_id, start_reshuffle.strftime("%H:%M"))
             if timezone.localtime().time() > time(7, 0):
-                send_long_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"), text=text)
+                send_long_message(
+                    chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"),
+                    text=text
+                )

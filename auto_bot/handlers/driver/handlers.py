@@ -14,8 +14,15 @@ from scripts.redis_conn import redis_instance
 
 def bolt_report_photo_callback(update, context):
     query = update.callback_query
-    query.edit_message_text("Надішліть фото звіту, будь ласка")
     chat_id = update.effective_chat.id
+    context.bot.send_photo(
+        chat_id=chat_id,
+        photo='https://storage.googleapis.com/jobdriver-bucket/docs/bolt_screen.jpeg',
+        caption=f"Надішліть, будь ласка, фото поточного звіту Bolt, як вказано на фото вище."
+                f"Якщо виконуєте замовлення надішліть звіт після його завершення"
+    )
+
+    context.bot.delete_message(chat_id=chat_id, message_id=query.message.message_id)
     redis_instance().hset(str(chat_id), 'photo_state', BOLT_REPORT_PHOTO)
 
 
@@ -29,8 +36,6 @@ def upload_bolt_report_photo(update, context):
         save_storage_photo(image, filename)
         add_screen_to_payment.apply_async(args=[filename, driver.pk], queue=f'beat_tasks_{driver.partner.pk}')
         update.message.reply_text("Дякую дані збережено для розрахунку виплати")
-        # context.bot.send_photo(update.effective_chat.id,
-        #                        'https://www.autoconsulting.com.ua/pictures/_upload/1582561870fbTo_h.jpg')
     else:
         update.message.reply_text("Будь ласка, надішліть знімок екрану з поточним звітом")
         redis_instance().hset(str(chat_id), 'photo_state', BOLT_REPORT_PHOTO)
