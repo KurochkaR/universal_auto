@@ -215,13 +215,11 @@ class BoltRequest(Fleet, Synchronizer):
                 continue
             report = self.parse_json_report(start, end, driver_report)
             report['total_amount_without_fee'] = driver_report['net_earnings']
-            db_report, created = WeeklyReport.objects.get_or_create(report_from=start,
-                                                                    driver=report['driver'],
-                                                                    fleet=self,
-                                                                    partner=self.partner,
-                                                                    defaults=report)
-            if not created:
-                db_report.update(**report)
+            WeeklyReport.objects.update_or_create(report_from=start,
+                                                  driver=report['driver'],
+                                                  fleet=self,
+                                                  partner=self.partner,
+                                                  defaults=report)
 
     def save_daily_report(self, start, end, driver):
         format_start = start.strftime("%Y-%m-%d")
