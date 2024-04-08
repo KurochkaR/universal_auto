@@ -3,6 +3,8 @@ from datetime import datetime, timedelta, time
 
 import requests
 from _decimal import Decimal
+
+from django.db.models import Q
 from django.utils import timezone
 from telegram import ParseMode
 
@@ -233,6 +235,47 @@ class UaGpsSynchronizer(Fleet):
                 order.road_time = road_time
                 updated_orders.append(order)
             FleetOrder.objects.bulk_update(updated_orders, fields=['distance', 'road_time'], batch_size=200)
+
+    def get_non_order_message(self, start_time, end_time, driver_pk):
+        message = ''
+        reshuffles = check_reshuffle(driver_pk, start_time, end_time, gps=True)
+        prev_order_end_time = start_time
+
+        for reshuffle in reshuffles:
+            empty_time_slots = []
+            parameters = []
+            if timezone.localtime(reshuffle.swap_time) > prev_order_end_time + timedelta(minutes=1):
+                empty_time_slots.append((prev_order_end_time, timezone.localtime(reshuffle.swap_time)))
+
+            start, end = find_reshuffle_period(reshuffle, start_time, end_time)
+
+            prev_order_end_time = start
+            orders = FleetOrder.objects.filter(Q(driver=driver_pk,
+                                                 state=FleetOrder.COMPLETED) &
+                                               Q(Q(accepted_time__range=(start, end)) |
+                                                 Q(accepted_time__lt=start,
+                                                   finish_time__gt=start))).order_by('accepted_time')
+
+            if orders.exists():
+                for order in orders:
+                    if prev_order_end_time < order.accepted_time:
+                        empty_time_slots.append((prev_order_end_time, timezone.localtime(order.accepted_time)))
+                    prev_order_end_time = timezone.localtime(order.finish_time)
+                if prev_order_end_time < end:
+                    empty_time_slots.append((prev_order_end_time, end))
+            else:
+                empty_time_slots.append((start, end))
+            prev_order_end_time = end
+            for slot in empty_time_slots:
+                parameters.append(self.get_params_for_report(self.get_timestamp(slot[0]),
+                                                             self.get_timestamp(slot[1]),
+                                                             reshuffle.swap_vehicle.gps.gps_id))
+            result = self.generate_batch_report(parameters, True)
+            results_with_slots = list(zip(empty_time_slots, result))
+            for slot, result in results_with_slots:
+                if result[0]:
+                    message += f"Час: {slot[0].strftime('%H:%M')} - {slot[1].strftime('%H:%M')} Холостий пробіг: {result[0]}\n"
+        return message
 
     def get_order_parameters(self, orders, end, vehicle):
         parameters = []

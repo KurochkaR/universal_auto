@@ -1,6 +1,7 @@
 # Create driver and other
 from datetime import datetime, timedelta, time
 from celery.signals import task_postrun
+from django.core.serializers import serialize, deserialize
 from django.utils import timezone
 from telegram import ReplyKeyboardRemove, ParseMode
 from telegram.error import BadRequest
@@ -26,6 +27,53 @@ from scripts.redis_conn import redis_instance
 from auto_bot.handlers.main.keyboards import back_to_main_menu
 
 
+def cache_queryset(update, context):
+    query = update.callback_query
+    user = CustomUser.get_by_chat_id(query.from_user.id)
+    drivers = Driver.objects.get_active(manager=user) if user.is_manager() else Driver.objects.get_active(partner=user)
+    # Serialize the queryset and store it in Redis
+    serialized_qs = serialize('json', drivers)
+    redis_instance().set('qs', serialized_qs)
+
+
+def retrieve_records(page_number):
+    # Retrieve the serialized queryset from Redis and deserialize it
+    serialized_qs = redis_instance().get('qs')
+    if serialized_qs:
+        deserialized_qs = list(deserialize('json', serialized_qs))
+        start_index = (page_number - 1) * records_per_page
+        end_index = min(start_index + records_per_page, len(deserialized_qs))
+        return deserialized_qs[start_index:end_index]
+    else:
+        return []
+
+
+def generate_buttons_for_page(page_number):
+    records = retrieve_records(page_number)
+    buttons = []
+    for obj in records:
+        buttons.append([InlineKeyboardButton(text=str(obj), callback_data=f"record_{obj.id}")])
+    return buttons
+
+
+def generate_pagination_buttons(page_number):
+    serialized_qs = redis_instance().get('qs')
+    total_records = len(deserialize('json', serialized_qs)) if serialized_qs else 0
+    total_pages = (total_records // records_per_page) + 1 if total_records % records_per_page != 0 else total_records // records_per_page
+    buttons = [
+        InlineKeyboardButton(text=f"{i}", callback_data=f"page_{i}")
+        for i in range(1, total_pages + 1)
+    ]
+    return buttons
+
+
+def get_driver_rent_info(update, context):
+    cache_queryset(update, context)  # Cache the queryset in Redis
+    page_number = 1
+    buttons = generate_buttons_for_page(page_number)
+    buttons.append(generate_pagination_buttons(page_number))
+    reply_markup = InlineKeyboardMarkup(buttons)
+    update.message.reply_text("Records:", reply_markup=reply_markup)
 @task_postrun.connect
 def remove_cash_driver(sender=None, **kwargs):
     if sender == manager_paid_weekly:

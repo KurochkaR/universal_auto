@@ -50,7 +50,7 @@ def find_reshuffle_period(reshuffle, start, end):
         start_period, end_period = reshuffle.swap_time, reshuffle.end_time
     else:
         start_period, end_period = reshuffle.swap_time, end
-    return start_period, end_period
+    return timezone.localtime(start_period), timezone.localtime(end_period)
 
 
 def add_bonus_earnings(start_week, end_week, driver, bolt_weekly):
