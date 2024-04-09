@@ -743,7 +743,7 @@ def get_today_statistic(start, end, driver):
             fleet_kasa, fleet_cash = fleet.get_earnings_per_driver(driver, start, end)
 
         fleet_mileage = fleet_orders.aggregate(order_mileage=Coalesce(Sum('distance'), Decimal(0)))['order_mileage']
-        road_time = orders.aggregate(order_time=Coalesce(Sum('road_time'), timedelta()))['order_time']
+        road_time = fleet_orders.aggregate(order_time=Coalesce(Sum('road_time'), timedelta()))['order_time']
         fleet_orders_rejected = FleetOrder.objects.filter(accepted_time__gt=start,
                                                           state=FleetOrder.DRIVER_CANCEL,
                                                           driver=driver, fleet=fleet.name).count()
