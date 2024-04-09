@@ -203,7 +203,7 @@ class UaGpsSynchronizer(Fleet):
                 partner=self.partner, swap_time__range=(start, end),
                 driver_start__isnull=False).values_list(
                 'driver_start', flat=True)
-        drivers = Driver.objects.filter(pk__in=schema_drivers)
+        drivers = Driver.objects.filter(pk__in=schema_drivers, schema__isnull=False)
         for driver in drivers:
             if not driver.schema.is_weekly() and not payment:
                 last_payment = DriverPayments.objects.filter(
@@ -461,7 +461,7 @@ class UaGpsSynchronizer(Fleet):
         if not redis_instance().exists(f"{self.partner.id}_remove_gps"):
             start = timezone.make_aware(datetime.combine(timezone.localtime(), time.min))
             end = timezone.make_aware(datetime.combine(timezone.localtime(), time.max))
-            in_road = self.get_road_distance(start, end)
+            in_road = self.get_road_distance(start, end, payment=True)
             text = "Поточна статистика\n"
             for driver, result in in_road.items():
                 reshuffles = DriverReshuffle.objects.filter(driver_start=driver,

@@ -416,7 +416,8 @@ class UklonRequest(Fleet, Synchronizer):
                 driver_order = Driver.objects.filter(
                     fleetsdriversvehiclesrate__driver_external_id=formatted_uuid,
                     fleetsdriversvehiclesrate__fleet=self, partner=self.partner).first()
-                calendar_vehicle = check_vehicle(driver_order)
+                calendar_vehicle = check_vehicle(driver_order, timezone.make_aware(
+                    datetime.fromtimestamp(order["pickupTime"])))
                 vehicle = Vehicle.objects.get(licence_plate=normalized_plate(order['vehicle']['licencePlate']))
                 if calendar_vehicle != vehicle and not calendar_errors.get(driver_order.pk):
                     calendar_errors[driver_order.pk] = vehicle.licence_plate
@@ -424,9 +425,14 @@ class UklonRequest(Fleet, Synchronizer):
                     "completedAt") is not None else None
                 start_time = timezone.make_aware(datetime.fromtimestamp(order.get("acceptedAt"))) if order.get(
                     "acceptedAt") is not None else None
-
-                state = order["cancellation"]["initiator"] if order['status'] != "completed" else order['status']
-
+                tips = (self.to_float(order['additionalIncome']['tips']['amount']) +
+                        self.to_float(order['additionalIncome']['compensation']['amount']))
+                if order['status'] != "completed":
+                    state = order["cancellation"]["initiator"]
+                    price = 0
+                else:
+                    state = order['status']
+                    price = order['payment']['cost']
                 data = {"order_id": order['id'],
                         "fleet": self.name,
                         "driver": driver_order,
@@ -437,7 +443,8 @@ class UklonRequest(Fleet, Synchronizer):
                         "destination": order['route']['points'][-1]["address"],
                         "vehicle": calendar_vehicle,
                         "payment": PaymentTypes.map_payments(order['payment']['paymentType']),
-                        "price": order['payment']['cost'],
+                        "tips": tips,
+                        "price": price,
                         "partner": self.partner,
                         "date_order": timezone.make_aware(datetime.fromtimestamp(order["pickupTime"]))
                         }

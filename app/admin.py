@@ -553,6 +553,12 @@ class TransactionsConversationAdmin(admin.ModelAdmin):
             display.append('partner')
         return display
 
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if request.user.is_partner():
+            return qs.filter(partner=request.user)
+        return qs.select_related('vehicle', 'investor', 'partner')
+
 
 @admin.register(PartnerEarnings)
 class PartnerEarningsAdmin(admin.ModelAdmin):
@@ -1237,7 +1243,7 @@ class VehicleAdmin(SoftDeleteAdmin):
             return ['licence_plate', 'name',
                     'vin_code', 'gps',
                     'purchase_price',
-                    'manager', 'investor_car', 'branding', 'created_at'
+                    'manager', 'investor_car', 'investor_schema', 'branding', 'created_at'
                     ]
         else:
             return ['licence_plate', 'name',
@@ -1261,7 +1267,8 @@ class VehicleAdmin(SoftDeleteAdmin):
                 ('Номер автомобіля', {'fields': ['licence_plate',
                                                  ]}),
                 ('Інформація про машину', {'fields': ['name', 'purchase_price',
-                                                      'currency', 'investor_car', 'investor_percentage',
+                                                      'currency', 'investor_car', 'investor_schema',
+                                                      'investor_percentage',
                                                       'currency_rate', 'currency_back',
                                                       ]}),
                 ('Особисті дані авто', {'fields': ['vin_code', 'gps_imei', 'lat', 'lon',
@@ -1273,11 +1280,13 @@ class VehicleAdmin(SoftDeleteAdmin):
 
         elif request.user.is_partner():
             fieldsets = (
-                ('Номер автомобіля', {'fields': ['licence_plate',
-                                                 ]}),
-                ('Інформація про машину', {'fields': ['name', 'purchase_price', 'gps_imei', 'gps',
-                                                      'investor_car', 'investor_percentage'
+                ('Інформація про машину', {'fields': ['licence_plate', 'name', 'purchase_price',
                                                       ]}),
+                ('Дані авто з GPS', {'fields': ['gps_imei', 'gps',
+                                                ]}),
+                ('Інформація про інвестора', {'fields': ['currency', 'investor_car', 'investor_schema',
+                                                         'investor_percentage', 'currency_rate', 'currency_back',
+                                                         ]}),
                 ('Додатково', {'fields': ['manager', 'branding'
                                           ]}),
             )

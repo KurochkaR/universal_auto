@@ -215,13 +215,11 @@ class BoltRequest(Fleet, Synchronizer):
                 continue
             report = self.parse_json_report(start, end, driver_report)
             report['total_amount_without_fee'] = driver_report['net_earnings']
-            db_report, created = WeeklyReport.objects.get_or_create(report_from=start,
-                                                                    driver=report['driver'],
-                                                                    fleet=self,
-                                                                    partner=self.partner,
-                                                                    defaults=report)
-            if not created:
-                db_report.update(**report)
+            WeeklyReport.objects.update_or_create(report_from=start,
+                                                  driver=report['driver'],
+                                                  fleet=self,
+                                                  partner=self.partner,
+                                                  defaults=report)
 
     def save_daily_report(self, start, end, driver):
         format_start = start.strftime("%Y-%m-%d")
@@ -298,15 +296,7 @@ class BoltRequest(Fleet, Synchronizer):
             })
         return driver_list
 
-    def get_fleet_orders(self, start, end, driver=None, driver_ids=None):
-        bolt_states = {
-            "client_did_not_show": FleetOrder.CLIENT_CANCEL,
-            "finished": FleetOrder.COMPLETED,
-            "client_cancelled": FleetOrder.CLIENT_CANCEL,
-            "driver_cancelled_after_accept": FleetOrder.DRIVER_CANCEL,
-            "driver_did_not_respond": FleetOrder.DRIVER_CANCEL,
-            "driver_rejected": FleetOrder.DRIVER_CANCEL
-        }
+    def get_orders_list(self, start, end):
         format_start = start.strftime("%Y-%m-%d")
         format_end = end.strftime("%Y-%m-%d")
         payload = {
@@ -325,7 +315,6 @@ class BoltRequest(Fleet, Synchronizer):
         }
         offset = 0
         limit = payload["limit"]
-        batch_data = []
         orders = []
         while True:
             payload["offset"] = offset
@@ -339,6 +328,19 @@ class BoltRequest(Fleet, Synchronizer):
                     break
             else:
                 break
+        return orders
+
+    def get_fleet_orders(self, start, end, driver=None, driver_ids=None):
+        batch_data = []
+        bolt_states = {
+            "client_did_not_show": FleetOrder.CLIENT_CANCEL,
+            "finished": FleetOrder.COMPLETED,
+            "client_cancelled": FleetOrder.CLIENT_CANCEL,
+            "driver_cancelled_after_accept": FleetOrder.DRIVER_CANCEL,
+            "driver_did_not_respond": FleetOrder.DRIVER_CANCEL,
+            "driver_rejected": FleetOrder.DRIVER_CANCEL
+        }
+        orders = self.get_orders_list(start, end)
         filter_condition = Q(date_order__in=[
             timezone.make_aware(datetime.fromtimestamp(order['driver_assigned_time'])) for order in orders
         ],

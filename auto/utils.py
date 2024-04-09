@@ -1,14 +1,15 @@
 from datetime import timedelta
 
 import requests
-from _decimal import Decimal
+from _decimal import Decimal, ROUND_HALF_UP
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Sum, DecimalField, Q, Value, F
 from django.db.models.functions import Coalesce
 
+from app.bolt_sync import BoltRequest
 from app.models import CustomReport, ParkSettings, Vehicle, Partner, Payments, SummaryReport, DriverPayments, Penalty, \
-    Bonus, FleetOrder, Fleet, DriverReshuffle, DriverEfficiency
+    Bonus, FleetOrder, Fleet, DriverReshuffle, DriverEfficiency, InvestorPayments, WeeklyReport
 from app.uagps_sync import UaGpsSynchronizer
 from auto_bot.handlers.driver_manager.utils import create_driver_payments
 from auto_bot.handlers.order.utils import check_vehicle
@@ -17,6 +18,8 @@ from selenium_ninja.synchronizer import AuthenticationError
 
 
 def get_currency_rate(currency_code):
+    if currency_code == 'UAH':
+        return 1
     api_url = f'https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange?valcode={currency_code}&json'
     response = requests.get(api_url)
     if response.status_code == 200:
@@ -246,3 +249,86 @@ def calendar_weekly_report(partner_pk, start_date, end_date, format_start, forma
         f"Кількість ТО: {total_maintenance_percentage:.2f}%\n"
     )
     return message
+
+
+def create_share_investor_earn(start, end, vehicles_list, partner_pk):
+    drivers = DriverReshuffle.objects.filter(
+        swap_vehicle__in=vehicles_list, swap_time__range=(start, end)).values_list(
+        'driver_start', flat=True).distinct()
+
+    shared_kasa = 0
+    bonus_kasa = 0
+    fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name__in=['Gps', 'Ninja'])
+    for fleet in fleets:
+        orders = FleetOrder.objects.filter(
+            state__in=[FleetOrder.COMPLETED, FleetOrder.CLIENT_CANCEL, FleetOrder.SYSTEM_CANCEL],
+            accepted_time__range=(start, end), fleet=fleet.name, vehicle__in=vehicles_list)
+        shared_orders = orders.aggregate(
+            total_price=Coalesce(Sum('price'), 0),
+            total_tips=Coalesce(Sum('tips'), 0))
+        if isinstance(fleet, BoltRequest):
+            bonus_kasa = calc_bonus_bolt_from_orders(start, end, fleet, orders, drivers)
+        shared_kasa += shared_orders['total_price'] * (1 - fleet.fees) + shared_orders['total_tips']
+        print(shared_kasa)
+    vehicle_kasa = (shared_kasa + bonus_kasa) / vehicles_list.count()
+    for vehicle in vehicles_list:
+        calc_and_create_earn(start, end, vehicle_kasa, vehicle)
+
+
+def create_proportional_investor_earn(start, end, vehicles_list, partner_pk):
+    fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name__in=['Gps', 'Ninja'])
+    for vehicle in vehicles_list:
+        drivers = DriverReshuffle.objects.filter(
+            swap_vehicle=vehicle, swap_time__range=(start, end)).values_list(
+            'driver_start', flat=True).distinct()
+        kasa = 0
+        bonus_kasa = 0
+        for fleet in fleets:
+            orders = FleetOrder.objects.filter(
+                state__in=[FleetOrder.COMPLETED, FleetOrder.CLIENT_CANCEL, FleetOrder.SYSTEM_CANCEL],
+                accepted_time__range=(start, end), fleet=fleet.name, vehicle=vehicle)
+            kasa_orders = orders.aggregate(
+                total_price=Coalesce(Sum('price'), 0),
+                total_tips=Coalesce(Sum('tips'), 0))
+            if isinstance(fleet, BoltRequest):
+                for driver in drivers:
+                    bonus_kasa += calc_bonus_bolt_from_orders(start, end, fleet, orders, [driver])
+            kasa += kasa_orders['total_price'] * (1 - fleet.fees) + kasa_orders['total_tips'] + bonus_kasa
+            print(kasa)
+        calc_and_create_earn(start, end, kasa, vehicle)
+
+
+def calc_and_create_earn(start, end, kasa, vehicle):
+    earning = kasa * vehicle.investor_percentage
+    rate = get_currency_rate(vehicle.currency_back)
+    amount_usd = float(earning) / rate
+    car_earnings = Decimal(str(amount_usd)).quantize(Decimal('0.00'), rounding=ROUND_HALF_UP)
+    InvestorPayments.objects.get_or_create(
+        report_from=start,
+        report_to=end,
+        vehicle=vehicle,
+        investor=vehicle.investor_car,
+        partner_id=vehicle.partner_id,
+        defaults={
+            "earning": earning,
+            "currency": vehicle.currency_back,
+            "currency_rate": rate,
+            "sum_after_transaction": car_earnings})
+
+
+def calc_bonus_bolt_from_orders(start, end, fleet, orders, drivers_list):
+    weekly_bonus = WeeklyReport.objects.filter(
+        report_from=start, report_to=end, fleet=fleet, driver__in=drivers_list).aggregate(
+        kasa=Coalesce(Sum('total_amount_without_fee'), 0, output_field=DecimalField()),
+        bonuses=Coalesce(Sum('bonuses'), 0, output_field=DecimalField()),
+        compensations=Coalesce(Sum('compensations'), 0, output_field=DecimalField()))
+    if weekly_bonus['bonuses']:
+        driver_orders = orders.filter(driver__in=drivers_list).aggregate(
+            total_price=Coalesce(Sum('price'), 0),
+            total_tips=Coalesce(Sum('tips'), 0))
+        driver_kasa = driver_orders['total_price'] * (1 - fleet.fees) + driver_orders['total_tips']
+        bonus_kasa = driver_kasa / (weekly_bonus['kasa'] - weekly_bonus['compensations'] -
+                                    weekly_bonus['bonuses']) * weekly_bonus['bonuses']
+    else:
+        bonus_kasa = 0
+    return bonus_kasa

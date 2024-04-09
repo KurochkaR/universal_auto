@@ -1164,7 +1164,6 @@ h2, table {
 
 th, td {
 	text-align: left;
-	border-bottom: 1px solid #ddd;
 }
 
 thead {
@@ -1543,6 +1542,7 @@ select:focus {
 	border: none;
 	width: 167px;
 	height: 61px;
+	margin-bottom: 10px;
 	box-shadow: 0 4px 4px 0 rgba(0, 0, 0, 0.25);
 	background: var(--color-primary);
 	font-family: var(--font-primary);
@@ -2177,6 +2177,11 @@ span#vehicle-bonus-error {
 	font-size: 30px;
 }
 
+.driver-table tbody tr td .correct-bolt-btn {
+	font-size: 36px;
+	color: inherit;
+}
+
 .driver-table tbody tr td .apply-btn {
 	width: 59px;
 	height: 34px;
@@ -2226,6 +2231,17 @@ span#vehicle-bonus-error {
 }
 
 td.driver-rate {
+	cursor: pointer;
+}
+
+td.calc-buttons {
+    display: flex;
+    flex-direction:column;
+	cursor: pointer;
+}
+
+td.send-buttons {
+    text-align: center;
 	cursor: pointer;
 }
 
