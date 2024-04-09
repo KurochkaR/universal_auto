@@ -179,13 +179,31 @@ def get_today_orders(self, partner_pk, day=None):
         raise self.retry(exc=e, countdown=retry_delay)
 
 
+@app.task(bind=True)
+def null_vehicle_orders(self, partner_pk, day):
+    end = timezone.make_aware(datetime.strptime(day, "%Y-%m-%d")) if day else timezone.localtime()
+    start = end - timedelta(days=1)
+    filter_query = Q(partner=partner_pk, vehicle__isnull=True,
+                     state__in=[FleetOrder.COMPLETED, FleetOrder.CLIENT_CANCEL],
+                     date_order__range=(start, end))
+    orders = FleetOrder.objects.filter(filter_query)
+    active_drivers = Driver.objects.get_active(partner=partner_pk)
+    for driver in active_drivers:
+        driver_orders = orders.filter(Q(driver=driver))
+        for order in driver_orders:
+            vehicle = check_vehicle(driver, order.date_order)
+            if vehicle:
+                order.vehicle = vehicle
+                order.save(update_fields=['vehicle'])
+
+
 @app.task(bind=True, retry_backoff=30, max_retries=3)
 def add_distance_for_order(self, partner_pk, day=None, driver=None):
     gps_query = UaGpsSynchronizer.objects.filter(partner=partner_pk)
     end = timezone.make_aware(datetime.strptime(day, "%Y-%m-%d")) if day else timezone.localtime()
     start = end - timedelta(days=1)
     filter_query = Q(partner=partner_pk, vehicle__isnull=False,
-                     state=FleetOrder.COMPLETED, distance__isnull=True, finish_time__isnull=False,
+                     state=FleetOrder.COMPLETED, distance__in=[None, 0.00], finish_time__isnull=False,
                      vehicle__gps__isnull=False, date_order__range=(start, end))
 
     if gps_query.exists():
@@ -1327,6 +1345,7 @@ def calculate_failed_earnings(self, payment_pk):
 @app.task(bind=True)
 def check_cash_and_vehicle(self, partner_pk):
     tasks = chain(get_today_orders.si(partner_pk).set(queue=f'beat_tasks_{partner_pk}'),
+                  null_vehicle_orders.si(partner_pk).set(queue=f'beat_tasks_{partner_pk}'),
                   add_distance_for_order.si(partner_pk).set(queue=f'beat_tasks_{partner_pk}'),
                   check_card_cash_value.si(partner_pk).set(queue=f'beat_tasks_{partner_pk}')
                   )

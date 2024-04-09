@@ -417,8 +417,7 @@ class UaGpsSynchronizer(Fleet):
                 text += self.process_driver_data(
                     driver, result, start, end, driver.chat_id, start_reshuffle.strftime("%H:%M"))
             if timezone.localtime().time() > time(7, 0):
-                chat = ParkSettings.get_value("DRIVERS_CHAT", partner=self.partner) if self.partner.id == 1 else ParkSettings.get_value("DEVELOPER_CHAT_ID")
                 send_long_message(
-                    chat_id=chat,
+                    chat_id=ParkSettings.get_value("DRIVERS_CHAT", partner=self.partner),
                     text=text
                 )
