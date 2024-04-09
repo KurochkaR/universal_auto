@@ -21,11 +21,11 @@ p, span, div {
 	font-family: var(--font-secondary);
 }
 
-.material-icons-outlined {
-	vertical-align: middle;
-	line-height: 1px;
-	color: #53785E;
-}
+/*.material-icons-outlined {*/
+/*	vertical-align: middle;*/
+/*	line-height: 1px;*/
+/*	color: #53785E;*/
+/*}*/
 
 .grid-container {
 	display: grid;
@@ -302,6 +302,17 @@ img.logo-1 {
 	padding: 20px 20px;
 }
 
+.main-container .weekly-income-dates {
+	position: relative;
+	bottom: 25px;
+	float: right;
+	color: var(--color-secondary);
+	font-size: 30px;
+	font-style: normal;
+	font-weight: 700;
+	line-height: normal;
+}
+
 .main-title {
 	display: flex;
 	justify-content: flex-start;
@@ -410,6 +421,10 @@ i.fas.fa-angle-down {
 #datePickerPayments {
 	display: none;
 	margin-top: 20px;
+	align-content: center;
+	align-items: center;
+	flex-direction: row;
+	justify-content: flex-start;
 }
 
 #start_date, #end_date,
@@ -435,6 +450,7 @@ input[type="button"] {
 
 .main-cards,
 .main-cards-partner {
+	width: 100%;
 	display: grid;
 	grid-template-columns: repeat(4, 1fr);
 	gap: 20px;
@@ -606,96 +622,6 @@ input[type="button"] {
 	}
 }
 
-
-/* Small <= 768px */
-
-@media screen and (max-width: 768px) {
-	.main-cards {
-		grid-template-columns: 1fr;
-		gap: 10px;
-		margin-bottom: 0;
-	}
-
-	.charts {
-		grid-template-columns: 1fr;
-		margin-top: 30px;
-	}
-
-	.common-period {
-		display: flex;
-		flex-direction: column;
-	}
-
-	.common-period .weekly-income-dates {
-		margin-top: 20px;
-	}
-
-	.custom-dropdown-card {
-		grid-template-columns: 60% 40% !important;
-	}
-
-	.card h3 {
-		font-size: 14px;
-	}
-
-	.main-cards .card span,
-	.main-cards-partner .card-partner h3 {
-		font-size: 14px;
-	}
-}
-
-
-/* Extra Small <= 576px */
-
-@media screen and (max-width: 576px) {
-
-	.chart-title {
-		font-size: 20px;
-	}
-
-	.car-select {
-		position: static;
-		left: 0;
-		top: 100px;
-	}
-
-	.charts-card .weekly-income-dates {
-		float: none !important;
-	}
-
-	#area-chart {
-		top: 35px;
-	}
-
-	.driver-block {
-		background-color: white !important;
-	}
-
-	.driver-container {
-		display: block !important;
-	}
-
-	.title-driver h2 {
-		font-size: 22px !important;
-	}
-
-	.filter {
-		flex-direction: column;
-		align-items: flex-start !important;
-	}
-
-	.filter label {
-		font-size: 18px;
-	}
-
-	.checkbox-container {
-		margin-left: 0 !important;
-	}
-
-	.custom-select-drivers {
-		right: 7px;
-	}
-}
 
 /*vehicle-block*/
 
@@ -1238,7 +1164,6 @@ h2, table {
 
 th, td {
 	text-align: left;
-	border-bottom: 1px solid #ddd;
 }
 
 thead {
@@ -1553,6 +1478,13 @@ select:focus {
 	margin: 0px;
 }
 
+.custom-dropdown-card .not-closed span {
+	font-size: 15px;
+	font-style: normal;
+	font-weight: 400;
+	line-height: normal;
+}
+
 .not-closed-payments,
 .not-closed {
 	cursor: pointer;
@@ -1610,6 +1542,7 @@ select:focus {
 	border: none;
 	width: 167px;
 	height: 61px;
+	margin-bottom: 10px;
 	box-shadow: 0 4px 4px 0 rgba(0, 0, 0, 0.25);
 	background: var(--color-primary);
 	font-family: var(--font-primary);
@@ -2244,6 +2177,11 @@ span#vehicle-bonus-error {
 	font-size: 30px;
 }
 
+.driver-table tbody tr td .correct-bolt-btn {
+	font-size: 36px;
+	color: inherit;
+}
+
 .driver-table tbody tr td .apply-btn {
 	width: 59px;
 	height: 34px;
@@ -2293,6 +2231,17 @@ span#vehicle-bonus-error {
 }
 
 td.driver-rate {
+	cursor: pointer;
+}
+
+td.calc-buttons {
+    display: flex;
+    flex-direction:column;
+	cursor: pointer;
+}
+
+td.send-buttons {
+    text-align: center;
 	cursor: pointer;
 }
 

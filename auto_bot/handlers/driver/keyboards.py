@@ -14,6 +14,11 @@ def inline_debt_keyboard():
     return InlineKeyboardMarkup(debt_buttons)
 
 
+def inline_bolt_report_keyboard():
+    report_buttons = [[InlineKeyboardButton(text=f'{SEND_BOLT_REPORT}', callback_data='photo_bolt_report')]]
+    return InlineKeyboardMarkup(report_buttons)
+
+
 def inline_dates_kb(event, day, back_step):
     dates = []
     start_date = day

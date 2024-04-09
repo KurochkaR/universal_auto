@@ -37,7 +37,7 @@ function driverPayment(period = null, start = null, end = null, paymentStatus = 
 			for (const payment of response) {
 				const {
 					id: dataId, status, payment_type, report_from, report_to, bonuses_list,
-					penalties_list, full_name, kasa, cash, rent, rate, earning, bonuses, penalties
+					penalties_list, full_name, kasa, cash, rent, rate, earning, bonuses, penalties, bolt_screen
 				} = payment;
 				if ((paymentStatus === 'on_inspection' && (status === 'Перевіряється' || status === 'Потребує поправок')) ||
 					(paymentStatus === 'not_closed' && status === 'Очікується') ||
@@ -106,18 +106,24 @@ function driverPayment(period = null, start = null, end = null, paymentStatus = 
 						statusTh.text("Перерахування виплат");
 						$('th[data-sort="button"]').show();
 						if (payment_type === "DAY" && moment().startOf('day').isSame(responseDate.startOf('day'))) {
-							row.append('<td>' + calculateBtn + '</td>')
+							row.append('<td class="calc-buttons">' + calculateBtn + '</td>')
 						} else {
 							row.append('<td></td>')
 						}
-						row.append('<td>' + confirmButton + '</td>');
+						row.append('<td class="send-buttons">' + confirmButton + '</td>');
 					}
 					if (status === 'Потребує поправок') {
 						row.addClass('incorrect');
 						showAllButton.show(0);
 						if (payment_type === "DAY" && moment().startOf('day').isSame(responseDate.startOf('day'))) {
-							row.append('<td>' + calculateBtn + '</td>');
-							row.append('<td>' + incorrectBtn + '</td>');
+							row.append('<td class="calc-buttons">' + calculateBtn + incorrectBtn +'</td>');
+
+							if (bolt_screen) {
+							    var correctButton = '<a class="correct-bolt-btn" href="' + bolt_screen + '" data-lightbox="payments"><i class="fa fa-camera"></i></a>'
+							    row.append('<td class="send-buttons">'+ correctButton + '</td>')
+							} else {
+						        row.append('<td></td>') ;
+						        }
 						} else {
 							row.append('<td></td>');
 							row.append('<td></td>')
@@ -164,6 +170,14 @@ $(document).ready(function () {
 		return false;
 	});
 
+    $(this).on('click', '.correct-bolt-btn', function () {
+		var row = $(this).closest('tr');
+		var bonusTable = row.next().find('.bonus-table');
+
+		bonusTable.toggleClass('expanded');
+		bonusTable.toggle();
+		return false;
+	});
 	function populateButtons(filteredDrivers) {
 		var createPaymentList = $(".create-payment-list");
 		createPaymentList.empty();

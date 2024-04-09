@@ -61,10 +61,9 @@ class Synchronizer:
         driver = Driver.objects.filter((Q(name=kwargs['name'], second_name=kwargs['second_name']) |
                                         Q(name=kwargs['second_name'], second_name=kwargs['name']) |
                                         Q(phone_number__icontains=kwargs['phone_number'][-10:])
-                                        ) & Q(partner=self.partner.id)).first()
-
+                                        ) & Q(partner=self.partner)).first()
         if not driver and kwargs['email']:
-            driver = Driver.objects.filter(email__icontains=kwargs['email']).first()
+            driver = Driver.objects.filter(email__icontains=kwargs['email'], partner=self.partner).first()
         if not driver:
             data = {"name": kwargs['name'],
                     "second_name": kwargs['second_name'],
@@ -122,7 +121,7 @@ class Synchronizer:
         licence_plate, v_name, vin = kwargs['licence_plate'], kwargs['vehicle_name'], kwargs['vin_code']
         if licence_plate:
             plate = normalized_plate(licence_plate)
-            vehicle, created = Vehicle.objects.get_or_create(
+            vehicle, created = Vehicle.objects.update_or_create(
                 licence_plate=plate,
                 defaults={
                     "name": v_name.upper(),
@@ -131,34 +130,15 @@ class Synchronizer:
                     "partner": self.partner
                 }
             )
-            if not created:
-                self.update_vehicle_fields(vehicle, **kwargs)
 
             if created:
                 managers = Manager.objects.filter(managers_partner=self.partner)
-                message_text = ""
                 if managers.count() == 1:
                     vehicle.manager = managers.first()
-                    vehicle.save()
+                    vehicle.save(update_fields=['manager'])
                 elif managers.count() > 1:
                     message_text = f"У вас новий автомобіль {plate}. Будь ласка, призначте йому менеджера."
-
-                if message_text:
                     bot.send_message(chat_id=self.partner.chat_id, text=message_text)
-
-            return vehicle
-
-    def update_vehicle_fields(self, vehicle, **kwargs):
-        vehicle_name = kwargs.get('vehicle_name')
-        vin_code = kwargs.get('vin_code')
-        if vehicle_name and vehicle.name != vehicle_name:
-            vehicle.name = vehicle_name
-
-        if vin_code and vehicle.vin_code != vin_code:
-            vehicle.vin_code = vin_code
-
-        vehicle.partner = self.partner
-        vehicle.save(update_fields=['name', 'vin_code', 'partner'])
 
     def update_driver_fields(self, driver, **kwargs):
         phone_number = kwargs.get('phone_number')

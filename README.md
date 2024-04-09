@@ -29,5 +29,21 @@ docker exec -it universal_auto_web python3 manage.py runscript weekly
 4. After work is finished and covered by tests create a Pull Request with good description what exactly you did and how and add Sergey Kutsko as reviewer. 
 5. After review fix found problems
 6. Manual QA stage need to be done by other person to confirm solutions works as expected
-7. We will deploy to staging server to confirm it works in pre-pod ENV
+7. We will deploy to staging server to confirm it works in pre-prod ENV
 8. Merge into master and deploy to production instance. 
+
+# Documentation
+1. Bot messages:
+   - Статистика
+        Відображає інформацію за поточний тиждень з понеділка 00:00 по неділю 23:59 за минулі дні поточного тижня, в дужках за вчора. 
+        Якщо водій не працював то його в списку не буде або не буде інформації в дужках\
+        Водій (прізвище та імʼя)\
+        Автомобілі - список авто на яких працював даний водій\
+        Каса - заробіток водія в агрегаторах Bolt Uklon Uber \
+        Холостий пробіг - пробіг без замовлень без вирахування безкоштовних км\
+        Ефективність - заробіток водія за кожний км який він проїхав\
+        Виконано замовлень - кількість завершених замовлень\
+        % прийнятих - відношення виконаних замовлень до усіх замовлень наданих агрегаторами у відсотках\
+        Середній чек - відношення каси до виконаних замовлень \
+        Пробіг - загальна кількість км що проїхав водій \
+        Час в дорозі - час проведений в замовленнях \

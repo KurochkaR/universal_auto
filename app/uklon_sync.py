@@ -424,9 +424,12 @@ class UklonRequest(Fleet, Synchronizer):
                     "completedAt") is not None else None
                 start_time = timezone.make_aware(datetime.fromtimestamp(order.get("acceptedAt"))) if order.get(
                     "acceptedAt") is not None else None
-
-                state = order["cancellation"]["initiator"] if order['status'] != "completed" else order['status']
-
+                if order['status'] != "completed":
+                    state = order["cancellation"]["initiator"]
+                    price = self.to_float(order['additionalIncome']['compensation']['amount'])
+                else:
+                    state = order['status']
+                    price = order['payment']['cost']
                 data = {"order_id": order['id'],
                         "fleet": self.name,
                         "driver": driver_order,
@@ -437,7 +440,8 @@ class UklonRequest(Fleet, Synchronizer):
                         "destination": order['route']['points'][-1]["address"],
                         "vehicle": calendar_vehicle,
                         "payment": PaymentTypes.map_payments(order['payment']['paymentType']),
-                        "price": order['payment']['cost'],
+                        "tips": self.to_float(order['additionalIncome']['tips']['amount']),
+                        "price": price,
                         "partner": self.partner,
                         "date_order": timezone.make_aware(datetime.fromtimestamp(order["pickupTime"]))
                         }

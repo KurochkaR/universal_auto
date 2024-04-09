@@ -530,6 +530,12 @@ class VehicleSpendingAdmin(admin.ModelAdmin):
                     kwargs['queryset'] = db_field.related_model.objects.get_active(partner=user)
                 if user.is_manager():
                     kwargs['queryset'] = db_field.related_model.objects.get_active(manager=user)
+            if db_field.name == 'spending_category':
+                if user.is_partner():
+                    kwargs['queryset'] = db_field.related_model.objects.filter(Q(partner=user))
+                if user.is_manager():
+                    manager = Manager.objects.get(pk=request.user.pk)
+                    kwargs['queryset'] = db_field.related_model.objects.filter(partner=manager.managers_partner)
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
     display_photo.short_description = 'Попередній перегляд'
@@ -546,6 +552,12 @@ class TransactionsConversationAdmin(admin.ModelAdmin):
         if request.user.is_superuser:
             display.append('partner')
         return display
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if request.user.is_partner():
+            return qs.filter(partner=request.user)
+        return qs.select_related('vehicle', 'investor', 'partner')
 
 
 @admin.register(PartnerEarnings)
@@ -1231,7 +1243,7 @@ class VehicleAdmin(SoftDeleteAdmin):
             return ['licence_plate', 'name',
                     'vin_code', 'gps',
                     'purchase_price',
-                    'manager', 'investor_car', 'branding', 'created_at'
+                    'manager', 'investor_car', 'investor_schema', 'branding', 'created_at'
                     ]
         else:
             return ['licence_plate', 'name',
@@ -1255,7 +1267,8 @@ class VehicleAdmin(SoftDeleteAdmin):
                 ('Номер автомобіля', {'fields': ['licence_plate',
                                                  ]}),
                 ('Інформація про машину', {'fields': ['name', 'purchase_price',
-                                                      'currency', 'investor_car', 'investor_percentage',
+                                                      'currency', 'investor_car', 'investor_schema',
+                                                      'investor_percentage',
                                                       'currency_rate', 'currency_back',
                                                       ]}),
                 ('Особисті дані авто', {'fields': ['vin_code', 'gps_imei', 'lat', 'lon',
@@ -1267,11 +1280,13 @@ class VehicleAdmin(SoftDeleteAdmin):
 
         elif request.user.is_partner():
             fieldsets = (
-                ('Номер автомобіля', {'fields': ['licence_plate',
-                                                 ]}),
-                ('Інформація про машину', {'fields': ['name', 'purchase_price', 'gps_imei', 'gps',
-                                                      'investor_car', 'investor_percentage'
+                ('Інформація про машину', {'fields': ['licence_plate', 'name', 'purchase_price',
                                                       ]}),
+                ('Дані авто з GPS', {'fields': ['gps_imei', 'gps',
+                                                ]}),
+                ('Інформація про інвестора', {'fields': ['currency', 'investor_car', 'investor_schema',
+                                                         'investor_percentage', 'currency_rate', 'currency_back',
+                                                         ]}),
                 ('Додатково', {'fields': ['manager', 'branding'
                                           ]}),
             )
@@ -1565,6 +1580,27 @@ class DriverFleetEfficiencyAdmin(admin.ModelAdmin):
             Prefetch('fleet', queryset=Fleet.objects.only('name')),
             Prefetch('driver', queryset=Driver.objects.only('name', 'second_name')),
         )
+
+
+@admin.register(SpendingCategory)
+class SpendingCategory(admin.ModelAdmin):
+    list_display = ['title']
+
+    def get_fieldsets(self, request, obj=None):
+        fieldsets = [
+            ('Назва категорії', {'fields': ['title',
+                                   ]}),
+
+        ]
+
+        return fieldsets
+
+    def save_model(self, request, obj, form, change):
+        if request.user.is_partner():
+            obj.partner_id = request.user.pk
+        if request.user.is_manager():
+            obj.partner = request.user.manager.managers_partner
+        super().save_model(request, obj, form, change)
 
 
 @admin.register(SubscribeUsers)

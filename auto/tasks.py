@@ -26,11 +26,13 @@ from django.db.models import Sum, IntegerField, FloatField, DecimalField, Q
 from django.db.models.functions import Cast, Coalesce
 from app.utils import get_schedule, create_task
 from auto.utils import payment_24hours_create, summary_report_create, compare_reports, get_corrections, \
-    get_currency_rate, polymorphic_efficiency_create, calendar_weekly_report
+    get_currency_rate, polymorphic_efficiency_create, calendar_weekly_report, create_share_investor_earn, \
+    create_proportional_investor_earn
+from auto_bot.handlers.driver.keyboards import inline_bolt_report_keyboard
 from auto_bot.handlers.driver_manager.utils import get_daily_report, get_efficiency, generate_message_report, \
     get_driver_efficiency_report, calculate_rent, get_vehicle_income, get_time_for_task, \
     create_driver_payments, calculate_income_partner, get_failed_income, find_reshuffle_period, get_today_statistic, \
-    calculate_bolt_kasa, send_notify_to_check_car
+    calculate_bolt_kasa, send_notify_to_check_car, add_bonus_earnings
 from auto_bot.handlers.order.keyboards import inline_markup_accept, inline_search_kb, inline_client_spot, \
     inline_spot_keyboard, inline_second_payment_kb, inline_reject_order, personal_order_end_kb, \
     personal_driver_end_kb
@@ -177,13 +179,31 @@ def get_today_orders(self, partner_pk, day=None):
         raise self.retry(exc=e, countdown=retry_delay)
 
 
+@app.task(bind=True)
+def null_vehicle_orders(self, partner_pk, day):
+    end = timezone.make_aware(datetime.strptime(day, "%Y-%m-%d")) if day else timezone.localtime()
+    start = end - timedelta(days=1)
+    filter_query = Q(partner=partner_pk, vehicle__isnull=True,
+                     state__in=[FleetOrder.COMPLETED, FleetOrder.CLIENT_CANCEL],
+                     date_order__range=(start, end))
+    orders = FleetOrder.objects.filter(filter_query)
+    active_drivers = Driver.objects.get_active(partner=partner_pk)
+    for driver in active_drivers:
+        driver_orders = orders.filter(Q(driver=driver))
+        for order in driver_orders:
+            vehicle = check_vehicle(driver, order.date_order)
+            if vehicle:
+                order.vehicle = vehicle
+                order.save(update_fields=['vehicle'])
+
+
 @app.task(bind=True, retry_backoff=30, max_retries=3)
 def add_distance_for_order(self, partner_pk, day=None, driver=None):
     gps_query = UaGpsSynchronizer.objects.filter(partner=partner_pk)
     end = timezone.make_aware(datetime.strptime(day, "%Y-%m-%d")) if day else timezone.localtime()
     start = end - timedelta(days=1)
     filter_query = Q(partner=partner_pk, vehicle__isnull=False,
-                     state=FleetOrder.COMPLETED, distance__isnull=True, finish_time__isnull=False,
+                     state=FleetOrder.COMPLETED, distance__in=[None, 0.00], finish_time__isnull=False,
                      vehicle__gps__isnull=False, date_order__range=(start, end))
 
     if gps_query.exists():
@@ -391,10 +411,11 @@ def get_car_efficiency(self, partner_pk, day=None):
                 driver_kasa = 0
                 for fleet in fleets:
                     orders = FleetOrder.objects.filter(
-                        state=FleetOrder.COMPLETED,
+                        state__in=[FleetOrder.COMPLETED, FleetOrder.CLIENT_CANCEL],
                         accepted_time__date=start, driver=driver, fleet=fleet.name, vehicle=vehicle).aggregate(
-                        total_price=Coalesce(Sum('price'), 0))['total_price']
-                    driver_kasa += orders * (1 - fleet.fees)
+                        total_price=Coalesce(Sum('price'), 0),
+                        total_tips=Coalesce(Sum('tips'), 0))
+                    driver_kasa += orders['total_price'] * (1 - fleet.fees) + orders['total_tips']
                 vehicle_drivers[driver] = driver_kasa
                 total_kasa += driver_kasa
         result = max(
@@ -692,7 +713,6 @@ def send_driver_efficiency(self, partner_pk):
     for manager in managers:
         result, start, end = get_driver_efficiency_report(manager_id=manager)
         if result:
-            print(start, end)
             date_msg = f"Статистика з {start.strftime('%d.%m %H:%M')} по {end.strftime('%d.%m %H:%M')}\n"
             message = date_msg
             for k, v in result.items():
@@ -765,39 +785,16 @@ def check_personal_orders(self):
 
 @app.task(bind=True)
 def add_money_to_vehicle(self, partner_pk):
-    today = datetime.combine(timezone.localtime(), time.max)
+    today = timezone.localtime()
     end = timezone.make_aware(datetime.combine(today - timedelta(days=today.weekday() + 1), time.max))
     start = timezone.make_aware(datetime.combine(end - timedelta(days=6), time.min))
-    investor_vehicles = Vehicle.objects.filter(investor_car__isnull=False, partner=partner_pk)
-    kasa = CustomReport.objects.filter(report_from__range=(start, end),
-                                       report_to__lte=end, vehicle__in=investor_vehicles).aggregate(
-        kasa=Coalesce(Sum('total_amount_without_fee'), 0, output_field=DecimalField())
-    )['kasa']
-    for investor in Investor.objects.filter(investors_partner=partner_pk):
-        vehicles = Vehicle.objects.filter(investor_car=investor)
-        if vehicles.exists():
-            vehicle_kasa = kasa / vehicles.count()
-            for vehicle in vehicles:
-                currency = vehicle.currency_back
-                earning = vehicle_kasa * vehicle.investor_percentage
-                if currency != Vehicle.Currency.UAH:
-                    rate = get_currency_rate(currency)
-                    amount_usd = float(earning) / rate
-                    car_earnings = Decimal(str(amount_usd)).quantize(Decimal('0.00'), rounding=ROUND_HALF_UP)
-                else:
-                    car_earnings = earning
-                    rate = 0.00
-                InvestorPayments.objects.get_or_create(
-                    report_from=start,
-                    report_to=end,
-                    vehicle=vehicle,
-                    investor=vehicle.investor_car,
-                    partner_id=partner_pk,
-                    defaults={
-                        "earning": earning,
-                        "currency": currency,
-                        "currency_rate": rate,
-                        "sum_after_transaction": car_earnings})
+    investors = Investor.objects.filter(investors_partner=partner_pk)
+    share_vehicles = Vehicle.filter_by_investor_share_schema(investors)
+    if share_vehicles.exists():
+        create_share_investor_earn(start, end, share_vehicles, partner_pk)
+    proportional_vehicles = Vehicle.filter_by_proportional_schema(investors)
+    if proportional_vehicles.exists():
+        create_proportional_investor_earn(start, end, proportional_vehicles, partner_pk)
 
 
 @app.task(bind=True, queue='beat_tasks')
@@ -1110,60 +1107,60 @@ def calculate_driver_reports(self, schemas, day=None):
     end_week = timezone.make_aware(datetime.combine(today - timedelta(days=today.weekday() + 1),
                                                     time.max.replace(microsecond=0)))
     start_week = timezone.make_aware(datetime.combine(end_week - timedelta(days=6), time.min))
+    driver_list = []
     for driver in Driver.objects.get_active(schema__in=schemas):
+        bolt_weekly = WeeklyReport.objects.filter(report_from=start_week, report_to=end_week,
+                                                  driver=driver, fleet__name="Bolt").aggregate(
+            bonuses=Coalesce(Sum('bonuses'), 0, output_field=DecimalField()),
+            kasa=Coalesce(Sum('total_amount_without_fee'), 0, output_field=DecimalField()),
+            compensations=Coalesce(Sum('compensations'), 0, output_field=DecimalField()),
+        )
         if driver.schema.is_weekly():
             if not today.weekday():
                 start = start_week
                 end = end_week
+                bonus = bolt_weekly['bonuses']
             else:
                 continue
         else:
+            bonus = None
             end, start = get_time_for_task(driver.schema_id, day)[1:3]
         reshuffles = check_reshuffle(driver, start, end)
         if reshuffles:
-            bolt_weekly = WeeklyReport.objects.filter(report_from=start_week, report_to=end_week,
-                                                      driver=driver, fleet__name="Bolt").aggregate(
-                bonuses=Coalesce(Sum('bonuses'), 0, output_field=DecimalField()),
-                kasa=Coalesce(Sum('total_amount_without_fee'), 0, output_field=DecimalField()),
-                compensations=Coalesce(Sum('compensations'), 0, output_field=DecimalField()),
-            )
-            bonus = bolt_weekly['bonuses'] if driver.schema.is_weekly() and not today.weekday() else None
             data = create_driver_payments(start, end, driver, driver.schema, bonuses=bonus)[0]
-            if all([not driver.schema.is_weekly(), not today.weekday(), bolt_weekly['bonuses']]):
-                vehicle_bonus = {}
-                weekly_reshuffles = check_reshuffle(driver, start_week, end_week)
-                for shift in weekly_reshuffles:
-                    shift_bolt_kasa = calculate_bolt_kasa(driver, shift.swap_time, shift.end_time,
-                                                          vehicle=shift.swap_vehicle)[0]
-                    reshuffle_bonus = shift_bolt_kasa / (
-                            bolt_weekly['kasa'] - bolt_weekly['compensations'] - bolt_weekly['bonuses']) * \
-                                      bolt_weekly['bonuses']
-                    if not vehicle_bonus.get(shift.swap_vehicle):
-                        vehicle_bonus[shift.swap_vehicle] = reshuffle_bonus
-                    else:
-                        vehicle_bonus[shift.swap_vehicle] += reshuffle_bonus
-                for car, bonus in vehicle_bonus.items():
-                    amount = bonus * driver.schema.rate
-                    vehicle_amount = bonus * (1 - driver.schema.rate)
-                    PartnerEarnings.objects.get_or_create(report_from=start_week,
-                                                          report_to=end_week,
-                                                          vehicle=car,
-                                                          partner=driver.partner,
-                                                          defaults={
-                                                              "status": PaymentsStatus.COMPLETED,
-                                                              "earning": vehicle_amount})
-                    bolt_category = Category.objects.get(title="Бонуси Bolt")
-                    Bonus.objects.create(driver=driver, vehicle=car, amount=amount, category=bolt_category)
-            if driver.driver_status == Driver.WITH_CLIENT and not driver.schema.is_weekly():
-                data['status'] = PaymentsStatus.INCORRECT
-            payment, created = DriverPayments.objects.get_or_create(report_to__date=end,
-                                                                    driver=driver,
-                                                                    defaults=data)
-            if created:
-                Bonus.objects.filter(driver=driver, driver_payments__isnull=True).update(driver_payments=payment)
-                Penalty.objects.filter(driver=driver, driver_payments__isnull=True).update(driver_payments=payment)
-                payment.earning = Decimal(payment.earning) + payment.get_bonuses() - payment.get_penalties()
-                payment.save(update_fields=['earning'])
+            if not driver.schema.is_weekly():
+                if not today.weekday() and bolt_weekly['bonuses']:
+                    add_bonus_earnings(start_week, end_week, driver, bolt_weekly)
+                try:
+                    if data['status'] == PaymentsStatus.INCORRECT or BoltRequest.objects.get(
+                            partner=driver.partner).check_driver_status(driver):
+                        driver_list.append(driver)
+                except ObjectDoesNotExist:
+                    pass
+                if driver.driver_status == Driver.WITH_CLIENT:
+                    data['status'] = PaymentsStatus.INCORRECT
+            if data['kasa'] or data['rent']:
+                payment, created = DriverPayments.objects.get_or_create(report_to__date=end,
+                                                                        driver=driver,
+                                                                        defaults=data)
+                if created:
+                    Bonus.objects.filter(driver=driver, driver_payments__isnull=True).update(driver_payments=payment)
+                    Penalty.objects.filter(driver=driver, driver_payments__isnull=True).update(driver_payments=payment)
+                    payment.earning = Decimal(payment.earning) + payment.get_bonuses() - payment.get_penalties()
+                    payment.save(update_fields=['earning'])
+    for driver in driver_list:
+        keyboard = inline_bolt_report_keyboard()
+        bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"),
+                         text=f"{driver} Не вдалося отримати всі дані Bolt."
+                              f" Натисніть кнопку нижче, щоб відправити звіт Вашому менеджеру.",
+                         reply_markup=keyboard)
+
+
+@app.task(bind=True)
+def add_screen_to_payment(self, filename, driver_pk):
+    payment = DriverPayments.objects.filter(driver=driver_pk).order_by("-report_to").first()
+    payment.bolt_screen = filename
+    payment.save(update_fields=['bolt_screen'])
 
 
 @app.task(bind=True, ignore_result=False)
@@ -1240,7 +1237,8 @@ def calculate_vehicle_earnings(self, payment_pk):
         else:
             vehicles_income = reshuffles_income
     for vehicle, income in vehicles_income.items():
-        vehicle_bonus = Penalty.objects.filter(vehicle=vehicle, driver_payments=payment).aggregate(
+        vehicle_bonus = Penalty.objects.filter(vehicle=vehicle, driver_payments=payment).exclude(
+                category__title="Зарядка").aggregate(
             total_amount=Coalesce(Sum('amount'), Decimal(0)))['total_amount']
         vehicle_penalty = \
             Bonus.objects.filter(vehicle=vehicle, driver_payments=payment).exclude(
@@ -1347,6 +1345,7 @@ def calculate_failed_earnings(self, payment_pk):
 @app.task(bind=True)
 def check_cash_and_vehicle(self, partner_pk):
     tasks = chain(get_today_orders.si(partner_pk).set(queue=f'beat_tasks_{partner_pk}'),
+                  null_vehicle_orders.si(partner_pk).set(queue=f'beat_tasks_{partner_pk}'),
                   add_distance_for_order.si(partner_pk).set(queue=f'beat_tasks_{partner_pk}'),
                   check_card_cash_value.si(partner_pk).set(queue=f'beat_tasks_{partner_pk}')
                   )

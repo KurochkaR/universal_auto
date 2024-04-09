@@ -29,6 +29,11 @@ class SoftDeleteManager(models.Manager):
         return self.get_queryset().filter(**kwargs, deleted_at__isnull=True)
 
 
+class InvestorSchema(models.TextChoices):
+    Equal_share = 'Equal_share', 'Рівномірна',
+    Proportional = 'Proportional', 'Пропорційна',
+
+
 class Role(models.TextChoices):
     CLIENT = 'CLIENT', 'Клієнт'
     DRIVER = 'DRIVER', 'Водій'
@@ -133,6 +138,9 @@ class Category(PolymorphicModel):
 
 class SpendingCategory(Category):
     pass
+    # class Meta:
+    #     verbose_name = 'Категорія витрат'
+    #     verbose_name_plural = 'Категорії витрат'
 
 
 class PenaltyCategory(Category):
@@ -331,6 +339,8 @@ class Vehicle(models.Model):
     car_earnings = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name="Заробіток авто")
     currency_back = models.CharField(max_length=4, default=Currency.USD, choices=Currency.choices,
                                      verbose_name='Валюта повернення коштів')
+    investor_schema = models.CharField(max_length=15, choices=InvestorSchema.choices, blank=True, null=True,
+                                       verbose_name='Схема інвестора')
     investor_percentage = models.DecimalField(decimal_places=2, max_digits=10, default=0.35,
                                               verbose_name="Відсоток інвестора")
     created_at = models.DateTimeField(editable=False, auto_now_add=True, verbose_name='Додано автомобіль')
@@ -352,6 +362,14 @@ class Vehicle(models.Model):
 
     def __str__(self) -> str:
         return f'{self.licence_plate}'
+
+    @classmethod
+    def filter_by_proportional_schema(cls, investors):
+        return cls.objects.filter(investor_car__in=investors, investor_schema=InvestorSchema.Proportional)
+
+    @classmethod
+    def filter_by_investor_share_schema(cls, investors):
+        return cls.objects.filter(investor_car__in=investors, investor_schema=InvestorSchema.Equal_share)
 
 
 class DeletedVehicle(Vehicle):
@@ -377,7 +395,7 @@ class VehicleSpending(models.Model):
         verbose_name_plural = 'Витрати'
 
     def __str__(self) -> str:
-        return f'{self.vehicle} {self.get_category_display()}'
+        return f'{self.vehicle} {self.spending_category}'
 
 
 class Driver(User):
@@ -471,6 +489,7 @@ class DriverPayments(Earnings):
     rent_price = models.IntegerField(default=6, verbose_name='Ціна оренди')
     rent = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Оренда авто')
     rate = models.IntegerField(default=0, verbose_name='Відсоток водія')
+    bolt_screen = models.ImageField(blank=True, null=True, upload_to='bolt', verbose_name="Фото звіту Bolt")
 
     driver = models.ForeignKey(Driver, on_delete=models.CASCADE, verbose_name="Водій")
 

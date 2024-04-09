@@ -4,9 +4,41 @@ from telegram import ReplyKeyboardRemove, InlineKeyboardMarkup
 from telegram.ext import ConversationHandler
 
 from app.models import Driver, Vehicle, ReportDriveDebt, Event
+from auto.tasks import add_screen_to_payment
 from auto_bot.handlers.driver.keyboards import service_auto_buttons, inline_debt_keyboard, inline_dates_kb
 from auto_bot.handlers.driver.static_text import *
+from auto_bot.handlers.driver_job.utils import save_storage_photo
 from auto_bot.handlers.main.keyboards import markup_keyboard_onetime, back_to_main_menu
+from scripts.redis_conn import redis_instance
+
+
+def bolt_report_photo_callback(update, context):
+    query = update.callback_query
+    chat_id = update.effective_chat.id
+    context.bot.send_photo(
+        chat_id=chat_id,
+        photo='https://storage.googleapis.com/jobdriver-bucket/docs/bolt_screen.jpeg',
+        caption=f"Надішліть, будь ласка, фото поточного звіту Bolt, як вказано на фото вище."
+                f"Якщо виконуєте замовлення надішліть звіт після його завершення"
+    )
+
+    context.bot.delete_message(chat_id=chat_id, message_id=query.message.message_id)
+    redis_instance().hset(str(chat_id), 'photo_state', BOLT_REPORT_PHOTO)
+
+
+def upload_bolt_report_photo(update, context):
+    chat_id = str(update.effective_chat.id)
+    driver = Driver.get_by_chat_id(chat_id)
+    if update.message.photo:
+        redis_instance().hdel(chat_id, 'photo_state')
+        image = update.message.photo[-1].get_file()
+        filename = f'bolt/reports/{image["file_unique_id"]}.jpg'
+        save_storage_photo(image, filename)
+        add_screen_to_payment.apply_async(args=[filename, driver.pk], queue=f'beat_tasks_{driver.partner.pk}')
+        update.message.reply_text("Дякую дані збережено для розрахунку виплати")
+    else:
+        update.message.reply_text("Будь ласка, надішліть знімок екрану з поточним звітом")
+        redis_instance().hset(str(chat_id), 'photo_state', BOLT_REPORT_PHOTO)
 
 
 def status_car(update, context):
