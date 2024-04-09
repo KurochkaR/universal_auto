@@ -184,7 +184,7 @@ def null_vehicle_orders(self, partner_pk, day):
     end = timezone.make_aware(datetime.strptime(day, "%Y-%m-%d")) if day else timezone.localtime()
     start = end - timedelta(days=1)
     filter_query = Q(partner=partner_pk, vehicle__isnull=True,
-                     state__in=[FleetOrder.COMPLETED, FleetOrder.CLIENT_CANCEL],
+                     state__in=[FleetOrder.COMPLETED, FleetOrder.CLIENT_CANCEL, FleetOrder.SYSTEM_CANCEL],
                      date_order__range=(start, end))
     orders = FleetOrder.objects.filter(filter_query)
     active_drivers = Driver.objects.get_active(partner=partner_pk)
