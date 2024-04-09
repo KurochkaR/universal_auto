@@ -180,7 +180,7 @@ def get_today_orders(self, partner_pk, day=None):
 
 
 @app.task(bind=True)
-def null_vehicle_orders(self, partner_pk, day):
+def null_vehicle_orders(self, partner_pk, day=None):
     end = timezone.make_aware(datetime.strptime(day, "%Y-%m-%d")) if day else timezone.localtime()
     start = end - timedelta(days=1)
     filter_query = Q(partner=partner_pk, vehicle__isnull=True,
