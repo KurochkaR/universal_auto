@@ -261,7 +261,7 @@ def create_share_investor_earn(start, end, vehicles_list, partner_pk):
     fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name__in=['Gps', 'Ninja'])
     for fleet in fleets:
         orders = FleetOrder.objects.filter(
-            state__in=[FleetOrder.COMPLETED],
+            state__in=[FleetOrder.COMPLETED, FleetOrder.CLIENT_CANCEL],
             accepted_time__range=(start, end), fleet=fleet.name, vehicle__in=vehicles_list)
         shared_orders = orders.aggregate(
             total_price=Coalesce(Sum('price'), 0),
@@ -285,7 +285,7 @@ def create_proportional_investor_earn(start, end, vehicles_list, partner_pk):
         bonus_kasa = 0
         for fleet in fleets:
             orders = FleetOrder.objects.filter(
-                state__in=[FleetOrder.COMPLETED],
+                state__in=[FleetOrder.COMPLETED, FleetOrder.CLIENT_CANCEL],
                 accepted_time__range=(start, end), fleet=fleet.name, vehicle=vehicle)
             kasa_orders = orders.aggregate(
                 total_price=Coalesce(Sum('price'), 0),

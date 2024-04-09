@@ -14,6 +14,7 @@ def send_long_message(chat_id, text, keyboard=None):
             for i, part in enumerate(message_parts):
                 text_message = bot.send_message(chat_id=chat_id, text=f"{i + 1}/{num_parts}:\n{part}",
                                                 parse_mode=ParseMode.HTML)
-            bot.edit_message_reply_markup(chat_id=chat_id, message_id=text_message.message_id, reply_markup=keyboard)
+            if keyboard:
+                bot.edit_message_reply_markup(chat_id=chat_id, message_id=text_message.message_id, reply_markup=keyboard)
         else:
             pass
