@@ -426,7 +426,7 @@ class UklonRequest(Fleet, Synchronizer):
                     "acceptedAt") is not None else None
                 if order['status'] != "completed":
                     state = order["cancellation"]["initiator"]
-                    price = int(self.to_float(order['additionalIncome']['compensation']['amount'])),
+                    price = self.to_float(order['additionalIncome']['compensation']['amount'])
                 else:
                     state = order['status']
                     price = order['payment']['cost']
