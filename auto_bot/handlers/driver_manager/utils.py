@@ -477,11 +477,11 @@ def calculate_efficiency_driver(driver, start, end):
         )
 
         avg_price = 0 if annotated_efficiency['completed_orders'] == 0 else (
-            annotated_efficiency['total_eff_kasa'] / annotated_efficiency['completed_orders']
+                annotated_efficiency['total_eff_kasa'] / annotated_efficiency['completed_orders']
         )
 
         efficiency_avg = 0 if annotated_efficiency['total_distance'] == 0 else (
-            annotated_efficiency['total_eff_kasa'] / annotated_efficiency['total_distance']
+                annotated_efficiency['total_eff_kasa'] / annotated_efficiency['total_distance']
         )
         vehicles = list(efficiency_objects.values_list('vehicles__licence_plate', flat=True).distinct())
 
@@ -715,35 +715,6 @@ def get_failed_income(payment):
             vehicle_income[key] += vehicle_card_bonus
     return vehicle_income
 
-
-# def get_today_statistic(start, end, driver):
-#     kasa = 0
-#     card = 0
-#     fleets = Fleet.objects.filter(fleetsdriversvehiclesrate__driver=driver, deleted_at=None).exclude(
-#         name="Ninja")
-#     orders = FleetOrder.objects.filter(accepted_time__gt=start,
-#                                        state=FleetOrder.COMPLETED,
-#                                        driver=driver).order_by('-finish_time')
-#     accepted_times = None
-#     if orders:
-#         accepted_times = timezone.localtime(orders.last().accepted_time).time().strftime('%H:%M')
-#
-#     mileage = orders.aggregate(order_mileage=Coalesce(Sum('distance'), Decimal(0)))['order_mileage']
-#     canceled_orders = FleetOrder.objects.filter(accepted_time__gt=start,
-#                                                 state=FleetOrder.DRIVER_CANCEL,
-#                                                 driver=driver).count()
-#     for fleet in fleets:
-#         if isinstance(fleet, BoltRequest):
-#             bolt_orders = orders.filter(fleet=fleet.name)
-#             fleet_cash = bolt_orders.filter(payment=PaymentTypes.CASH).aggregate(
-#                 cash_kasa=Coalesce(Sum('price'), Value(0)))['cash_kasa']
-#             fleet_kasa = (1 - fleet.fees) * bolt_orders.aggregate(kasa=Coalesce(Sum('price'), Value(0)))['kasa']
-#         else:
-#             fleet_kasa, fleet_cash = fleet.get_earnings_per_driver(driver, start, end)
-#         card += Decimal(fleet_kasa - fleet_cash)
-#         kasa += Decimal(fleet_kasa)
-#
-#     return kasa, card, mileage, orders.count(), canceled_orders, accepted_times
 
 def get_today_statistic(start, end, driver):
     kasa = 0
