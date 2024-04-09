@@ -23,7 +23,7 @@ function fetchDriverEfficiencyData(period, start, end) {
 					let row = $('<tr></tr>');
 					let formattedTime = formatTime(item.road_time);
 					let time = formattedTime
-                    let rentDistance = isNaN(item.rent_distance) ? 0 : item.rent_distance
+					let rentDistance = isNaN(item.rent_distance) ? 0 : item.rent_distance
 					row.append('<td class="driver">' + item.full_name + '</td>');
 					row.append('<td class="kasa">' + Math.round(item.total_kasa) + '</td>');
 					row.append('<td class="order_accepted">' + Math.round(item.total_orders_accepted) + '</td>');
@@ -262,7 +262,7 @@ function sortTable(column, order) {
 
 
 $(document).ready(function () {
-	fetchDriverEfficiencyData('yesterday', null, null);
+	fetchDriverEfficiencyData('today', null, null);
 
 	$(document).on('click', 'th.sortable', function () {
 		let column = $(this).data('sort');
@@ -304,7 +304,6 @@ $(document).ready(function () {
 					$('th[data-sort="idling-mileage"]').show();
 					fetchDriverEfficiencyData(clickedValue, null, null);
 				} else {
-					console.log("aggregatorsString: ", aggregatorsString);
 					fetchDriverFleetEfficiencyData(clickedValue, null, null, aggregatorsString);
 				}
 			}

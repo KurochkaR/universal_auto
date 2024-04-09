@@ -1565,3 +1565,15 @@ class DriverFleetEfficiencyAdmin(admin.ModelAdmin):
             Prefetch('fleet', queryset=Fleet.objects.only('name')),
             Prefetch('driver', queryset=Driver.objects.only('name', 'second_name')),
         )
+
+
+@admin.register(SubscribeUsers)
+class SubscribeUsersAdmin(admin.ModelAdmin):
+    list_display = ['name', 'phone_number', 'email', 'created_at']
+    list_filter = ['created_at']
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if request.user.is_partner():
+            qs = qs.filter(partner=request.user)
+        return qs

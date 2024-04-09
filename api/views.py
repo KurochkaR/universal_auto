@@ -307,8 +307,7 @@ class DriverEfficiencyFleetListView(CombinedPermissionsMixin,
         start, end, format_start, format_end = get_start_end(self.kwargs['period'])
 
         queryset = ManagerFilterMixin.get_queryset(DriverEfficiencyFleet, self.request.user)
-        filtered_qs = queryset.filter(report_from__range=(start, end), fleet__name__in=aggregators).exclude(
-            total_orders=0)
+        filtered_qs = queryset.filter(report_from__range=(start, end), fleet__name__in=aggregators)
         dynamic_fleet = get_dynamic_fleet()
         dynamic_fleet['fleet_name'] = F('fleet__name')
         qs = filtered_qs.values('driver_id', 'fleet__name').annotate(
@@ -329,7 +328,6 @@ class DriverEfficiencyFleetListView(CombinedPermissionsMixin,
                         'accept_percent': item['accept_percent'],
                         'road_time': item['road_time'],
                         'mileage': item['mileage'],
-                        # 'idling-mileage': item['idling-mileage'],
                         'efficiency': item['efficiency']
                     }
                 }
