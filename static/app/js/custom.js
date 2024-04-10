@@ -134,10 +134,10 @@ $(document).ready(function () {
 
 		let modalText = document.createElement('p');
 		modalText.innerHTML = gettext('Вхід не вдався:') + '<br>' +
-    '<ol><li>' + gettext('Будь ласка, перевірте, чи ви використовуєте електронну адресу, яку вказували під час реєстрації.') + '</li>' +
-    '<li>' + gettext('Також, переконайтеся, що ви є партнером компанії Ninja Taxi.') + '</li>' +
-    '<li>' + gettext('Якщо ви впевнені в правильності введених даних, але не можете увійти в систему, зверніться до нашого менеджера для отримання допомоги.') + '</li>' +
-    '</ol>';
+			'<ol><li>' + gettext('Будь ласка, перевірте, чи ви використовуєте електронну адресу, яку вказували під час реєстрації.') + '</li>' +
+			'<li>' + gettext('Також, переконайтеся, що ви є партнером компанії Ninja Taxi.') + '</li>' +
+			'<li>' + gettext('Якщо ви впевнені в правильності введених даних, але не можете увійти в систему, зверніться до нашого менеджера для отримання допомоги.') + '</li>' +
+			'</ol>';
 
 
 		modalContent.appendChild(closeBtn);
@@ -323,7 +323,6 @@ $(document).ready(function () {
 	});
 
 
-
 	// js for park page
 
 	const openButtonsFree = $(".free-access-button");
@@ -336,38 +335,38 @@ $(document).ready(function () {
 	const existingYouMessage = $("#existing-you-message")
 
 	function hideFormAndShowThankYou(success) {
-    formSectionFree.hide();
-    formSection.hide();
+		formSectionFree.hide();
+		formSection.hide();
 
 
-    if (success) {
+		if (success) {
 			thankYouMessage.show();
 			setTimeout(function () {
 				thankYouMessage.hide();
 			}, 5000);
-    } else {
+		} else {
 			existingYouMessage.show();
 			setTimeout(function () {
 				existingYouMessage.hide();
 			}, 5000);
-    }
-  }
+		}
+	}
 
 
 	function submitForm(formData) {
-    formData += "&action=free_access_or_consult";
-    $.ajax({
+		formData += "&action=free_access_or_consult";
+		$.ajax({
 			type: "POST",
 			url: ajaxPostUrl,
 			data: formData,
-			success: function(response) {
+			success: function (response) {
 				hideFormAndShowThankYou(response.success);
 			},
 			error: function () {
 				console.log("Помилка під час відправки форми.");
 			}
-    });
-  }
+		});
+	}
 
 
 	openButtonsFree.on("click", function () {
@@ -379,7 +378,7 @@ $(document).ready(function () {
 
 	openButtonsConnect.on("click", function () {
 		$("#free-access-form h2").text(gettext("Зв’язатися з нами"));
-    $("#access-form input[type='submit']").val(gettext("Зв’язатися з нами"));
+		$("#access-form input[type='submit']").val(gettext("Зв’язатися з нами"));
 		formSectionFree.show();
 		thankYouMessage.hide();
 	});
@@ -396,14 +395,14 @@ $(document).ready(function () {
 	});
 
 	accessForm.on("submit", function (e) {
-    e.preventDefault();
-    let formData = accessForm.serialize();
-    let phoneInput = accessForm.find('#phone').val();
-    let nameInput = accessForm.find('#name').val();
-    $(".error-message").hide();
-    $(".error-name").hide();
+		e.preventDefault();
+		let formData = accessForm.serialize();
+		let phoneInput = accessForm.find('#phone').val();
+		let nameInput = accessForm.find('#name').val();
+		$(".error-message").hide();
+		$(".error-name").hide();
 
-    if (!/^\+\d{1,3} \d{2,3} \d{2,3}-\d{2,3}-\d{2,3}$/.test(phoneInput)) {
+		if (!/^\+\d{1,3} \d{2,3} \d{2,3}-\d{2,3}-\d{2,3}$/.test(phoneInput)) {
 			$(".error-message").show();
 			return;
 		}
@@ -411,9 +410,9 @@ $(document).ready(function () {
 		if (nameInput.trim() === "") {
 			$(".error-name").show();
 			return;
-    }
+		}
 
-    submitForm(formData);
+		submitForm(formData);
 	});
 });
 
@@ -428,24 +427,24 @@ function intlTelInit(phoneEl) {
 	}
 }
 
-$(document).ready(function() {
-  intlTelInit('#phone');
+$(document).ready(function () {
+	intlTelInit('#phone');
 
 //  js investment page
 	if ($(".investment-slider").length) {
-		var investmentSlider = new Splide( '.investment-slider', {
-			type    : 'loop',
-			perPage : 1,
+		var investmentSlider = new Splide('.investment-slider', {
+			type: 'loop',
+			perPage: 1,
 			autoplay: true,
 		});
 
 		investmentSlider.mount();
 
-		var investmentParkSlider = new Splide( '.investment-park-slider', {
-			type    : 'loop',
-			perPage : 1,
+		var investmentParkSlider = new Splide('.investment-park-slider', {
+			type: 'loop',
+			perPage: 1,
 			autoplay: true,
-			arrows   : false,
+			arrows: false,
 			pagination: false
 		});
 
@@ -463,14 +462,14 @@ $(document).ready(function() {
 	});
 
 	function isValidEmail(email) {
-    var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
+		var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+		return emailRegex.test(email);
 	}
 
 	function sendData(emailInputSelector) {
 		var email = $(emailInputSelector).val();
 		var emailError = $(".invest-btn-box .email-error");
-		var modalEmailError= $(".modal-email-error");
+		var modalEmailError = $(".modal-email-error");
 
 		if (!isValidEmail(email)) {
 			emailError.show();
@@ -537,3 +536,40 @@ $(document).ready(function () {
 		}
 	});
 });
+//
+//
+// document.addEventListener('DOMContentLoaded', function () {
+// 	var form = document.querySelector('');
+//
+// 	form.addEventListener('click', function (event) {
+// 		event.preventDefault(); // Предотвращаем стандартное поведение формы
+//
+// 		var formData = {
+// 			"name": "Test deal",
+// 			"fields": [{
+// 				"fieldId":,
+// 				"value":
+// 			}],
+// 			"customerDraft": {
+// 				"name": "Test",
+// 				"number": "0123456789"
+// 			}
+// 		}
+// 		// Выполняем POST-запрос с использованием Fetch API
+// 		fetch("https://my.binotel.ua/b/smartcrm/api/widget/v1/deal/create?token=", {
+// 			method: "POST",
+// 			headers: {
+// 				"Content-Type": "application/json"
+// 			},
+// 			body: JSON.stringify(formData)
+// 		})
+// 			.then(response => response.json()) // Обработка ответа в формате JSON
+// 			.then(data => {
+// 				console.log("Ответ сервера:", data);
+// 				// Здесь вы можете обрабатывать ответ от сервера
+// 			})
+// 			.catch(error => {
+// 				console.error("Ошибка при выполнении запроса:", error);
+// 			});
+// 	});
+// });

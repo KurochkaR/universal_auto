@@ -33,18 +33,21 @@
 
   <section class="auto-park-two-section">
     <div class="container">
+      <div class="img-box">
+        <img src="{% static 'app/images/auto-park-img/park-block-2-1.png' %}" alt="" loading="lazy">
+        <img src="{% static 'app/images/auto-park-img/park-block-2-2.png' %}" alt="" loading="lazy">
+        <img src="{% static 'app/images/auto-park-img/park-block-2-3.png' %}" alt="" loading="lazy">
+      </div>
       <div class="detail-box">
         <p class="description-section">
-          {% trans "Приймайте рішення на основі даних, які виведуть ваш автопарк на новий рівень разом з Ninja Taxi" %}
+          {% trans "Розширюйте свій таксопарк та розвивайте його за допомогою NINJA TAXI." %}
         </p>
         <div class="contact-us">
-          <a href="#">
-            <button class="connect-button">{% trans "Зв’язатися з нами" %}</button>
+          <button class="free-access-button">{% trans "Безкоштовний місяць" %}</button>
+          <a href="{% url 'price' %}">
+            <button class="get-price-button">{% trans "Дізнатися вартість" %}</button>
           </a>
         </div>
-      </div>
-      <div class="img-box">
-        <img src="{% static 'app/images/auto-park-img/park-block-2.webp' %}" alt="" loading="lazy">
       </div>
     </div>
   </section>
