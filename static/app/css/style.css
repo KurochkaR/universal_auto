@@ -3080,9 +3080,67 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 .auto-park-five-section .container {
 	display: flex;
 	align-items: center;
-	background: url(/static/app/images/auto-park-img/park-block-5-background.png) no-repeat;
-	background-size: 100% 100%;
+	background: url(/static/app/images/auto-park-img/park-block-5-background.png) no-repeat 100% center;
 }
+
+.auto-park-five-section .container .box-img {
+	width: 50%;
+}
+
+.auto-park-five-section .container .box-img img {
+	width: 100%;
+	height: auto;
+	padding: 0;
+	margin: 0;
+}
+
+.auto-park-five-section .container .description {
+	width: 100%;
+	padding: 10px 30px;
+}
+
+.auto-park-five-section .container .description h2 {
+	font-family: var(--second-family);
+	font-weight: 700;
+	font-size: 36px;
+	text-transform: uppercase;
+	color: #fff;
+}
+
+.auto-park-five-section .container .description p {
+	font-family: var(--font-family);
+	font-weight: 400;
+	font-size: 25px;
+	color: #fff;
+}
+
+.auto-park-five-section .container .description .contact-us {
+	display: flex;
+	justify-content: space-between;
+}
+
+.auto-park-five-section .container .description a button {
+	margin-top: 15px;
+	border: 5px solid #EC6323;
+	background-color: transparent;
+	padding: 10px 35px;
+	font-size: 20px;
+	color: #fff;
+	cursor: pointer;
+}
+
+.auto-park-five-section .container .description button {
+	margin-top: 10px;
+	padding: 10px 35px;
+	background: #EC6323;
+	border: 5px solid #EC6323;
+	color: #fff;
+	border-radius: 20px;
+	font-size: 20px;
+	text-decoration: none;
+	cursor: pointer;
+}
+
 
 /*block 6*/
 
