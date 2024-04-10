@@ -298,7 +298,7 @@ def get_daily_report(manager_id, schema_obj=None):
 
 def generate_message_report(chat_id, schema_id=None, daily=None):
     drivers, user = get_drivers_vehicles_list(chat_id, Driver)
-    drivers = drivers.filter(schema__isnull=False)
+    drivers = drivers.filter(schema__isnull=False).select_related('schema')
     if schema_id:
         schema = Schema.objects.get(pk=schema_id)
         if schema.salary_calculation == SalaryCalculation.WEEK:
@@ -322,7 +322,7 @@ def generate_message_report(chat_id, schema_id=None, daily=None):
         driver_payments_query = DriverPayments.objects.filter(report_from__date=start, report_to__date=end,
                                                               driver=driver)
         if driver_payments_query.exists():
-            payment = driver_payments_query.last()
+            payment = driver_payments_query.last().select_related('driver')
 
             if driver.deleted_at in (start, end):
                 driver_message = f"{driver} каса: {payment.kasa}\n" \
@@ -344,6 +344,9 @@ def generate_message_report(chat_id, schema_id=None, daily=None):
 
 
 def message_driver_report(driver, payment):
+    weekly_bolt = WeeklyReport.objects.filter(
+        report_from=payment.report_from, report_to=payment.report_to, driver=driver).aggregate(
+        bonuses=Coalesce(Sum('bonuses'), Decimal(0)))['bonuses']
     reports = Payments.objects.filter(
         driver=driver,
         report_from__range=(payment.report_from, payment.report_to)).values('fleet__name').annotate(
@@ -352,6 +355,8 @@ def message_driver_report(driver, payment):
                       f" по {timezone.localtime(payment.report_to).strftime('%d.%m %H:%M')}</u>\n")
     driver_message += f"Загальна каса: {payment.kasa}\n"
     for report in reports:
+        if report['fleet__name'] == "Bolt" and weekly_bolt:
+            driver_message += f"Бонуси {report['fleet__name']}: {weekly_bolt}\n"
         driver_message += f"{report['fleet__name']} каса: {report['fleet_kasa']}\n"
     if payment.rent:
         driver_message += "Холостий пробіг: {0} * {1} = {2}\n".format(
@@ -760,7 +765,7 @@ def get_today_statistic(start, end, driver):
             "total_orders_rejected": fleet_orders_rejected,
             "total_orders_accepted": fleet_orders_accepted,
             "mileage": fleet_mileage,
-            "efficiency": round(fleet_kasa / fleet_mileage, 2) if fleet_mileage else 0,
+            "efficiency": round(Decimal(fleet_kasa) / fleet_mileage, 2) if fleet_mileage else 0,
             "road_time": road_time,
             "driver": driver,
             "partner": driver.partner,

@@ -422,15 +422,15 @@ class UaGpsSynchronizer(Fleet):
 
     @staticmethod
     def generate_text_message(
-            driver, kasa, distance, orders, canceled_orders, accepted_times, rent_distance, road_time, end_time,
-            start_reshuffle, total_cash):
+            driver, kasa, card,  distance, orders, canceled_orders, accepted_times, rent_distance, road_time, end_time,
+            start_reshuffle):
         time_now = timezone.localtime(end_time)
         if kasa and distance:
             return f"<b>{driver}</b> \n" \
                    f"<u>Звіт з {start_reshuffle} по {time_now.strftime('%H:%M')}</u> \n\n" \
                    f"Початок роботи: {accepted_times}\n" \
                    f"Каса: {round(kasa, 2)}\n" \
-                   f"Готівка: {total_cash}\n" \
+                   f"Готівка: {round((kasa - card), 2)}\n" \
                    f"Виконано замовлень: {orders}\n" \
                    f"Скасовано замовлень: {canceled_orders}\n" \
                    f"Пробіг під замовленням: {distance}\n" \
@@ -448,8 +448,8 @@ class UaGpsSynchronizer(Fleet):
         rent_distance = total_km - distance
         kasa, card, mileage, orders, canceled_orders, accepted_times, fleet_list = get_today_statistic(start, end_time,
                                                                                                        driver)
-        text = self.generate_text_message(driver, kasa, distance, orders, canceled_orders, accepted_times,
-                                          rent_distance, road_time, end_time, start_reshuffle, total_cash)
+        text = self.generate_text_message(driver, kasa, card, distance, orders, canceled_orders, accepted_times,
+                                          rent_distance, road_time, end_time, start_reshuffle)
 
         defaults = {
             "report_from": start,
@@ -460,7 +460,7 @@ class UaGpsSynchronizer(Fleet):
             "mileage": distance + rent_distance,
             "efficiency": round(kasa / (distance + rent_distance), 2) if distance else 0,
             "road_time": road_time,
-            "total_cash": total_cash,
+            "total_cash": kasa - card,
             "rent_distance": rent_distance,
             "average_price": round(kasa / orders, 2) if orders else 0,
             "partner": self.partner,
@@ -508,7 +508,8 @@ class UaGpsSynchronizer(Fleet):
             in_road = self.get_road_distance(start, end, payment=True)
             text = "Поточна статистика\n"
             for driver, result in in_road.items():
-                fleets = Fleet.objects.filter(partner=self.partner).exclude(name__in=["Gps"])
+                fleets = Fleet.objects.filter(
+                    fleetsdriversvehiclesrate__driver=driver, deleted_at=None).exclude(name="Ninja")
                 total_cash = 0
                 for fleet in fleets:
                     _, cash = fleet.get_earnings_per_driver(driver, start, end)
