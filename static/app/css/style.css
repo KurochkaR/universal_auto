@@ -3196,7 +3196,52 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 /*block 7*/
 
 .auto-park-seven-section {
-	margin-top: 1000px;
+	margin-top: 100px;
+}
+
+.auto-park-seven-section .container {
+	display: flex;
+	align-items: center;
+}
+
+.auto-park-seven-section .container .box-img {
+	width: 100%;
+}
+
+.auto-park-seven-section .container .box-img img {
+	width: 100%;
+	height: auto;
+}
+
+.auto-park-seven-section .container .description {
+	width: 100%;
+	padding: 10px 30px;
+}
+
+.auto-park-seven-section .container .description h2 {
+	font-family: var(--second-family);
+	font-weight: 700;
+	font-size: 36px;
+	text-transform: uppercase;
+	color: #141e17;
+}
+
+.auto-park-seven-section .container .description p {
+	font-family: var(--font-family);
+	font-weight: 400;
+	font-size: 25px;
+	color: #38423b;
+}
+
+.auto-park-seven-section .container .description button {
+	margin-top: 15px;
+	border: 5px solid #EC6323;
+	background-color: #EC6323;
+	padding: 10px 10px;
+	font-size: 20px;
+	color: #fff;
+	cursor: pointer;
+	border-radius: 25px;
 }
 
 
