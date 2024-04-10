@@ -1193,6 +1193,7 @@ def create_daily_payment(self, **kwargs):
         if not created:
             for key, value in data.items():
                 setattr(payment, key, value)
+            payment.earning += payment.get_bonuses() - payment.get_penalties()
             payment.save()
         response = {"status": payment.status, "id": payment.id, "order": no_price}
     else:

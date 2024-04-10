@@ -25,6 +25,18 @@ def format_hours(total_hours):
     return f"{hours:02}:{minutes:02}:{seconds:02}"
 
 
+def get_start_week_time(start, end):
+    start_today = timezone.make_aware(datetime.combine(timezone.localtime(), time.min))
+    yesterday = start_today - timedelta(days=1)
+    if not start and not end:
+        if timezone.localtime().weekday():
+            start = start_today - timedelta(days=timezone.localtime().weekday())
+        else:
+            start = start_today - timedelta(weeks=1)
+        end = timezone.make_aware(datetime.combine(yesterday, time.max.replace(microsecond=0)))
+    return start, end, yesterday
+
+
 def get_time_for_task(schema, day=None):
     """
     Returns time periods
@@ -425,22 +437,16 @@ def calculate_efficiency(vehicle, start, end):
     return efficiency, formatted_distance, total_kasa, vehicle_drivers
 
 
-def get_efficiency(manager_id=None, start=None, end=None):
-    yesterday = timezone.localtime().date() - timedelta(days=1)
-    if not start and not end:
-        if timezone.localtime().weekday():
-            start = timezone.localtime().date() - timedelta(days=timezone.localtime().weekday())
-        else:
-            start = timezone.localtime().date() - timedelta(weeks=1)
-        end = yesterday
+def get_efficiency(manager_id=None, start_time=None, end_time=None):
+    start, end, yesterday = get_start_week_time(start_time, end_time)
     effective_vehicle = {}
     report = {}
     vehicles = get_drivers_vehicles_list(manager_id, Vehicle)[0]
     for vehicle in vehicles:
         effect = calculate_efficiency(vehicle, start, end)
+        yesterday_effect = calculate_efficiency(vehicle, yesterday, end)
         drivers = ", ".join(effect[3])
-        if end == yesterday:
-            yesterday_effect = calculate_efficiency(vehicle, end, end)
+        if end.date() == yesterday.date() and yesterday_effect:
             effective_vehicle[vehicle.licence_plate] = {
                 'Водії': drivers,
                 'Середня ефективність(грн/км)': effect[0],
@@ -485,25 +491,18 @@ def calculate_efficiency_driver(driver, start, end):
         )
         vehicles = list(efficiency_objects.values_list('vehicles__licence_plate', flat=True).distinct())
 
-        annotated_efficiency['accept_eff_percent'] = float('{:.2f}'.format(accept_eff_percent))
-        annotated_efficiency['avg_price'] = float('{:.2f}'.format(avg_price))
-        annotated_efficiency['efficiency_avg'] = float('{:.2f}'.format(efficiency_avg))
+        annotated_efficiency['accept_eff_percent'] = '{:.2f}'.format(accept_eff_percent)
+        annotated_efficiency['avg_price'] = '{:.2f}'.format(avg_price)
+        annotated_efficiency['efficiency_avg'] = '{:.2f}'.format(efficiency_avg)
         annotated_efficiency['vehicles'] = vehicles
 
         return annotated_efficiency
 
 
-def get_driver_efficiency_report(manager_id, start=None, end=None):
+def get_driver_efficiency_report(manager_id, start_time=None, end_time=None):
+    start, end, yesterday = get_start_week_time(start_time, end_time)
     drivers = get_drivers_vehicles_list(manager_id, Driver)[0]
-    start_today = timezone.make_aware(datetime.combine(timezone.localtime(), time.min))
-    yesterday = start_today - timedelta(days=1)
-    if not start and not end:
-        if timezone.localtime().weekday():
-            start = start_today - timedelta(days=timezone.localtime().weekday())
-        else:
-            start = start_today - timedelta(weeks=1)
-        end = timezone.make_aware(datetime.combine(yesterday, time.max.replace(microsecond=0)))
-        drivers = drivers.filter(schema__isnull=False)
+    drivers = drivers.filter(schema__isnull=False)
     effective_driver = {}
     report = {}
     for driver in drivers:
@@ -655,18 +654,20 @@ def get_failed_income(payment):
     driver_reshuffles = check_reshuffle(payment.driver, start, end)
 
     while start.date() <= end.date():
-        bolt_total_cash = 0
-        orders_total_cash = 0
-        start_report = start if start < end else timezone.make_aware(datetime.combine(start, time.min))
-        end_report = timezone.make_aware(datetime.combine(start, time.max))
-        bolt_report = CustomReport.objects.filter(report_to__lte=end_report,
-                                                  report_from__gte=start_report,
-                                                  fleet=bolt_fleet,
-                                                  driver=payment.driver).order_by('report_from').first()
-        if bolt_report:
-            bolt_total_cash = bolt_report.total_amount_cash
-            end_report = bolt_report.report_to
+        if start.date() < end.date():
+            start_report = start
+            end_report = timezone.make_aware(datetime.combine(start, time.max.replace(microsecond=0)))
+        else:
+            start_report = timezone.make_aware(datetime.combine(start, time.min))
+            end_report = end
+
+        bolt_day_cash = CustomReport.objects.filter(
+            report_to__lte=end_report, report_from__gte=start_report,
+            fleet=bolt_fleet, driver=payment.driver).aggregate(
+            total_amount_cash=Coalesce(Sum('total_amount_cash', Decimal(0))))
+
         reshuffles = check_reshuffle(payment.driver, start_report, end_report)
+        orders_total_cash = 0
         cash_discount = 0
         for reshuffle in reshuffles:
             total_kasa = 0
@@ -679,8 +680,9 @@ def get_failed_income(payment):
                 if isinstance(fleet, BoltRequest):
                     bolt_orders = FleetOrder.objects.filter(
                         fleet="Bolt",
+                        state__in=[FleetOrder.COMPLETED, FleetOrder.CLIENT_CANCEL],
                         accepted_time__range=(start_period, end_period),
-                        driver=reshuffle.driver_start,
+                        driver=payment.driver,
                         vehicle=vehicle)
                     bolt_kasa = bolt_orders.aggregate(total_price=Coalesce(Sum('price'), 0),
                                                       total_tips=Coalesce(Sum('tips'), 0))
@@ -700,9 +702,9 @@ def get_failed_income(payment):
                 vehicle_income[vehicle] = total_income
             else:
                 vehicle_income[vehicle] += total_income
-        if orders_total_cash != bolt_total_cash and reshuffles:
+        if orders_total_cash != bolt_day_cash and reshuffles:
             quantity_reshuffles = reshuffles.values_list('swap_vehicle').distinct().count()
-            cash_discount += orders_total_cash - bolt_total_cash
+            cash_discount += orders_total_cash - bolt_day_cash
             vehicle_card_bonus = Decimal(cash_discount / quantity_reshuffles)
             for key, value in vehicle_income.items():
                 vehicle_income[key] += vehicle_card_bonus

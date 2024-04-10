@@ -11,6 +11,7 @@ from app.bolt_sync import BoltRequest
 from app.models import CustomReport, ParkSettings, Vehicle, Partner, Payments, SummaryReport, DriverPayments, Penalty, \
     Bonus, FleetOrder, Fleet, DriverReshuffle, DriverEfficiency, InvestorPayments, WeeklyReport
 from app.uagps_sync import UaGpsSynchronizer
+from app.uber_sync import UberRequest
 from auto_bot.handlers.driver_manager.utils import create_driver_payments
 from auto_bot.handlers.order.utils import check_vehicle
 from auto_bot.main import bot
@@ -260,15 +261,20 @@ def create_share_investor_earn(start, end, vehicles_list, partner_pk):
     bonus_kasa = 0
     fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name__in=['Gps', 'Ninja'])
     for fleet in fleets:
-        orders = FleetOrder.objects.filter(
-            state__in=[FleetOrder.COMPLETED, FleetOrder.CLIENT_CANCEL, FleetOrder.SYSTEM_CANCEL],
-            accepted_time__range=(start, end), fleet=fleet.name, vehicle__in=vehicles_list)
-        shared_orders = orders.aggregate(
-            total_price=Coalesce(Sum('price'), 0),
-            total_tips=Coalesce(Sum('tips'), 0))
-        if isinstance(fleet, BoltRequest):
-            bonus_kasa = calc_bonus_bolt_from_orders(start, end, fleet, orders, drivers)
-        shared_kasa += shared_orders['total_price'] * (1 - fleet.fees) + shared_orders['total_tips']
+        if isinstance(fleet, UberRequest):
+            results = fleet.generate_vehicle_report(start, end, vehicles_list)
+            for result in results:
+                shared_kasa += result['totalEarnings']
+        else:
+            orders = FleetOrder.objects.filter(
+                state__in=[FleetOrder.COMPLETED, FleetOrder.CLIENT_CANCEL, FleetOrder.SYSTEM_CANCEL],
+                accepted_time__range=(start, end), fleet=fleet.name, vehicle__in=vehicles_list)
+            shared_orders = orders.aggregate(
+                total_price=Coalesce(Sum('price'), 0),
+                total_tips=Coalesce(Sum('tips'), 0))
+            if isinstance(fleet, BoltRequest):
+                bonus_kasa = calc_bonus_bolt_from_orders(start, end, fleet, orders, drivers)
+            shared_kasa += shared_orders['total_price'] * (1 - fleet.fees) + shared_orders['total_tips']
         print(shared_kasa)
     vehicle_kasa = (shared_kasa + bonus_kasa) / vehicles_list.count()
     for vehicle in vehicles_list:
@@ -284,16 +290,20 @@ def create_proportional_investor_earn(start, end, vehicles_list, partner_pk):
         kasa = 0
         bonus_kasa = 0
         for fleet in fleets:
-            orders = FleetOrder.objects.filter(
-                state__in=[FleetOrder.COMPLETED, FleetOrder.CLIENT_CANCEL, FleetOrder.SYSTEM_CANCEL],
-                accepted_time__range=(start, end), fleet=fleet.name, vehicle=vehicle)
-            kasa_orders = orders.aggregate(
-                total_price=Coalesce(Sum('price'), 0),
-                total_tips=Coalesce(Sum('tips'), 0))
-            if isinstance(fleet, BoltRequest):
-                for driver in drivers:
-                    bonus_kasa += calc_bonus_bolt_from_orders(start, end, fleet, orders, [driver])
-            kasa += kasa_orders['total_price'] * (1 - fleet.fees) + kasa_orders['total_tips'] + bonus_kasa
+            if isinstance(fleet, UberRequest):
+                result = fleet.generate_vehicle_report(start, end, [vehicle])
+                kasa += result[0]['totalEarnings']
+            else:
+                orders = FleetOrder.objects.filter(
+                    state__in=[FleetOrder.COMPLETED, FleetOrder.CLIENT_CANCEL, FleetOrder.SYSTEM_CANCEL],
+                    accepted_time__range=(start, end), fleet=fleet.name, vehicle=vehicle)
+                kasa_orders = orders.aggregate(
+                    total_price=Coalesce(Sum('price'), 0),
+                    total_tips=Coalesce(Sum('tips'), 0))
+                if isinstance(fleet, BoltRequest):
+                    for driver in drivers:
+                        bonus_kasa += calc_bonus_bolt_from_orders(start, end, fleet, orders, [driver])
+                kasa += kasa_orders['total_price'] * (1 - fleet.fees) + kasa_orders['total_tips'] + bonus_kasa
             print(kasa)
         calc_and_create_earn(start, end, kasa, vehicle)
 

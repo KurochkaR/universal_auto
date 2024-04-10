@@ -286,7 +286,6 @@ class BoltRequest(Fleet, Synchronizer):
                 except Exception as e:
                     get_logger().error(e)
             driver_list.append({
-                'fleet_name': self.name,
                 'name': driver_info['data']['first_name'],
                 'second_name': driver_info['data']['last_name'],
                 'email': driver_info['data']['email'],
@@ -295,6 +294,21 @@ class BoltRequest(Fleet, Synchronizer):
                 'pay_cash': driver['has_cash_payment']
             })
         return driver_list
+
+    def get_vehicles(self):
+        vehicles_list = []
+        start = end = datetime.now().strftime('%Y-%m-%d')
+        params = self.param(50)
+        params.update({"start_date": start, "end_date": end})
+        request_url = f'{self.base_url}getCarsPaginated'
+        vehicles = self.get_list_result(request_url, params, data='data', list='rows', total='total_rows')
+        for vehicle in vehicles:
+            vehicles_list.append({
+                'licence_plate': vehicle['reg_number'],
+                'vehicle_name': vehicle['model'],
+            })
+
+        return vehicles_list
 
     def get_orders_list(self, start, end):
         format_start = start.strftime("%Y-%m-%d")
@@ -548,27 +562,3 @@ class BoltRequest(Fleet, Synchronizer):
         job_application.status_bolt = datetime.now().date()
         job_application.save()
 
-    def get_vehicles(self):
-        vehicles_list = []
-        start = end = datetime.now().strftime('%Y-%m-%d')
-        params = {"start_date": start, "end_date": end, "limit": 25}
-        offset = 0
-        limit = params["limit"]
-
-        while True:
-            params["offset"] = offset
-
-            params.update(self.param())
-            response = self.get_target_url(f'{self.base_url}getCarsPaginated', params=params)
-            if offset > response['data']['total_rows']:
-                break
-            vehicles = response['data']['rows']
-            tm.sleep(0.5)
-            for vehicle in vehicles:
-                vehicles_list.append({
-                    'licence_plate': vehicle['reg_number'],
-                    'vehicle_name': vehicle['model'],
-                    'vin_code': ''
-                })
-            offset += limit
-        return vehicles_list
