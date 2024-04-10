@@ -3,6 +3,8 @@ from datetime import datetime, timedelta, time
 
 import requests
 from _decimal import Decimal
+
+from django.db.models import Q
 from django.utils import timezone
 from telegram import ParseMode
 from django.db import transaction
@@ -168,7 +170,7 @@ class UaGpsSynchronizer(Fleet):
                                                   accepted_time__gte=start_report,
                                                   accepted_time__lt=end_report).order_by('accepted_time')
             order_params, previous_finish_time = self.get_order_parameters(completed, end_report,
-                                                                           reshuffle.swap_vehicle)
+                                                                           reshuffle.swap_vehicle, previous_finish_time)
 
             parameters.extend(order_params)
             if (timezone.localtime(start_report).time() == time.min or
@@ -236,9 +238,54 @@ class UaGpsSynchronizer(Fleet):
                 updated_orders.append(order)
             FleetOrder.objects.bulk_update(updated_orders, fields=['distance', 'road_time'], batch_size=200)
 
-    def get_order_parameters(self, orders, end, vehicle):
+    def get_non_order_message(self, start_time, end_time, driver_pk):
+        reshuffles = check_reshuffle(driver_pk, start_time, end_time, gps=True)
+        driver = Driver.objects.get(pk=driver_pk)
+        if reshuffles:
+
+            message = f"{driver}\n"
+            prev_order_end_time = start_time
+
+            for reshuffle in reshuffles:
+                empty_time_slots = []
+                parameters = []
+                if timezone.localtime(reshuffle.swap_time) > prev_order_end_time + timedelta(minutes=1):
+                    empty_time_slots.append((prev_order_end_time, timezone.localtime(reshuffle.swap_time)))
+
+                start, end = find_reshuffle_period(reshuffle, start_time, end_time)
+                prev_order_end_time = start
+                orders = FleetOrder.objects.filter(
+                    Q(driver=driver_pk) &
+                    Q(state=FleetOrder.COMPLETED) &
+                    (Q(accepted_time__range=(start, end)) |
+                     Q(accepted_time__lt=start, finish_time__gt=start))).order_by('accepted_time')
+
+                if orders.exists():
+                    for order in orders:
+                        if prev_order_end_time < order.accepted_time:
+                            empty_time_slots.append((prev_order_end_time, timezone.localtime(order.accepted_time)))
+                        prev_order_end_time = timezone.localtime(order.finish_time)
+                    if prev_order_end_time < end:
+                        empty_time_slots.append((prev_order_end_time, end))
+                else:
+                    empty_time_slots.append((start, end))
+                prev_order_end_time = end
+                for slot in empty_time_slots:
+                    parameters.append(self.get_params_for_report(self.get_timestamp(slot[0]),
+                                                                 self.get_timestamp(slot[1]),
+                                                                 reshuffle.swap_vehicle.gps.gps_id))
+                result = self.generate_batch_report(parameters, True)
+                results_with_slots = list(zip(empty_time_slots, result))
+                for slot, result in results_with_slots:
+                    if result[0]:
+                        message += f"{slot[0].strftime('%H:%M')} - {slot[1].strftime('%H:%M')} Пробіг: {result[0]}\n"
+        else:
+            message = (f"Відсутні зміни в календарі для корректного розрахунку холостого пробігу у "
+                       f"{driver} з {start_time.strftime('%d.%m %H:%M')} по {end_time.strftime('%d.%m %H:%M')}.")
+        return message
+
+    def get_order_parameters(self, orders, end, vehicle, previous_finish_time):
         parameters = []
-        previous_finish_time = None
         for order in orders:
             end_report = order.finish_time if order.finish_time < end else end
             if previous_finish_time is None or order.accepted_time >= previous_finish_time:
@@ -285,7 +332,7 @@ class UaGpsSynchronizer(Fleet):
                         driver=driver,
                         state=FleetOrder.COMPLETED,
                         accepted_time__range=(start_period, end_period)).order_by('accepted_time')
-                    parameters.extend(self.get_order_parameters(orders, end, reshuffle.swap_vehicle)[0])
+                    parameters.extend(self.get_order_parameters(orders, end, reshuffle.swap_vehicle, None)[0])
                     batch_size = 40
                     batches = [parameters[i:i + batch_size] for i in range(0, len(parameters), batch_size)]
                     for batch in batches:
@@ -363,16 +410,15 @@ class UaGpsSynchronizer(Fleet):
         return no_gps_list
 
     def save_daily_rent(self, start, end, drivers, payment):
-        if not redis_instance().exists(f"{self.partner.id}_remove_gps"):
-            in_road = self.get_road_distance(start, end, drivers, payment=payment)
-            no_vehicle_gps = []
-            for driver, result in in_road.items():
-                no_gps_list = self.calculate_driver_vehicle_rent(start, end, driver, result, payment=payment)
-                no_vehicle_gps.extend(no_gps_list)
-            if no_vehicle_gps:
-                result_string = ', '.join([str(obj) for obj in set(no_vehicle_gps)])
-                bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"),
-                                 text=f"У авто {result_string} відсутній gps")
+        in_road = self.get_road_distance(start, end, drivers, payment=payment)
+        no_vehicle_gps = []
+        for driver, result in in_road.items():
+            no_gps_list = self.calculate_driver_vehicle_rent(start, end, driver, result, payment=payment)
+            no_vehicle_gps.extend(no_gps_list)
+        if no_vehicle_gps:
+            result_string = ', '.join([str(obj) for obj in set(no_vehicle_gps)])
+            bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"),
+                             text=f"У авто {result_string} відсутній gps")
 
     @staticmethod
     def generate_text_message(

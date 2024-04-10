@@ -15,6 +15,7 @@ paid_inline_buttons = (
 )
 choose_func_text = "Оберіть функцію"
 get_drivers_text = "Інформація оновиться протягом декількох хвилин."
+waiting_task_text = "Генеруємо звіт, зачекайте, будь ласка"
 update_finished = "Інформація оновлена"
 no_drivers_report_text = "У Вас немає звітів по водіях за цей період"
 no_reports_text = "У Вас немає заробітків за цей період"
@@ -34,6 +35,8 @@ wrong_sum_type = "Не вірна сума витрат. Введіть суму
 spending_saved_text = "Витрати успішно записано."
 generate_text = "Генеруємо звіт"
 pin_vehicle_callback = "pin_vehicle"
+records_per_page = 10
+max_buttons_in_row = 5
 
 manager_buttons = (
     "\U0001F504 Оновити базу водіїв",
@@ -41,7 +44,8 @@ manager_buttons = (
     "\U0001F4B0 Звіт по заробітках",
     "\U0001F3AF Ефективність автомобілів",
     "\U0001F680 Ефективність водія",
-    "\U0001F4B8 Витрати автомобіля"
+    "\U0001F4B8 Витрати автомобіля",
+    "\U0001F193 Холостий пробіг водіїв"
 )
 efficiency_period = ("Поточний тиждень",
                      "Вибрати період")

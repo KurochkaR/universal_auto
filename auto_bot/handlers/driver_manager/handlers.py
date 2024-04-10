@@ -1,8 +1,11 @@
 # Create driver and other
+import json
 from datetime import datetime, timedelta, time
 from celery.signals import task_postrun
+from django.db.models import F, Value
+from django.db.models.functions import Concat
 from django.utils import timezone
-from telegram import ReplyKeyboardRemove, ParseMode
+from telegram import ReplyKeyboardRemove, ParseMode, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.error import BadRequest
 
 from app.models import Manager, Vehicle, User, Driver, FleetsDriversVehiclesRate, Fleet, JobApplication, \
@@ -18,12 +21,107 @@ from auto_bot.handlers.driver_manager.utils import get_daily_report, validate_da
     generate_message_report, get_driver_efficiency_report, validate_sum, generate_report_period
 from auto_bot.handlers.main.keyboards import markup_keyboard, markup_keyboard_onetime, inline_manager_kb
 from auto.tasks import send_on_job_application_on_driver, manager_paid_weekly, fleets_cash_trips, \
-    update_driver_data, send_daily_statistic, send_efficiency_report, send_driver_report, send_driver_efficiency
+    update_driver_data, send_daily_statistic, send_efficiency_report, send_driver_report, send_driver_efficiency, \
+    generate_rent_message_driver
 from auto_bot.handlers.order.utils import check_vehicle
 from auto_bot.main import bot
 from auto_bot.utils import send_long_message
 from scripts.redis_conn import redis_instance
 from auto_bot.handlers.main.keyboards import back_to_main_menu
+
+
+def cache_queryset(query):
+    user = CustomUser.get_by_chat_id(query.from_user.id)
+    drivers = Driver.objects.get_active(manager=user, schema__isnull=False) if user.is_manager() else\
+        Driver.objects.get_active(partner=user, schema__isnull=False)
+    driver_name_id = drivers.order_by('second_name').annotate(
+        full_name=Concat(
+            F("user_ptr__second_name"),
+            Value(" "),
+            F("user_ptr__name")
+        )
+    ).values('id', 'full_name')
+    driver_data_list = list(driver_name_id)
+    driver_data_json = json.dumps(driver_data_list)
+    redis_instance().hset(str(query.from_user.id), 'driver_data', driver_data_json)
+
+
+def retrieve_records(page_number, chat_id):
+    drivers = redis_instance().hget(chat_id, 'driver_data')
+    driver_data = json.loads(drivers)
+    if driver_data:
+        start_index = (page_number - 1) * records_per_page
+        end_index = min(start_index + records_per_page, len(driver_data))
+        return driver_data[start_index:end_index]
+    else:
+        return []
+
+
+def generate_buttons_for_page(page_number, chat_id):
+    records = retrieve_records(page_number, chat_id)
+    buttons = []
+    for obj in records:
+        buttons.append([InlineKeyboardButton(text=obj['full_name'], callback_data=f"Generate_rent_{obj['id']}")])
+    return buttons
+
+
+def generate_pagination_buttons(page_number, chat_id):
+    drivers = redis_instance().hget(chat_id, 'driver_data')
+    driver_data = json.loads(drivers)
+    buttons = []
+    total_records = len(driver_data) if driver_data else 0
+    total_pages = (total_records // records_per_page) + 1 if total_records % records_per_page != 0 else total_records // records_per_page
+    if total_pages != 1:
+        page_chunks = [list(range(start, min(start + max_buttons_in_row, total_pages + 1))) for start in range(1, total_pages + 1, max_buttons_in_row)]
+
+        for chunk in page_chunks:
+            row_buttons = [
+                InlineKeyboardButton(text=f"{i}", callback_data=f"Page_{i}")
+                for i in chunk
+            ]
+            buttons.append(row_buttons)
+    return buttons
+
+
+def get_driver_rent_info(update, context):
+    query = update.callback_query
+    cache_queryset(query)
+    page_number = 1
+    buttons = generate_buttons_for_page(page_number, str(query.from_user.id))
+    buttons.extend(generate_pagination_buttons(page_number, str(query.from_user.id)))
+    reply_markup = InlineKeyboardMarkup(buttons)
+    query.edit_message_text("Оберіть водія:", reply_markup=reply_markup)
+
+
+def handle_page_button_click(update, context):
+    query = update.callback_query
+    page_number = int(query.data.split('_')[-1])  # Extract the page number from the callback data
+    buttons = generate_buttons_for_page(page_number, str(query.from_user.id))  # Generate buttons for the selected page
+    buttons.extend(generate_pagination_buttons(page_number, str(query.from_user.id)))  # Append pagination buttons
+    reply_markup = InlineKeyboardMarkup(buttons)
+    try:
+        query.edit_message_reply_markup(reply_markup=reply_markup)
+    except BadRequest as e:
+        if "Message is not modified" in str(e):
+            pass
+
+
+def start_rent_info_task(update, context):
+    query = update.callback_query
+    driver_id = int(query.data.split('_')[-1])
+    manager = Manager.get_by_chat_id(query.from_user.id)
+    partner_id = manager.managers_partner_id if manager else Partner.get_by_chat_id(query.from_user.id).pk
+
+    generate_rent_message_driver.apply_async(args=[driver_id, query.from_user.id, query.message.message_id],
+                                             queue=f"beat_tasks_{partner_id}")
+    query.edit_message_text(waiting_task_text)
+
+
+@task_postrun.connect
+def send_rent_drivers(sender=None, **kwargs):
+    if sender == generate_rent_message_driver:
+        result = kwargs.get('retval')
+        bot.edit_message_text(chat_id=result[0], text=result[1], message_id=result[2], reply_markup=inline_manager_kb())
 
 
 @task_postrun.connect

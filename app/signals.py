@@ -15,7 +15,7 @@ from auto.tasks import send_on_job_application_on_driver, check_time_order, sear
 from django.db.models.signals import post_save, post_delete, pre_delete
 from django.dispatch import receiver
 from app.models import Driver, StatusChange, JobApplication, ParkSettings, Partner, Order, DriverSchemaRate, \
-    Schema, DriverPayments, InvestorPayments, FleetOrder
+    Schema, DriverPayments, InvestorPayments, FleetOrder, FleetsDriversVehiclesRate, Fleet, Manager, Vehicle
 from auto_bot.handlers.driver_manager.utils import create_driver_payments, message_driver_report
 from auto_bot.handlers.order.keyboards import inline_reject_order
 from auto_bot.handlers.order.static_text import client_order_info
@@ -36,6 +36,18 @@ def calculate_fired_driver(sender, instance, **kwargs):
                                                  report_to=end,
                                                  driver=instance,
                                                  defaults=data)
+
+
+@receiver(post_save, sender=Vehicle)
+def new_vehicle_notification(sender, instance, created, **kwargs):
+    if created:
+        managers = Manager.objects.filter(managers_partner=instance.partner)
+        if managers.count() == 1:
+            instance.manager = managers.first()
+            instance.save(update_fields=['manager'])
+        elif managers.count() > 1:
+            message_text = f"У вас новий автомобіль {instance.license_plate}. Будь ласка, призначте йому менеджера."
+            bot.send_message(chat_id=instance.partner.chat_id, text=message_text)
 
 
 @receiver(post_save, sender=DriverPayments)
