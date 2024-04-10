@@ -7,9 +7,11 @@ from _decimal import Decimal
 from django.db.models import Q
 from django.utils import timezone
 from telegram import ParseMode
+from django.db import transaction
 
 from app.models import (Driver, GPSNumber, RentInformation, FleetOrder, CredentialPartner, ParkSettings, Fleet,
-                        Partner, VehicleRent, Vehicle, DriverReshuffle, DriverPayments)
+                        Partner, VehicleRent, Vehicle, DriverReshuffle, DriverPayments, DriverEfficiency,
+                        DriverEfficiencyFleet)
 from auto_bot.handlers.driver_manager.utils import get_today_statistic, find_reshuffle_period
 from auto_bot.handlers.order.utils import check_reshuffle
 from auto_bot.main import bot
@@ -421,13 +423,14 @@ class UaGpsSynchronizer(Fleet):
     @staticmethod
     def generate_text_message(
             driver, kasa, distance, orders, canceled_orders, accepted_times, rent_distance, road_time, end_time,
-            start_reshuffle):
+            start_reshuffle, total_cash):
         time_now = timezone.localtime(end_time)
         if kasa and distance:
             return f"<b>{driver}</b> \n" \
                    f"<u>Звіт з {start_reshuffle} по {time_now.strftime('%H:%M')}</u> \n\n" \
                    f"Початок роботи: {accepted_times}\n" \
                    f"Каса: {round(kasa, 2)}\n" \
+                   f"Готівка: {total_cash}\n" \
                    f"Виконано замовлень: {orders}\n" \
                    f"Скасовано замовлень: {canceled_orders}\n" \
                    f"Пробіг під замовленням: {distance}\n" \
@@ -438,14 +441,62 @@ class UaGpsSynchronizer(Fleet):
             return f"Водій {driver} ще не виконав замовлень\n" \
                    f"Холостий пробіг: {rent_distance}\n\n"
 
-    def process_driver_data(self, driver, result, start, end, chat_id, start_reshuffle=None):
+    def process_driver_data(self, driver, result, start, end, chat_id, start_reshuffle=None, total_cash=0):
         distance, road_time, end_time = result
         end_time = end_time or timezone.localtime()
         total_km = self.calc_total_km(driver, start, end_time)[0]
         rent_distance = total_km - distance
-        kasa, card, mileage, orders, canceled_orders, accepted_times = get_today_statistic(start, end_time, driver)
+        kasa, card, mileage, orders, canceled_orders, accepted_times, fleet_list = get_today_statistic(start, end_time,
+                                                                                                       driver)
         text = self.generate_text_message(driver, kasa, distance, orders, canceled_orders, accepted_times,
-                                          rent_distance, road_time, end_time, start_reshuffle)
+                                          rent_distance, road_time, end_time, start_reshuffle, total_cash)
+
+        defaults = {
+            "report_from": start,
+            "report_to": end_time,
+            "total_kasa": kasa,
+            "total_orders_rejected": canceled_orders,
+            "total_orders_accepted": orders,
+            "mileage": distance + rent_distance,
+            "efficiency": round(kasa / (distance + rent_distance), 2) if distance else 0,
+            "road_time": road_time,
+            "total_cash": total_cash,
+            "rent_distance": rent_distance,
+            "average_price": round(kasa / orders, 2) if orders else 0,
+            "partner": self.partner,
+            "driver": driver,
+        }
+
+        with transaction.atomic():
+            DriverEfficiency.objects.update_or_create(
+                driver=driver,
+                report_from=start,
+                defaults=defaults
+            )
+
+        for fleet in fleet_list:
+            defaults = {
+                "report_from": fleet['report_from'],
+                "report_to": fleet['report_to'],
+                "total_kasa": fleet['total_kasa'],
+                "total_orders_rejected": fleet['total_orders_rejected'],
+                "total_orders_accepted": fleet['total_orders_accepted'],
+                "mileage": fleet['mileage'],
+                "efficiency": fleet['efficiency'],
+                "road_time": fleet['road_time'],
+                "average_price": round(
+                    fleet['total_kasa'] / fleet['total_orders_accepted'], 2) if fleet['total_orders_accepted'] else 0,
+                "partner": fleet['partner'],
+                "driver": fleet['driver'],
+            }
+            with transaction.atomic():
+                DriverEfficiencyFleet.objects.update_or_create(
+                    driver=fleet['driver'],
+                    report_from=fleet['report_from'],
+                    fleet=fleet['fleet'],
+                    defaults=defaults
+                )
+
         # if timezone.localtime().time() > time(7, 0):
         #     send_long_message(chat_id=chat_id, text=text)
         return text
@@ -457,11 +508,16 @@ class UaGpsSynchronizer(Fleet):
             in_road = self.get_road_distance(start, end, payment=True)
             text = "Поточна статистика\n"
             for driver, result in in_road.items():
+                fleets = Fleet.objects.filter(partner=self.partner).exclude(name__in=["Gps"])
+                total_cash = 0
+                for fleet in fleets:
+                    _, cash = fleet.get_earnings_per_driver(driver, start, end)
+                    total_cash += cash
                 reshuffles = DriverReshuffle.objects.filter(driver_start=driver,
                                                             swap_time__date=timezone.localtime()).order_by('swap_time')
                 start_reshuffle = timezone.localtime(reshuffles.earliest('swap_time').swap_time)
                 text += self.process_driver_data(
-                    driver, result, start, end, driver.chat_id, start_reshuffle.strftime("%H:%M"))
+                    driver, result, start, end, driver.chat_id, start_reshuffle.strftime("%H:%M"), total_cash)
             if timezone.localtime().time() > time(7, 0):
                 send_long_message(
                     chat_id=ParkSettings.get_value("DRIVERS_CHAT", partner=self.partner),

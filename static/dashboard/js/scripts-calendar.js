@@ -581,17 +581,17 @@ $(document).ready(function () {
 		$("#search-vehicle-calendar, #search-shift-driver").val("all").change();
 	});
 
-	const timeList = document.getElementById('timeList');
-
-	for (let i = 0; i < 24; i++) {
-		for (let j = 0; j < 60; j += 15) {
-			const hour = i.toString().padStart(2, '0');
-			const minute = j.toString().padStart(2, '0');
-			const option = document.createElement('option');
-			option.value = `${hour}:${minute}`;
-			timeList.appendChild(option);
-		}
-	}
+	// const timeList = document.getElementById('timeList');
+	//
+	// for (let i = 0; i < 24; i++) {
+	// 	for (let j = 0; j < 60; j += 15) {
+	// 		const hour = i.toString().padStart(2, '0');
+	// 		const minute = j.toString().padStart(2, '0');
+	// 		const option = document.createElement('option');
+	// 		option.value = `${hour}:${minute}`;
+	// 		timeList.appendChild(option);
+	// 	}
+	// }
 	$('.shift-close-btn').off('click').on('click', function (e) {
 		e.preventDefault();
 		$('#modal-shift').hide();

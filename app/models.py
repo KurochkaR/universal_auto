@@ -1152,6 +1152,7 @@ class DriverEfficiencyPolymorphic(PolymorphicModel):
 
 class DriverEfficiency(DriverEfficiencyPolymorphic):
     rent_distance = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Холостий пробіг')
+    total_cash = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Готівкою')
 
     class Meta:
         verbose_name = 'Ефективність водія'

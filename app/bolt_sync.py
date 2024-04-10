@@ -193,7 +193,8 @@ class BoltRequest(Fleet, Synchronizer):
                      "fee": Decimal(
                          -(driver_report['gross_revenue'] - driver_report['net_earnings'])) + bolt_custom.fee,
                      "total_amount_without_fee": Decimal(
-                         driver_report['net_earnings'] - driver_report['bonuses']) - bolt_custom.total_amount_without_fee,
+                         driver_report['net_earnings'] - driver_report[
+                             'bonuses']) - bolt_custom.total_amount_without_fee,
                      "compensations": Decimal(driver_report['compensations']) - bolt_custom.compensations,
                      "refunds": Decimal(driver_report['expense_refunds']) - bolt_custom.refunds,
                      })
@@ -562,3 +563,24 @@ class BoltRequest(Fleet, Synchronizer):
         job_application.status_bolt = datetime.now().date()
         job_application.save()
 
+
+    def get_earnings_per_driver(self, driver, start, end):
+        param = self.param()
+        format_start, format_end = start.strftime("%Y-%m-%d"), end.strftime("%Y-%m-%d")
+        driver_id = driver.get_driver_external_id(self)
+        total_amount, total_amount_cash = 0, 0
+
+        if driver_id:
+            param.update({"start_date": format_start,
+                          "end_date": format_end,
+                          "limit": 50,
+                          "driverId": driver_id})
+
+            request_url = f"{self.base_url}getDriverEarnings/dateRange"
+            reports = self.get_list_result(request_url, param, data='data', list='drivers', total='total_rows')
+            for driver_report in reports:
+                if driver_report['id'] == int(driver_id):
+                    total_amount += driver_report['net_earnings']
+                    total_amount_cash += driver_report['cash_in_hand']
+
+        return total_amount, total_amount_cash

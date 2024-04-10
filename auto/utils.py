@@ -193,16 +193,9 @@ def polymorphic_efficiency_create(create_model, partner_pk, driver, start, end, 
         data['rent_distance'] = rent_mileage
 
     efficiency_filter['defaults'] = data
-    result, created = create_model.objects.get_or_create(**efficiency_filter)
+    result, created = create_model.objects.update_or_create(**efficiency_filter)
     if created:
         result.vehicles.add(*vehicles)
-    if not created and any([total_kasa != result.total_kasa,
-                            total_orders != result.total_orders,
-                            mileage != result.mileage]):
-        for key, value in data.items():
-            setattr(result, key, value)
-
-        result.save()
 
 
 def calendar_weekly_report(partner_pk, start_date, end_date, format_start, format_end):
