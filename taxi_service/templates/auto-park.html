@@ -74,54 +74,23 @@
     </div>
   </section>
 
-  {#  <section class="auto-park-three-section">#}
-  {#    <div class="container">#}
-  {#      <div class="img-box">#}
-  {#        <img class="img-1" src="{% static 'app/images/auto-park-img/park-block-3-1.webp' %}" alt="" loading="lazy">#}
-  {#        <img class="img-2" src="{% static 'app/images/auto-park-img/park-block-3-2.webp' %}" alt="" loading="lazy">#}
-  {#      </div>#}
-  {#      <div class="analytics-box">#}
-  {#        <div>#}
-  {#          <h2>{% trans "Функція аналітика" %}</h2>#}
-  {#          <ul>#}
-  {#            <li>{% trans "Ціна кілометру" %}</li>#}
-  {#            <li>{% trans "Каса" %}</li>#}
-  {#            <li>{% trans "Кількість поїздок" %}</li>#}
-  {#            <li>{% trans "% прийнятих замовлень" %}</li>#}
-  {#            <li>{% trans "Час на лінії і т.д." %}</li>#}
-  {#          </ul>#}
-  {#        </div>#}
-  {#        <div class="buttons-box">#}
-  {#          <a href="{% url 'price' %}">#}
-  {#            <button class="get-price-button">{% trans "Дізнатися вартість" %}</button>#}
-  {#          </a>#}
-  {#          <button type="submit" class="consult-button">{% trans "Проконсультуватися" %}</button>#}
-  {#        </div>#}
-  {#      </div>#}
-  {#    </div>#}
-  {#  </section>#}
-
   <!-- end auto park three section -->
 
   <!-- auto park four section -->
 
   <section class="auto-park-four-section">
     <div class="container">
-      <div class="spending-box">
-        <div class="spending-description">
-          <h2>{% trans "Всі витрати по автомобілю відразу в Дашборді" %}</h2>
-          <p>{% trans "ТО, ремонти, ДТП, страховки. Таким чином Ви завжди бачите прибуток свого автопарку" %}</p>
-        </div>
-        <div class="buttons-box">
-          <a href="{% url 'price' %}">
-            <button class="get-price-button">{% trans "Дізнатися вартість" %}</button>
-          </a>
-          <button class="free-access-button">{% trans "Отримати безкоштовний доступ" %}</button>
-        </div>
+      <div class="description">
+        <h2>{% trans "Дохідність водіїв" %}</h2>
+        <p>
+          {% trans "Дохідність водіїв дозволяє переглядати загальну суму заробітку водія за день " %}
+          {% trans "або будь-який інший період в усіх агрегаторах, а також окремо відображає, " %}
+          {% trans "скільки заробив водій готівкою та на карту." %}
+        </p>
+        <button class="free-access-button">{% trans "Отримати безкоштовнйи доступ" %}</button>
       </div>
-      <div class="img-box">
-        <img class="img-1" src="{% static 'app/images/auto-park-img/park-block-4-1.webp' %}" alt="" loading="lazy">
-        <img class="img-2" src="{% static 'app/images/auto-park-img/park-block-4-2.webp' %}" alt="" loading="lazy">
+      <div class="box-img">
+        <img src="{% static 'app/images/auto-park-img/park-block-4.png' %}" alt="" loading="lazy">
       </div>
     </div>
   </section>
@@ -132,23 +101,20 @@
 
   <section class="auto-park-five-section">
     <div class="container">
-      <div class="img-box">
-        <img class="img-1" src="{% static 'app/images/auto-park-img/park-block-5.webp' %}" alt="" loading="lazy">
-        <img class="image-2" src="{% static 'app/images/auto-park-img/park-block-4-2.webp' %}" alt="" loading="lazy">
+      <div class="box-img">
+        <img src="{% static 'app/images/auto-park-img/park-block-5.png' %}" alt="" loading="lazy">
       </div>
-      <div class="control-box">
-        <div>
-          <h2>{% trans "Функція контролю гаманця водія " %}</h2>
-          <ul>
-            <li>{% trans "Автозняття грошей з гаманців водіїв" %}</li>
-            <li>{% trans "Обмеження на готівку під час роботи водієві" %}</li>
-          </ul>
-        </div>
-        <div class="buttons-box">
+      <div class="description">
+        <h2>{% trans "Ефективність Автомобіля" %}</h2>
+        <p>
+          {% trans "Ефективність автомобіля відображає витрати, загальний чистий заробіток авто " %}
+          {% trans "за певний період, його окупаємість та загальну вартість." %}
+        </p>
+        <div class="contact-us">
+          <button class="free-access-button">{% trans "Отримати безкоштовнйи доступ" %}</button>
           <a href="{% url 'price' %}">
             <button class="get-price-button">{% trans "Дізнатися вартість" %}</button>
           </a>
-          <button type="submit" class="consult-button">{% trans "Проконсультуватися" %}</button>
         </div>
       </div>
     </div>
