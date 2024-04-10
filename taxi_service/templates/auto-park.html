@@ -125,12 +125,20 @@
   <!-- auto park six section -->
   <section class="auto-park-six-section">
     <div class="container">
-      <div class="description">
-        <p>{% trans "Співпраця з нами = Скорочення часу на адміністративну роботу у 2 рази" %}</p>
-        <button>{% trans "Подивитись презентацію" %}</button>
-      </div>
       <div class="box-img">
-        <img src="{% static 'app/images/auto-park-img/park-block-6-1.png' %}" alt="" loading="lazy">
+        <img src="{% static 'app/images/auto-park-img/park-block-6.png' %}" alt="" loading="lazy">
+      </div>
+      <div class="description">
+        <h2>{% trans "Контроль готівки" %}</h2>
+        <p>
+          {% trans "Функція контролю готівки водія в автопарку забезпечує нагляд за гаманцем водія " %}
+          {% trans "та запобігає накопиченню боргів перед автопарком. " %}
+          {% trans "Власник автопарку має можливість самостійно встановлювати відсоток відключення готівки. " %}
+          {% trans "Таким чином, ваш прибуток знаходиться під контролем." %}
+        </p>
+        <a href="{% url 'price' %}">
+          <button class="get-price-button">{% trans "Дізнатися вартість" %}</button>
+        </a>
       </div>
     </div>
   </section>
