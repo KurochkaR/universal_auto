@@ -1328,18 +1328,30 @@ def calculate_failed_earnings(self, payment_pk):
             }
         )
         total_income += income
-    for vehicle, income in vehicle_income.items():
-        if total_income:
-            debt = Decimal(round((income / total_income) * abs(payment.earning), 2))
-        else:
-            debt = Decimal(round(abs(payment.earning) / vehicles, 2))
-        format_start = payment.report_from.strftime("%d.%m")
-        format_end = payment.report_to.strftime("%d.%m")
-        description = f"Борг з {format_start} по {format_end}"
-        category, _ = PenaltyCategory.objects.get_or_create(title="Борг по виплаті")
-        Penalty.objects.create(vehicle_id=vehicle, driver=payment.driver,
-                               amount=debt, description=description,
-                               category=category)
+    charging_penalties = Penalty.objects.filter(driver_payments=payment, category__title="Зарядка")
+    charging = charging_penalties.aggregate(total_amount=Coalesce(Sum('amount'), Decimal(0)))['total_amount']
+    earning_exclude_charging = abs(payment.earning) - charging
+    if earning_exclude_charging > 0:
+        for vehicle, income in vehicle_income.items():
+            if total_income:
+                debt = Decimal(round((income / total_income) * abs(earning_exclude_charging), 2))
+            else:
+                debt = Decimal(round(abs(earning_exclude_charging) / vehicles, 2))
+            format_start = payment.report_from.strftime("%d.%m")
+            format_end = payment.report_to.strftime("%d.%m")
+            description = f"Борг з {format_start} по {format_end}"
+            category, _ = PenaltyCategory.objects.get_or_create(title="Борг по виплаті")
+            Penalty.objects.create(vehicle_id=vehicle, driver=payment.driver,
+                                   amount=debt, description=description,
+                                   category=category)
+            charging_penalties.update(driver_payments=None, description=description)
+    else:
+        charge_vehicles = charging_penalties.values('vehicle').annotate('amount')
+        for vehicle, amount in charge_vehicles.items():
+            charge_amount = (amount / charging) * earning_exclude_charging
+            Penalty.objects.create(vehicle_id=vehicle, driver=payment.driver,
+                                   amount=charge_amount,
+                                   category__title="Зарядка")
 
 
 @app.task(bind=True)
