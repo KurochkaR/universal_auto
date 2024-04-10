@@ -2783,14 +2783,15 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	position: relative;
 	width: 100%;
 	height: auto;
-	left: -150px;
+	left: -55px;
 	top: 65px;
 }
 
 .auto-park-right .decorate-img {
-	right: 140px;
+	right: 190px;
 	position: relative;
 	z-index: -1;
+	top: 0;
 }
 
 .auto-park-right .decorate-img img {
@@ -2799,6 +2800,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 }
 
 .auto-park-right .one-info {
+	width: 130%;
 	position: relative;
 	padding: 10px;
 	z-index: 1022;
@@ -2844,8 +2846,9 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 }
 
 .free-access-btn {
+	width: 120%;
 	position: relative;
-	right: 50px;
+	right: 75px;
 	bottom: 10px;
 }
 
