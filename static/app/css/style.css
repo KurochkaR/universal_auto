@@ -2947,101 +2947,153 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 
 .auto-park-three-section {
 	margin-top: 80px;
+	background: url(/static/app/images/auto-park-img/park-block-6-2.webp) no-repeat;
+	background-size: 100% 100%;
 }
 
 .auto-park-three-section .container {
-	display: flex;
+	display: grid;
+	grid-template-columns: repeat(2, 50%);
 	align-items: center;
+	padding: 90px 10px;
 }
 
-.auto-park-three-section .container > div {
-	flex: 1;
+.auto-park-three-section .container .box-img {
+	width: 100%;
 }
 
-.auto-park-three-section .img-box .img-1 {
-	position: relative;
-	margin-bottom: -660px;
-	right: -70px;
+.auto-park-three-section .container .box-img img {
+	width: 100%;
+	height: auto;
 }
 
-.auto-park-three-section .img-box .img-2 {
-	position: relative;
-	top: 0;
-	left: -150px;
-	z-index: -1;
+.auto-park-three-section .container .description {
+	width: 100%;
 }
 
-
-.analytics-box {
-	position: relative;
-	right: 120px;
-}
-
-
-.analytics-box h2 {
-	margin-top: 175px;
-	color: #141E17;
-	font-size: 32px;
-	font-style: normal;
-	font-weight: 600;
-	line-height: normal;
+.auto-park-three-section .container .description h2 {
+	font-family: var(--second-family);
+	font-weight: 700;
+	font-size: 36px;
 	text-transform: uppercase;
+	color: #141e17;
 }
 
-.analytics-box ul li {
-	margin-top: 20px;
-	color: #53785E;
-	font-size: 25px;
-	font-style: normal;
+.auto-park-three-section .container .description p {
+	font-family: var(--font-family);
 	font-weight: 400;
-	line-height: normal;
+	font-size: 25px;
+	color: #38423b;
 }
 
-.analytics-box ul {
-	list-style: none;
-	padding: 0;
+.auto-park-three-section .container .description .buttons-box {
+	display: flex;
+	justify-content: space-between;
 }
 
-.analytics-box ul li::before {
-	content: "";
-	display: inline-block;
-	width: 50px;
-	height: 50px;
-	background-image: url("/static/app/images/app-check-mark.webp");
-	background-size: cover;
-	margin-right: 5px;
-	vertical-align: middle;
-}
-
-.analytics-box .buttons-box button {
-	margin-top: 15px;
-	font-size: 16px;
-	text-align: left;
+.auto-park-three-section .container .description a button {
+	width: 300px;
+	padding: 15px 0;
+	border: none;
+	border-radius: 20px;
+	font-size: 20px;
 	text-decoration: none;
 	cursor: pointer;
 	font-style: normal;
 	font-weight: 700;
 	line-height: normal;
-}
-
-.analytics-box .buttons-box .get-price-button {
-	background-color: #EC6323;
+	background: #EC6323;
 	color: #fff;
-	padding: 15px 20px;
-	border-radius: 20px;
-	border-color: #EC6323;
-	border: 2px solid #EC6323;
 }
 
-.analytics-box .buttons-box .consult-button {
-	margin-left: 20px;
-	background-color: #fff;
-	color: #EC6323;
-	padding: 15px 20px;
-	border: 2px solid #EC6323;
-	border-color: #EC6323;
-	border-radius: 20px;
-}
+/*.auto-park-three-section .container > div {*/
+/*	flex: 1;*/
+/*}*/
+
+/*.auto-park-three-section .img-box .img-1 {*/
+/*	position: relative;*/
+/*	margin-bottom: -660px;*/
+/*	right: -70px;*/
+/*}*/
+
+/*.auto-park-three-section .img-box .img-2 {*/
+/*	position: relative;*/
+/*	top: 0;*/
+/*	left: -150px;*/
+/*	z-index: -1;*/
+/*}*/
+
+
+/*.analytics-box {*/
+/*	position: relative;*/
+/*	right: 120px;*/
+/*}*/
+
+
+/*.analytics-box h2 {*/
+/*	margin-top: 175px;*/
+/*	color: #141E17;*/
+/*	font-size: 32px;*/
+/*	font-style: normal;*/
+/*	font-weight: 600;*/
+/*	line-height: normal;*/
+/*	text-transform: uppercase;*/
+/*}*/
+
+/*.analytics-box ul li {*/
+/*	margin-top: 20px;*/
+/*	color: #53785E;*/
+/*	font-size: 25px;*/
+/*	font-style: normal;*/
+/*	font-weight: 400;*/
+/*	line-height: normal;*/
+/*}*/
+
+/*.analytics-box ul {*/
+/*	list-style: none;*/
+/*	padding: 0;*/
+/*}*/
+
+/*.analytics-box ul li::before {*/
+/*	content: "";*/
+/*	display: inline-block;*/
+/*	width: 50px;*/
+/*	height: 50px;*/
+/*	background-image: url("/static/app/images/app-check-mark.webp");*/
+/*	background-size: cover;*/
+/*	margin-right: 5px;*/
+/*	vertical-align: middle;*/
+/*}*/
+
+/*.analytics-box .buttons-box button {*/
+/*	margin-top: 15px;*/
+/*	font-size: 16px;*/
+/*	text-align: left;*/
+/*	text-decoration: none;*/
+/*	cursor: pointer;*/
+/*	font-style: normal;*/
+/*	font-weight: 700;*/
+/*	line-height: normal;*/
+/*}*/
+
+/*.analytics-box .buttons-box .get-price-button {*/
+/*	background-color: #EC6323;*/
+/*	color: #fff;*/
+/*	padding: 15px 20px;*/
+/*	border-radius: 20px;*/
+/*	border-color: #EC6323;*/
+/*	border: 2px solid #EC6323;*/
+/*}*/
+
+/*.analytics-box .buttons-box .consult-button {*/
+/*	margin-left: 20px;*/
+/*	background-color: #fff;*/
+/*	color: #EC6323;*/
+/*	padding: 15px 20px;*/
+/*	border: 2px solid #EC6323;*/
+/*	border-color: #EC6323;*/
+/*	border-radius: 20px;*/
+/*}*/
 
 
 /*block 4*/
