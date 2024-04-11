@@ -42,9 +42,10 @@ function driverPayment(period = null, start = null, end = null, paymentStatus = 
 				if ((paymentStatus === 'on_inspection' && (status === 'Перевіряється' || status === 'Потребує поправок')) ||
 					(paymentStatus === 'not_closed' && status === 'Очікується') ||
 					(paymentStatus === 'closed' && (status === 'Виплачений' || status === 'Не сплачений'))) {
+                    let bonusMainClass = status === 'Потребує поправок' ? '"tr-driver-payments incorrect"': "tr-driver-payments"
 
 					var responseDate = moment(report_to, "DD.MM.YYYY HH:mm");
-					var rowBonus = '<tr class="tr-driver-payments" data-id="' + dataId + '">' +
+					var rowBonus = '<tr class=' + bonusMainClass + ' data-id="' + dataId + '">' +
 						'<td colspan="11" class="bonus-table"><table class="bonus-penalty-table"><tr class="title-bonus-penalty">' +
 						'<th class="edit-bonus-penalty">Тип</th>' +
 						'<th class="edit-bonus-penalty">Сума</th>' +
@@ -694,8 +695,12 @@ $(document).ready(function () {
 	$('.send-all-button').on('click', function () {
 		var allDataIds = [];
 		$('tr[data-id]').each(function () {
-			var dataId = $(this).attr('data-id');
-			allDataIds.push(dataId);
+		if (!$(this).hasClass('incorrect')) {
+		    var dataId = $(this).attr('data-id');
+		    if (!allDataIds.includes(dataId)){
+                allDataIds.push(dataId);
+            }
+		}
 		});
 		updStatusDriverPayments(null, status = 'pending', paymentStatus = "on_inspection", all = allDataIds);
 	});
@@ -717,6 +722,7 @@ $(document).ready(function () {
 });
 
 function updStatusDriverPayments(id, status, paymentStatus, all = null) {
+    console.log(id, all)
 	if (all !== null) {
 		var allId = all.join(',');
 	}

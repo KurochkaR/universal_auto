@@ -4,6 +4,7 @@ import requests
 from _decimal import Decimal, ROUND_HALF_UP
 
 from django.core.exceptions import ObjectDoesNotExist
+from django.db import transaction
 from django.db.models import Sum, DecimalField, Q, Value, F
 from django.db.models.functions import Coalesce
 
@@ -140,9 +141,8 @@ def get_efficiency_info(partner_pk, driver, start, end, payments_model, aggregat
     payment_request = Q(driver=driver, report_to__range=(start, end), partner_id=partner_pk)
 
     if aggregator:
-        fleet = Fleet.objects.get(pk=aggregator)
-        filter_request &= Q(fleet=fleet.name)
-        payment_request &= Q(fleet=fleet)
+        filter_request &= Q(fleet=aggregator.name)
+        payment_request &= Q(fleet=aggregator)
     fleet_orders = FleetOrder.objects.filter(filter_request)
     total_kasa = payments_model.objects.filter(payment_request).aggregate(
         kasa=Coalesce(Sum('total_amount_without_fee'), Decimal(0)))['kasa']
@@ -155,45 +155,41 @@ def get_efficiency_info(partner_pk, driver, start, end, payments_model, aggregat
 
 def polymorphic_efficiency_create(create_model, partner_pk, driver, start, end, get_model, aggregator=None,
                                   road_mileage=None):
-    efficiency_filter = {
-        'report_from': start,
-        'report_to': end,
-        'driver': driver,
-        'partner_id': partner_pk
-    }
+    search_query = {'driver': driver, 'report_from': start}
     total_kasa, total_orders, canceled_orders, completed_orders, fleet_orders = get_efficiency_info(
         partner_pk, driver, start, end, get_model, aggregator)
     if aggregator:
         if not total_kasa and not fleet_orders:
             return
+        search_query.update({'fleet': aggregator})
         vehicles = fleet_orders.exclude(vehicle__isnull=True).values_list('vehicle', flat=True).distinct()
         mileage = fleet_orders.filter(state=FleetOrder.COMPLETED).aggregate(
             km=Coalesce(Sum('distance'), Decimal(0)))['km']
-        efficiency_filter['fleet_id'] = aggregator
     else:
         mileage, vehicles = UaGpsSynchronizer.objects.get(
             partner=partner_pk).calc_total_km(driver, start, end)
         if not mileage:
             return
     data = {
+        'report_to': end,
         'total_kasa': total_kasa,
         'total_orders': total_orders,
         'total_orders_accepted': completed_orders,
         'total_orders_rejected': canceled_orders,
-        'accept_percent': (total_orders - canceled_orders) / total_orders * 100 if total_orders else 0,
-        'average_price': total_kasa / completed_orders if completed_orders else 0,
         'mileage': mileage,
+        'efficiency': total_kasa / mileage if mileage else 0,
         'road_time': fleet_orders.filter(state=FleetOrder.COMPLETED).aggregate(
             road_time=Coalesce(Sum('road_time'), timedelta()))['road_time'],
-        'efficiency': total_kasa / mileage if mileage else 0,
-        'partner_id': partner_pk
+        'average_price': total_kasa / completed_orders if completed_orders else 0,
+        'accept_percent': (total_orders - canceled_orders) / total_orders * 100 if total_orders else 0,
+        'partner_id': partner_pk,
     }
     if create_model == DriverEfficiency:
         rent_mileage = mileage - road_mileage[driver][0] if road_mileage.get(driver) else 0
         data['rent_distance'] = rent_mileage
-
-    efficiency_filter['defaults'] = data
-    result, created = create_model.objects.update_or_create(**efficiency_filter)
+    result, created = create_model.objects.update_or_create(
+        **search_query,
+        defaults=data)
     if created:
         result.vehicles.add(*vehicles)
 

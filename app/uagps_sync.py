@@ -138,6 +138,7 @@ class UaGpsSynchronizer(Fleet):
             result_list.append((Decimal(raw_distance.split(' ')[0]), timedelta(hours=clean_time[0],
                                                                                minutes=clean_time[1],
                                                                                seconds=clean_time[2])))
+        print(result_list)
         if orders:
             return result_list
         else:
@@ -264,6 +265,8 @@ class UaGpsSynchronizer(Fleet):
                     for order in orders:
                         if prev_order_end_time < order.accepted_time:
                             empty_time_slots.append((prev_order_end_time, timezone.localtime(order.accepted_time)))
+                        elif prev_order_end_time > order.finish_time:
+                            continue
                         prev_order_end_time = timezone.localtime(order.finish_time)
                     if prev_order_end_time < end:
                         empty_time_slots.append((prev_order_end_time, end))
@@ -467,12 +470,11 @@ class UaGpsSynchronizer(Fleet):
             "driver": driver,
         }
 
-        with transaction.atomic():
-            DriverEfficiency.objects.update_or_create(
-                driver=driver,
-                report_from=start,
-                defaults=defaults
-            )
+        DriverEfficiency.objects.update_or_create(
+            driver=driver,
+            report_from=start,
+            defaults=defaults
+        )
 
         for fleet in fleet_list:
             defaults = {
@@ -489,13 +491,12 @@ class UaGpsSynchronizer(Fleet):
                 "partner": fleet['partner'],
                 "driver": fleet['driver'],
             }
-            with transaction.atomic():
-                DriverEfficiencyFleet.objects.update_or_create(
-                    driver=fleet['driver'],
-                    report_from=fleet['report_from'],
-                    fleet=fleet['fleet'],
-                    defaults=defaults
-                )
+            DriverEfficiencyFleet.objects.update_or_create(
+                driver=fleet['driver'],
+                report_from=fleet['report_from'],
+                fleet=fleet['fleet'],
+                defaults=defaults
+            )
 
         # if timezone.localtime().time() > time(7, 0):
         #     send_long_message(chat_id=chat_id, text=text)

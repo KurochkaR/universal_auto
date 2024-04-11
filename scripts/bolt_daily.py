@@ -1,11 +1,11 @@
 from datetime import datetime
 
 import requests
-from django.db.models import Q
+from django.db.models import Q, Sum
 from django.utils import timezone
 
 from app.bolt_sync import BoltRequest
-from app.models import Driver, FleetOrder
+from app.models import Driver, FleetOrder, DriverPayments
 from app.ninja_sync import NinjaFleet
 from app.uagps_sync import UaGpsSynchronizer
 from auto_bot.handlers.driver_manager.utils import get_time_for_task

@@ -60,7 +60,7 @@ def create_payments(sender, instance, created, **kwargs):
             calculate_vehicle_spending.apply_async(args=[instance.pk], queue=f'beat_tasks_{instance.partner.pk}')
     elif instance.is_pending():
         if isinstance(instance, DriverPayments):
-            message = message_driver_report(instance.driver, instance)
+            message = message_driver_report(instance)
             try:
                 sleep(0.5)
                 bot.send_message(chat_id=instance.driver.chat_id, text=message,

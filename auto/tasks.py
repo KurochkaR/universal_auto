@@ -454,8 +454,8 @@ def get_driver_efficiency_fleet(self, partner_pk, day=None):
     end = timezone.make_aware(datetime.combine(start, time.max))
     if Fleet.objects.filter(partner=partner_pk, deleted_at=None, name="Gps").exists():
         for driver in Driver.objects.get_active(partner=partner_pk):
-            fleets = FleetsDriversVehiclesRate.objects.filter(
-                driver=driver, deleted_at=None).values_list("fleet", flat=True)
+            fleets = Fleet.objects.filter(
+                fleetsdriversvehiclesrate__driver=driver, deleted_at=None).exclude(name="Ninja")
             for fleet in fleets:
                 polymorphic_efficiency_create(DriverEfficiencyFleet, driver.partner.pk, driver,
                                               start, end, CustomReport, fleet)
@@ -471,14 +471,13 @@ def update_driver_status(self, partner_pk, photo=None):
             for fleet in fleets:
                 statuses = fleet.get_drivers_status(photo) if isinstance(fleet,
                                                                          BoltRequest) else fleet.get_drivers_status()
-                logger.info(f"{fleet} {statuses}")
                 status_online = status_online.union(set(statuses['wait']))
                 status_with_client = status_with_client.union(set(statuses['with_client']))
             drivers = Driver.objects.get_active(partner=partner_pk)
             for driver in drivers:
                 active_order = Order.objects.filter(driver=driver, status_order=Order.IN_PROGRESS)
-                work_ninja = UseOfCars.objects.filter(user_vehicle=driver, partner=partner_pk,
-                                                      created_at__date=timezone.localtime().date(), end_at=None).first()
+                # work_ninja = UseOfCars.objects.filter(user_vehicle=driver, partner=partner_pk,
+                #                                       created_at__date=timezone.localtime().date(), end_at=None).first()
                 if active_order or (driver.name, driver.second_name) in status_with_client:
                     current_status = Driver.WITH_CLIENT
                 elif (driver.name, driver.second_name) in status_online:
@@ -486,19 +485,18 @@ def update_driver_status(self, partner_pk, photo=None):
                 else:
                     current_status = Driver.OFFLINE
                 driver.driver_status = current_status
-                driver.save()
-                if current_status != Driver.OFFLINE:
-                    vehicle = check_vehicle(driver)
-                    if not work_ninja and vehicle and driver.chat_id:
-                        UseOfCars.objects.create(user_vehicle=driver,
-                                                 partner_id=partner_pk,
-                                                 licence_plate=vehicle.licence_plate,
-                                                 chat_id=driver.chat_id)
-                    logger.info(f'{driver}: {current_status}')
-                else:
-                    if work_ninja:
-                        work_ninja.end_at = timezone.localtime()
-                        work_ninja.save()
+                driver.save(update_fields=['driver_status'])
+                # if current_status != Driver.OFFLINE:
+                #     vehicle = check_vehicle(driver)
+                #     if not work_ninja and vehicle and driver.chat_id:
+                #         UseOfCars.objects.create(user_vehicle=driver,
+                #                                  partner_id=partner_pk,
+                #                                  licence_plate=vehicle.licence_plate,
+                #                                  chat_id=driver.chat_id)
+                # else:
+                #     if work_ninja:
+                #         work_ninja.end_at = timezone.localtime()
+                #         work_ninja.save()
         else:
             logger.info(f'{self.name}: passed')
 
@@ -529,7 +527,7 @@ def schedule_for_detaching_uklon(self, partner_pk):
     today = timezone.localtime()
     desired_time = today + timedelta(hours=1)
     for vehicle in Vehicle.objects.get_active(partner=partner_pk):
-        reshuffle = DriverReshuffle.objects.filter(~Q(end_time__time=time(23, 59, 00)),
+        reshuffle = DriverReshuffle.objects.filter(~Q(end_time__time=time(23, 59, 59)),
                                                    swap_time__date=today.date(),
                                                    swap_vehicle=vehicle,
                                                    end_time__range=(today, desired_time),
@@ -537,8 +535,8 @@ def schedule_for_detaching_uklon(self, partner_pk):
                                                    driver_start__isnull=False).first()
         if reshuffle:
             eta = timezone.localtime(reshuffle.end_time)
-            detaching_the_driver_from_the_car.apply_async((partner_pk, reshuffle.swap_vehicle.licence_plate, eta),
-                                                          eta=eta)
+            detaching_the_driver_from_the_car.apply_async(args=[partner_pk, reshuffle.swap_vehicle.licence_plate, eta],
+                                                          eta=eta, queue=f"beat_tasks_{partner_pk}")
 
 
 @app.task(bind=True, retry_backoff=30, max_retries=1)
@@ -1125,7 +1123,7 @@ def calculate_driver_reports(self, schemas, day=None):
             compensations=Coalesce(Sum('compensations'), 0, output_field=DecimalField()),
         )
         if driver.schema.is_weekly():
-            if not today.weekday():
+            if today.weekday():
                 start = start_week
                 end = end_week
                 bonus = bolt_weekly['bonuses']
@@ -1202,7 +1200,7 @@ def create_daily_payment(self, **kwargs):
         if not created:
             for key, value in data.items():
                 setattr(payment, key, value)
-            payment.earning += payment.get_bonuses() - payment.get_penalties()
+            payment.earning = Decimal(payment.earning) + Decimal(payment.get_bonuses() - payment.get_penalties())
             payment.save()
         response = {"status": payment.status, "id": payment.id, "order": no_price}
     else:
