@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ('app', '0092_carefficiency_investor_and_more'),
     ]
@@ -18,6 +17,8 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='earnings',
             name='status',
-            field=models.CharField(choices=[('incorrect', 'Потребує поправок'), ('checking', 'Перевіряється'), ('pending', 'Очікується'), ('completed', 'Виплачений'), ('failed', 'Не сплачений')], default='checking', max_length=20),
+            field=models.CharField(
+                choices=[('incorrect', 'Потребує поправок'), ('checking', 'Перевіряється'), ('pending', 'Очікується'),
+                         ('completed', 'Виплачений'), ('failed', 'Не сплачений')], default='checking', max_length=20),
         ),
     ]

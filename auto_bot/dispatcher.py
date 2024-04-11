@@ -12,7 +12,8 @@ from auto_bot.handlers.driver_manager.handlers import add_job_application_to_fle
     driver_status, broken_car, remove_cash_by_manager, get_drivers_from_fleets, get_weekly_report, get_earning_report, \
     get_efficiency_report, get_report, get_efficiency_auto, get_partner_vehicles, get_partner_drivers, \
     pin_partner_vehicle_to_driver, statistic_functions, functions_with_drivers, get_drivers_statistics, \
-    get_efficiency_for_drivers, functions_with_vehicles, choose_spending_category, ask_spending_sum
+    get_efficiency_for_drivers, functions_with_vehicles, choose_spending_category, ask_spending_sum, \
+    get_driver_rent_info, handle_page_button_click, start_rent_info_task
 from auto_bot.handlers.comment.handlers import comment, save_comment
 from auto_bot.handlers.service_manager.handlers import numberplate_car
 from auto_bot.handlers.driver.handlers import sending_report, get_debt_photo, save_debt_report, \
@@ -179,6 +180,10 @@ def setup_dispatcher(dp):
     # Commands for Driver Managers
     # dp.add_handler(CallbackQueryHandler(remove_cash_by_manager,
     #                                     pattern=re.compile("^Paid_driver (true|false) [0-9]+$")))
+    dp.add_handler(CallbackQueryHandler(get_driver_rent_info, pattern="Get_rent_drivers"))
+    dp.add_handler(CallbackQueryHandler(handle_page_button_click, pattern=re.compile("^Page_[0-9]+$")))
+    dp.add_handler(CallbackQueryHandler(start_rent_info_task, pattern=re.compile("^Generate_rent_[0-9]+$")))
+
     dp.add_handler(CallbackQueryHandler(functions_with_drivers, pattern="Setup_drivers"))
     dp.add_handler(CallbackQueryHandler(functions_with_vehicles, pattern="Setup_vehicles"))
     dp.add_handler(CallbackQueryHandler(statistic_functions, pattern="Get_statistic"))

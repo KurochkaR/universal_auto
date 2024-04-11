@@ -20,7 +20,7 @@ from api.serializers import SummaryReportSerializer, CarEfficiencySerializer, Ca
     DriverEfficiencyFleetRentSerializer, DriverInformationSerializer
 from app.models import SummaryReport, CarEfficiency, Vehicle, DriverEfficiency, RentInformation, DriverReshuffle, \
     PartnerEarnings, InvestorPayments, DriverPayments, PaymentsStatus, PenaltyBonus, Penalty, Bonus, \
-    DriverEfficiencyFleet, VehicleSpending, Driver, BonusCategory, CustomReport, SalaryCalculation
+    DriverEfficiencyFleet, VehicleSpending, Driver, BonusCategory, CustomReport, SalaryCalculation, WeeklyReport
 from taxi_service.utils import get_start_end
 
 
@@ -39,12 +39,22 @@ class SummaryReportListView(CombinedPermissionsMixin, generics.ListAPIView):
         start_week = timezone.localtime().date() - timedelta(days=timezone.localtime().weekday())
         queryset = ManagerFilterMixin.get_queryset(CustomReport, self.request.user).select_related('driver__user_ptr')
         filtered_qs = queryset.filter(report_from__range=(start, end))
+        weekly_bolt_reports = WeeklyReport.objects.filter(
+            report_from__range=(start, end), fleet__name="Bolt").order_by('report_from')
+
         kasa_bonus = filtered_qs.aggregate(
             kasa=Coalesce(Sum('total_amount_without_fee'), Decimal(0)),
             bonus=Coalesce(Sum('bonuses'), Decimal(0))
         )
-
-        kasa = kasa_bonus['kasa'] + kasa_bonus['bonus']
+        if weekly_bolt_reports.exists():
+            weekly_bonus = weekly_bolt_reports.aggregate(bonus=Coalesce(Sum('bonuses'), Decimal(0)))['bonus']
+            custom_bonus = filtered_qs.filter(
+                report_from__range=(weekly_bolt_reports.last().report_to, end)).aggregate(
+                bonus=Coalesce(Sum('bonuses'), Decimal(0)))['bonus']
+            bonus = weekly_bonus + custom_bonus
+        else:
+            bonus = kasa_bonus['bonus']
+        kasa = kasa_bonus['kasa'] + bonus
 
         rent_amount_subquery = RentInformation.objects.filter(
             report_from__range=(start, end)
@@ -307,8 +317,7 @@ class DriverEfficiencyFleetListView(CombinedPermissionsMixin,
         start, end, format_start, format_end = get_start_end(self.kwargs['period'])
 
         queryset = ManagerFilterMixin.get_queryset(DriverEfficiencyFleet, self.request.user)
-        filtered_qs = queryset.filter(report_from__range=(start, end), fleet__name__in=aggregators).exclude(
-            total_orders=0)
+        filtered_qs = queryset.filter(report_from__range=(start, end), fleet__name__in=aggregators)
         dynamic_fleet = get_dynamic_fleet()
         dynamic_fleet['fleet_name'] = F('fleet__name')
         qs = filtered_qs.values('driver_id', 'fleet__name').annotate(
@@ -329,7 +338,6 @@ class DriverEfficiencyFleetListView(CombinedPermissionsMixin,
                         'accept_percent': item['accept_percent'],
                         'road_time': item['road_time'],
                         'mileage': item['mileage'],
-                        # 'idling-mileage': item['idling-mileage'],
                         'efficiency': item['efficiency']
                     }
                 }
