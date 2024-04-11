@@ -32,22 +32,22 @@
   <!-- auto park two section -->
 
   <section class="auto-park-two-section">
-    <div class="container">
+    <div class="container-park">
       <div class="img-box">
         <img src="{% static 'app/images/auto-park-img/park-block-2-1.png' %}" alt="" loading="lazy">
         <img src="{% static 'app/images/auto-park-img/park-block-2-2.png' %}" alt="" loading="lazy">
         <img src="{% static 'app/images/auto-park-img/park-block-2-3.png' %}" alt="" loading="lazy">
       </div>
-      <div class="detail-box">
-        <p class="description-section">
-          {% trans "Розширюйте свій таксопарк та розвивайте його за допомогою NINJA TAXI." %}
-        </p>
-        <div class="contact-us">
-          <button class="free-access-button">{% trans "Безкоштовний місяць" %}</button>
-          <a href="{% url 'price' %}">
-            <button class="get-price-button">{% trans "Дізнатися вартість" %}</button>
-          </a>
-        </div>
+    </div>
+    <div class="detail-box">
+      <p class="description-section">
+        {% trans "Розширюйте свій таксопарк та розвивайте його за допомогою NINJA TAXI." %}
+      </p>
+      <div class="contact-us">
+        <button class="free-access-button">{% trans "Безкоштовний місяць" %}</button>
+        <a href="{% url 'price' %}">
+          <button class="get-price-button">{% trans "Дізнатися вартість" %}</button>
+        </a>
       </div>
     </div>
   </section>
@@ -166,6 +166,70 @@
       </div>
     </div>
   </section>
+
+  <!-- end auto park seven section -->
+
+  <!-- auto park eight section -->
+
+  <section class="auto-park-eight-section">
+    <div class="container">
+      <div class="box-img">
+        <img src="{% static 'app/images/auto-park-img/park-block-8.png' %}" alt="" loading="lazy">
+      </div>
+      <div class="description">
+        <h2>{% trans "Ефективність водіїв" %}</h2>
+        <p>
+          {% trans "В дашборді ефективністі водіїв власники та менеджери автопарків матимуть можливість " %}
+          {% trans "переглядати загальну активність в усіх агрегаторах, а також окремо в кожному з них." %}
+        </p>
+        <button class="free-access-button">{% trans "Співпрацювати" %}</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- end auto park eight section -->
+
+  <!-- auto park nine section -->
+
+  <section class="auto-park-nine-section">
+    <div class="container">
+      <div class="description">
+        <h2>{% trans "Автоматичний розрахунок водія" %}</h2>
+        <p>
+          {% trans "Менеджери та власники автопарків зможуть заощаджувати час, оскільки розрахунок " %}
+          {% trans "заробітної плати водіїв  автоматизований, а виплати водіям  швидкі та прозорі." %}
+        </p>
+        <button class="free-access-button">{% trans "Отримати безкоштовнйи доступ" %}</button>
+      </div>
+      <div class="box-img">
+        <img src="{% static 'app/images/auto-park-img/park-block-9.png' %}" alt="" loading="lazy">
+      </div>
+    </div>
+  </section>
+
+  <!-- end auto park nine section -->
+
+  <!-- auto park ten section -->
+
+  <section class="auto-park-ten-section">
+    <div class="container">
+      <div class="box-img">
+        <img src="{% static 'app/images/auto-park-img/park-block-8.png' %}" alt="" loading="lazy">
+      </div>
+      <div class="description">
+        <h2>{% trans "Ефективність водіїв" %}</h2>
+        <p>
+          {% trans "В дашборді ефективністі водіїв власники та менеджери автопарків матимуть можливість " %}
+          {% trans "переглядати загальну активність в усіх агрегаторах, а також окремо в кожному з них." %}
+        </p>
+        <button class="free-access-button">{% trans "Співпрацювати" %}</button>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- end auto park ten section -->
+
 
   {#  {% include '_blog_box.html' %}#}
   {% include '_free-access-form.html' %}

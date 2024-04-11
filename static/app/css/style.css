@@ -2862,16 +2862,22 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	margin-top: 120px;
 }
 
-.auto-park-two-section .container {
+.auto-park-two-section .container-park {
+	width: 100%;
 	display: flex;
 	align-items: center;
-	flex-direction: column;
+	justify-content: center;
+
 }
 
 .auto-park-two-section .img-box {
-	width: 60%;
+	max-width: 1440px;
+	width: 100%;
 	height: auto;
 	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	position: relative;
 }
 
 .auto-park-two-section .img-box img {
@@ -2882,16 +2888,23 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 
 .auto-park-two-section .img-box img:nth-child(1) {
 	width: 440px;
+	position: relative;
+	top: 80px;
+}
+
+.auto-park-two-section .img-box img:nth-child(2) {
+	width: 50%;
 	position: absolute;
-	left: 0;
-	bottom: 165px;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
 }
 
 .auto-park-two-section .img-box img:nth-child(3) {
-	width: 440px;
-	position: absolute;
-	right: 0;
-	bottom: 110px;
+	width: 460px;
+	position: relative;
+	top: 82px;
+	left: 20px;
 }
 
 .auto-park-two-section .detail-box {
@@ -2955,7 +2968,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	display: grid;
 	grid-template-columns: repeat(2, 50%);
 	align-items: center;
-	padding: 90px 10px;
+	padding: 126px 10px;
 }
 
 .auto-park-three-section .container .box-img {
@@ -3197,6 +3210,9 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 
 .auto-park-seven-section {
 	margin-top: 100px;
+	background: url(/static/app/images/auto-park-img/park-block-6-2.webp) no-repeat;
+	background-size: 100% 100%;
+	padding: 10px;
 }
 
 .auto-park-seven-section .container {
@@ -3205,7 +3221,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 }
 
 .auto-park-seven-section .container .box-img {
-	width: 100%;
+	width: 50%;
 }
 
 .auto-park-seven-section .container .box-img img {
@@ -3224,6 +3240,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	font-size: 36px;
 	text-transform: uppercase;
 	color: #141e17;
+	text-align: center;
 }
 
 .auto-park-seven-section .container .description p {
@@ -3231,9 +3248,11 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	font-weight: 400;
 	font-size: 25px;
 	color: #38423b;
+	text-align: center;
 }
 
 .auto-park-seven-section .container .description button {
+	width: 100%;
 	margin-top: 15px;
 	border: 5px solid #EC6323;
 	background-color: #EC6323;
@@ -3244,6 +3263,118 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	border-radius: 25px;
 }
 
+/* block 8 */
+
+.auto-park-eight-section {
+	margin-top: 100px;
+}
+
+.auto-park-eight-section .container {
+	display: flex;
+	align-items: center;
+}
+
+.auto-park-eight-section .container .box-img {
+	width: 100%;
+}
+
+.auto-park-eight-section .container .box-img img {
+	width: 120%;
+	height: auto;
+}
+
+.auto-park-eight-section .container .description {
+	width: 80%;
+	padding: 10px 30px;
+	margin-left: 10px;
+	position: relative;
+	left: 81px;
+}
+
+.auto-park-eight-section .container .description h2 {
+	font-family: var(--second-family);
+	font-weight: 700;
+	font-size: 36px;
+	text-transform: uppercase;
+	color: #141e17;
+}
+
+.auto-park-eight-section .container .description p {
+	font-family: var(--font-family);
+	font-weight: 400;
+	font-size: 25px;
+	color: #38423b;
+}
+
+.auto-park-eight-section .container .description button {
+	margin-top: 15px;
+	border: 5px solid #EC6323;
+	background-color: #EC6323;
+	padding: 10px 35px;
+	font-size: 20px;
+	color: #fff;
+	cursor: pointer;
+	border-radius: 25px;
+}
+
+/* block 9 */
+
+.auto-park-nine-section {
+	margin-top: 100px;
+	margin-bottom: 10px;
+}
+
+.auto-park-nine-section .container {
+	display: flex;
+	align-items: center;
+	background: url(/static/app/images/auto-park-img/park-block-5-background.png) no-repeat;
+	background-size: 70% 100%;
+	position: relative;
+}
+
+.auto-park-nine-section .container .box-img {
+	width: 65%;
+	position: absolute;
+	bottom: -22px;
+	right: -60px;
+}
+
+.auto-park-nine-section .container .box-img img {
+	width: 100%;
+	height: auto;
+}
+
+.auto-park-nine-section .container .description {
+	width: 100%;
+	padding: 167px 51px;
+}
+
+.auto-park-nine-section .container .description h2 {
+	font-family: var(--second-family);
+	font-weight: 700;
+	font-size: 36px;
+	text-transform: uppercase;
+	color: #fff;
+}
+
+.auto-park-nine-section .container .description p {
+	width: 45%;
+	font-family: var(--font-family);
+	font-weight: 400;
+	font-size: 25px;
+	color: #fff;
+}
+
+.auto-park-nine-section .container .description button {
+	margin-top: 15px;
+	border: 5px solid #EC6323;
+	background-color: #EC6323;
+	padding: 10px 35px;
+	font-size: 20px;
+	color: #fff;
+	cursor: pointer;
+	border-radius: 25px;
+}
 
 /*Form styles*/
 
