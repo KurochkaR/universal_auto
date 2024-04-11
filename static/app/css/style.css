@@ -3376,7 +3376,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	border-radius: 25px;
 }
 
-/*block 10*/
+/* block 10 */
 
 .auto-park-ten-section {
 	margin-top: 100px;
@@ -3424,6 +3424,103 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	border-radius: 25px;
 
 }
+
+/* block 11 */
+
+.auto-park-eleven-section {
+	margin-top: 100px;
+}
+
+.auto-park-eleven-section .container {
+	display: flex;
+	align-items: center;
+}
+
+.auto-park-eleven-section .container .description {
+	width: 55%;
+	padding: 10px 30px;
+}
+
+.auto-park-eleven-section .container .description h2 {
+	font-family: var(--second-family);
+	font-weight: 700;
+	font-size: 36px;
+	text-transform: uppercase;
+	color: #141e17;
+}
+
+.auto-park-eleven-section .container .description h3 {
+	font-family: var(--font-family);
+	font-weight: 400;
+	font-size: 25px;
+	color: rgba(83, 120, 94, 0.5);
+	margin-top: 25px;
+}
+
+.auto-park-eleven-section .container .description p {
+	font-family: var(--font-family);
+	font-weight: 400;
+	font-size: 25px;
+	color: #53785e;
+	margin-top: 25px;
+}
+
+.auto-park-eleven-section .container .box-form {
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+	background: url(/static/app/images/auto-park-img/park-block-11.png) no-repeat;
+	background-size: 100% 100%;
+	padding: 76px 0 65px 25px;
+}
+
+.auto-park-eleven-section .container .box-form form {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+}
+
+.auto-park-eleven-section .container .box-form form .client-info {
+	width: 100%;
+	margin-bottom: 25px;
+}
+
+.auto-park-eleven-section .container .box-form form div {
+	margin-bottom: 10px;
+}
+
+.auto-park-eleven-section .container .box-form form label {
+	margin-right: 10px;
+	font-family: var(--font-family);
+	font-weight: 700;
+	font-size: 25px;
+	color: #fff;
+}
+
+.auto-park-eleven-section .container .box-form form input {
+	width: 100%;
+	border: none;
+	border-radius: 25px 0 0 25px;
+	padding: 10px 15px;
+	font-family: var(--font-family);
+	font-weight: 400;
+	font-size: 25px;
+	color: rgba(83, 120, 94, 0.5);
+}
+
+.auto-park-eleven-section .container .box-form form button {
+	border: none;
+	border-radius: 25px;
+	padding: 10px 50px;
+	font-family: var(--font-family);
+	font-weight: 700;
+	font-size: 25px;
+	color: #fff;
+	background: #EC6323;
+	cursor: pointer;
+}
+
 
 /*Form styles*/
 
