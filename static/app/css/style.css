@@ -2840,7 +2840,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	padding: 15px 0;
 	border: none;
 	border-radius: 20px;
-	font-size: 16px;
+	font-size: 20px;
 	text-decoration: none;
 	cursor: pointer;
 	font-style: normal;
@@ -2941,6 +2941,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	font-size: 20px;
 	color: #38423b;
 	cursor: pointer;
+	font-weight: 700;
 }
 
 .auto-park-two-section .contact-us button {
@@ -2954,6 +2955,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	font-size: 20px;
 	text-decoration: none;
 	cursor: pointer;
+	font-weight: 700;
 }
 
 /*block 3*/
@@ -3128,6 +3130,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 }
 
 .auto-park-five-section .container .description .contact-us {
+	width: 80%;
 	display: flex;
 	justify-content: space-between;
 }
@@ -3140,6 +3143,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	font-size: 20px;
 	color: #fff;
 	cursor: pointer;
+	font-weight: 700;
 }
 
 .auto-park-five-section .container .description button {
@@ -3152,6 +3156,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	font-size: 20px;
 	text-decoration: none;
 	cursor: pointer;
+	font-weight: 700;
 }
 
 
@@ -3204,6 +3209,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	color: #fff;
 	cursor: pointer;
 	border-radius: 25px;
+	font-weight: 700;
 }
 
 /*block 7*/
@@ -3261,6 +3267,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	color: #fff;
 	cursor: pointer;
 	border-radius: 25px;
+	font-weight: 700;
 }
 
 /* block 8 */
@@ -3315,6 +3322,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	color: #fff;
 	cursor: pointer;
 	border-radius: 25px;
+	font-weight: 700;
 }
 
 /* block 9 */
@@ -3374,6 +3382,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	color: #fff;
 	cursor: pointer;
 	border-radius: 25px;
+	font-weight: 700;
 }
 
 /* block 10 */
@@ -3422,6 +3431,8 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	color: #fff;
 	cursor: pointer;
 	border-radius: 25px;
+	font-weight: 700;
+
 
 }
 

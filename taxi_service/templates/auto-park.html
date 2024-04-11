@@ -21,7 +21,7 @@
           </div>
         </div>
         <div class="free-access-btn" id="open-form">
-          <button class="free-access-button">{% trans "Отримати безкоштовний доступ на 30 днів " %}</button>
+          <button class="free-access-button">{% trans "Отримати пробну версію" %}</button>
         </div>
       </div>
     </div>
@@ -44,7 +44,7 @@
         {% trans "Розширюйте свій таксопарк та розвивайте його за допомогою NINJA TAXI." %}
       </p>
       <div class="contact-us">
-        <button class="free-access-button">{% trans "Безкоштовний місяць" %}</button>
+        <button class="free-access-button">{% trans "Пробна версія" %}</button>
         <a href="{% url 'price' %}">
           <button class="get-price-button">{% trans "Дізнатися вартість" %}</button>
         </a>
@@ -87,7 +87,7 @@
           {% trans "або будь-який інший період в усіх агрегаторах, а також окремо відображає, " %}
           {% trans "скільки заробив водій готівкою та на карту." %}
         </p>
-        <button class="free-access-button">{% trans "Отримати безкоштовнйи доступ" %}</button>
+        <button class="free-access-button">{% trans "Співпрацювати" %}</button>
       </div>
       <div class="box-img">
         <img src="{% static 'app/images/auto-park-img/park-block-4.png' %}" alt="" loading="lazy">
@@ -111,7 +111,7 @@
           {% trans "за певний період, його окупаємість та загальну вартість." %}
         </p>
         <div class="contact-us">
-          <button class="free-access-button">{% trans "Отримати безкоштовнйи доступ" %}</button>
+          <button class="free-access-button">{% trans "Пробна версія" %}</button>
           <a href="{% url 'price' %}">
             <button class="get-price-button">{% trans "Дізнатися вартість" %}</button>
           </a>
@@ -159,7 +159,7 @@
           {% trans "більшу прозорість та контроль над цими виплатами, " %}
           {% trans "що сприятиме поліпшенню управління флотом та спростить процеси виплат заробітної плати." %}
         </p>
-        <button class="free-access-button">{% trans "Отримати безкоштовнйи доступ" %}</button>
+        <button class="free-access-button">{% trans "Отримати пробну версію" %}</button>
       </div>
       <div class="box-img">
         <img src="{% static 'app/images/auto-park-img/park-block-7-2.png' %}" alt="" loading="lazy">
@@ -179,7 +179,7 @@
       <div class="description">
         <h2>{% trans "Ефективність водіїв" %}</h2>
         <p>
-          {% trans "В дашборді ефективністі водіїв власники та менеджери автопарків матимуть можливість " %}
+          {% trans "В дашборді ефективності водіїв власники та менеджери автопарків матимуть можливість " %}
           {% trans "переглядати загальну активність в усіх агрегаторах, а також окремо в кожному з них." %}
         </p>
         <button class="free-access-button">{% trans "Співпрацювати" %}</button>
@@ -199,7 +199,7 @@
           {% trans "Менеджери та власники автопарків зможуть заощаджувати час, оскільки розрахунок " %}
           {% trans "заробітної плати водіїв  автоматизований, а виплати водіям  швидкі та прозорі." %}
         </p>
-        <button class="free-access-button">{% trans "Отримати безкоштовнйи доступ" %}</button>
+        <button class="free-access-button">{% trans "Отримати пробну версію" %}</button>
       </div>
       <div class="box-img">
         <img src="{% static 'app/images/auto-park-img/park-block-9.png' %}" alt="" loading="lazy">
@@ -260,16 +260,16 @@
       <div class="box-form">
         <form>
           <div class="client-info">
-            <label for="name">{% trans "Ім'я:" %}</label>
-            <input type="text" id="name" name="name" placeholder="Ваше ім’я" required>
+            <label for="client-name">{% trans "Ім'я:" %}</label>
+            <input type="text" id="client-name" name="name" placeholder="Ваше ім’я" required>
           </div>
           <div class="client-info">
-            <label for="phone">{% trans "Номер телефону:" %}</label>
-            <input type="tel" id="phone" name="phone" placeholder="(###) ### - ## - ##" required>
+            <label for="client-phone">{% trans "Номер телефону:" %}</label>
+            <input type="tel" id="client-phone" name="phone" placeholder="(###) ### - ## - ##" required>
           </div>
           <div class="client-info">
-            <label for="email">{% trans "Email:" %}</label>
-            <input type="email" id="email" name="email" placeholder="Ваш email" required>
+            <label for="client-email">{% trans "Email:" %}</label>
+            <input type="email" id="client-email" name="email" placeholder="Ваш email" required>
           </div>
           <button class="submit-client-info" type="submit">{% trans "Надіслати" %}</button>
         </form>
