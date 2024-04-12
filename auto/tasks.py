@@ -183,18 +183,17 @@ def get_today_orders(self, partner_pk, day=None):
 def null_vehicle_orders(self, partner_pk, day=None):
     end = timezone.make_aware(datetime.strptime(day, "%Y-%m-%d")) if day else timezone.localtime()
     start = end - timedelta(days=1)
+    active_drivers = Driver.objects.get_active(partner=partner_pk)
     filter_query = Q(partner=partner_pk, vehicle__isnull=True,
                      state__in=[FleetOrder.COMPLETED, FleetOrder.CLIENT_CANCEL, FleetOrder.SYSTEM_CANCEL],
-                     date_order__range=(start, end))
+                     date_order__range=(start, end),
+                     driver__in=active_drivers)
     orders = FleetOrder.objects.filter(filter_query)
-    active_drivers = Driver.objects.get_active(partner=partner_pk)
-    for driver in active_drivers:
-        driver_orders = orders.filter(Q(driver=driver))
-        for order in driver_orders:
-            vehicle = check_vehicle(driver, order.date_order)
-            if vehicle:
-                order.vehicle = vehicle
-                order.save(update_fields=['vehicle'])
+    for order in orders:
+        vehicle = check_vehicle(order.driver, order.date_order)
+        if vehicle:
+            order.vehicle = vehicle
+            order.save(update_fields=['vehicle'])
 
 
 @app.task(bind=True, retry_backoff=30, max_retries=3)
@@ -361,7 +360,7 @@ def generate_payments(self, schemas, day=None):
         end, start_time = get_time_for_task(driver.schema.pk, day)[1:3]
         start = timezone.make_aware(datetime.combine(start_time, time.max.replace(microsecond=0)))
         fleets = Fleet.objects.filter(fleetsdriversvehiclesrate__driver=driver, deleted_at=None).exclude(
-            name="Ninja")
+            name="Ninja").distinct()
         for fleet in fleets:
             payment_24hours_create(start, end, fleet, driver, driver.partner)
 
@@ -407,7 +406,7 @@ def get_car_efficiency(self, partner_pk, day=None):
             return
         if total_km:
             for driver in drivers:
-                fleets = Fleet.objects.filter(fleetsdriversvehiclesrate__driver=driver)
+                fleets = Fleet.objects.filter(fleetsdriversvehiclesrate__driver=driver, deleted_at=None).distinct()
                 driver_kasa = 0
                 for fleet in fleets:
                     orders = FleetOrder.objects.filter(
@@ -443,7 +442,7 @@ def get_driver_efficiency(self, partner_pk, day=None):
         road_mileage = UaGpsSynchronizer.objects.get(
             partner=partner_pk).get_road_distance(start, end, payment=True)
         for driver in Driver.objects.get_active(partner=partner_pk):
-            polymorphic_efficiency_create(DriverEfficiency, driver.partner.pk, driver,
+            polymorphic_efficiency_create(DriverEfficiency, partner_pk, driver,
                                           start, end, CustomReport, road_mileage=road_mileage)
 
 
@@ -455,9 +454,9 @@ def get_driver_efficiency_fleet(self, partner_pk, day=None):
     if Fleet.objects.filter(partner=partner_pk, deleted_at=None, name="Gps").exists():
         for driver in Driver.objects.get_active(partner=partner_pk):
             fleets = Fleet.objects.filter(
-                fleetsdriversvehiclesrate__driver=driver, deleted_at=None).exclude(name="Ninja")
+                fleetsdriversvehiclesrate__driver=driver, deleted_at=None).exclude(name="Ninja").distinct()
             for fleet in fleets:
-                polymorphic_efficiency_create(DriverEfficiencyFleet, driver.partner.pk, driver,
+                polymorphic_efficiency_create(DriverEfficiencyFleet, partner_pk, driver,
                                               start, end, CustomReport, fleet)
 
 
@@ -1182,7 +1181,7 @@ def create_daily_payment(self, **kwargs):
         start = timezone.make_aware(datetime.combine(payment.report_to, time.min))
         end = payment.report_to
     fleets = Fleet.objects.filter(fleetsdriversvehiclesrate__driver=driver, deleted_at=None).exclude(
-        name="Ninja")
+        name="Ninja").distinct()
     for fleet in fleets:
         driver_ids = [driver.get_driver_external_id(fleet)]
         fleet.get_fleet_orders(start, end, driver)

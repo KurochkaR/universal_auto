@@ -449,12 +449,12 @@ class PostRequestHandler:
         start = timezone.make_aware(datetime.combine(payment.report_to, time.min))
         fleet = Fleet.objects.filter(name="Bolt", partner=partner_pk).first()
         no_price = FleetOrder.objects.filter(price=0, state=FleetOrder.COMPLETED, fleet="Bolt",
-                                             driver=payment.driver, accepted_time__range=(start, payment.report_to))
+                                             driver=payment.driver, finish_time__range=(start, payment.report_to))
         if no_price.exists():
             json_data = JsonResponse({'error': "Вибачте, не всі замовлення розраховані агрегатором, спробуйте пізніше"},
                                      status=400)
         else:
-            bolt_order_kasa = calculate_bolt_kasa(payment.driver, start, payment.report_to)[1]
+            bolt_order_kasa = calculate_bolt_kasa(payment.driver, start, payment.report_to)[2]
             custom_data = {
                 "report_from": start,
                 "report_to": payment.report_to,

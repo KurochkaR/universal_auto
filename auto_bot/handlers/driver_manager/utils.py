@@ -178,19 +178,27 @@ def check_correct_bolt_report(start, end, driver):
         compensations=Coalesce(Sum('compensations'), 0, output_field=DecimalField()),
         bonuses=Coalesce(Sum('bonuses'), 0, output_field=DecimalField()),
     )
+    filter_request = Q(Q(fleet="Bolt", driver=driver) &
+                       Q(state=FleetOrder.COMPLETED, finish_time__lt=start) |
+                       Q(state=FleetOrder.CLIENT_CANCEL, accepted_time__lt=start)
+                       )
     no_price = FleetOrder.objects.filter(price=0, state=FleetOrder.COMPLETED, fleet="Bolt",
-                                         driver=driver, accepted_time__range=(start, end))
+                                         driver=driver, finish_time__range=(start, end))
     tolerance = 1
     incorrect = round(bolt_order_kasa, 2) - round(
         (bolt_report['kasa'] - bolt_report['compensations']), 2)
-    if abs(incorrect) >= tolerance or no_price.exists():
+    status = PaymentsStatus.INCORRECT if no_price.exists() else PaymentsStatus.CHECKING
+    if abs(incorrect) >= tolerance:
+        status = PaymentsStatus.INCORRECT
         print(incorrect)
         print(
             f"orders {round(bolt_order_kasa, 2)} kasa {round((bolt_report['kasa'] - bolt_report['compensations']), 2)}")
         print(no_price.exists())
-        status = PaymentsStatus.INCORRECT
-    else:
-        status = PaymentsStatus.CHECKING
+        last_order = FleetOrder.objects.filter(filter_request).order_by('-accepted_time').first()
+        incorrect_with_last = round(bolt_order_kasa + Decimal(last_order.price * 0.75004 + last_order.tips), 2) - round(
+            (bolt_report['kasa'] - bolt_report['compensations']), 2)
+        if incorrect_with_last < tolerance:
+            status = PaymentsStatus.CHECKING
     return status, no_price.exists()
 
 
@@ -553,18 +561,19 @@ def get_driver_efficiency_report(manager_id, start_time=None, end_time=None):
 
 
 def calculate_bolt_kasa(driver, start_period, end_period, vehicle=None):
-    filter_request = Q(fleet="Bolt",
-                       state__in=[FleetOrder.COMPLETED, FleetOrder.CLIENT_CANCEL],
-                       accepted_time__range=(start_period, end_period),
-                       driver=driver)
+    filter_request = Q(Q(fleet="Bolt", driver=driver) &
+                       Q(state=FleetOrder.COMPLETED, finish_time__range=(start_period, end_period)) |
+                       Q(state=FleetOrder.CLIENT_CANCEL, accepted_time__range=(start_period, end_period))
+                       )
     if vehicle:
         filter_request &= Q(vehicle=vehicle)
-    bolt_income = FleetOrder.objects.filter(filter_request).aggregate(total_price=Coalesce(Sum('price'), 0),
-                                                                      total_tips=Coalesce(Sum('tips'), 0),
-                                                                      total_count=Count('id'))
+    orders = FleetOrder.objects.filter(filter_request)
+    bolt_income = orders.aggregate(total_price=Coalesce(Sum('price'), 0),
+                                   total_tips=Coalesce(Sum('tips'), 0),
+                                   total_count=Count('id'))
     total_bolt_income = Decimal(bolt_income['total_price'] * 0.75004 +
                                 bolt_income['total_tips'])
-    return total_bolt_income, bolt_income
+    return total_bolt_income, orders, bolt_income
 
 
 def get_vehicle_income(driver, start, end, spending_rate, rent):
@@ -594,8 +603,8 @@ def get_vehicle_income(driver, start, end, spending_rate, rent):
     weekly_reshuffles = check_reshuffle(driver, start_week, end_week)
     for shift in weekly_reshuffles:
         if bolt_weekly['bonuses']:
-            shift_bolt_kasa = calculate_bolt_kasa(driver, shift.swap_time, shift.end_time, vehicle=shift.swap_vehicle)[
-                0]
+            shift_bolt_kasa = calculate_bolt_kasa(driver, shift.swap_time,
+                                                  shift.end_time, vehicle=shift.swap_vehicle)[0]
             reshuffle_bonus = shift_bolt_kasa / Decimal(
                 (bolt_weekly['kasa'] - bolt_weekly['compensations'] - bolt_weekly['bonuses'])) * bolt_weekly['bonuses']
             if not driver_bonus.get(shift.swap_vehicle.pk):
@@ -684,20 +693,11 @@ def get_failed_income(payment):
             fleets = Fleet.objects.filter(fleetsdriversvehiclesrate__driver=payment.driver, deleted_at=None).exclude(
                 name="Ninja").distinct()
             for fleet in fleets:
-                print(fleet, reshuffle)
                 if isinstance(fleet, BoltRequest):
-                    bolt_orders = FleetOrder.objects.filter(
-                        fleet="Bolt",
-                        state__in=[FleetOrder.COMPLETED, FleetOrder.CLIENT_CANCEL],
-                        accepted_time__range=(start_period, end_period),
-                        driver=payment.driver,
-                        vehicle=vehicle)
-                    bolt_kasa = bolt_orders.aggregate(total_price=Coalesce(Sum('price'), 0),
-                                                      total_tips=Coalesce(Sum('tips'), 0))
+                    kasa, bolt_orders = calculate_bolt_kasa(payment.driver, start_period, end_period, vehicle)[:2]
                     bolt_cash = bolt_orders.filter(payment=PaymentTypes.CASH).aggregate(
                         total_price=Coalesce(Sum('price'), 0),
                         total_tips=Coalesce(Sum('tips'), 0))
-                    kasa = Decimal(bolt_kasa['total_price'] * 0.75004 + bolt_kasa['total_tips'])
                     cash = Decimal(bolt_cash['total_price'] + bolt_cash['total_tips'])
                     orders_total_cash += cash
                 else:
