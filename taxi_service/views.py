@@ -78,6 +78,8 @@ class GetRequestView(View):
     def get(self, request):
         handler = GetRequestHandler()
         action = request.GET.get("action")
+        if action == "render_subscribe_form":
+            return handler.handler_render_subscribe_form(request)
         if request.user.is_authenticated:
 
             method = {

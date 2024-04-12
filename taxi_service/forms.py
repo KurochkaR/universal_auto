@@ -2,6 +2,8 @@ from django import forms
 from django.core.validators import MinValueValidator, RegexValidator, MinLengthValidator
 from django.db.models import Q
 from django.forms import ModelForm
+from django.http import HttpResponse
+from django.shortcuts import render
 from django.utils import timezone
 from django.utils.html import format_html
 
@@ -17,15 +19,78 @@ class CommentForm(forms.ModelForm):
         widgets = {'comment': forms.Textarea(attrs={'rows': 5, 'cols': 50})}
 
 
-class PhoneInput(forms.NumberInput):
+class PhoneInput(forms.TextInput):
     input_type = 'tel'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.attrs['maxlength'] = 13
+        self.attrs['pattern'] = r'^\+380\d{9}$'
+        self.attrs['onkeypress'] = 'return event.charCode >= 48 && event.charCode <= 57 || event.charCode == 46'
+        self.attrs[
+            'oninput'] = r"this.value = '+' + this.value.replace(/\D/g, ''); if(this.value.length>13){this.value = this.value.substring(0, 13);}".replace(
+            "'", r'"')
+        self.attrs['onkeydown'] = r"""
+            if(event.keyCode === 8) {
+                let cursorPosition = this.selectionStart;
+                if (cursorPosition > 4 && cursorPosition <= 13) {
+                    return;
+                }
+                if (cursorPosition === 4 && this.value.startsWith('+380')) {
+                    event.preventDefault();
+                }
+            }
+        """.replace("'", r'"')
+        self.attrs['onfocus'] = "if(!this.value) {this.value = '+380';}"
 
     def build_attrs(self, attrs, extra_attrs=None, **kwargs):
         attrs = super().build_attrs(attrs, extra_attrs, **kwargs)
-        attrs['pattern'] = r'^[\d+]*$'
-        attrs['onkeypress'] = 'return event.charCode >= 48 && event.charCode <= 57 || event.charCode == 46'
-        attrs['oninput'] = r"this.value = this.value.replace(/[^0-9.]/g, '');".replace("'", r'"')
+        attrs.setdefault('placeholder', 'Телефон')
         return attrs
+
+
+class EmailInput(forms.EmailInput):
+    input_type = 'email'
+
+    def build_attrs(self, attrs, extra_attrs=None, **kwargs):
+        attrs = super().build_attrs(attrs, extra_attrs, **kwargs)
+        attrs['pattern'] = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
+        return attrs
+
+
+class NameInput(forms.TextInput):
+    input_type = 'text'
+
+    def build_attrs(self, attrs, extra_attrs=None, **kwargs):
+        attrs = super().build_attrs(attrs, extra_attrs, **kwargs)
+        attrs['pattern'] = r'^[a-zA-Zа-яА-Я\s]*$'
+        attrs[
+            'onkeypress'] = 'return event.charCode >= 65 && event.charCode <= 90 || event.charCode >= 97 && event.charCode <= 122 || event.charCode == 32'
+        return attrs
+
+
+class ContactMeForm(forms.Form):
+    name = forms.CharField(widget=NameInput(attrs={
+        'id': 'name', 'class': 'form-control', 'placeholder': _('Ім\'я'),
+        'style': 'font-size: medium'}),
+        error_messages={'required': _('Введіть ім\'я, будь ласка'),
+                        'invalid': _('Ім\'я повинно містити лише букви')}
+    )
+    email = forms.EmailField(widget=EmailInput(attrs={
+        'id': 'email', 'class': 'form-control', 'placeholder': _('Електронна пошта'),
+        'style': 'font-size: medium'}),
+        error_messages={'required': _('Введіть ел.пошту, будь ласка'),
+                        'invalid': _('Введіть коректну ел.пошту')}
+    )
+    phone = forms.CharField(widget=PhoneInput(attrs={
+        'id': 'phone', 'class': 'form-control', 'placeholder': _('Телефон'),
+        'style': 'font-size: medium'}),
+        error_messages={'required': _('Введіть номер телефону, будь ласка'),
+                        'invalid': _('Номер телефону повинен містити лише цифри')}
+    )
+
+    class Meta:
+        fields = ('name', 'email', 'phone')
 
 
 class MainOrderForm(ModelForm):

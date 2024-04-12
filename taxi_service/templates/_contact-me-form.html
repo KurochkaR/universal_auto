@@ -1,17 +1,29 @@
 {% load static %}
 {% load i18n %}
-<section class="contact-me-section" id="contact-me-form">
+<form method="post" class="contact-me-section" id="contact-me-form">
+  {% csrf_token %}
   <div class="container">
-    <button id="close-form-contact" class="close-button">×</button>
-    <h2>{% trans "Зв’яжіться зі мною" %}</h2>
-    <p>{% trans "Заповніть форму та наш менеджер зв'яжеться з Вами" %}</p>
-    <form id="contact-form">
-      {% csrf_token %}
-      <input type="text" id="name" name="name" placeholder="{% trans 'Ваше ім`я*' %}"><br>
-      <span class="error-name">{% trans "Ім'я обовязкове!" %}</span><br>
-      <input type="tel" id="phone" name="phone" placeholder="{% trans 'Ваш номер телефону*' %}"><br>
-      <span class="error-message">{% trans "Не вірний формат номеру" %}</span><br>
-      <input type="submit" value="{% trans 'Зв’язатися з нами' %}">
-    </form>
+    <div class="title-form">
+      <button id="close-form-contact" class="close-button">×</button>
+      <h2>{% trans "Зв’яжіться зі мною" %}</h2>
+      <p>{% trans "Заповніть форму та наш менеджер зв'яжеться з Вами" %}</p>
+    </div>
+    <div id="contact-form">
+      <div class="client-name">
+        {{ contact_form.name }}
+        <span class="error-name">{{ contact_form.name.errors }}</span>
+      </div>
+
+      <div class="client-phone">
+        {{ contact_form.phone }}
+        <span class="error-message">{{ contact_form.phone.errors }}</span>
+      </div>
+
+      <div class="client-email">
+        {{ contact_form.email }}
+        <span class="error-email">{{ contact_form.email.errors }}</span>
+      </div>
+      <button class="subscribe-client" type="submit">{% trans "Зв’язатися з нами" %}</button>
+    </div>
   </div>
-</section>
+</form>

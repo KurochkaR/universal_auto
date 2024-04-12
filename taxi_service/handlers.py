@@ -22,7 +22,7 @@ from auto.utils import payment_24hours_create, summary_report_create
 from auto_bot.handlers.driver_manager.utils import calculate_bolt_kasa, create_driver_payments, \
     check_correct_bolt_report
 from auto_bot.handlers.order.utils import check_vehicle
-from taxi_service.forms import MainOrderForm, CommentForm, BonusForm
+from taxi_service.forms import MainOrderForm, CommentForm, BonusForm, ContactMeForm
 from taxi_service.utils import (update_order_sum_or_status, restart_order,
                                 partner_logout, login_in_investor,
                                 send_reset_code,
@@ -49,13 +49,7 @@ class PostRequestHandler:
 
     @staticmethod
     def handler_subscribe_form(request):
-        email = request.POST.get('email')
-
-        obj, created = SubscribeUsers.objects.get_or_create(email=email)
-
-        if created:
-            return JsonResponse({'success': True})
-        return JsonResponse({'success': False})
+        print(request.POST)
 
     @staticmethod
     def handler_comment_form(request):
@@ -497,7 +491,8 @@ class PostRequestHandler:
             if status == PaymentsStatus.INCORRECT:
                 json_data = JsonResponse({'error': "Вибачте, сума замовлень не співпадає з наданою сумою"}, status=400)
             else:
-                payment_24hours_create(start - timedelta(minutes=1), payment.report_to, fleet, payment.driver, partner_pk)
+                payment_24hours_create(start - timedelta(minutes=1), payment.report_to, fleet, payment.driver,
+                                       partner_pk)
                 summary_report_create(payment.report_from, payment.report_to, payment.driver, payment.partner)
                 payment_data = create_driver_payments(start, timezone.localtime(payment.report_to), payment.driver,
                                                       payment.driver.schema)[0]
@@ -622,6 +617,12 @@ class GetRequestHandler:
             'cash_rate': driver_cash_rate,
             'pay_cash': driver_pay_cash
         })
+
+    @staticmethod
+    def handler_render_subscribe_form(request):
+        form_html = render_to_string('_contact-me-form.html', {'contact_form': ContactMeForm()})
+
+        return JsonResponse({"data": form_html})
 
     @staticmethod
     def handle_unknown_action():
