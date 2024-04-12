@@ -27,7 +27,7 @@ from taxi_service.utils import (update_order_sum_or_status, restart_order,
                                 partner_logout, login_in_investor,
                                 send_reset_code,
                                 active_vehicles_gps, order_confirm,
-                                check_aggregators, add_shift, delete_shift, upd_shift)
+                                check_aggregators, add_shift, delete_shift, upd_shift, sending_to_crm)
 
 from auto.tasks import update_driver_data, get_session, fleets_cash_trips, create_daily_payment, get_rent_information
 
@@ -537,6 +537,18 @@ class PostRequestHandler:
             penalty.amount -= Decimal(debt_repayment)
             penalty.save(update_fields=['amount'])
         return JsonResponse({'data': 'success'})
+
+    @staticmethod
+    def handler_subscribe_to_client(request):
+        data = request.POST
+        name = data.get('name')
+        phone = data.get('phone')
+        email = data.get('email')
+        theme = data.get('theme')
+
+        send = sending_to_crm(name, phone, email, theme)
+
+        return JsonResponse({'data': send})
 
     @staticmethod
     def handle_unknown_action():

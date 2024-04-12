@@ -229,7 +229,6 @@ $(document).ready(function () {
 	// js for index
 	const contactOpenBtn = $('.contact-me-button');
 	const formSection = $('#contact-me-form');
-	const closeButtonContact = $("#close-form-contact");
 	const contactForm = $("#contact-form");
 	const detailsRadio = $('#detailsRadio');
 	const howItWorksRadio = $('#howItWorksRadio');
@@ -297,10 +296,6 @@ $(document).ready(function () {
 		thankYouMessage.hide();
 	});
 
-	closeButtonContact.click(function () {
-		formSection.hide();
-	});
-
 	contactForm.on("submit", function (e) {
 		e.preventDefault();
 		let formData = contactForm.serialize();
@@ -328,8 +323,7 @@ $(document).ready(function () {
 	const openButtonsFree = $(".free-access-button");
 	const openButtonsConnect = $(".connect-button");
 	const openButtonsConsult = $(".consult-button");
-	const formSectionFree = $("#free-access-form");
-	const closeButtonAccess = $("#close-form-access");
+	const formSectionFree = $("#contact-me-form");
 	const accessForm = $("#access-form");
 	const thankYouMessage = $("#thank-you-message");
 	const existingYouMessage = $("#existing-you-message")
@@ -368,14 +362,6 @@ $(document).ready(function () {
 		});
 	}
 
-
-	openButtonsFree.on("click", function () {
-		$("#free-access-form h2").text(gettext("Отримати безкоштовний доступ на місяць"));
-		$("#access-form input[type='submit']").val(gettext("Отримати безкоштовний доступ"));
-		formSectionFree.show();
-		thankYouMessage.hide();
-	});
-
 	openButtonsConnect.on("click", function () {
 		$("#free-access-form h2").text(gettext("Зв’язатися з нами"));
 		$("#access-form input[type='submit']").val(gettext("Зв’язатися з нами"));
@@ -388,10 +374,6 @@ $(document).ready(function () {
 		$("#access-form input[type='submit']").val(gettext("Проконсультуватися"));
 		formSectionFree.show();
 		thankYouMessage.hide();
-	});
-
-	closeButtonAccess.on("click", function () {
-		formSectionFree.hide();
 	});
 
 	accessForm.on("submit", function (e) {
@@ -429,6 +411,7 @@ function intlTelInit(phoneEl) {
 
 $(document).ready(function () {
 	intlTelInit('#phone');
+	intlTelInit('#client-phone');
 
 //  js investment page
 	if ($(".investment-slider").length) {
@@ -453,11 +436,6 @@ $(document).ready(function () {
 
 	$(".learn-more-button").click(function (e) {
 		sendData("#email-input");
-		e.preventDefault();
-	});
-
-	$(".free-access-button").click(function (e) {
-		sendData(".email-input");
 		e.preventDefault();
 	});
 
@@ -535,41 +513,53 @@ $(document).ready(function () {
 			passwordInput.attr('type', 'password');
 		}
 	});
+
+	$(this).on('click', '.free-access-button', function (event) {
+		event.preventDefault();
+		$.ajax(
+			{
+				type: "GET",
+				url: ajaxGetUrl,
+				data: {
+					action: 'render_subscribe_form'
+				},
+				success: function (response) {
+					$('#subscribeModalForm').html(response.data);
+					$('#contact-me-form').show();
+				}
+			}
+		);
+	});
+
+	$(this).on('click', '.subscribe-client', function (event) {
+		event.preventDefault();
+		const form = $(this).closest('form');
+		const nameInput = form.find('#client-name').val();
+		const phoneInput = form.find('#client-phone').val();
+		const emailInput = form.find('#client-email').val();
+		const theme = $(this).text();
+
+		$.ajax(
+			{
+				type: "POST",
+				url: ajaxPostUrl,
+				data: {
+					action: 'subscribe_to_client',
+					name: nameInput,
+					phone: phoneInput,
+					email: emailInput,
+					theme: theme,
+					csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
+				},
+				success: function (response) {
+					console.log(response);
+				}
+			}
+		);
+	});
+
+	$(this).on('click', '#close-form-contact', function (event) {
+		event.preventDefault();
+		$('#contact-me-form').hide();
+	});
 });
-//
-//
-// document.addEventListener('DOMContentLoaded', function () {
-// 	var form = document.querySelector('');
-//
-// 	form.addEventListener('click', function (event) {
-// 		event.preventDefault(); // Предотвращаем стандартное поведение формы
-//
-// 		var formData = {
-// 			"name": "Test deal",
-// 			"fields": [{
-// 				"fieldId":,
-// 				"value":
-// 			}],
-// 			"customerDraft": {
-// 				"name": "Test",
-// 				"number": "0123456789"
-// 			}
-// 		}
-// 		// Выполняем POST-запрос с использованием Fetch API
-// 		fetch("https://my.binotel.ua/b/smartcrm/api/widget/v1/deal/create?token=", {
-// 			method: "POST",
-// 			headers: {
-// 				"Content-Type": "application/json"
-// 			},
-// 			body: JSON.stringify(formData)
-// 		})
-// 			.then(response => response.json()) // Обработка ответа в формате JSON
-// 			.then(data => {
-// 				console.log("Ответ сервера:", data);
-// 				// Здесь вы можете обрабатывать ответ от сервера
-// 			})
-// 			.catch(error => {
-// 				console.error("Ошибка при выполнении запроса:", error);
-// 			});
-// 	});
-// });

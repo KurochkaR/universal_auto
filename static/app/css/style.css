@@ -3548,8 +3548,8 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	left: 50%;
 	transform: translate(-50%, -50%);
 	border-radius: 62px;
-	width: 1070px;
-	height: 515px;
+	width: 750px;
+	height: auto;
 	z-index: 99999;
 }
 
@@ -3580,16 +3580,11 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	line-height: normal;
 }
 
-.free-access-section input[type="text"],
-.free-access-section input[type="tel"],
-.to-consult-section input[type="text"],
-.to-consult-section input[type="tel"],
-.to-connect-section input[type="text"],
-.to-connect-section input[type="tel"],
 .contact-me-section input[type="text"],
-.contact-me-section input[type="tel"] {
-	margin-top: 15px;
-	width: 70%;
+.contact-me-section input[type="tel"],
+.contact-me-section input[type="email"] {
+	margin-top: 30px;
+	width: 100%;
 	padding: 25px 20px;
 	border: 1px solid #ccc;
 	border-radius: 25px;
@@ -3598,7 +3593,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 .free-access-section input[type="submit"],
 .to-consult-section input[type="submit"],
 .to-connect-section input[type="submit"],
-.contact-me-section input[type="submit"] {
+.contact-me-section button {
 	margin-top: 24px;
 	background-color: #EC6323;
 	color: #fff;

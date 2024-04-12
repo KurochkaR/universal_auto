@@ -1,3 +1,5 @@
+import re
+
 from django import forms
 from django.core.validators import MinValueValidator, RegexValidator, MinLengthValidator
 from django.db.models import Q
@@ -33,10 +35,10 @@ class PhoneInput(forms.TextInput):
         self.attrs['onkeydown'] = r"""
             if(event.keyCode === 8) {
                 let cursorPosition = this.selectionStart;
-                if (cursorPosition > 4 && cursorPosition <= 13) {
+                if (cursorPosition > 1 && cursorPosition <= 13) {
                     return;
                 }
-                if (cursorPosition === 4 && this.value.startsWith('+380')) {
+                if (cursorPosition === 1 && this.value.startsWith('+380')) {
                     event.preventDefault();
                 }
             }
@@ -54,7 +56,7 @@ class EmailInput(forms.EmailInput):
 
     def build_attrs(self, attrs, extra_attrs=None, **kwargs):
         attrs = super().build_attrs(attrs, extra_attrs, **kwargs)
-        attrs['pattern'] = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
+        attrs['pattern'] = r"^([a-zA-Z0-9]+.?[a-zA-Z0-9]+)+@([a-zA-Z0-9]+.)+[a-zA-Z0-9]{2,4}$"
         return attrs
 
 
@@ -65,7 +67,12 @@ class NameInput(forms.TextInput):
         attrs = super().build_attrs(attrs, extra_attrs, **kwargs)
         attrs['pattern'] = r'^[a-zA-Zа-яА-Я\s]*$'
         attrs[
-            'onkeypress'] = 'return event.charCode >= 65 && event.charCode <= 90 || event.charCode >= 97 && event.charCode <= 122 || event.charCode == 32'
+            'onkeypress'] = (
+            'return event.charCode >= 65 && event.charCode <= 90 || '
+            'event.charCode >= 97 && event.charCode <= 122 || '
+            'event.charCode >= 1040 && event.charCode <= 1103 || '
+            'event.charCode == 32 || event.charCode == 45;'
+        )
         return attrs
 
 
