@@ -281,7 +281,7 @@ def create_proportional_investor_earn(start, end, vehicles_list, partner_pk):
         for fleet in fleets:
             if isinstance(fleet, UberRequest):
                 result = fleet.generate_vehicle_report(start, end, [vehicle])
-                kasa += result[0]['totalEarnings']
+                kasa += result[0]['totalEarnings'] if result else 0
             else:
                 orders = FleetOrder.objects.filter(
                     state__in=[FleetOrder.COMPLETED, FleetOrder.CLIENT_CANCEL, FleetOrder.SYSTEM_CANCEL],

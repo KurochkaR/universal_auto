@@ -562,8 +562,8 @@ def get_driver_efficiency_report(manager_id, start_time=None, end_time=None):
 
 def calculate_bolt_kasa(driver, start_period, end_period, vehicle=None):
     filter_request = Q(Q(fleet="Bolt", driver=driver) &
-                       Q(state=FleetOrder.COMPLETED, finish_time__range=(start_period, end_period)) |
-                       Q(state=FleetOrder.CLIENT_CANCEL, accepted_time__range=(start_period, end_period))
+                       Q(Q(state=FleetOrder.COMPLETED, finish_time__range=(start_period, end_period)) |
+                       Q(state=FleetOrder.CLIENT_CANCEL, accepted_time__range=(start_period, end_period)))
                        )
     if vehicle:
         filter_request &= Q(vehicle=vehicle)
