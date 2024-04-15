@@ -1,3 +1,9 @@
+:root {
+	--font-family: "Open Sans", sans-serif;
+	--second-family: "Montserrat", sans-serif;
+	--third-family: "Inter", sans-serif;
+}
+
 body {
 	color: #040000;
 	background-color: #ffffff;
@@ -1822,7 +1828,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 		display: block;
 	}
 
-	.img-box img {
+	.about_section .img-box img {
 		width: 100% !important;
 		height: auto;
 		margin-top: 30px !important;
@@ -3521,6 +3527,9 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	font-family: var(--font-family);
 	font-weight: 400;
 	font-size: 25px;
+}
+
+.client-info input::placeholder {
 	color: rgba(83, 120, 94, 0.5);
 }
 
@@ -3692,11 +3701,16 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 
 @media screen and (max-width: 767px) {
 	/*block 1*/
+	.auto-park-one-section {
+		height: 685px;
+	}
+
 	.auto-park-one-section .container {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
 		justify-content: space-between;
+		padding: 0;
 	}
 
 	.auto-park-left {
@@ -3715,14 +3729,14 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 
 	.auto-park-right {
 		position: relative;
-		width: 109%;
+		width: 100%;
 		height: auto;
 		left: 0;
 		top: 0;
 	}
 
 	.auto-park-right .decorate-img {
-		wight: 100%;
+		width: 100%;
 		height: auto;
 		margin-top: 20px;
 		margin-bottom: 0;
@@ -3732,53 +3746,58 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 
 	.auto-park-right .decorate-img img {
 		width: 100%;
-		height: auto;
+		height: 268px;
 	}
 
 	.auto-park-right .one-info {
-		width: 63%;
+		width: 100%;
 		position: relative;
-		padding: 10px;
+		padding: 0 80px;
 		z-index: 1022;
-		margin-top: -250px;
-		margin-left: 85px;
+		margin-top: -239px;
 		right: 0;
 	}
 
 	.auto-park-right .one-info h2 {
+		font-family: var(--second-family);
+		font-weight: 700;
 		font-size: 20px;
+		text-transform: uppercase;
+		text-align: center;
+		color: #ec6323;
 	}
 
 	.auto-park-right .one-info p {
+		font-family: var(--font-family);
+		font-weight: 400;
 		font-size: 15px;
+		text-align: center;
+		color: #fff;
+	}
+
+	.free-access-btn {
+		width: 100%;
+		right: 0;
+		padding: 0 25px;
 	}
 
 	.free-access-btn button {
-		width: 80%;
+		width: 100%;
 		font-size: 12px;
 		padding: 10px 10px;
-		margin-left: 90px;
-		margin-top: 0;
+		margin-top: 10px;
 	}
 
 	/*block 2*/
 	.auto-park-two-section {
-		margin-top: 30px;
+		margin-top: 80px;
 	}
 
-	.auto-park-two-section .container {
+	.auto-park-two-section .container-park {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
 		justify-content: space-between;
-	}
-
-	.auto-park-two-section .container .img-box {
-		order: 1;
-	}
-
-	.auto-park-two-section .container .detail-box {
-		order: 2;
 	}
 
 	.auto-park-two-section .img-box {
@@ -3787,24 +3806,87 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 		margin-top: 0;
 	}
 
+	.auto-park-two-section .img-box img:nth-child(1) {
+		width: 30%;
+		position: relative;
+		top: 0;
+	}
+
+	.auto-park-two-section .img-box img:nth-child(2) {
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -50%);
+	}
+
+	.auto-park-two-section .img-box img:nth-child(3) {
+		width: 30%;
+		position: relative;
+		top: 23px;
+		left: 0;
+	}
+
+	.auto-park-two-section .detail-box {
+		display: flex;
+		margin-right: 5px;
+		flex-direction: column;
+		justify-content: center;
+		align-items: center;
+	}
+
 	.auto-park-two-section .detail-box p {
-		margin-top: 20px;
-		font-size: 15px;
+		font-family: var(--second-family);
 		font-weight: 600;
+		font-size: 15px;
 		text-align: center;
+		color: #141e17;
+	}
+
+	.auto-park-two-section .contact-us {
+		width: 100%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex-direction: column;
+		padding: 0 25px;
+		gap: 0;
+	}
+
+	.auto-park-two-section .contact-us button {
+		width: 100%;
+		height: 33px;
+		margin-top: 10px;
+		padding: 5px 10px;
+		background: #EC6323;
+		border-radius: 25px;
+		border-color: #EC6323;
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 10px;
+		color: #fff;
+	}
+
+	.auto-park-two-section .contact-us a {
+		width: 100%;
 	}
 
 	.auto-park-two-section .contact-us a button {
 		width: 100%;
-		font-size: 12px;
-		padding: 10px 10px;
-		margin-left: 0;
-		margin-top: 0;
+		height: 33px;
+		margin-top: 15px;
+		border: 5px solid #EC6323;
+		background: #FFF;
+		padding: 5px 10px;
+		cursor: pointer;
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 10px;
+		color: #ec6323;
 	}
 
 	/*block 3*/
 	.auto-park-three-section {
-		margin-top: 30px;
+		margin-top: 80px;
 	}
 
 	.auto-park-three-section .container {
@@ -3812,64 +3894,59 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 		flex-direction: column;
 		align-items: center;
 		justify-content: space-between;
+		padding: 15px 0 24px 0;
 	}
 
-	.auto-park-three-section .img-box {
-		width: 75%;
+	.auto-park-three-section .container .box-img {
+		width: 100%;
+	}
+
+	.auto-park-three-section .container .box-img img {
+		width: 100%;
 		height: auto;
-		margin-top: 0;
 	}
 
-	.auto-park-three-section .img-box .img-1 {
-		position: relative;
-		margin-bottom: 0;
-		right: 0;
-	}
-
-	.auto-park-three-section .img-box .img-2 {
-		width: 180% !important;
-		position: relative;
-		top: -440px;
-		margin-top: 0;
-		z-index: -1;
-	}
-
-	.analytics-box {
+	.auto-park-three-section .container .description {
 		width: 100%;
-		position: relative;
-		right: 0;
-		margin-top: -335px;
+		padding: 0 25px;
 	}
 
-	.analytics-box h2 {
-		margin-top: 0;
-		font-size: 20px;
-	}
-
-	.analytics-box ul li {
-		margin-top: 10px;
-		font-size: 15px;
-	}
-
-	.analytics-box .buttons-box {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-	}
-
-	.analytics-box .buttons-box .get-price-button,
-	.analytics-box .buttons-box .consult-button {
-		width: 100%;
+	.auto-park-three-section .container .description h2 {
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 18px;
+		text-transform: uppercase;
+		color: #141e17;
 		text-align: center;
-		font-size: 12px;
-		padding: 10px 10px;
-		margin-left: 0;
-		margin-top: 10px;
+	}
+
+	.auto-park-three-section .container .description p {
+		font-family: var(--font-family);
+		font-weight: 400;
+		font-size: 15px;
+		text-align: center;
+		color: #38423b;
+		padding: 0 4px 0 0;
+	}
+
+	.auto-park-three-section .container .description .buttons-box {
+		display: flex;
+		justify-content: space-between;
+		padding: 0 25px;
+	}
+
+	.auto-park-three-section .container .description a button {
+		width: 100%;
+		padding: 10px 15px;
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 10px;
+		color: #fff;
 	}
 
 	/*block 4*/
 	.auto-park-four-section {
-		margin-top: 30px;
+		margin-top: 80px;
 	}
 
 	.auto-park-four-section .container {
@@ -3879,197 +3956,128 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 		justify-content: space-between;
 	}
 
-	.auto-park-four-section .container > div {
-		flex: 1;
+	.auto-park-four-section .container .description {
+		order: 2;
+		text-align: center;
 	}
 
-	.auto-park-four-section .container .img-box {
+	.auto-park-four-section .container .box-img {
 		order: 1;
 	}
 
-	.auto-park-four-section .container .spending-box {
-		order: 2;
+	.auto-park-four-section .container .box-img img {
+		max-width: 100%;
 	}
 
-	.auto-park-four-section .img-box {
-		width: 110%;
-		height: auto;
-		margin-top: 0;
-	}
-
-	.auto-park-four-section .img-box .img-1 {
-		position: relative;
-		margin-bottom: 0;
-		right: 0;
-	}
-
-	.auto-park-four-section .img-box .img-2 {
-		display: none;
-	}
-
-	.spending-box {
-		flex-direction: column;
-	}
-
-	.spending-description h2 {
-		margin-top: 20px;
-		font-size: 20px;
-	}
-
-	.spending-description p {
+	.auto-park-four-section .container .description {
 		width: 100%;
-		margin-top: 10px;
+		padding: 0 25px;
+	}
+
+	.auto-park-four-section .container .description h2 {
+		width: 100%;
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 18px;
+		text-transform: uppercase;
+		text-align: center;
+		color: #141e17;
+		margin: 15px 0 10px 0;
+	}
+
+	.auto-park-four-section .container .description p {
+		font-family: var(--font-family);
+		font-weight: 400;
 		font-size: 15px;
+		color: #38423b;
+		text-align: center;
+		margin-bottom: 10px;
 	}
 
-	.spending-box .buttons-box button {
-		margin-top: 10px;
-		font-size: 12px;
-	}
-
-	.spending-box .buttons-box .get-price-button {
+	.auto-park-four-section .container .description button {
 		width: 100%;
-		background-color: #EC6323;
+		padding: 10px 15px;
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 10px;
 		color: #fff;
-		padding: 10px 10px;
-		border-radius: 20px;
-		border-color: #EC6323;
-	}
-
-	.spending-box .buttons-box .free-access-button {
-		width: 100%;
-		background-color: #fff;
-		color: #EC6323;
-		padding: 10px 10px;
-		border-color: #EC6323;
-		border-radius: 20px;
-		outline: 2px auto #EC6323;
 	}
 
 	/*block 5*/
 	.auto-park-five-section {
-		margin-top: 30px;
+		margin-top: 80px;
 	}
 
 	.auto-park-five-section .container {
+		width: 100%;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
 		justify-content: space-between;
+		background: url(/static/app/images/auto-park-img/park-block-5-background.png) no-repeat 80% center;
+		background-size: cover;
+		padding: 52px 0 21px 0;
 	}
 
-	.auto-park-five-section .control-box {
-		width: 100%;
-		position: relative;
-		right: 0;
-		margin-top: 0;
+	.auto-park-five-section .box-img {
+		width: 100% !important;
+		height: auto;
 	}
 
-	.auto-park-five-section .control-box h2 {
-		width: 100%;
-		margin-top: 25px;
-		font-size: 20px;
-	}
-
-	.auto-park-text {
-		display: none;
-	}
-
-	.auto-park-adaptive {
-		display: flex;
-		align-items: center;
-	}
-
-	.auto-park-adaptive-img {
-		margin-bottom: 35px;
-		display: flex;
-		flex-direction: column;
-		width: 50px;
-		height: 50px;
-	}
-
-	.auto-park-adaptive-text {
-		display: flex;
-		flex-direction: column;
-	}
-
-	.auto-park-adaptive-text span {
-		margin-top: 20px;
-		color: #53785E;
-		font-size: 15px;
-		font-style: normal;
-		font-weight: 400;
-		line-height: normal;
-	}
-
-	.auto-park-five-section .img-box {
+	.auto-park-five-section .box-img img {
 		width: 100%;
 		height: auto;
-		top: 0;
-		left: 0;
-		margin-top: 0;
 	}
 
-	.auto-park-five-section .img-box .img-1 {
-		position: relative;
-		margin-bottom: 0;
-		right: 0;
+	.auto-park-five-section .description {
+		padding: 10px 25px !important;
 	}
 
-	.auto-park-five-section .img-box .img-2 {
-		position: absolute;
-		width: 110% !important;
-		height: 270px;
-		left: -15px;
-		top: 0;
-		margin-top: 35px;
-		z-index: -1;
+	.auto-park-five-section .description h2 {
+		font-size: 18px !important;
+		text-align: center;
 	}
 
-	.auto-park-five-section .control-box .buttons-box {
-		display: flex;
+	.auto-park-five-section .description p {
+		font-size: 15px !important;
+		text-align: center;
+	}
+
+	.auto-park-five-section .description .contact-us {
+		width: 100% !important;
 		flex-direction: column;
-		align-items: center;
 	}
 
-	.control-box .buttons-box button {
-		margin-top: 10px;
-		font-size: 12px;
-	}
-
-	.control-box .buttons-box .get-price-button {
+	.auto-park-five-section .description a {
 		width: 100%;
+	}
+
+	.auto-park-five-section .description a button {
+		width: 100%;
+		margin-top: 15px;
+		border: 5px solid #EC6323;
 		background-color: #EC6323;
+		padding: 5px 15px !important;
+		font-size: 10px !important;
 		color: #fff;
-		padding: 10px 10px;
-		border: none;
+	}
+
+	.auto-park-five-section .description button {
+		margin-top: 10px;
+		padding: 5px 15px !important;
+		background: #EC6323;
+		border: 5px solid #EC6323;
+		color: #fff;
+		border-radius: 20px;
+		font-size: 10px !important;
+		text-decoration: none;
 		cursor: pointer;
-		transition: background-color 0.3s;
-		border-radius: 62px;
-		margin-right: 0;
-	}
-
-	.control-box .buttons-box .consult-button {
-		width: 100%;
-		background-color: #fff;
-		color: #EC6323;
-		padding: 10px 10px;
-		border-color: #EC6323;
-		border-radius: 62px;
-		outline: 2px auto #EC6323;
-		margin-right: 0;
-	}
-
-	.control-box .buttons-box .get-price-button:hover {
-		background-color: #FF8C24;
+		font-weight: 700;
 	}
 
 	/*block 6*/
 	.auto-park-six-section {
-		margin-top: 30px;
-		height: auto;
-		background: url("/static/app/images/auto-park-img/park-block-6-2.webp") no-repeat;
-		background-size: 100% 100%;
+		margin-top: 80px;
 	}
 
 	.auto-park-six-section .container {
@@ -4087,116 +4095,103 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 		order: 2;
 	}
 
-	.auto-park-six-section .description p {
-		margin-top: 20px;
-		width: 90%;
-		color: #FFF;
-		font-size: 20px;
-		font-style: normal;
-		font-weight: 600;
-		line-height: normal;
+	.auto-park-six-section .container .box-img img {
+		width: 100%;
+		height: auto;
+	}
+
+	.auto-park-six-section .container .description {
+		width: 100%;
+		padding: 0 25px;
+	}
+
+	.auto-park-six-section .container .description h2 {
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 18px;
 		text-transform: uppercase;
+		color: #141e17;
+		text-align: center;
+		margin: 15px 0 10px 0;
 	}
 
-	.auto-park-six-section .description button {
+	.auto-park-six-section .container .description p {
+		font-family: var(--font-family);
+		font-weight: 400;
+		font-size: 15px;
+		color: #38423b;
+		text-align: center;
+		margin-bottom: 10px;
+	}
+
+	.auto-park-six-section .container .description a button {
 		width: 100%;
-		font-size: 12px;
-		margin-top: 10px;
-		background-color: #EC6323;
+		padding: 5px 15px;
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 10px;
 		color: #fff;
-		padding: 10px 10px;
-		border: none;
-		cursor: pointer;
-		transition: background-color 0.3s;
-		border-radius: 62px;
-		margin-right: 0;
-		margin-bottom: 20px;
-	}
-
-	.auto-park-six-section .box-img img {
-		width: 100%;
-		margin-top: 20px;
-		position: relative;
-		right: 0;
+		margin: 0;
 	}
 
 	/*block 7*/
 	.auto-park-seven-section {
-		margin-top: 30px;
+		margin-top: 80px;
+		padding: 18px 0 42px 0;
 	}
 
-	.auto-park-seven-section .title-block {
-		color: #141E17;
-		font-size: 20px;
-		font-style: normal;
-		font-weight: 600;
-		line-height: normal;
-		text-transform: uppercase;
+	.auto-park-seven-section .container {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: space-between;
+
 	}
 
-	.auto-park-seven-section .blog-cards {
-		display: grid;
-		grid-template-columns: repeat(1, 1fr);
-		grid-gap: 20px;
+	.auto-park-seven-section .container .box-img {
+		flex-basis: calc(50% - 10px);
 	}
 
-	.auto-park-seven-section .blog-cards .blog-card {
-		text-align: center;
-		position: relative;
+	.auto-park-seven-section .container .description {
+		flex-basis: calc(100%);
+		order: 2;
+		padding: 0 25px;
 	}
 
-	.auto-park-seven-section .blog-cards .blog-card img {
-		display: block;
-		margin: 0;
-		width: 110%;
-		height: auto;
-		max-height: max-content;
+	.auto-park-seven-section .container .box-img:last-child {
+		margin-right: 0;
+		order: 1;
 	}
 
-	.auto-park-seven-section .blog-cards .blog-card h2,
-	.auto-park-seven-section .blog-cards .blog-card p {
-		width: 75%;
-		position: absolute;
-		left: 50%;
-		transform: translateX(-50%);
-		margin: 0;
-		text-align: center;
-	}
 
-	.auto-park-seven-section .blog-cards .blog-card h2 {
-		top: 20%;
-		color: #141E17;
-		font-size: 15px;
-		font-style: normal;
+	.auto-park-seven-section .container .description h2 {
+		font-family: var(--second-family);
 		font-weight: 700;
-		line-height: normal;
+		font-size: 18px;
+		text-transform: uppercase;
+		color: #141e17;
+		text-align: center;
+		margin: 15px 0 10px 0;
 	}
 
-	.auto-park-seven-section .blog-cards .blog-card p {
-		top: 43%;
-		color: #53785E;
-		font-size: 12px;
-		font-style: normal;
+	.auto-park-seven-section .container .description p {
+		font-family: var(--font-family);
 		font-weight: 400;
-		line-height: normal;
+		font-size: 15px;
+		color: #38423b;
+		text-align: center;
+		margin-bottom: 10px;
 	}
 
-	.auto-park-seven-section .blog-cards .blog-card a {
+	.auto-park-seven-section .container .description button {
+		width: 100%;
+		padding: 5px 15px;
+		font-family: var(--second-family);
+		font-weight: 700;
 		font-size: 10px;
-		padding: 10px 10px;
-		width: 85%;
-		bottom: 25px;
-		text-decoration: none;
-		background-color: #EC6323;
 		color: #fff;
-		margin-top: 0px;
-		font-weight: bold;
+		margin: 0;
 	}
 
-	.auto-park-seven-section .blog-cards:nth-child(3) {
-		position: relative;
-		left: 0;
-	}
 
 	/*Form styles adaptive*/
 	.free-access-section,
@@ -4328,7 +4323,6 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 }
 
 /* adaptive for phone horizontal */
-
 @media screen and (min-width: 767px) and (max-width: 1199px) {
 	/*block 1*/
 	.auto-park-one-section .container {
@@ -4955,12 +4949,8 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 }
 
 /*End Auto Park page*/
-
-
 /*Invest page*/
-
 /*block 1*/
-
 .investment_section .container {
 	display: flex;
 	justify-content: space-between;
@@ -5084,7 +5074,6 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 }
 
 /* block 2 */
-
 .investment-slider-section {
 	background-image: url('/static/app/images/invest-img/investment-slider-background.png');
 	background-size: cover;
@@ -5188,7 +5177,6 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 }
 
 /* block 3 */
-
 .investment-offer-section {
 	margin-top: 80px;
 }
@@ -5260,7 +5248,6 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 }
 
 /* block 4 */
-
 .investment-in-numbers-section {
 	margin-top: 80px;
 	background: #A1E8B9;
@@ -5370,7 +5357,6 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 }
 
 /* block 5 */
-
 .investment-park-section {
 	margin-top: 80px;
 }
@@ -5457,7 +5443,6 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 
 
 /* park-block-electro-car */
-
 .owners-electric-cars {
 	margin-top: 80px;
 }
@@ -5529,7 +5514,6 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 
 
 /* modal */
-
 .invest-modal {
 	display: none;
 	position: fixed;
@@ -5585,7 +5569,6 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 
 
 /* adaptive vertical for phone */
-
 @media screen and (max-width: 479px) {
 	/*block 1*/
 	.investment_section .container {
@@ -5931,7 +5914,6 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 }
 
 /* adaptive horizontal for phone */
-
 @media screen and (min-width: 480px) and (max-width: 767px) {
 
 	/*block 1*/
@@ -6487,7 +6469,6 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 }
 
 end Drivers page*/
-
 @media (max-width: 768px) {
 	.hero-banner-one form {
 		max-width: 100%;
@@ -6557,8 +6538,6 @@ end Drivers page*/
 }
 
 /*form login*/
-
-
 .nav-item .btn-box span {
 	color: #A8C465FF;
 	display: flex;
@@ -6720,7 +6699,6 @@ end Drivers page*/
 
 
 /* charging station page */
-
 /* block 1 */
 .charging-station-section {
 	width: 100%;
@@ -6787,7 +6765,6 @@ end Drivers page*/
 
 
 /* block 2 */
-
 .charging-station-section-2 {
 	background-image: url(/static/app/images/invest-img/investment-slider-background.png);
 	background-size: cover;
@@ -6853,7 +6830,6 @@ end Drivers page*/
 }
 
 /* block 3 */
-
 .charging-station-section-3 {
 	margin-top: 80px;
 }
@@ -6899,7 +6875,6 @@ end Drivers page*/
 }
 
 /* block 4 */
-
 .charging-station-section-4 {
 	margin-top: 80px;
 }
@@ -6940,7 +6915,6 @@ end Drivers page*/
 }
 
 /* block 5 */
-
 .charging-station-section-5 {
 	margin-top: 80px;
 }
@@ -7004,7 +6978,6 @@ end Drivers page*/
 
 
 /* adaptive vertical for phone */
-
 @media screen and (max-width: 479px) {
 	/* block 1 */
 	.charging-station-section {
@@ -7263,7 +7236,6 @@ end Drivers page*/
 }
 
 /* adaptive horizontal for phone */
-
 @media screen and (min-width: 768px) and (max-width: 1199px) {
 	/* block 1 */
 	.charging-station-section {
@@ -7487,9 +7459,7 @@ end Drivers page*/
 }
 
 /* prices page */
-
 /* block 1 */
-
 .price-header-section {
 	width: 100%;
 	height: auto;
@@ -7527,7 +7497,6 @@ end Drivers page*/
 }
 
 /* block 2 */
-
 .price-package-section {
 	margin-top: 20px;
 }
@@ -7646,7 +7615,6 @@ end Drivers page*/
 
 
 /* block 3 */
-
 .price-progress-section {
 	margin-top: 80px;
 	background-image: url(/static/app/images/invest-img/investment-slider-background.png);
@@ -7722,7 +7690,6 @@ end Drivers page*/
 }
 
 /* block 4 */
-
 .price-free-section {
 	margin-top: 80px;
 }
@@ -7813,7 +7780,6 @@ end Drivers page*/
 
 
 /* adaptive vertical for phone */
-
 @media screen and (max-width: 479px) {
 	/* block 1 */
 	.price-header-section {
@@ -8008,7 +7974,6 @@ end Drivers page*/
 
 
 /* adaptive horizontal for phone */
-
 @media screen and (min-width: 768px) and (max-width: 1199px) {
 	/* block 1 */
 	.price-header-section {
