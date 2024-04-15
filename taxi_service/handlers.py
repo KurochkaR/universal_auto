@@ -1,4 +1,5 @@
 import json
+import re
 from datetime import datetime, time, timedelta
 from decimal import Decimal
 
@@ -545,6 +546,8 @@ class PostRequestHandler:
         phone = data.get('phone')
         email = data.get('email')
         theme = data.get('theme')
+
+        phone = re.sub(r'\s+|-', '', phone)
 
         send = sending_to_crm(name, phone, email, theme)
 

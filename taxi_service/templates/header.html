@@ -42,8 +42,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
-    href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100;200;300;400;500;600;700;800;900&display=swap"
-    rel="stylesheet">
+      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100;200;300;400;500;600;700;800;900&display=swap"
+      rel="stylesheet">
   <!-- Custom styles for this template -->
   <link href="{% static 'app/css/style.css' %}" rel="stylesheet"/>
   <!-- responsive style -->
@@ -55,25 +55,13 @@
           integrity="sha256-pvPw+upLPUjgMXY0G+8O0xUf+/Im1MZjXxxgOcBQBXU="
           crossorigin="anonymous"></script>
   <script
-    src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+      src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
   <script src="{% url 'javascript-catalog' %}"></script>
 
   <link href="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.1.4/dist/css/splide.min.css" rel="stylesheet">
 </head>
 
 <body>
-<!--<div class="loader word-spacing">-->
-<!--  <span>N</span>-->
-<!--  <span>I</span>-->
-<!--  <span>N</span>-->
-<!--  <span>J</span>-->
-<!--  <span>A </span>-->
-<!--  <span> T</span>-->
-<!--  <span>A</span>-->
-<!--  <span>X</span>-->
-<!--  <span>I</span>-->
-<!--  <span>!</span>-->
-<!--</div>-->
 <header class="header_section navbar navbar-expand-sm">
   <div class="container">
     <nav class="container navbar navbar-expand-lg custom_nav-container navbar navbar-expand-sm">
@@ -101,22 +89,22 @@
             <li><a href="{% url 'price' %}">{% trans "Вартість автоматизованої системи" %}</a></li>
             <li><a href="#">{% trans "Блог" %}</a></li>
             <li class="icon"><a href="https://www.instagram.com/ninjataxi.ua/"><i
-              class="fa-brands fa-instagram"></i></a>
+                class="fa-brands fa-instagram"></i></a>
             </li>
             <li class="icon"><a href="https://www.facebook.com/profile.php?id=61554407076136"><i
-              class="fa-brands fa-facebook"></i></a></li>
+                class="fa-brands fa-facebook"></i></a></li>
             <li class="icon"><a href="https://www.tiktok.com/@ninja.taxi?_t=8gRmG4idFNl"><i
-              class="fa-brands fa-tiktok"></i></a></li>
+                class="fa-brands fa-tiktok"></i></a></li>
             <li class="icon"><a href="https://www.linkedin.com/company/ninja-taxi/"><i
-              class="fa-brands fa-linkedin"></i></a></li>
+                class="fa-brands fa-linkedin"></i></a></li>
           </ul>
         </div>
         {% if user.is_authenticated %}
-        <a href="{% url 'dashboard' %}">
-          <span class="clickable nav-link fa fa-user" style="background-color:#A1E8B9"></span>
-        </a>
+          <a href="{% url 'dashboard' %}">
+            <span class="clickable nav-link fa fa-user" style="background-color:#A1E8B9"></span>
+          </a>
         {% else %}
-        <span id="loginBtn2" class="clickable nav-link fa fa-user" style="background-color:#f0f0f0"></span>
+          <span id="loginBtn2" class="clickable nav-link fa fa-user" style="background-color:#f0f0f0"></span>
         {% endif %}
       </div>
       <div class="collapse navbar-collapse ml-auto" id="navbarSupportedContent">
@@ -126,10 +114,10 @@
             <ul class="sub-menu service">
               <li><a href="{% url 'charging_stations' %}">{% trans "Зарядні станції" %}</a></li>
               <li><a href="{% url 'price' %}">{% trans "Вартість автоматизованої системи" %}</a></li>
-              <!--              <li><a href="#">{% trans "Персональний водій" %}</a></li>-->
-              <!--              <li><a href="#">{% trans "Персональний водій для дитини" %}</a></li>-->
-              <!--              <li><a href="#">{% trans "Доставка" %}</a></li>-->
-              <!--              <li><a href="#">{% trans "Замовлення на певний час" %}</a></li>-->
+              {#              <li><a href="#">{% trans "Персональний водій" %}</a></li>#}
+              {#              <li><a href="#">{% trans "Персональний водій для дитини" %}</a></li>#}
+              {#              <li><a href="#">{% trans "Доставка" %}</a></li>#}
+              {#              <li><a href="#">{% trans "Замовлення на певний час" %}</a></li>#}
             </ul>
           </li>
           <li class="nav-item">
@@ -153,22 +141,22 @@
             <span class="nav-connect">{% trans "Приєднатися" %}</span>
             <ul class="social-icons">
               <li class="icon"><a href="https://www.instagram.com/ninjataxi.ua/"><i
-                class="fa-brands fa-instagram"></i></a></li>
+                  class="fa-brands fa-instagram"></i></a></li>
               <li class="icon"><a href="https://www.facebook.com/profile.php?id=61554407076136"><i
-                class="fa-brands fa-facebook"></i></a></li>
+                  class="fa-brands fa-facebook"></i></a></li>
               <li class="icon"><a href="https://www.tiktok.com/@ninja.taxi?_t=8gRmG4idFNl"><i
-                class="fa-brands fa-tiktok"></i></a></li>
+                  class="fa-brands fa-tiktok"></i></a></li>
               <li class="icon"><a href="https://www.linkedin.com/company/ninja-taxi/"><i
-                class="fa-brands fa-linkedin"></i></a></li>
+                  class="fa-brands fa-linkedin"></i></a></li>
             </ul>
           </li>
         </ul>
         {% if user.is_authenticated %}
-        <a href="{% url 'dashboard' %}">
-          <span class="clickable nav-link fa fa-user" style="background-color:#A1E8B9"></span>
-        </a>
+          <a href="{% url 'dashboard' %}">
+            <span class="clickable nav-link fa fa-user" style="background-color:#A1E8B9"></span>
+          </a>
         {% else %}
-        <span id="loginBtn" class="clickable nav-link fa fa-user" style="background-color:#f0f0f0"></span>
+          <span id="loginBtn" class="clickable nav-link fa fa-user" style="background-color:#f0f0f0"></span>
         {% endif %}
       </div>
       <div id="loginForm" class="login-form">
@@ -210,8 +198,10 @@
       </div>
       <div id="forgotPasswordForm" class="forgot-password-form" style="display: none;">
         <span class="close-btn">&times;</span>
-        <p>{% trans "Введіть електрону адресу, на яку ви реєструвалися, і ми надішлемо вам новий пароль для відновлення
-          аккаунту :" %}</p>
+        <p>
+          {% trans "Введіть електрону адресу, на яку ви реєструвалися, " %}
+          {% trans "і ми надішлемо вам новий пароль для відновленняаккаунту :" %}
+        </p>
         <form id="forgotPasswordFields">
           {% csrf_token %}
           <input type="email" id="forgotEmail" placeholder="{% trans 'Електронна адреса' %}">
@@ -221,8 +211,7 @@
       </div>
       <div id="resetPasswordForm" class="reset-password-form" style="display: none;">
         <span class="close-btn">&times;</span>
-        <p>{% trans "Введіть новий пароль, підтвердіть його та введіть код активації який ми надіслали вам на пошту:"
-          %}</p>
+        <p>{% trans "Введіть новий пароль, підтвердіть його та введіть код активації який ми надіслали вам на пошту:" %}</p>
         <form id="updatePasswordFields">
           {% csrf_token %}
           <input type="password" id="newPassword" placeholder="{% trans 'Новий пароль' %}">

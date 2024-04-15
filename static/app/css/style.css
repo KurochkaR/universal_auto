@@ -1669,8 +1669,11 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	line-height: normal;
 }
 
-.client-name {
+.client-name,
+.client-phone,
+.client-email {
 	margin-top: 5px;
+	position: relative;
 }
 
 .client-description {
@@ -3495,6 +3498,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 .auto-park-eleven-section .container .box-form form .client-info {
 	width: 100%;
 	margin-bottom: 25px;
+	position: relative;
 }
 
 .auto-park-eleven-section .container .box-form form div {
@@ -3625,13 +3629,24 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	color: black;
 }
 
-span.error-message,
-span.error-name {
+.contact-me-section span.error-message {
 	display: none;
 	color: red;
 	font-size: 15px;
 	float: left;
-	margin-left: 170px;
+	position: absolute;
+	left: 20px;
+	top: 50px;
+}
+
+.box-form span.error-message {
+	display: none;
+	color: red;
+	font-size: 15px;
+	float: left;
+	position: absolute;
+	left: 15px;
+	top: 105px;
 }
 
 /*///////////////*/
@@ -8177,3 +8192,19 @@ end Drivers page*/
 		margin-right: 5px;
 	}
 }
+
+
+/* hack binotel */
+
+/*#bingc-phone-button div.bingc-phone-button-tooltip {*/
+/*	border-radius: 25px;*/
+/*	background: #EC6323 !important;*/
+/*}*/
+
+/*#bingc-phone-button div.bingc-phone-button-tooltip svg.bingc-phone-button-arrow polyline {*/
+/*	fill: #EC6323 !important;*/
+/*}*/
+
+/*#bingc-phone-button .bingc-phone-button-circle circle.bingc-phone-button-circle-inside {*/
+/*	fill: #EC6323 !important;*/
+/*}*/

@@ -532,12 +532,39 @@ $(document).ready(function () {
 	});
 
 	$(this).on('click', '.subscribe-client', function (event) {
+		console.log('click');
 		event.preventDefault();
 		const form = $(this).closest('form');
-		const nameInput = form.find('#client-name').val();
-		const phoneInput = form.find('#client-phone').val();
-		const emailInput = form.find('#client-email').val();
+		const nameInput = form.find('#name').val();
+		const phoneInput = form.find('#phone').val();
+		const emailInput = form.find('#email').val();
 		const theme = $(this).text();
+
+
+		const fields = [
+			{input: nameInput, error: '.error-name'},
+			{input: phoneInput, error: '.error-phone'},
+			{input: emailInput, error: '.error-email'}
+		];
+
+		for (const field of fields) {
+			const input = field.input;
+			const errorBlock = form.find(field.error);
+
+			if (!input) {
+				errorBlock.text("Це поле обов'язкове");
+				errorBlock.show();
+				return;
+			} else {
+				errorBlock.hide();
+			}
+
+			if (field.error === '.error-phone' && input.length !== 13 && input.length !== 17) {
+				errorBlock.text("Введіть коректний номер телефону");
+				errorBlock.show();
+				return;
+			}
+		}
 
 		$.ajax(
 			{

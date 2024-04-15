@@ -260,16 +260,22 @@
       <div class="box-form">
         <form>
           <div class="client-info">
-            <label for="client-name">{% trans "Ім'я:" %}</label>
-            <input type="text" id="client-name" name="name" placeholder="Ваше ім’я" required>
+            <label for="name">{% trans "Ім'я:" %}</label>
+            <input type="text" id="name" name="name" placeholder="Ваше ім’я" required>
+            <span class="error-name error-message"
+                  style="color: red; display: none;">{% trans "Це поле обов'язкове" %}</span>
           </div>
           <div class="client-info">
-            <label for="client-phone">{% trans "Номер телефону:" %}</label>
-            <input type="tel" id="client-phone" name="phone" placeholder="(###) ### - ## - ##" required>
+            <label for="phone">{% trans "Номер телефону:" %}</label>
+            <input type="tel" id="phone" name="phone" placeholder="(###) ### - ## - ##" required>
+            <span class="error-phone error-message"
+                  style="color: red; display: none;">{% trans "Це поле обов'язкове" %}</span>
           </div>
           <div class="client-info">
-            <label for="client-email">{% trans "Email:" %}</label>
-            <input type="email" id="client-email" name="email" placeholder="Ваш email" required>
+            <label for="email">{% trans "Email:" %}</label>
+            <input type="email" id="email" name="email" placeholder="Ваш email" required>
+            <span class="error-email error-message"
+                  style="color: red; display: none;">{% trans "Це поле обов'язкове" %}</span>
           </div>
           <button class="subscribe-client" type="submit">{% trans "Надіслати" %}</button>
         </form>
