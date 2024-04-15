@@ -213,8 +213,6 @@ class UaGpsSynchronizer(Fleet):
                     report_to__date=start).order_by("-report_from").last()
                 if last_payment and last_payment.report_to > start:
                     start = timezone.localtime(last_payment.report_to)
-            if RentInformation.objects.filter(report_from__date=start, driver=driver) and len(drivers) != 1:
-                continue
             road_dict[driver] = self.get_driver_rent(start, end, driver)
         return road_dict
 

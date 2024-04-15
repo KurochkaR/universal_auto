@@ -376,7 +376,7 @@ def generate_summary_report(self, schemas, day=None):
 def get_car_efficiency(self, partner_pk, day=None):
     date = datetime.strptime(day, "%Y-%m-%d") if day else timezone.localtime()
     start = timezone.make_aware(datetime.combine(date - timedelta(days=1), time.min))
-    end = timezone.make_aware(datetime.combine(start, time.max))
+    end = timezone.make_aware(datetime.combine(start, time.max.replace(microsecond=0)))
     for vehicle in Vehicle.objects.get_active(partner=partner_pk, gps__isnull=False).select_related('gps'):
         efficiency = CarEfficiency.objects.filter(report_from=start,
                                                   partner=partner_pk,
@@ -1122,7 +1122,7 @@ def calculate_driver_reports(self, schemas, day=None):
             compensations=Coalesce(Sum('compensations'), 0, output_field=DecimalField()),
         )
         if driver.schema.is_weekly():
-            if today.weekday():
+            if not today.weekday():
                 start = start_week
                 end = end_week
                 bonus = bolt_weekly['bonuses']
@@ -1319,9 +1319,33 @@ def calculate_vehicle_spending(self, payment_pk):
 @app.task(bind=True)
 def calculate_failed_earnings(self, payment_pk):
     payment = DriverPayments.objects.get(pk=payment_pk)
-    vehicle_income = get_failed_income(payment)
-    total_income = 0
-    vehicles = len(vehicle_income)
+    vehicle_income, total_income = get_failed_income(payment)
+    charging_penalties = Penalty.objects.filter(driver_payments=payment, category__title="Зарядка")
+    charging = charging_penalties.aggregate(total_amount=Coalesce(Sum('amount'), Decimal(0)))['total_amount']
+    earning_exclude_charging = abs(payment.earning) - charging
+
+    if earning_exclude_charging > 0:
+        for vehicle, income in vehicle_income.items():
+            debt = Decimal(round((income / total_income) * abs(earning_exclude_charging), 2))
+
+            format_start = payment.report_from.strftime("%d.%m")
+            format_end = payment.report_to.strftime("%d.%m")
+            description = f"Борг з {format_start} по {format_end}"
+            category, _ = PenaltyCategory.objects.get_or_create(title="Борг по виплаті")
+            Penalty.objects.create(vehicle_id=vehicle, driver=payment.driver,
+                                   amount=debt, description=description,
+                                   category=category)
+            charging_penalties.update(driver_payments=None, description=description)
+    else:
+        for vehicle, income in vehicle_income.items():
+            vehicle_income[vehicle] -= Decimal(round((income / total_income) * (charging - abs(payment.earning)), 2))
+        charge_vehicles = charging_penalties.values('vehicle').annotate(total_amount=Sum('amount'))
+        for item in charge_vehicles:
+            charge_amount = (item['total_amount'] / charging) * abs(payment.earning)
+            category, _ = Category.objects.get_or_create(title="Зарядка")
+            Penalty.objects.create(vehicle_id=item['vehicle'], driver=payment.driver,
+                                   amount=charge_amount,
+                                   category_id=category.pk)
     for vehicle, income in vehicle_income.items():
         PartnerEarnings.objects.update_or_create(
             report_from=payment.report_from,
@@ -1334,31 +1358,6 @@ def calculate_failed_earnings(self, payment_pk):
                 "earning": income,
             }
         )
-        total_income += income
-    charging_penalties = Penalty.objects.filter(driver_payments=payment, category__title="Зарядка")
-    charging = charging_penalties.aggregate(total_amount=Coalesce(Sum('amount'), Decimal(0)))['total_amount']
-    earning_exclude_charging = abs(payment.earning) - charging
-    if earning_exclude_charging > 0:
-        for vehicle, income in vehicle_income.items():
-            if total_income:
-                debt = Decimal(round((income / total_income) * abs(earning_exclude_charging), 2))
-            else:
-                debt = Decimal(round(abs(earning_exclude_charging) / vehicles, 2))
-            format_start = payment.report_from.strftime("%d.%m")
-            format_end = payment.report_to.strftime("%d.%m")
-            description = f"Борг з {format_start} по {format_end}"
-            category, _ = PenaltyCategory.objects.get_or_create(title="Борг по виплаті")
-            Penalty.objects.create(vehicle_id=vehicle, driver=payment.driver,
-                                   amount=debt, description=description,
-                                   category=category)
-            charging_penalties.update(driver_payments=None, description=description)
-    else:
-        charge_vehicles = charging_penalties.values('vehicle').annotate('amount')
-        for vehicle, amount in charge_vehicles.items():
-            charge_amount = (amount / charging) * earning_exclude_charging
-            Penalty.objects.create(vehicle_id=vehicle, driver=payment.driver,
-                                   amount=charge_amount,
-                                   category__title="Зарядка")
 
 
 @app.task(bind=True)

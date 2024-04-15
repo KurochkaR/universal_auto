@@ -184,14 +184,13 @@ def polymorphic_efficiency_create(create_model, partner_pk, driver, start, end, 
         'accept_percent': (total_orders - canceled_orders) / total_orders * 100 if total_orders else 0,
         'partner_id': partner_pk,
     }
-    if create_model == DriverEfficiency:
+    if road_mileage:
         rent_mileage = mileage - road_mileage[driver][0] if road_mileage.get(driver) else 0
         data['rent_distance'] = rent_mileage
     result, created = create_model.objects.update_or_create(
         **search_query,
         defaults=data)
-    if created:
-        result.vehicles.add(*vehicles)
+    result.vehicles.add(*vehicles)
 
 
 def calendar_weekly_report(partner_pk, start_date, end_date, format_start, format_end):

@@ -95,8 +95,8 @@ def add_bonus_earnings(start_week, end_week, driver, bolt_weekly):
                                               defaults={
                                                   "status": PaymentsStatus.COMPLETED,
                                                   "earning": vehicle_amount})
-        bolt_category = Category.objects.get_or_create(title="Бонуси Bolt")
-        Bonus.objects.create(driver=driver, vehicle=car, amount=amount, category=bolt_category)
+        bolt_category, _ = Category.objects.get_or_create(title="Бонуси Bolt")
+        Bonus.objects.create(driver=driver, vehicle=car, amount=amount, category_id=bolt_category.id)
 
 
 def create_driver_payments(start, end, driver, schema, bonuses=None, driver_report=None, delete=None):
@@ -504,7 +504,9 @@ def calculate_efficiency_driver(driver, start, end):
         efficiency_avg = 0 if annotated_efficiency['total_distance'] == 0 else (
                 annotated_efficiency['total_eff_kasa'] / annotated_efficiency['total_distance']
         )
-        vehicles = list(efficiency_objects.values_list('vehicles__licence_plate', flat=True).distinct())
+        print(efficiency_objects)
+        print(efficiency_objects.values_list('vehicles__licence_plate', flat=True).distinct())
+        vehicles = list(efficiency_objects.exclude(vehicles__isnull=True).values_list('vehicles__licence_plate', flat=True).distinct())
 
         annotated_efficiency['accept_eff_percent'] = '{:.2f}'.format(accept_eff_percent)
         annotated_efficiency['avg_price'] = '{:.2f}'.format(avg_price)
@@ -663,6 +665,7 @@ def calculate_income_partner(driver, start, end, spending_rate, rent, driver_ren
 
 def get_failed_income(payment):
     vehicle_income = {}
+    total_earning = 0
     start = timezone.localtime(payment.report_from)
     end = timezone.localtime(payment.report_to)
     bolt_fleet = Fleet.objects.get(name="Bolt", partner=payment.partner)
@@ -712,6 +715,7 @@ def get_failed_income(payment):
                 vehicle_income[vehicle] = total_income
             else:
                 vehicle_income[vehicle] += total_income
+            total_earning += total_income
         if orders_total_cash != bolt_day_cash and reshuffles:
             quantity_reshuffles = reshuffles.values_list('swap_vehicle').distinct().count()
             cash_discount += orders_total_cash - bolt_day_cash
@@ -719,6 +723,7 @@ def get_failed_income(payment):
             vehicle_card_bonus = Decimal(cash_discount / quantity_reshuffles)
             for key, value in vehicle_income.items():
                 vehicle_income[key] += vehicle_card_bonus
+                total_earning += vehicle_card_bonus
         start += timedelta(days=1)
     if driver_kasa < payment.kasa and driver_reshuffles:
         quantity = driver_reshuffles.values_list('swap_vehicle').distinct().count()
@@ -726,7 +731,8 @@ def get_failed_income(payment):
         vehicle_card_bonus = Decimal(cash_discount / quantity)
         for key, value in vehicle_income.items():
             vehicle_income[key] += vehicle_card_bonus
-    return vehicle_income
+            total_earning += vehicle_card_bonus
+    return vehicle_income, total_earning
 
 
 def get_today_statistic(start, end, driver):
