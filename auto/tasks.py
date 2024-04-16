@@ -27,12 +27,12 @@ from django.db.models.functions import Cast, Coalesce
 from app.utils import get_schedule, create_task
 from auto.utils import payment_24hours_create, summary_report_create, compare_reports, get_corrections, \
     get_currency_rate, polymorphic_efficiency_create, calendar_weekly_report, create_share_investor_earn, \
-    create_proportional_investor_earn
+    create_proportional_investor_earn, create_investor_payments
 from auto_bot.handlers.driver.keyboards import inline_bolt_report_keyboard
 from auto_bot.handlers.driver_manager.utils import get_daily_report, get_efficiency, generate_message_report, \
     get_driver_efficiency_report, calculate_rent, get_vehicle_income, get_time_for_task, \
     create_driver_payments, calculate_income_partner, get_failed_income, find_reshuffle_period, get_today_statistic, \
-    calculate_bolt_kasa, send_notify_to_check_car, add_bonus_earnings
+    calculate_bolt_kasa, send_notify_to_check_car, add_bonus_earnings, get_start_week_time
 from auto_bot.handlers.order.keyboards import inline_markup_accept, inline_search_kb, inline_client_spot, \
     inline_spot_keyboard, inline_second_payment_kb, inline_reject_order, personal_order_end_kb, \
     personal_driver_end_kb
@@ -181,12 +181,11 @@ def get_today_orders(self, partner_pk, day=None):
 
 @app.task(bind=True)
 def null_vehicle_orders(self, partner_pk, day=None):
-    end = timezone.make_aware(datetime.strptime(day, "%Y-%m-%d")) if day else timezone.localtime()
-    start = end - timedelta(days=1)
+    start, end = get_start_end('today', day)[:2]
     active_drivers = Driver.objects.get_active(partner=partner_pk)
     filter_query = Q(partner=partner_pk, vehicle__isnull=True,
                      state__in=[FleetOrder.COMPLETED, FleetOrder.CLIENT_CANCEL, FleetOrder.SYSTEM_CANCEL],
-                     date_order__range=(start, end),
+                     date_order__range=(start - timedelta(hours=end.hour), end),
                      driver__in=active_drivers)
     orders = FleetOrder.objects.filter(filter_query)
     for order in orders:
@@ -199,11 +198,10 @@ def null_vehicle_orders(self, partner_pk, day=None):
 @app.task(bind=True, retry_backoff=30, max_retries=3)
 def add_distance_for_order(self, partner_pk, day=None, driver=None):
     gps_query = UaGpsSynchronizer.objects.filter(partner=partner_pk)
-    end = timezone.make_aware(datetime.strptime(day, "%Y-%m-%d")) if day else timezone.localtime()
-    start = end - timedelta(days=1)
+    start, end = get_start_end('today', day)[:2]
     filter_query = Q(partner=partner_pk, vehicle__isnull=False,
                      state=FleetOrder.COMPLETED, distance__isnull=True, finish_time__isnull=False,
-                     vehicle__gps__isnull=False, date_order__range=(start, end))
+                     vehicle__gps__isnull=False, date_order__range=(start- timedelta(hours=end.hour), end))
 
     if gps_query.exists():
         if driver:
@@ -308,9 +306,7 @@ def download_nightly_report(self, partner_pk, day=None):
 @app.task(bind=True, retry_backoff=30, max_retries=4)
 def download_weekly_report(self, partner_pk):
     try:
-        today = datetime.combine(timezone.localtime(), time.max.replace(microsecond=0))
-        end = timezone.make_aware(today - timedelta(days=today.weekday() + 1))
-        start = timezone.make_aware(datetime.combine(end - timedelta(days=6), time.min))
+        start, end = get_start_end('last_week')[:2]
         fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name='Gps')
         for fleet in fleets:
             driver_ids = Driver.objects.get_active(fleetsdriversvehiclesrate__fleet=fleet).values_list(
@@ -374,9 +370,7 @@ def generate_summary_report(self, schemas, day=None):
 
 @app.task(bind=True)
 def get_car_efficiency(self, partner_pk, day=None):
-    date = datetime.strptime(day, "%Y-%m-%d") if day else timezone.localtime()
-    start = timezone.make_aware(datetime.combine(date - timedelta(days=1), time.min))
-    end = timezone.make_aware(datetime.combine(start, time.max.replace(microsecond=0)))
+    start, end = get_start_end("yesterday", day)[:2]
     if Fleet.objects.filter(partner=partner_pk, deleted_at=None, name="Gps").exists():
         for vehicle in Vehicle.objects.get_active(partner=partner_pk, gps__isnull=False).select_related('gps'):
             efficiency = CarEfficiency.objects.filter(report_from=start,
@@ -386,7 +380,6 @@ def get_car_efficiency(self, partner_pk, day=None):
                 continue
             if vehicle.branding:
                 orders_count = FleetOrder.objects.filter(
-                    vehicle__branding__name=vehicle.branding.name,
                     date_order__range=(start, end),
                     vehicle=vehicle, state=FleetOrder.COMPLETED).count()
             else:
@@ -394,7 +387,8 @@ def get_car_efficiency(self, partner_pk, day=None):
 
             vehicle_drivers = {}
             total_spending = VehicleSpending.objects.filter(
-                vehicle=vehicle, created_at__range=(start, end)).aggregate(Sum('amount'))['amount__sum'] or 0
+                vehicle=vehicle, created_at__range=(start, end)).aggregate(
+                spending=Coalesce(Sum('amount'), Decimal(0)))['spending']
             drivers = DriverReshuffle.objects.filter(end_time__lte=end,
                                                      swap_time__gte=start,
                                                      swap_vehicle=vehicle,
@@ -441,9 +435,7 @@ def get_car_efficiency(self, partner_pk, day=None):
 
 @app.task(bind=True)
 def get_driver_efficiency(self, partner_pk, day=None):
-    date = datetime.strptime(day, "%Y-%m-%d") if day else timezone.localtime()
-    start = timezone.make_aware(datetime.combine(date - timedelta(days=1), time.min))
-    end = timezone.make_aware(datetime.combine(start, time.max))
+    start, end = get_start_end("yesterday", day)[:2]
     if Fleet.objects.filter(partner=partner_pk, deleted_at=None, name="Gps").exists():
         road_mileage = UaGpsSynchronizer.objects.get(
             partner=partner_pk).get_road_distance(start, end, payment=True)
@@ -454,9 +446,7 @@ def get_driver_efficiency(self, partner_pk, day=None):
 
 @app.task(bind=True)
 def get_driver_efficiency_fleet(self, partner_pk, day=None):
-    date = datetime.strptime(day, "%Y-%m-%d") if day else timezone.localtime()
-    start = timezone.make_aware(datetime.combine(date - timedelta(days=1), time.min))
-    end = timezone.make_aware(datetime.combine(start, time.max))
+    start, end = get_start_end("yesterday", day)[:2]
     if Fleet.objects.filter(partner=partner_pk, deleted_at=None, name="Gps").exists():
         for driver in Driver.objects.get_active(partner=partner_pk):
             fleets = Fleet.objects.filter(
@@ -796,17 +786,17 @@ def check_personal_orders(self):
 
 
 @app.task(bind=True)
-def add_money_to_vehicle(self, partner_pk):
-    today = timezone.localtime()
-    end = timezone.make_aware(datetime.combine(today - timedelta(days=today.weekday() + 1), time.max))
-    start = timezone.make_aware(datetime.combine(end - timedelta(days=6), time.min))
-    investors = Investor.objects.filter(investors_partner=partner_pk)
-    share_vehicles = Vehicle.filter_by_investor_share_schema(investors)
-    if share_vehicles.exists():
-        create_share_investor_earn(start, end, share_vehicles, partner_pk)
-    proportional_vehicles = Vehicle.filter_by_proportional_schema(investors)
-    if proportional_vehicles.exists():
-        create_proportional_investor_earn(start, end, proportional_vehicles, partner_pk)
+def add_money_to_vehicle_weekly(self, partner_pk):
+    start, end = get_start_end('last_week')[:2]
+    investors = Investor.filter_by_weekly_payment(partner_pk)
+    create_investor_payments(start, end, partner_pk, investors)
+
+
+@app.task(bind=True)
+def add_money_to_vehicle_monthly(self, partner_pk):
+    start, end = get_start_end('last_month')[:2]
+    investors = Investor.filter_by_monthly_payment(partner_pk)
+    create_investor_payments(start, end, partner_pk, investors)
 
 
 @app.task(bind=True, queue='beat_tasks')
@@ -1028,7 +1018,7 @@ def get_distance_trip(self, order, start_trip_with_client, end, gps_id):
 def get_calendar_weekly_report(self, partner_pk):
     start, end, format_start, format_end = get_start_end('last_week')
     message = calendar_weekly_report(partner_pk, start, end, format_start, format_end)
-    bot.send_message(chat_id=ParkSettings.get_value('DEVELOPER_CHAT_ID'), text=message)
+    bot.send_message(chat_id=ParkSettings.get_value('DRIVERS_CHAT'), text=message)
 
 
 # @app.task(bind=True, max_retries=10, queue='beat_tasks')
@@ -1115,10 +1105,8 @@ def save_report_to_ninja_payment(start, end, partner_pk, schema, fleet_name='Nin
 
 @app.task(bind=True)
 def calculate_driver_reports(self, schemas, day=None):
-    today = timezone.make_aware(datetime.combine(timezone.localtime(), time.max))
-    end_week = timezone.make_aware(datetime.combine(today - timedelta(days=today.weekday() + 1),
-                                                    time.max.replace(microsecond=0)))
-    start_week = timezone.make_aware(datetime.combine(end_week - timedelta(days=6), time.min))
+    today = timezone.localtime()
+    start_week, end_week = get_start_end('last_week')[:2]
     driver_list = []
     for driver in Driver.objects.get_active(schema__in=schemas):
         bolt_weekly = WeeklyReport.objects.filter(report_from=start_week, report_to=end_week,
@@ -1179,8 +1167,7 @@ def add_screen_to_payment(self, filename, driver_pk):
 def create_daily_payment(self, **kwargs):
     if kwargs.get("driver_pk"):
         driver = Driver.objects.get(pk=kwargs.get("driver_pk"))
-        start = timezone.make_aware(datetime.combine(timezone.localtime(), time.min))
-        end = timezone.localtime()
+        start, end = get_start_end('today')[:2]
     else:
         payment = DriverPayments.objects.get(pk=kwargs.get("payment_id"))
         driver = payment.driver
@@ -1269,42 +1256,6 @@ def calculate_vehicle_earnings(self, payment_pk):
                 "earning": earning,
             }
         )
-    # bonus_dict = Penalty.objects.filter(
-    #     driver_payments=payment).exclude(vehicle__in=vehicles_income.keys()).values('vehicle').aggregate(
-    #         total_amount=Coalesce(Sum('amount'), Decimal(0)))
-    # bonus_without_income = {entry['vehicle']: entry['total_amount'] for entry in bonus_dict}
-    # penalty_dict = Penalty.objects.filter(
-    #     driver_payments=payment).exclude(vehicle__in=vehicles_income.keys()).values('vehicle').aggregate(
-    #     total_amount=Coalesce(Sum('amount'), Decimal(0)))
-    # penalty_without_income = {entry['vehicle']: entry['total_amount'] for entry in penalty_dict}
-    # net_amount_per_vehicle = {}
-    # for vehicle_id, bonus_entry in bonus_without_income.items():
-    #     total_bonus_amount = bonus_entry['total_amount']
-    #     total_penalty_amount = 0
-    #
-    #     if vehicle_id in penalty_without_income:
-    #         total_penalty_amount = penalty_without_income[vehicle_id]['total_amount']
-    #
-    #     net_amount = total_bonus_amount - total_penalty_amount
-    #     net_amount_per_vehicle[vehicle_id] = net_amount
-    #
-    # for vehicle_id, penalty_entry in penalty_without_income.items():
-    #     if vehicle_id not in net_amount_per_vehicle:
-    #         total_penalty_amount = penalty_entry['total_amount']
-    #         net_amount_per_vehicle[vehicle_id] = -total_penalty_amount
-    #
-    # for vehicle, income in net_amount_per_vehicle.items():
-    #     PartnerEarnings.objects.get_or_create(
-    #         report_from=payment.report_from,
-    #         report_to=payment.report_to,
-    #         vehicle_id=vehicle,
-    #         driver=driver,
-    #         partner=driver.partner,
-    #         defaults={
-    #             "status": PaymentsStatus.COMPLETED,
-    #             "earning": income,
-    #         }
-    #     )
 
 
 @app.task(bind=True)

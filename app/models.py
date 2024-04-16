@@ -32,6 +32,7 @@ class SoftDeleteManager(models.Manager):
 class InvestorSchema(models.TextChoices):
     Equal_share = 'Equal_share', 'Рівномірна',
     Proportional = 'Proportional', 'Пропорційна',
+    Rental = 'Rental', 'Оренда'
 
 
 class Role(models.TextChoices):
@@ -70,8 +71,9 @@ class CustomUser(AbstractUser):
 
 
 class SalaryCalculation(models.TextChoices):
-    WEEK = 'WEEK', 'Тижневий'
-    DAY = 'DAY', 'Денний'
+    MONTH = 'MONTH', 'Місяць'
+    WEEK = 'WEEK', 'Тиждень'
+    DAY = 'DAY', 'День'
 
 
 class ShiftTypes(models.TextChoices):
@@ -277,7 +279,19 @@ class Manager(CustomUser):
 
 
 class Investor(CustomUser):
+    payment_type = models.CharField(max_length=25, choices=SalaryCalculation.choices,
+                                          default=SalaryCalculation.WEEK, verbose_name='Періодичність платежів')
     investors_partner = models.ForeignKey(Partner, null=True, on_delete=models.CASCADE, verbose_name='Партнер')
+
+    @classmethod
+    def filter_by_weekly_payment(cls, partner):
+        return cls.objects.filter(payment_type=SalaryCalculation.WEEK, investors_partner=partner)
+
+    @classmethod
+    def filter_by_monthly_payment(cls, partner):
+        return cls.objects.filter(payment_type=SalaryCalculation.MONTH, investors_partner=partner)
+
+
 
     class Meta:
         verbose_name = 'Інвестора'
@@ -369,8 +383,12 @@ class Vehicle(models.Model):
         return cls.objects.filter(investor_car__in=investors, investor_schema=InvestorSchema.Proportional)
 
     @classmethod
-    def filter_by_investor_share_schema(cls, investors):
+    def filter_by_share_schema(cls, investors):
         return cls.objects.filter(investor_car__in=investors, investor_schema=InvestorSchema.Equal_share)
+
+    @classmethod
+    def filter_by_rental_schema(cls, investors):
+        return cls.objects.filter(investor_car__in=investors, investor_schema=InvestorSchema.Rental)
 
 
 class DeletedVehicle(Vehicle):
