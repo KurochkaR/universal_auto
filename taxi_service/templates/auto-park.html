@@ -14,14 +14,14 @@
         <div class="decorate-img">
           <img src="{% static 'app/images/index-one-block-3.webp' %}" alt="three image">
           <div class="one-info">
-            <h2>{% trans "Переверніть свій автопарк на 360 градусів" %}</h2>
+            <h2>{% trans "переверніть свій автопарк на 180 градусів" %}</h2>
             <p class="text-1">
-              {% trans "Автоматизована система від Ninja Taxi- це ключ до ефективності, яка переверне ваш бізнес!" %}
+              {% trans "Збільшуйте прибуток свого таксопарку з автоматизованою системою від NINJA TAXI, мінімізуючи витрати та ризики" %}
             </p>
           </div>
         </div>
         <div class="free-access-btn" id="open-form">
-          <button class="free-access-button">{% trans "Отримати безкоштовний доступ на місяць " %}</button>
+          <button class="free-access-button">{% trans "Отримати пробну версію" %}</button>
         </div>
       </div>
     </div>
@@ -32,19 +32,22 @@
   <!-- auto park two section -->
 
   <section class="auto-park-two-section">
-    <div class="container">
-      <div class="detail-box">
-        <p class="description-section">
-          {% trans "Приймайте рішення на основі даних, які виведуть ваш автопарк на новий рівень разом з Ninja Taxi" %}
-        </p>
-        <div class="contact-us">
-          <a href="#">
-            <button class="connect-button">{% trans "Зв’язатися з нами" %}</button>
-          </a>
-        </div>
-      </div>
+    <div class="container-park">
       <div class="img-box">
-        <img src="{% static 'app/images/auto-park-img/park-block-2.webp' %}" alt="" loading="lazy">
+        <img src="{% static 'app/images/auto-park-img/park-block-2-1.png' %}" alt="" loading="lazy">
+        <img src="{% static 'app/images/auto-park-img/park-block-2-2.png' %}" alt="" loading="lazy">
+        <img src="{% static 'app/images/auto-park-img/park-block-2-3.png' %}" alt="" loading="lazy">
+      </div>
+    </div>
+    <div class="detail-box">
+      <p class="description-section">
+        {% trans "Розширюйте свій таксопарк та розвивайте його за допомогою NINJA TAXI." %}
+      </p>
+      <div class="contact-us">
+        <button class="free-access-button">{% trans "Пробна версія" %}</button>
+        <a href="{% url 'price' %}">
+          <button class="get-price-button">{% trans "Дізнатися вартість" %}</button>
+        </a>
       </div>
     </div>
   </section>
@@ -55,27 +58,18 @@
 
   <section class="auto-park-three-section">
     <div class="container">
-      <div class="img-box">
-        <img class="img-1" src="{% static 'app/images/auto-park-img/park-block-3-1.webp' %}" alt="" loading="lazy">
-        <img class="img-2" src="{% static 'app/images/auto-park-img/park-block-3-2.webp' %}" alt="" loading="lazy">
+      <div class="box-img">
+        <img src="{% static 'app/images/auto-park-img/park-block-3.png' %}" alt="" loading="lazy">
       </div>
-      <div class="analytics-box">
-        <div>
-          <h2>{% trans "Функція аналітика" %}</h2>
-          <ul>
-            <li>{% trans "Ціна кілометру" %}</li>
-            <li>{% trans "Каса" %}</li>
-            <li>{% trans "Кількість поїздок" %}</li>
-            <li>{% trans "% прийнятих замовлень" %}</li>
-            <li>{% trans "Час на лінії і т.д." %}</li>
-          </ul>
-        </div>
-        <div class="buttons-box">
-          <a href="{% url 'price' %}">
-            <button class="get-price-button">{% trans "Дізнатися вартість" %}</button>
-          </a>
-          <button type="submit" class="consult-button">{% trans "Проконсультуватися" %}</button>
-        </div>
+      <div class="description">
+        <h2>{% trans "Інформаційна панель" %}</h2>
+        <p>
+          {% trans "Інформаційна панель об'єднує звітність з усіх агрегаторів в одному місці. " %}
+          {% trans "Власник автопарку зможе відслідковувати витрати на автомобілі та водіїв, " %}
+          {% trans "чистий прибуток автопарку, пробіг  і середню ефективність авто." %}</p>
+        <a href="{% url 'price' %}">
+          <button class="get-price-button">{% trans "Дізнатися вартість" %}</button>
+        </a>
       </div>
     </div>
   </section>
@@ -86,21 +80,17 @@
 
   <section class="auto-park-four-section">
     <div class="container">
-      <div class="spending-box">
-        <div class="spending-description">
-          <h2>{% trans "Всі витрати по автомобілю відразу в Дашборді" %}</h2>
-          <p>{% trans "ТО, ремонти, ДТП, страховки. Таким чином Ви завжди бачите прибуток свого автопарку" %}</p>
-        </div>
-        <div class="buttons-box">
-          <a href="{% url 'price' %}">
-            <button class="get-price-button">{% trans "Дізнатися вартість" %}</button>
-          </a>
-          <button class="free-access-button">{% trans "Отримати безкоштовний доступ" %}</button>
-        </div>
+      <div class="description">
+        <h2>{% trans "Дохідність водіїв" %}</h2>
+        <p>
+          {% trans "Дохідність водіїв дозволяє переглядати загальну суму заробітку водія за день " %}
+          {% trans "або будь-який інший період в усіх агрегаторах, а також окремо відображає, " %}
+          {% trans "скільки заробив водій готівкою та на карту." %}
+        </p>
+        <button class="free-access-button">{% trans "Співпрацювати" %}</button>
       </div>
-      <div class="img-box">
-        <img class="img-1" src="{% static 'app/images/auto-park-img/park-block-4-1.webp' %}" alt="" loading="lazy">
-        <img class="img-2" src="{% static 'app/images/auto-park-img/park-block-4-2.webp' %}" alt="" loading="lazy">
+      <div class="box-img">
+        <img src="{% static 'app/images/auto-park-img/park-block-4.png' %}" alt="" loading="lazy">
       </div>
     </div>
   </section>
@@ -111,23 +101,20 @@
 
   <section class="auto-park-five-section">
     <div class="container">
-      <div class="img-box">
-        <img class="img-1" src="{% static 'app/images/auto-park-img/park-block-5.webp' %}" alt="" loading="lazy">
-        <img class="image-2" src="{% static 'app/images/auto-park-img/park-block-4-2.webp' %}" alt="" loading="lazy">
+      <div class="box-img">
+        <img src="{% static 'app/images/auto-park-img/park-block-5.png' %}" alt="" loading="lazy">
       </div>
-      <div class="control-box">
-        <div>
-          <h2>{% trans "Функція контролю гаманця водія " %}</h2>
-          <ul>
-            <li>{% trans "Автозняття грошей з гаманців водіїв" %}</li>
-            <li>{% trans "Обмеження на готівку під час роботи водієві" %}</li>
-          </ul>
-        </div>
-        <div class="buttons-box">
+      <div class="description">
+        <h2>{% trans "Ефективність Автомобіля" %}</h2>
+        <p>
+          {% trans "Ефективність автомобіля відображає витрати, загальний чистий заробіток авто " %}
+          {% trans "за певний період, його окупаємість та загальну вартість." %}
+        </p>
+        <div class="contact-us">
+          <button class="free-access-button">{% trans "Пробна версія" %}</button>
           <a href="{% url 'price' %}">
             <button class="get-price-button">{% trans "Дізнатися вартість" %}</button>
           </a>
-          <button type="submit" class="consult-button">{% trans "Проконсультуватися" %}</button>
         </div>
       </div>
     </div>
@@ -138,12 +125,20 @@
   <!-- auto park six section -->
   <section class="auto-park-six-section">
     <div class="container">
-      <div class="description">
-        <p>{% trans "Співпраця з нами = Скорочення часу на адміністративну роботу у 2 рази" %}</p>
-        <button>{% trans "Подивитись презентацію" %}</button>
-      </div>
       <div class="box-img">
-        <img src="{% static 'app/images/auto-park-img/park-block-6-1.png' %}" alt="" loading="lazy">
+        <img src="{% static 'app/images/auto-park-img/park-block-6.png' %}" alt="" loading="lazy">
+      </div>
+      <div class="description">
+        <h2>{% trans "Контроль готівки" %}</h2>
+        <p>
+          {% trans "Функція контролю готівки водія в автопарку забезпечує нагляд за гаманцем водія " %}
+          {% trans "та запобігає накопиченню боргів перед автопарком. " %}
+          {% trans "Власник автопарку має можливість самостійно встановлювати відсоток відключення готівки. " %}
+          {% trans "Таким чином, ваш прибуток знаходиться під контролем." %}
+        </p>
+        <a href="{% url 'price' %}">
+          <button class="get-price-button">{% trans "Дізнатися вартість" %}</button>
+        </a>
       </div>
     </div>
   </section>
@@ -152,8 +147,146 @@
 
   <!-- auto park seven section -->
 
-  {% include '_blog_box.html' %}
-  {% include '_free-access-form.html' %}
+  <section class="auto-park-seven-section">
+    <div class="container">
+      <div class="box-img">
+        <img src="{% static 'app/images/auto-park-img/park-block-7-1.png' %}" alt="" loading="lazy">
+      </div>
+      <div class="description">
+        <h2>{% trans "Бонуси / штрафи " %}</h2>
+        <p>
+          {% trans "Ефективний облік штрафів та бонусів для кожного водія окремо забезпечить " %}
+          {% trans "більшу прозорість та контроль над цими виплатами, " %}
+          {% trans "що сприятиме поліпшенню управління флотом та спростить процеси виплат заробітної плати." %}
+        </p>
+        <button class="free-access-button">{% trans "Отримати пробну версію" %}</button>
+      </div>
+      <div class="box-img">
+        <img src="{% static 'app/images/auto-park-img/park-block-7-2.png' %}" alt="" loading="lazy">
+      </div>
+    </div>
+  </section>
+
+  <!-- end auto park seven section -->
+
+  <!-- auto park eight section -->
+
+  <section class="auto-park-eight-section">
+    <div class="container">
+      <div class="box-img">
+        <img src="{% static 'app/images/auto-park-img/park-block-8.png' %}" alt="" loading="lazy">
+      </div>
+      <div class="description">
+        <h2>{% trans "Ефективність водіїв" %}</h2>
+        <p>
+          {% trans "В дашборді ефективності водіїв власники та менеджери автопарків матимуть можливість " %}
+          {% trans "переглядати загальну активність в усіх агрегаторах, а також окремо в кожному з них." %}
+        </p>
+        <button class="free-access-button">{% trans "Співпрацювати" %}</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- end auto park eight section -->
+
+  <!-- auto park nine section -->
+
+  <section class="auto-park-nine-section">
+    <div class="container">
+      <div class="description">
+        <h2>{% trans "Автоматичний розрахунок водія" %}</h2>
+        <p>
+          {% trans "Менеджери та власники автопарків зможуть заощаджувати час, оскільки розрахунок " %}
+          {% trans "заробітної плати водіїв  автоматизований, а виплати водіям  швидкі та прозорі." %}
+        </p>
+        <button class="free-access-button">{% trans "Отримати пробну версію" %}</button>
+      </div>
+      <div class="box-img">
+        <img src="{% static 'app/images/auto-park-img/park-block-9.png' %}" alt="" loading="lazy">
+      </div>
+    </div>
+  </section>
+
+  <!-- end auto park nine section -->
+
+  <!-- auto park ten section -->
+
+  <section class="auto-park-ten-section">
+    <div class="container">
+      <div class="box-img">
+        <img src="{% static 'app/images/auto-park-img/park-block-10.png' %}" alt="" loading="lazy">
+      </div>
+      <div class="description">
+        <h2>{% trans "Розклад водіїв" %}</h2>
+        <p>
+          {% trans "Розклад водіїв дозволяє записувати усі робочі дні водіїв та автоматично їх повторювати " %}
+          {% trans "для кожного з них. Це сприяє правильному розрахунку заробітної плати та холостого пробігу водіїв." %}
+        </p>
+        <a href="{% url 'price' %}">
+          <button class="get-price-button">{% trans "Дізнатися вартість" %}</button>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- end auto park ten section -->
+
+  <!-- auto park eleven section -->
+
+  <section class="auto-park-eleven-section">
+    <div class="container">
+      <div class="description">
+        <h2>{% trans "Збільшити прибуток автопарку" %}</h2>
+        <p>
+          {% trans "Зв'яжіться з нами, якщо у вас виникли запитання, або заповніть форму " %}
+          {% trans "і очікуйте контакту з нашим менеджером." %}
+        </p>
+        <h3>{% trans "Часи роботи" %}</h3>
+        <p>{% trans "з 09.00 до 18.00" %}</p>
+        <h3>{% trans "МЕНЕДЖЕР ПО РОБОТІ З КЛІЄНТАМИ" %}</h3>
+        <p>+380937531057</p>
+        <h3>{% trans "СОЦМЕРЕЖІ" %}</h3>
+        <div class="icon-social-network">
+          <a href="https://www.instagram.com/ninjataxi.ua/" aria-label="instagram"><i
+              class="fa-brands fa-instagram"></i></a>
+          <a href="https://www.facebook.com/profile.php?id=61554407076136" aria-label="facebook"><i
+              class="fa-brands fa-facebook"></i></a>
+          <a href="https://www.tiktok.com/@ninja.taxi?_t=8gRmG4idFNl" aria-label="tiktok"><i
+              class="fa-brands fa-tiktok"></i></a>
+          <a href="https://www.linkedin.com/company/ninja-taxi/" aria-label="linkedin"><i
+              class="fa-brands fa-linkedin"></i></a>
+        </div>
+      </div>
+      <div class="box-form">
+        <form>
+          <div class="client-info">
+            <label for="name">{% trans "Ім'я:" %}</label>
+            <input type="text" id="name" name="name" placeholder="Ваше ім’я" required>
+            <span class="error-name error-message"
+                  style="color: red; display: none;">{% trans "Це поле обов'язкове" %}</span>
+          </div>
+          <div class="client-info">
+            <label for="phone">{% trans "Номер телефону:" %}</label>
+            <input type="tel" id="phone" name="phone" placeholder="(###) ### - ## - ##" required>
+            <span class="error-phone error-message"
+                  style="color: red; display: none;">{% trans "Це поле обов'язкове" %}</span>
+          </div>
+          <div class="client-info">
+            <label for="email">{% trans "Email:" %}</label>
+            <input type="email" id="email" name="email" placeholder="Ваш email" required>
+            <span class="error-email error-message"
+                  style="color: red; display: none;">{% trans "Це поле обов'язкове" %}</span>
+          </div>
+          <button class="subscribe-client" type="submit">{% trans "Надіслати" %}</button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <div id="subscribeModalForm"></div>
+
+
+  {#  {% include '_blog_box.html' %}#}
   {% include '_thank-you-message.html' %}
   {% include '_existing-you-message.html' %}
 {% endblock %}

@@ -1,9 +1,11 @@
 import json
+import os
 import random
 import secrets
 import uuid
 from datetime import timedelta, date, datetime, time
 
+import requests
 from django.db.models import Q
 from django.utils import timezone
 from django.core.mail import send_mail
@@ -447,3 +449,22 @@ def upd_shift(action, licence_id, start_time, end_time, shift_date, driver_id, r
             successful_updates += 1
         return True, f"Оновлено {successful_updates} змін"
     return True
+
+
+def sending_to_crm(name, phone, email, theme):
+    url = f"https://my.binotel.ua/b/smartcrm/api/widget/v1/deal/create?token={os.environ.get('BINOTEL_TOKEN')}"
+    headers = {"Content-Type": "application/json"}
+    formData = {
+        "name": "Заявка на консультацию",
+        "fields": [{
+            "fieldId": 14024,
+            "value": theme
+        }],
+        "customerDraft": {
+            "name": name,
+            "number": phone,
+            "email": email
+        }
+    }
+    response = requests.post(url, headers=headers, json=json.dumps(formData))
+    return response.status_code

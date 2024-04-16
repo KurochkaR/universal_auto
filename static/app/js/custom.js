@@ -134,10 +134,10 @@ $(document).ready(function () {
 
 		let modalText = document.createElement('p');
 		modalText.innerHTML = gettext('Вхід не вдався:') + '<br>' +
-    '<ol><li>' + gettext('Будь ласка, перевірте, чи ви використовуєте електронну адресу, яку вказували під час реєстрації.') + '</li>' +
-    '<li>' + gettext('Також, переконайтеся, що ви є партнером компанії Ninja Taxi.') + '</li>' +
-    '<li>' + gettext('Якщо ви впевнені в правильності введених даних, але не можете увійти в систему, зверніться до нашого менеджера для отримання допомоги.') + '</li>' +
-    '</ol>';
+			'<ol><li>' + gettext('Будь ласка, перевірте, чи ви використовуєте електронну адресу, яку вказували під час реєстрації.') + '</li>' +
+			'<li>' + gettext('Також, переконайтеся, що ви є партнером компанії Ninja Taxi.') + '</li>' +
+			'<li>' + gettext('Якщо ви впевнені в правильності введених даних, але не можете увійти в систему, зверніться до нашого менеджера для отримання допомоги.') + '</li>' +
+			'</ol>';
 
 
 		modalContent.appendChild(closeBtn);
@@ -229,7 +229,6 @@ $(document).ready(function () {
 	// js for index
 	const contactOpenBtn = $('.contact-me-button');
 	const formSection = $('#contact-me-form');
-	const closeButtonContact = $("#close-form-contact");
 	const contactForm = $("#contact-form");
 	const detailsRadio = $('#detailsRadio');
 	const howItWorksRadio = $('#howItWorksRadio');
@@ -297,10 +296,6 @@ $(document).ready(function () {
 		thankYouMessage.hide();
 	});
 
-	closeButtonContact.click(function () {
-		formSection.hide();
-	});
-
 	contactForm.on("submit", function (e) {
 		e.preventDefault();
 		let formData = contactForm.serialize();
@@ -323,63 +318,53 @@ $(document).ready(function () {
 	});
 
 
-
 	// js for park page
 
 	const openButtonsFree = $(".free-access-button");
 	const openButtonsConnect = $(".connect-button");
 	const openButtonsConsult = $(".consult-button");
-	const formSectionFree = $("#free-access-form");
-	const closeButtonAccess = $("#close-form-access");
+	const formSectionFree = $("#contact-me-form");
 	const accessForm = $("#access-form");
 	const thankYouMessage = $("#thank-you-message");
 	const existingYouMessage = $("#existing-you-message")
 
 	function hideFormAndShowThankYou(success) {
-    formSectionFree.hide();
-    formSection.hide();
+		formSectionFree.hide();
+		formSection.hide();
 
 
-    if (success) {
+		if (success) {
 			thankYouMessage.show();
 			setTimeout(function () {
 				thankYouMessage.hide();
 			}, 5000);
-    } else {
+		} else {
 			existingYouMessage.show();
 			setTimeout(function () {
 				existingYouMessage.hide();
 			}, 5000);
-    }
-  }
+		}
+	}
 
 
 	function submitForm(formData) {
-    formData += "&action=free_access_or_consult";
-    $.ajax({
+		formData += "&action=free_access_or_consult";
+		$.ajax({
 			type: "POST",
 			url: ajaxPostUrl,
 			data: formData,
-			success: function(response) {
+			success: function (response) {
 				hideFormAndShowThankYou(response.success);
 			},
 			error: function () {
 				console.log("Помилка під час відправки форми.");
 			}
-    });
-  }
-
-
-	openButtonsFree.on("click", function () {
-		$("#free-access-form h2").text(gettext("Отримати безкоштовний доступ на місяць"));
-		$("#access-form input[type='submit']").val(gettext("Отримати безкоштовний доступ"));
-		formSectionFree.show();
-		thankYouMessage.hide();
-	});
+		});
+	}
 
 	openButtonsConnect.on("click", function () {
 		$("#free-access-form h2").text(gettext("Зв’язатися з нами"));
-    $("#access-form input[type='submit']").val(gettext("Зв’язатися з нами"));
+		$("#access-form input[type='submit']").val(gettext("Зв’язатися з нами"));
 		formSectionFree.show();
 		thankYouMessage.hide();
 	});
@@ -391,19 +376,15 @@ $(document).ready(function () {
 		thankYouMessage.hide();
 	});
 
-	closeButtonAccess.on("click", function () {
-		formSectionFree.hide();
-	});
-
 	accessForm.on("submit", function (e) {
-    e.preventDefault();
-    let formData = accessForm.serialize();
-    let phoneInput = accessForm.find('#phone').val();
-    let nameInput = accessForm.find('#name').val();
-    $(".error-message").hide();
-    $(".error-name").hide();
+		e.preventDefault();
+		let formData = accessForm.serialize();
+		let phoneInput = accessForm.find('#phone').val();
+		let nameInput = accessForm.find('#name').val();
+		$(".error-message").hide();
+		$(".error-name").hide();
 
-    if (!/^\+\d{1,3} \d{2,3} \d{2,3}-\d{2,3}-\d{2,3}$/.test(phoneInput)) {
+		if (!/^\+\d{1,3} \d{2,3} \d{2,3}-\d{2,3}-\d{2,3}$/.test(phoneInput)) {
 			$(".error-message").show();
 			return;
 		}
@@ -411,9 +392,9 @@ $(document).ready(function () {
 		if (nameInput.trim() === "") {
 			$(".error-name").show();
 			return;
-    }
+		}
 
-    submitForm(formData);
+		submitForm(formData);
 	});
 });
 
@@ -428,24 +409,25 @@ function intlTelInit(phoneEl) {
 	}
 }
 
-$(document).ready(function() {
-  intlTelInit('#phone');
+$(document).ready(function () {
+	intlTelInit('#phone');
+	intlTelInit('#client-phone');
 
 //  js investment page
 	if ($(".investment-slider").length) {
-		var investmentSlider = new Splide( '.investment-slider', {
-			type    : 'loop',
-			perPage : 1,
+		var investmentSlider = new Splide('.investment-slider', {
+			type: 'loop',
+			perPage: 1,
 			autoplay: true,
 		});
 
 		investmentSlider.mount();
 
-		var investmentParkSlider = new Splide( '.investment-park-slider', {
-			type    : 'loop',
-			perPage : 1,
+		var investmentParkSlider = new Splide('.investment-park-slider', {
+			type: 'loop',
+			perPage: 1,
 			autoplay: true,
-			arrows   : false,
+			arrows: false,
 			pagination: false
 		});
 
@@ -457,20 +439,15 @@ $(document).ready(function() {
 		e.preventDefault();
 	});
 
-	$(".free-access-button").click(function (e) {
-		sendData(".email-input");
-		e.preventDefault();
-	});
-
 	function isValidEmail(email) {
-    var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
+		var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+		return emailRegex.test(email);
 	}
 
 	function sendData(emailInputSelector) {
 		var email = $(emailInputSelector).val();
 		var emailError = $(".invest-btn-box .email-error");
-		var modalEmailError= $(".modal-email-error");
+		var modalEmailError = $(".modal-email-error");
 
 		if (!isValidEmail(email)) {
 			emailError.show();
@@ -536,4 +513,101 @@ $(document).ready(function () {
 			passwordInput.attr('type', 'password');
 		}
 	});
+
+	$(this).on('click', '.free-access-button', function (event) {
+		event.preventDefault();
+		$.ajax(
+			{
+				type: "GET",
+				url: ajaxGetUrl,
+				data: {
+					action: 'render_subscribe_form'
+				},
+				success: function (response) {
+					$('#subscribeModalForm').html(response.data);
+					$('#contact-me-form').show();
+				}
+			}
+		);
+	});
+
+	$(this).on('click', '.subscribe-client', function (event) {
+		event.preventDefault();
+		const form = $(this).closest('form');
+		const nameInput = form.find('#name').val();
+		const phoneInput = form.find('#phone').val();
+		const emailInput = form.find('#email').val();
+		const theme = $(this).text();
+
+
+		const fields = [
+			{input: nameInput, error: '.error-name'},
+			{input: phoneInput, error: '.error-phone'},
+			{input: emailInput, error: '.error-email'}
+		];
+
+		for (const field of fields) {
+			const input = field.input;
+			const errorBlock = form.find(field.error);
+
+			if (!input) {
+				errorBlock.text("Це поле обов'язкове");
+				errorBlock.show();
+				return;
+			} else {
+				errorBlock.hide();
+			}
+
+			if (field.error === '.error-phone' && input.length !== 13 && input.length !== 17) {
+				errorBlock.text("Введіть коректний номер телефону");
+				errorBlock.show();
+				return;
+			}
+
+			if (field.error === '.error-email' && !isValidEmail(input)) {
+				errorBlock.text("Введіть коректну email адресу");
+				errorBlock.show();
+				return;
+			}
+
+		}
+
+		$.ajax(
+			{
+				type: "POST",
+				url: ajaxPostUrl,
+				data: {
+					action: 'subscribe_to_client',
+					name: nameInput,
+					phone: phoneInput,
+					email: emailInput,
+					theme: theme,
+					csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
+				},
+				success: function (response) {
+					if (response.data === 200) {
+						$('#contact-me-form').hide();
+						$('#thank-you-message').show();
+						form.find('#name').val('');
+						form.find('#phone').val('');
+						form.find('#email').val('');
+
+						setTimeout(function () {
+							$('#thank-you-message').hide();
+						}, 5000);
+					}
+				}
+			}
+		);
+	});
+
+	$(this).on('click', '#close-form-contact', function (event) {
+		event.preventDefault();
+		$('#contact-me-form').hide();
+	});
 });
+
+function isValidEmail(email) {
+	const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+	return emailRegex.test(email);
+}
