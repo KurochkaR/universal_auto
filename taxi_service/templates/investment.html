@@ -6,7 +6,7 @@
   <section class="investment_section">
     <div class="container">
       <div class="investment-left">
-        <img class="invest-img" src="{% static 'app/images/invest-img/invest-img-1.webp' %}" alt="one image">
+        <img class="invest-img" src="{% static 'app/images/invest-img/invest-block-1.png' %}" alt="one image">
       </div>
       <div class="investment-right">
         <div class="decorate-img">
@@ -14,137 +14,58 @@
           <div class="invest-one-info">
             <h2>{% trans "Інвестуйте в екологічне майбутнє" %}</h2>
             <p class="invest-text-1">
-              {% trans "Вкладайте у майбутнє, обираючи електромобілі від Ninja Taxi." %}
-              {% trans "Ваш вибір - це зелена мобільність, чисте повітря та стале місто." %}
+              {% trans "Здайте свій електрокар в оренду або інвестуйте гроші в електро-таксі " %}
+              {% trans "та отримуйте пасивний дохід від 14 000 грн щомісячно з кожного авто." %}
             </p>
           </div>
         </div>
-        <div class="invest-btn-box" id="open-form">
-          <span class="email-error">{% trans "Введіть коректну email-адресу" %}</span>
-          <input type="email" placeholder="{% trans 'Електронна адреса' %}" class="email-input">
-          <button class="free-access-button">{% trans "Дізнатись більше" %}</button>
+        <div class="invest-btn-box">
+          <button class="free-access-button invest-btn">{% trans "Інвестувати" %}</button>
+          <button class="free-access-button how-does-it-work-btn">{% trans "Як це працює?" %}</button>
         </div>
       </div>
     </div>
   </section>
   <!-- end investment section -->
 
-  <!-- investment slider section -->
-  <section class="investment-slider-section">
+  <!-- investment two section -->
+  <section class="investment-two-section">
     <div class="container">
-      <div class="title-slider">
-        <h2>{% trans 'Варіанти співпраці:' %}</h2>
+      <div class="how-does-it-work">
+        <h2 class="title-how-does-it">{% trans "Як це працює?  " %}</h2>
+        <span class="description-how-does-it">
+          {% trans "NINJA TAXI - Ваш надійний партнер, який буде з вами на кожному кроці, починаючи з першого дня. " %}
+          {% trans "Ми забезпечимо вас усім необхідним та станемо на допомогу у вирішенні будь-яких питань. " %}
+          {% trans "Наш підхід - це не просто надання послуги, але і партнерство, спрямоване на масштабування вашого бізнесу." %}
+        </span>
+        <button class="free-access-button invest-btn">{% trans "Інвестувати" %}</button>
       </div>
-      <section class="splide investment-slider" aria-label="Варіанти співпраці">
-        <div class="splide__track">
-          <ul class="splide__list">
-            <li class="splide__slide">
-              <div class="investment-slider">
-                <h3>{% trans 'В Україні:' %}</h3>
-                <ul>
-                  <li>{% trans '1.Сума інвестиції: 20.000$' %}</li>
-                  <li>{% trans '2.Ставка: 30%' %}</li>
-                  <li>{% trans '3.Електромобіль придбається на території України.' %}</li>
-                </ul>
-                <h3>{% trans 'Строк: 3 - 4 роки' %}</h3>
-                <p>
-                  {% trans 'Технічне обслуговування та ремонти на рахунок управлінської компанії' %}<br>
-                  {% trans 'Ризик простою 50/50' %}
-                </p>
-                <ul>
-                  <h3>{% trans 'Переваги:' %}</h3>
-                  <li>{% trans 'Фіксований дохід' %}</li>
-                  <li>{% trans 'Інвестор не несе жодних ризиків.' %}</li>
-                  <li>{% trans 'Адміністрування "під ключ" за рахунок управлінської компанії.' %}</li>
-                </ul>
-              </div>
-            </li>
-            <li class="splide__slide">
-              <div class="investment-slider">
-                <h3>{% trans 'Закордоном:' %}</h3>
-                <ul>
-                  <li>{% trans '1.Сума інвестиції: 15.000$' %}</li>
-                  <li>{% trans '2.Ставка: 30%' %}</li>
-                  <li>{% trans '3.Електромобіль придбається закордоном.' %}</li>
-                </ul>
-                <h3>{% trans 'Строк: 3 роки' %}</h3>
-                <p>
-                  {% trans 'Технічне обслуговування та ремонти на рахунок управлінської компанії' %}<br>
-                  {% trans 'Ризик простою 50/50' %}
-                </p>
-                <ul>
-                  <h3>{% trans 'Переваги:' %}</h3>
-                  <li>{% trans 'Фіксований дохід' %}</li>
-                  <li>{% trans 'Інвестор не несе жодних ризиків.' %}</li>
-                  <li>{% trans 'Адміністрування "під ключ" за рахунок управлінської компанії.' %}</li>
-                </ul>
-              </div>
-            </li>
-            <!--          <li class="splide__slide">-->
-            <!--            <div class="investment-slider">-->
-            <!--              <h3>Сумісний:</h3>-->
-            <!--              <ul>-->
-            <!--                <li>1.Сума інвестиції: 15.000 (50/50)</li>-->
-            <!--                <li>2.Ставка: 33%</li>-->
-            <!--                <li>3.Електромобіль придбається закордоном</li>-->
-            <!--                <li>4.Марка не обговорюється</li>-->
-            <!--              </ul>-->
-            <!--              <h3>Строк: 3 роки</h3>-->
-            <!--              <p>Технічне обслуговування та ремонти за рахунок -50/50<br>Ризик простою 50/50</p>-->
-            <!--              <ul>-->
-            <!--                <h3>Переваги:</h3>-->
-            <!--                <li>Інвестування за Вашими правилами та вимогами</li>-->
-            <!--              </ul>-->
-            <!--            </div>-->
-            <!--          </li>-->
-          </ul>
-        </div>
-      </section>
-
-      <div class="consultation-button">
-        <button>{% trans 'Проконсультуватися' %}</button>
-      </div>
-    </div>
-  </section>
-  <!-- end investment slider section -->
-
-  <!-- investment offer -->
-
-  <section class="investment-offer-section">
-    <div class="container">
-      <h2>{% trans "Що ми пропонуємо" %}</h2>
-    </div>
-
-    <div class="cards">
-      <div class="card">
-        <img src="{% static 'app/images/invest-img/invest-offer-3.webp' %}" alt="img 3">
-        <div class="card-description">
-          <h3>{% trans "Досвідчені і кваліфіковані водії" %}</h3>
-          <p>
-            {% trans "Наша компанія має досвід у підборі та навчанні водіїв." %}
-            {% trans "Ви не будете турбуватися про пошук або найм водіїв, організацію графіків." %}
-          </p>
-        </div>
-      </div>
-
-      <div class="card">
-        <img src="{% static 'app/images/invest-img/invest-offer-1.webp' %}" alt="img 1">
-        <div class="card-description">
-          <h3>{% trans "Ремонт і обслуговування машини" %}</h3>
-          <p>
-            {% trans "Ми несемо повну відповідальність за їх обслуговування та ремонт." %}
-          </p>
-        </div>
-      </div>
-
-      <div class="card">
-        <img src="{% static 'app/images/invest-img/invest-offer-2.webp' %}" alt="img 2">
-        <div class="card-description">
-          <h3>{% trans "Власні підзарядні станції" %}</h3>
-          <p>
-            {% trans "Ми маємо власну мережу підзарядних станцій." %}
-            {% trans "Ви можете бути впевнені, що ваші автомобілі завжди будуть готові до роботи" %}
-          </p>
+      <div class="investment-carts-container">
+        <div class="investment-carts">
+          <div class="investment-cart">
+            <h2>01</h2>
+            <span class="cart-description">{% trans "Ми знаходимо та допомагаємо придбати електрокар" %}</span>
+          </div>
+          <div class="investment-cart">
+            <h2>02</h2>
+            <span class="cart-description">{% trans "Обладнуємо та готуємо до роботи електрокар" %}</span>
+          </div>
+          <div class="investment-cart">
+            <h2>03</h2>
+            <span class="cart-description">{% trans "Шукаємо водія та запускаємо електрокар в роботу" %}</span>
+          </div>
+          <div class="investment-cart">
+            <h2>04</h2>
+            <span class="cart-description">{% trans "Контролюємо роботу та обслуговуємо електрокар" %}</span>
+          </div>
+          <div class="investment-cart">
+            <h2>05</h2>
+            <span class="cart-description">{% trans "Щотижня виплачуємо дохідність та надаємо звітність" %}</span>
+          </div>
+          <div class="investment-cart">
+            <h2>06</h2>
+            <span class="cart-description">{% trans "Допомагаємо маштабувати Ваш  електробізнес" %}</span>
+          </div>
         </div>
       </div>
     </div>
