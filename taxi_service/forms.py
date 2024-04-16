@@ -21,6 +21,18 @@ class CommentForm(forms.ModelForm):
         widgets = {'comment': forms.Textarea(attrs={'rows': 5, 'cols': 50})}
 
 
+class NumberInput(forms.TextInput):
+    input_type = 'tel'
+
+    def build_attrs(self, attrs, extra_attrs=None, **kwargs):
+        attrs = super().build_attrs(attrs, extra_attrs, **kwargs)
+        attrs['pattern'] = r'^[\d+]*$'
+        attrs['onkeypress'] = 'return event.charCode >= 48 && event.charCode <= 57 || event.charCode == 46'
+        attrs['oninput'] = r"this.value = this.value.replace(/[^0-9.]/g, '');".replace("'", r'"')
+
+        return attrs
+
+
 class PhoneInput(forms.TextInput):
     input_type = 'tel'
 
@@ -183,7 +195,7 @@ class BonusForm(ModelForm):
             'vehicle': _('Автомобіль'),
         }
 
-    amount = forms.DecimalField(widget=PhoneInput(attrs={'placeholder': _('Введіть суму')}),
+    amount = forms.DecimalField(widget=NumberInput(attrs={'placeholder': _('Введіть суму')}),
                                 label=_('Сума'),
                                 required=True,
                                 validators=[
