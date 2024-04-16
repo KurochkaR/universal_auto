@@ -226,23 +226,12 @@ class PostRequestHandler:
 
     @staticmethod
     def handler_upd_payment_status(request):
-        all_payments = request.POST.get('allId')
-        driver_payments_id = request.POST.get('id')
+        driver_payments_id = request.POST.get('allId') if request.POST.get('allId') else request.POST.get('id')
         status = request.POST.get('status')
 
-        if all_payments:
-            for payment_id in all_payments.split(','):
-                try:
-                    driver_payments = DriverPayments.objects.get(id=payment_id)
-                    driver_payments.change_status(status)
-                except DriverPayments.DoesNotExist:
-                    continue
-        else:
-            try:
-                driver_payments = DriverPayments.objects.get(id=driver_payments_id)
-                driver_payments.change_status(status)
-            except DriverPayments.DoesNotExist:
-                return JsonResponse({'data': 'error', 'message': 'Payment not found'}, status=404)
+        for payment_id in driver_payments_id.split(','):
+            driver_payments = DriverPayments.objects.get(id=payment_id)
+            driver_payments.change_status(status)
 
         json_data = JsonResponse({'data': 'success'})
         response = HttpResponse(json_data, content_type='application/json')
@@ -455,12 +444,12 @@ class PostRequestHandler:
         start = timezone.make_aware(datetime.combine(payment.report_to, time.min))
         fleet = Fleet.objects.filter(name="Bolt", partner=partner_pk).first()
         no_price = FleetOrder.objects.filter(price=0, state=FleetOrder.COMPLETED, fleet="Bolt",
-                                             driver=payment.driver, accepted_time__range=(start, payment.report_to))
+                                             driver=payment.driver, finish_time__range=(start, payment.report_to))
         if no_price.exists():
             json_data = JsonResponse({'error': "Вибачте, не всі замовлення розраховані агрегатором, спробуйте пізніше"},
                                      status=400)
         else:
-            bolt_order_kasa = calculate_bolt_kasa(payment.driver, start, payment.report_to)[1]
+            bolt_order_kasa = calculate_bolt_kasa(payment.driver, start, payment.report_to)[2]
             custom_data = {
                 "report_from": start,
                 "report_to": payment.report_to,

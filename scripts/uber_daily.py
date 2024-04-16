@@ -13,31 +13,29 @@ from auto.utils import get_currency_rate
 
 
 def run(*args):
-    fleet = Fleet.objects.filter(partner=1).exclude(name='Gps')
-    for f in fleet:
-        driver_efficiency = DriverEfficiencyFleet.objects.filter(fleet_id=f.id)
-        for efficiency in driver_efficiency:
-            driver_canceled_orders = FleetOrder.objects.filter(driver=efficiency.driver,
-                                                               date_order__date=efficiency.report_from.date(),
-                                                               fleet=f.name,
-                                                               state=FleetOrder.DRIVER_CANCEL).count()
-
-            efficiency.total_orders_rejected = driver_canceled_orders
-            efficiency.save(update_fields=['total_orders_rejected'])
-        print('Done', f.name)
-    print('Done all fleets')
-
-    driver_efficiency = DriverEfficiency.objects.all()
-    for efficiency in driver_efficiency:
-        driver_canceled_orders = FleetOrder.objects.filter(driver=efficiency.driver,
-                                                           date_order__date=efficiency.report_from.date(),
-                                                           state=FleetOrder.DRIVER_CANCEL).count()
-
-        efficiency.total_orders_rejected = driver_canceled_orders
-        efficiency.save(update_fields=['total_orders_rejected'])
-
-    print('Done all drivers')
-
-    DriverPayments.objects.update(salary=F('cash') + F('earning'))
-
-    print('Done all drivers payments')
+    driver_earning = datetime(2024, 4, 1)
+    records = CarEfficiency.objects.filter(report_from__lt=driver_earning, partner=1)
+    weekly_aggregates = records.values('vehicle').annotate(
+        week_start=TruncWeek('report_from'),
+        total=Sum('total_kasa')
+    ).order_by('week_start')
+    for aggregate in weekly_aggregates:
+        report_from = aggregate['week_start'].date()
+        report_to = report_from + timedelta(days=6)
+        vehicle = Vehicle.objects.get(pk=aggregate['vehicle'])
+        currency = vehicle.currency_back
+        earning = aggregate['total'] * vehicle.investor_percentage
+        rate = get_currency_rate(vehicle.currency_back)
+        amount_usd = float(earning) / rate
+        car_earnings = Decimal(str(amount_usd)).quantize(Decimal('0.00'), rounding=ROUND_HALF_UP)
+        InvestorPayments.objects.get_or_create(
+            report_from=report_from,
+            report_to=report_to,
+            vehicle=vehicle,
+            investor=vehicle.investor_car,
+            partner_id=1,
+            defaults={
+                "earning": earning,
+                "currency": currency,
+                "currency_rate": rate,
+                "sum_after_transaction": car_earnings})

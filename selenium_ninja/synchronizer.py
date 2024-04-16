@@ -38,7 +38,6 @@ class Synchronizer:
             self.get_or_create_vehicle(**vehicle)
         for driver in drivers:
             self.create_driver(**driver)
-        print(f'Finished {self} drivers: {len(drivers)}')
 
     def create_driver(self, **kwargs):
         driver = FleetsDriversVehiclesRate.objects.filter(fleet=self,
@@ -118,27 +117,21 @@ class Synchronizer:
         return driver
 
     def get_or_create_vehicle(self, **kwargs):
-        licence_plate, v_name, vin = kwargs['licence_plate'], kwargs['vehicle_name'], kwargs['vin_code']
+        licence_plate, v_name, vin = kwargs.get('licence_plate'), kwargs.get('vehicle_name'), kwargs.get('vin_code')
         if licence_plate:
             plate = normalized_plate(licence_plate)
-            vehicle, created = Vehicle.objects.update_or_create(
-                licence_plate=plate,
-                defaults={
+            raw_data = {
                     "name": v_name.upper(),
                     "licence_plate": plate,
                     "vin_code": vin,
-                    "partner": self.partner
+                    "partner": self.partner,
+                    "uber_uuid": kwargs.get('uber_uuid')
                 }
+            data = {key: value for key, value in raw_data.items() if value is not None}
+            Vehicle.objects.update_or_create(
+                licence_plate=plate,
+                defaults=data
             )
-
-            if created:
-                managers = Manager.objects.filter(managers_partner=self.partner)
-                if managers.count() == 1:
-                    vehicle.manager = managers.first()
-                    vehicle.save(update_fields=['manager'])
-                elif managers.count() > 1:
-                    message_text = f"У вас новий автомобіль {plate}. Будь ласка, призначте йому менеджера."
-                    bot.send_message(chat_id=self.partner.chat_id, text=message_text)
 
     def update_driver_fields(self, driver, **kwargs):
         phone_number = kwargs.get('phone_number')

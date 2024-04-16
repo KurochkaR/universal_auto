@@ -178,6 +178,60 @@ class UberRequest(Fleet, Synchronizer):
             get_logger().error(f"Failed save uber report {self.partner} {response.json()}")
         return results
 
+    def generate_vehicle_report(self, start, end, vehicles_list):
+        vehicle_ids = [vehicle.uber_uuid for vehicle in vehicles_list]
+        results = {}
+        format_start = self.report_interval(start) * 1000
+        format_end = self.report_interval(end) * 1000 - 600
+        if format_start >= format_end or not vehicle_ids:
+            return results
+        query = '''query GetPerformanceReport($performanceReportRequest: PerformanceReportRequest__Input!) {
+                  getPerformanceReport(performanceReportRequest: $performanceReportRequest) {
+                    uuid
+                    totalEarnings
+                    totalTrips
+                    ... on DriverPerformanceDetail {
+                      cashEarnings
+                    }
+                  }
+                }'''
+        variables = {
+                      "performanceReportRequest": {
+                        "orgUUID": self.get_uuid(),
+                        "dimensions": [
+                          "vs:vehicle"
+                        ],
+                        "dimensionFilterClause": [
+                          {
+                            "dimensionName": "vs:vehicle",
+                            "operator": "OPERATOR_IN",
+                            "expressions": vehicle_ids
+                          }
+                        ],
+                        "metrics": [
+                          "vs:TotalEarnings",
+                          "vs:TotalTrips",
+                          "vs:CashEarnings",
+                          "vs:DriverAcceptanceRate"
+                        ],
+                        "timeRange": {
+                          "startsAt": {
+                            "value": format_start
+                          },
+                          "endsAt": {
+                            "value": format_end
+                          }
+                        }
+                      }
+                    }
+        data = self.get_payload(query, variables)
+        response = requests.post(str(self.base_url), headers=self.get_header(), json=data)
+        if response.status_code == 200 and response.json()['data']:
+            results = response.json()['data']['getPerformanceReport']
+        else:
+            get_logger().error(f"Failed save uber report {self.partner} {response.json()}")
+        return results
+
     def parse_json_report(self, start, end, report):
         driver = FleetsDriversVehiclesRate.objects.get(driver_external_id=report['uuid'],
                                                        fleet=self,
@@ -278,6 +332,7 @@ class UberRequest(Fleet, Synchronizer):
                       model
                       licensePlate
                       vin
+                      uuid
                     }'''
         variables = {
             "orgUUID": self.get_uuid(),
@@ -292,7 +347,8 @@ class UberRequest(Fleet, Synchronizer):
                 vehicles_list.append({
                     'licence_plate': vehicle['licensePlate'],
                     'vehicle_name': f'{vehicle["make"]} {vehicle["model"]}',
-                    'vin_code': vehicle['vin']})
+                    'vin_code': vehicle['vin'],
+                    'uber_uuid': vehicle['uuid']})
             return vehicles_list
 
     def get_fleet_orders(self, start, end, driver=None, driver_ids=None) -> dict:

@@ -322,6 +322,7 @@ class Vehicle(models.Model):
     type = models.CharField(max_length=20, default='Електро', verbose_name='Тип')
     licence_plate = models.CharField(validators=[MaxLengthValidator(24)], max_length=24,
                                      unique=True, verbose_name='Номерний знак')
+    uber_uuid = models.CharField(null=True, max_length=36, verbose_name='Ідентифікатор авто в Uber')
     registration = models.CharField(null=True, max_length=12, unique=True, verbose_name='Номер документа')
     purchase_date = models.DateField(null=True, verbose_name='Дата початку роботи')
     vin_code = models.CharField(validators=[MaxLengthValidator(17)], max_length=17, blank=True)
@@ -1151,6 +1152,7 @@ class DriverEfficiencyPolymorphic(PolymorphicModel):
 
 class DriverEfficiency(DriverEfficiencyPolymorphic):
     rent_distance = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Холостий пробіг')
+    total_cash = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name='Готівкою')
 
     class Meta:
         verbose_name = 'Ефективність водія'

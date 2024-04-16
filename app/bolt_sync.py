@@ -193,7 +193,8 @@ class BoltRequest(Fleet, Synchronizer):
                      "fee": Decimal(
                          -(driver_report['gross_revenue'] - driver_report['net_earnings'])) + bolt_custom.fee,
                      "total_amount_without_fee": Decimal(
-                         driver_report['net_earnings'] - driver_report['bonuses']) - bolt_custom.total_amount_without_fee,
+                         driver_report['net_earnings'] - driver_report[
+                             'bonuses']) - bolt_custom.total_amount_without_fee,
                      "compensations": Decimal(driver_report['compensations']) - bolt_custom.compensations,
                      "refunds": Decimal(driver_report['expense_refunds']) - bolt_custom.refunds,
                      })
@@ -286,7 +287,6 @@ class BoltRequest(Fleet, Synchronizer):
                 except Exception as e:
                     get_logger().error(e)
             driver_list.append({
-                'fleet_name': self.name,
                 'name': driver_info['data']['first_name'],
                 'second_name': driver_info['data']['last_name'],
                 'email': driver_info['data']['email'],
@@ -295,6 +295,21 @@ class BoltRequest(Fleet, Synchronizer):
                 'pay_cash': driver['has_cash_payment']
             })
         return driver_list
+
+    def get_vehicles(self):
+        vehicles_list = []
+        start = end = datetime.now().strftime('%Y-%m-%d')
+        params = self.param(50)
+        params.update({"start_date": start, "end_date": end})
+        request_url = f'{self.base_url}getCarsPaginated'
+        vehicles = self.get_list_result(request_url, params, data='data', list='rows', total='total_rows')
+        for vehicle in vehicles:
+            vehicles_list.append({
+                'licence_plate': vehicle['reg_number'],
+                'vehicle_name': vehicle['model'],
+            })
+
+        return vehicles_list
 
     def get_orders_list(self, start, end):
         format_start = start.strftime("%Y-%m-%d")
@@ -341,11 +356,16 @@ class BoltRequest(Fleet, Synchronizer):
             "driver_rejected": FleetOrder.DRIVER_CANCEL
         }
         orders = self.get_orders_list(start, end)
-        filter_condition = Q(date_order__in=[
-            timezone.make_aware(datetime.fromtimestamp(order['driver_assigned_time'])) for order in orders
-        ],
-            order_id__in=[order['order_id'] for order in orders],
-            partner=self.partner)
+        for order in orders:
+            if order['search_category']['id'] == 4878 and order['order_try_state'] == 'finished':
+                print(order)
+        order_time = [timezone.make_aware(datetime.fromtimestamp(order['order_stops'][0]['arrived_at']))
+                      if order['search_category']['id'] == 4878 and order['order_try_state'] == 'finished' else
+                      timezone.make_aware(datetime.fromtimestamp(order['driver_assigned_time']))
+                      for order in orders]
+        filter_condition = Q(date_order__in=order_time,
+                             order_id__in=[order['order_id'] for order in orders],
+                             partner=self.partner)
         db_orders = FleetOrder.objects.filter(filter_condition)
         existing_orders = db_orders.values_list('order_id', flat=True)
         zero_price_orders = db_orders.filter(Q(price=0)).values_list('order_id', flat=True)
@@ -374,7 +394,9 @@ class BoltRequest(Fleet, Synchronizer):
                 fleetsdriversvehiclesrate__fleet=self, partner=self.partner).first()
             price = order.get('total_price', 0)
             tip = order.get("tip", 0)
-            date_order = timezone.make_aware(datetime.fromtimestamp(order['driver_assigned_time']))
+            date_order = (timezone.make_aware(datetime.fromtimestamp(order['order_stops'][0]['arrived_at'])) if
+                          order['search_category']['id'] == 4878 and order['order_try_state'] == 'finished' else
+                          timezone.make_aware(datetime.fromtimestamp(order['driver_assigned_time'])))
             calendar_vehicle = check_vehicle(driver_order, date_time=date_order)
             vehicle = Vehicle.objects.filter(licence_plate=normalized_plate(order['car_reg_number'])).first()
             if calendar_vehicle != vehicle and not calendar_errors.get(driver_order.pk):
@@ -548,27 +570,24 @@ class BoltRequest(Fleet, Synchronizer):
         job_application.status_bolt = datetime.now().date()
         job_application.save()
 
-    def get_vehicles(self):
-        vehicles_list = []
-        start = end = datetime.now().strftime('%Y-%m-%d')
-        params = {"start_date": start, "end_date": end, "limit": 25}
-        offset = 0
-        limit = params["limit"]
 
-        while True:
-            params["offset"] = offset
+    def get_earnings_per_driver(self, driver, start, end):
+        param = self.param()
+        format_start, format_end = start.strftime("%Y-%m-%d"), end.strftime("%Y-%m-%d")
+        driver_id = driver.get_driver_external_id(self)
+        total_amount, total_amount_cash = 0, 0
 
-            params.update(self.param())
-            response = self.get_target_url(f'{self.base_url}getCarsPaginated', params=params)
-            if offset > response['data']['total_rows']:
-                break
-            vehicles = response['data']['rows']
-            tm.sleep(0.5)
-            for vehicle in vehicles:
-                vehicles_list.append({
-                    'licence_plate': vehicle['reg_number'],
-                    'vehicle_name': vehicle['model'],
-                    'vin_code': ''
-                })
-            offset += limit
-        return vehicles_list
+        if driver_id:
+            param.update({"start_date": format_start,
+                          "end_date": format_end,
+                          "limit": 50,
+                          "driverId": driver_id})
+
+            request_url = f"{self.base_url}getDriverEarnings/dateRange"
+            reports = self.get_list_result(request_url, param, data='data', list='drivers', total='total_rows')
+            for driver_report in reports:
+                if driver_report['id'] == int(driver_id):
+                    total_amount += driver_report['net_earnings']
+                    total_amount_cash += driver_report['cash_in_hand']
+
+        return total_amount, total_amount_cash

@@ -286,7 +286,7 @@ class UklonRequest(Fleet, Synchronizer):
                 break
         return reports
 
-    def save_weekly_report(self, start, end):
+    def save_weekly_report(self, start, end, driver_ids):
         return self.save_report(start, end, WeeklyReport)
 
     def save_daily_report(self, start, end):

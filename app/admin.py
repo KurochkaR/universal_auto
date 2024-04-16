@@ -1601,3 +1601,15 @@ class SpendingCategory(admin.ModelAdmin):
         if request.user.is_manager():
             obj.partner = request.user.manager.managers_partner
         super().save_model(request, obj, form, change)
+
+
+@admin.register(SubscribeUsers)
+class SubscribeUsersAdmin(admin.ModelAdmin):
+    list_display = ['name', 'phone_number', 'email', 'created_at']
+    list_filter = ['created_at']
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if request.user.is_partner():
+            qs = qs.filter(partner=request.user)
+        return qs
