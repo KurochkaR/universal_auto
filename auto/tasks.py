@@ -377,60 +377,66 @@ def get_car_efficiency(self, partner_pk, day=None):
     date = datetime.strptime(day, "%Y-%m-%d") if day else timezone.localtime()
     start = timezone.make_aware(datetime.combine(date - timedelta(days=1), time.min))
     end = timezone.make_aware(datetime.combine(start, time.max.replace(microsecond=0)))
-    for vehicle in Vehicle.objects.get_active(partner=partner_pk, gps__isnull=False).select_related('gps'):
-        efficiency = CarEfficiency.objects.filter(report_from=start,
-                                                  partner=partner_pk,
-                                                  vehicle=vehicle)
-        if efficiency:
-            continue
-        if vehicle.branding:
-            orders_count = FleetOrder.objects.filter(
-                vehicle__branding__name=vehicle.branding.name,
-                date_order__range=(start, end),
-                vehicle=vehicle, state=FleetOrder.COMPLETED).count()
-        else:
-            orders_count = 0
+    if Fleet.objects.filter(partner=partner_pk, deleted_at=None, name="Gps").exists():
+        for vehicle in Vehicle.objects.get_active(partner=partner_pk, gps__isnull=False).select_related('gps'):
+            efficiency = CarEfficiency.objects.filter(report_from=start,
+                                                      partner=partner_pk,
+                                                      vehicle=vehicle)
+            if efficiency.exists():
+                continue
+            if vehicle.branding:
+                orders_count = FleetOrder.objects.filter(
+                    vehicle__branding__name=vehicle.branding.name,
+                    date_order__range=(start, end),
+                    vehicle=vehicle, state=FleetOrder.COMPLETED).count()
+            else:
+                orders_count = 0
 
-        vehicle_drivers = {}
-        total_spending = VehicleSpending.objects.filter(
-            vehicle=vehicle, created_at__range=(start, end)).aggregate(Sum('amount'))['amount__sum'] or 0
-        drivers = DriverReshuffle.objects.filter(end_time__lte=end,
-                                                 swap_time__gte=start,
-                                                 swap_vehicle=vehicle,
-                                                 partner=partner_pk,
-                                                 driver_start__isnull=False).values_list('driver_start', flat=True)
-        total_kasa = 0
-        try:
+            vehicle_drivers = {}
+            total_spending = VehicleSpending.objects.filter(
+                vehicle=vehicle, created_at__range=(start, end)).aggregate(Sum('amount'))['amount__sum'] or 0
+            drivers = DriverReshuffle.objects.filter(end_time__lte=end,
+                                                     swap_time__gte=start,
+                                                     swap_vehicle=vehicle,
+                                                     partner=partner_pk,
+                                                     driver_start__isnull=False).values_list('driver_start', flat=True)
+            total_kasa = 0
+
             total_km = UaGpsSynchronizer.objects.get(partner=partner_pk).total_per_day(vehicle.gps.gps_id, start, end)
-        except ObjectDoesNotExist:
-            return
-        if total_km:
-            for driver in drivers:
-                fleets = Fleet.objects.filter(fleetsdriversvehiclesrate__driver=driver, deleted_at=None).distinct()
-                driver_kasa = 0
-                for fleet in fleets:
-                    orders = FleetOrder.objects.filter(
-                        state__in=[FleetOrder.COMPLETED, FleetOrder.CLIENT_CANCEL],
-                        accepted_time__date=start, driver=driver, fleet=fleet.name, vehicle=vehicle).aggregate(
-                        total_price=Coalesce(Sum('price'), 0),
-                        total_tips=Coalesce(Sum('tips'), 0))
-                    driver_kasa += orders['total_price'] * (1 - fleet.fees) + orders['total_tips']
-                vehicle_drivers[driver] = driver_kasa
-                total_kasa += driver_kasa
-        result = max(
-            Decimal(total_kasa) - Decimal(total_spending), Decimal(0)) / Decimal(total_km) if total_km else 0
-        car = CarEfficiency.objects.create(report_from=start,
-                                           report_to=end,
-                                           vehicle=vehicle,
-                                           total_kasa=total_kasa,
-                                           total_spending=total_spending,
-                                           mileage=total_km,
-                                           efficiency=result,
-                                           total_brand_trips=orders_count,
-                                           partner_id=partner_pk,
-                                           investor=vehicle.investor_car)
-        for driver, kasa in vehicle_drivers.items():
-            DriverEffVehicleKasa.objects.create(driver_id=driver, efficiency_car=car, kasa=kasa)
+            if total_km:
+                for driver in drivers:
+                    fleets = Fleet.objects.filter(fleetsdriversvehiclesrate__driver=driver, deleted_at=None).distinct()
+                    driver_kasa = 0
+                    for fleet in fleets:
+                        if isinstance(fleet, UberRequest):
+                            result = fleet.generate_vehicle_report(start, end, [vehicle])
+                            driver_kasa += result[0]['totalEarnings'] if result else 0
+                        else:
+                            filter_request = Q(Q(driver=driver, fleet=fleet.name, vehicle=vehicle) &
+                                               Q(Q(state=FleetOrder.COMPLETED, finish_time__range=(start, end)) |
+                                                 Q(state=FleetOrder.CLIENT_CANCEL,
+                                                   accepted_time__range=(start, end)))
+                                               )
+                            orders = FleetOrder.objects.filter(filter_request).aggregate(
+                                total_price=Coalesce(Sum('price'), 0),
+                                total_tips=Coalesce(Sum('tips'), 0))
+                            driver_kasa += orders['total_price'] * (1 - fleet.fees) + orders['total_tips']
+                    vehicle_drivers[driver] = driver_kasa
+                    total_kasa += driver_kasa
+            result = max(
+                Decimal(total_kasa) - Decimal(total_spending), Decimal(0)) / Decimal(total_km) if total_km else 0
+            car = CarEfficiency.objects.create(report_from=start,
+                                               report_to=end,
+                                               vehicle=vehicle,
+                                               total_kasa=total_kasa,
+                                               total_spending=total_spending,
+                                               mileage=total_km,
+                                               efficiency=result,
+                                               total_brand_trips=orders_count,
+                                               partner_id=partner_pk,
+                                               investor=vehicle.investor_car)
+            for driver, kasa in vehicle_drivers.items():
+                DriverEffVehicleKasa.objects.create(driver_id=driver, efficiency_car=car, kasa=kasa)
 
 
 @app.task(bind=True)
