@@ -96,7 +96,7 @@ def lock_task(func):
         # Attempt to acquire the lock
         lock_acquired = redis_instance().set(lock_key, 'locked', nx=True, ex=450)
         if not lock_acquired:
-            # Lock not acquired, retry the task later
+            print(f"lock_acquired {lock_acquired}")
             raise func.retry(countdown=10)
 
         # Lock acquired, execute the task
@@ -174,6 +174,10 @@ def get_session(self, partner_pk, aggregator='Uber', login=None, password=None):
     if token:
         login_in(aggregator=aggregator, partner_id=partner_pk,
                  login_name=login, password=password, token=token)
+        obj, created = fleet.objects.get_or_create(name=aggregator, partner_id=partner_pk)
+        if not created:
+            obj.deleted_at = None
+            obj.save(update_fields=['deleted_at'])
 
 
 @app.task(bind=True, queue='bot_tasks')

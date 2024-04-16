@@ -13,9 +13,7 @@ from app.models import CarEfficiency, Driver, SummaryReport, \
     DriverPayments, FleetOrder, VehicleRent, Schema, Fleet, CustomUser, CustomReport, PaymentTypes, Payments, \
     WeeklyReport, PaymentsStatus, ParkSettings, Manager, PartnerEarnings, Bonus, Category
 from auto_bot.handlers.order.utils import check_reshuffle, check_vehicle
-from auto_bot.main import bot
 from auto_bot.utils import send_long_message
-from scripts.redis_conn import get_logger
 from taxi_service.utils import get_start_end
 
 
