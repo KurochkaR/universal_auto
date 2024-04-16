@@ -8117,12 +8117,12 @@ end Drivers page*/
 	justify-content: center;
 }
 
-.package .package-btn .consult-button {
-	background-color: #EC6323;
-	color: #fff;
+.package .package-btn .free-access-button {
+	color: #EC6323;
+	background-color: #fff;
 	padding: 10px 55px;
-	border: none;
 	border-radius: 25px;
+	border: 3px solid #EC6323;
 	font-size: 16px;
 	text-decoration: none;
 	cursor: pointer;
@@ -8133,12 +8133,12 @@ end Drivers page*/
 	width: 100%;
 }
 
-.package .package-btn .free-access-button {
-	color: #EC6323;
-	background-color: #fff;
+.package .package-btn .consult-btn {
+	background-color: #EC6323;
+	color: #fff;
 	padding: 10px 55px;
+	border: none;
 	border-radius: 25px;
-	border: 3px solid #EC6323;
 	font-size: 16px;
 	text-decoration: none;
 	cursor: pointer;

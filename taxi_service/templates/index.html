@@ -22,7 +22,7 @@
               <p class="text-1">{% trans "Довірте свій автопарк та" %}<br>{% trans "інвестиції безпечному" %}<br>{% trans "партнеру NINJA TAXI" %}
               </p>
               <div class="contact-me-btn" id="open-form">
-                <button class="contact-me-button">{% trans "Зв’яжіться зі мною" %}</button>
+                <button class="free-access-button">{% trans "Зв’яжіться зі мною" %}</button>
               </div>
             </div>
           </div>
@@ -77,7 +77,7 @@
                   {% trans "З NINJA TAXI ви можете рухатися вперед у майбутнє без зайвих затримок. " %}
                 </p>
               </div>
-              <a href="#">
+              <a href="{% url 'charging_stations' %}">
                 <button class="btn-read-more">{% trans "Читати більше" %}</button>
               </a>
             </div>
@@ -327,7 +327,7 @@
       <!--          </div>-->
       <!--        </div>-->
       <!--      </section>-->
-
+      <div id="subscribeModalForm"></div>
       {% include '_contact-me-form.html' %}
       {% include '_thank-you-message.html' %}
       {% include '_existing-you-message.html' %}

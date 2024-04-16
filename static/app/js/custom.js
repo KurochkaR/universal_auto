@@ -532,7 +532,6 @@ $(document).ready(function () {
 	});
 
 	$(this).on('click', '.subscribe-client', function (event) {
-		console.log('click');
 		event.preventDefault();
 		const form = $(this).closest('form');
 		const nameInput = form.find('#name').val();
