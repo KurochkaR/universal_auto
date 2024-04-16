@@ -564,6 +564,13 @@ $(document).ready(function () {
 				errorBlock.show();
 				return;
 			}
+
+			if (field.error === '.error-email' && !isValidEmail(input)) {
+				errorBlock.text("Введіть коректну email адресу");
+				errorBlock.show();
+				return;
+			}
+
 		}
 
 		$.ajax(
@@ -579,7 +586,17 @@ $(document).ready(function () {
 					csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
 				},
 				success: function (response) {
-					console.log(response);
+					if (response.data === 200) {
+						$('#contact-me-form').hide();
+						$('#thank-you-message').show();
+						form.find('#name').val('');
+						form.find('#phone').val('');
+						form.find('#email').val('');
+
+						setTimeout(function () {
+							$('#thank-you-message').hide();
+						}, 5000);
+					}
 				}
 			}
 		);
@@ -590,3 +607,8 @@ $(document).ready(function () {
 		$('#contact-me-form').hide();
 	});
 });
+
+function isValidEmail(email) {
+	const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+	return emailRegex.test(email);
+}
