@@ -2,6 +2,8 @@ import os
 from contextlib import contextmanager
 from datetime import datetime, timedelta, time
 import time as tm
+from functools import wraps
+
 import requests
 from _decimal import Decimal, ROUND_HALF_UP
 from celery import chain
@@ -80,6 +82,33 @@ def memcache_lock(lock_id, task_args, oid, lock_time, finish_lock_time=10):
             # also don't release the lock if we didn't acquire it
 
 
+def lock_task(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        partner_pk = kwargs.get("partner_pk")
+        if not partner_pk:
+            schemas = Schema.objects.filter(pk__in=kwargs.get("schemas", []))
+            if schemas.exists():
+                partner_pk = schemas.first().partner_id
+            else:
+                return func(*args, **kwargs)
+        lock_key = f'lock:{partner_pk}'
+        # Attempt to acquire the lock
+        lock_acquired = redis_instance().set(lock_key, 'locked', nx=True, ex=450)
+        if not lock_acquired:
+            # Lock not acquired, retry the task later
+            raise func.retry(countdown=10)
+
+        # Lock acquired, execute the task
+        try:
+            return func(*args, **kwargs)
+        finally:
+            # Release the lock after task execution
+            redis_instance().delete(lock_key)
+
+    return wrapper
+
+
 @app.task()
 def raw_gps_handler():
     raw_list = RawGPS.objects.filter(vehiclegps__isnull=True).order_by('created_at')[:1000]
@@ -134,7 +163,7 @@ def auto_send_task_bot(self):
                                 "entities": [{"offset": 0, "length": 12, "type": "bot_command"}]}}
     requests.post(webhook_url, json=message_data)
 
-
+@lock_task
 @app.task(bind=True, ignore_result=False)
 def get_session(self, partner_pk, aggregator='Uber', login=None, password=None):
     try:
@@ -155,6 +184,7 @@ def remove_gps_partner(self, partner_pk):
         redis_instance().delete(f"{partner_pk}_remove_gps")
 
 
+@lock_task
 @app.task(bind=True, retry_backoff=30, max_retries=3)
 def get_today_orders(self, partner_pk, day=None):
     try:
@@ -195,6 +225,7 @@ def null_vehicle_orders(self, partner_pk, day=None):
             order.save(update_fields=['vehicle'])
 
 
+@lock_task
 @app.task(bind=True, retry_backoff=30, max_retries=3)
 def add_distance_for_order(self, partner_pk, day=None, driver=None):
     gps_query = UaGpsSynchronizer.objects.filter(partner=partner_pk)
@@ -211,6 +242,7 @@ def add_distance_for_order(self, partner_pk, day=None, driver=None):
         gps.get_order_distance(orders)
 
 
+@lock_task
 @app.task(bind=True, retry_backoff=30, max_retries=4)
 def check_card_cash_value(self, partner_pk):
     try:
@@ -264,7 +296,7 @@ def check_card_cash_value(self, partner_pk):
         retry_delay = retry_logic(e, self.request.retries + 1)
         raise self.retry(exc=e, countdown=retry_delay)
 
-
+@lock_task
 @app.task(bind=True, retry_backoff=30, max_retries=4)
 def download_daily_report(self, schemas, day=None):
     try:
@@ -284,7 +316,7 @@ def download_daily_report(self, schemas, day=None):
         retry_delay = retry_logic(e, self.request.retries + 1)
         raise self.retry(exc=e, countdown=retry_delay)
 
-
+@lock_task
 @app.task(bind=True, retry_backoff=30, max_retries=4)
 def download_nightly_report(self, partner_pk, day=None):
     try:
@@ -302,7 +334,7 @@ def download_nightly_report(self, partner_pk, day=None):
         raise self.retry(exc=e, countdown=retry_delay)
     # save_report_to_ninja_payment(start, end, partner_pk, schema)
 
-
+@lock_task
 @app.task(bind=True, retry_backoff=30, max_retries=4)
 def download_weekly_report(self, partner_pk):
     try:
@@ -367,7 +399,7 @@ def generate_summary_report(self, schemas, day=None):
         end, start = get_time_for_task(driver.schema.pk, day)[1:3]
         summary_report_create(start, end, driver, driver.partner)
 
-
+@lock_task
 @app.task(bind=True)
 def get_car_efficiency(self, partner_pk, day=None):
     start, end = get_start_end("yesterday", day)[:2]
@@ -432,7 +464,7 @@ def get_car_efficiency(self, partner_pk, day=None):
             for driver, kasa in vehicle_drivers.items():
                 DriverEffVehicleKasa.objects.create(driver_id=driver, efficiency_car=car, kasa=kasa)
 
-
+@lock_task
 @app.task(bind=True)
 def get_driver_efficiency(self, partner_pk, day=None):
     start, end = get_start_end("yesterday", day)[:2]
@@ -443,7 +475,7 @@ def get_driver_efficiency(self, partner_pk, day=None):
             polymorphic_efficiency_create(DriverEfficiency, partner_pk, driver,
                                           start, end, CustomReport, road_mileage=road_mileage)
 
-
+@lock_task
 @app.task(bind=True)
 def get_driver_efficiency_fleet(self, partner_pk, day=None):
     start, end = get_start_end("yesterday", day)[:2]
@@ -455,7 +487,7 @@ def get_driver_efficiency_fleet(self, partner_pk, day=None):
                 polymorphic_efficiency_create(DriverEfficiencyFleet, partner_pk, driver,
                                               start, end, CustomReport, fleet)
 
-
+@lock_task
 @app.task(bind=True)
 def update_driver_status(self, partner_pk, photo=None):
     with memcache_lock(self.name, self.request.args, self.app.oid, 600) as acquired:
@@ -495,7 +527,7 @@ def update_driver_status(self, partner_pk, photo=None):
         else:
             logger.info(f'{self.name}: passed')
 
-
+@lock_task
 @app.task(bind=True, ignore_result=False)
 def update_driver_data(self, partner_pk, manager_id=None):
     fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None)
@@ -533,7 +565,7 @@ def schedule_for_detaching_uklon(self, partner_pk):
             detaching_the_driver_from_the_car.apply_async(args=[partner_pk, reshuffle.swap_vehicle.licence_plate, eta],
                                                           eta=eta, queue=f"beat_tasks_{partner_pk}")
 
-
+@lock_task
 @app.task(bind=True, retry_backoff=30, max_retries=1)
 def detaching_the_driver_from_the_car(self, partner_pk, licence_plate, eta):
     try:
@@ -549,7 +581,7 @@ def detaching_the_driver_from_the_car(self, partner_pk, licence_plate, eta):
         retry_delay = retry_logic(e, self.request.retries + 1)
         raise self.retry(exc=e, countdown=retry_delay)
 
-
+@lock_task
 @app.task(bind=True, retry_backoff=30, max_retries=4)
 def get_rent_information(self, schemas=None, day=None, driver=None, payment=None):
     try:
@@ -598,7 +630,7 @@ def generate_rent_message_driver(self, driver_id, manager_chat_id, message_id):
     message = gps.get_non_order_message(start, end, driver_id)
     return manager_chat_id, message, message_id
 
-
+@lock_task
 @app.task(bind=True, retry_backoff=30, max_retries=3)
 def get_today_rent(self, partner_pk):
     try:
@@ -612,6 +644,7 @@ def get_today_rent(self, partner_pk):
         raise self.retry(exc=e, countdown=retry_delay)
 
 
+@lock_task
 @app.task(bind=True, ignore_result=False, retry_backoff=30, max_retries=4)
 def fleets_cash_trips(self, partner_pk, pk, enable):
     driver = Driver.objects.get(pk=pk)
@@ -624,6 +657,7 @@ def fleets_cash_trips(self, partner_pk, pk, enable):
             fleet.disable_cash(driver_rate.driver_external_id, enable)
 
 
+@lock_task
 @app.task(bind=True, retry_backoff=30, max_retries=4)
 def withdraw_uklon(self, partner_pk):
     try:
@@ -1162,7 +1196,7 @@ def add_screen_to_payment(self, filename, driver_pk):
     payment.bolt_screen = filename
     payment.save(update_fields=['bolt_screen'])
 
-
+@lock_task
 @app.task(bind=True, ignore_result=False)
 def create_daily_payment(self, **kwargs):
     if kwargs.get("driver_pk"):
@@ -1199,7 +1233,7 @@ def create_daily_payment(self, **kwargs):
         response = {"status": "error"}
     return response
 
-
+@lock_task
 @app.task(bind=True)
 def calculate_vehicle_earnings(self, payment_pk):
     payment = DriverPayments.objects.get(pk=payment_pk)
@@ -1272,7 +1306,7 @@ def calculate_vehicle_spending(self, payment_pk):
         }
     )
 
-
+@lock_task
 @app.task(bind=True)
 def calculate_failed_earnings(self, payment_pk):
     payment = DriverPayments.objects.get(pk=payment_pk)
