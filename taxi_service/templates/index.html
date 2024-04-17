@@ -3,8 +3,9 @@
 {% load i18n %}
 {% include 'header.html' %}
 <main>
-  {% block content %}
-    <div class="hero_area">
+  <div class="hero_area">
+    {% block content %}
+
 
       <!-- one section -->
 
@@ -331,10 +332,11 @@
       {% include '_contact-me-form.html' %}
       {% include '_thank-you-message.html' %}
       {% include '_existing-you-message.html' %}
-    </div>
 
-    <!-- end client section -->
-  {% endblock %}
+
+      <!-- end client section -->
+    {% endblock %}
+  </div>
 </main>
 {% include 'footer.html' %}
 

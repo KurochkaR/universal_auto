@@ -417,7 +417,7 @@ $(document).ready(function () {
 	if ($(".investment-slider").length) {
 		var investmentSlider = new Splide('.investment-slider', {
 			type: 'loop',
-			perPage: 1,
+			perPage: 3,
 			autoplay: true,
 		});
 
@@ -605,6 +605,19 @@ $(document).ready(function () {
 		event.preventDefault();
 		$('#contact-me-form').hide();
 	});
+
+	$('.splide__arrow--next').html('<svg width="99" height="30" viewBox="0 0 99 30" fill="none" xmlns="http://www.w3.org/2000/svg">\n' +
+		'            <path\n' +
+		'                d="M3 12.5C1.61929 12.5 0.5 13.6193 0.5 15C0.5 16.3807 1.61929 17.5 3 17.5V12.5ZM99 15L74 0.566243V29.4338L99 15ZM3 17.5H76.5V12.5H3V17.5Z"\n' +
+		'                fill="#141E17"></path>\n' +
+		'          </svg>');
+
+	$('.splide__arrow--prev').html('<svg width="99" height="30" viewBox="0 0 99 30" fill="none" xmlns="http://www.w3.org/2000/svg">\n' +
+		'            <path\n' +
+		'          d="M0 15L25 29.4338V0.566243L0 15ZM96 17.5C97.3807 17.5 98.5 16.3807 98.5 15C98.5 13.6193 97.3807 12.5 96 12.5V17.5ZM22.5 17.5H96V12.5H22.5V17.5Z"\n' +
+		'          fill="#141E17"></path>\n' +
+		'    </svg>');
+
 });
 
 function isValidEmail(email) {
