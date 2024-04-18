@@ -618,6 +618,22 @@ $(document).ready(function () {
 		'          fill="#141E17"></path>\n' +
 		'    </svg>');
 
+	$('.question').each(function () {
+		const title = $(this).find('.question-title');
+		const answer = $(this).find('.answer');
+		const svg = title.find('svg');
+
+		title.on('click', function () {
+			answer.slideToggle();
+			if (svg.hasClass('rotate')) {
+				svg.removeClass('rotate');
+				svg.css('transform', 'rotate(0deg)');
+			} else {
+				svg.addClass('rotate');
+				svg.css('transform', 'rotate(90deg)');
+			}
+		});
+	});
 });
 
 function isValidEmail(email) {

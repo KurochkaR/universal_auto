@@ -5852,396 +5852,59 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	font-size: 25px;
 }
 
+/* block 5 */
 
-/*.investment-offer-section {*/
-/*	margin-top: 80px;*/
-/*}*/
+.investment-five-section {
+	margin-top: 100px;
+}
 
-/*.investment-offer-section .container {*/
-/*	text-align: center;*/
-/*}*/
+.investment-five-section .asked-questions-container {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	justify-content: center;
+}
 
+.investment-five-section .asked-questions-title {
+	width: 100%;
+	text-align: center;
+	margin-bottom: 55px;
+	font-family: var(--second-family);
+	font-weight: 700;
+	font-size: 32px;
+	font-variant: small-caps;
+	color: #141e17;
+}
 
-/*.investment-offer-section .container h2 {*/
-/*	color: #141E17;*/
-/*	font-size: 32px;*/
-/*	font-style: normal;*/
-/*	font-weight: 600;*/
-/*	line-height: normal;*/
-/*	text-transform: uppercase;*/
-/*}*/
+.investment-five-section .question {
+	width: 100%;
+	border-bottom: 3px solid #a1e8b9;
+	margin-bottom: 25px;
+}
 
-/*.investment-offer-section .cards {*/
-/*	display: flex;*/
-/*	width: 100%;*/
-/*	justify-content: center;*/
-/*	margin-top: 24px;*/
-/*}*/
+.investment-five-section .question h3,
+.investment-five-section .question p {
+	font-family: var(--font-family);
+	font-weight: 400;
+	font-size: 25px;
+	color: #53785e;
+}
 
-/*.investment-offer-section .card {*/
-/*	flex: 0 0 calc(33% - 20px);*/
-/*	padding: 0 20px 0 20px;*/
-/*	border: 0px solid rgba(0, 0, 0, 0.125);*/
-/*}*/
+.investment-five-section .question h3 {
+	width: 87%;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
 
-/*.investment-offer-section .card img {*/
-/*	width: 100%;*/
-/*	height: auto;*/
-/*	border-radius: 62px;*/
-/*}*/
+.investment-five-section .question p {
+	display: none;
+}
 
-/*.investment-offer-section .card h3 {*/
-/*	margin-top: 20px;*/
-/*	color: #38423B;*/
-/*	text-align: center;*/
-/*	font-size: 23px;*/
-/*	font-style: normal;*/
-/*	font-weight: 700;*/
-/*	line-height: normal;*/
-/*}*/
-
-/*.investment-offer-section .card p {*/
-/*	margin-top: 10px;*/
-/*	color: #53785E;*/
-/*	text-align: center;*/
-/*	font-size: 23px;*/
-/*	font-style: normal;*/
-/*	font-weight: 400;*/
-/*	line-height: normal;*/
-/*}*/
-
-/*.investment-offer-section .container button {*/
-/*	text-align: center;*/
-/*	margin-top: 20px;*/
-/*	font-size: 16px;*/
-/*	padding: 10px 10px;*/
-/*	background-color: #EC6323;*/
-/*	color: #fff;*/
-/*	border: none;*/
-/*	cursor: pointer;*/
-/*	transition: background-color 0.3s;*/
-/*	border-radius: 62px;*/
-/*}*/
-
-/*!* block 4 *!*/
-/*.investment-in-numbers-section {*/
-/*	margin-top: 80px;*/
-/*	background: #A1E8B9;*/
-/*}*/
-
-/*.img-svg-phone {*/
-/*	display: none;*/
-/*}*/
-
-/*.investment-in-numbers-section .container {*/
-/*	width: 100%;*/
-/*	height: auto;*/
-/*	padding: 10px;*/
-/*}*/
-
-/*.investment-in-numbers-section .container h2 {*/
-/*	padding-top: 15px;*/
-/*	color: #FFF;*/
-/*	font-size: 32px;*/
-/*	font-style: normal;*/
-/*	font-weight: 600;*/
-/*	line-height: normal;*/
-/*	text-transform: uppercase;*/
-/*}*/
-
-/*.investment-card {*/
-/*	margin-top: 73px;*/
-/*	padding: 16px 30px 30px 41px;*/
-/*	width: 360px;*/
-/*	height: 264px;*/
-/*	border-radius: 20px;*/
-/*	background: #FFF;*/
-/*}*/
-
-/*.investment-in-numbers-section .investment-card h2 {*/
-/*	color: #141E17;*/
-/*	font-size: 32px;*/
-/*	font-style: normal;*/
-/*	font-weight: 600;*/
-/*	line-height: normal;*/
-/*}*/
-
-/*.investment-in-numbers-section .investment-card h3 {*/
-/*	color: #53785E;*/
-/*	font-size: 20px;*/
-/*	font-style: normal;*/
-/*	font-weight: 400;*/
-/*	line-height: normal;*/
-/*}*/
-
-/*.investment-in-numbers-section .investment-card h3 span {*/
-/*	color: #EC6323;*/
-/*}*/
-
-/*.investment-card .img-svg {*/
-/*	position: relative;*/
-/*	left: 110%;*/
-/*	bottom: 35%;*/
-/*}*/
-
-
-/*.investment-in-numbers-section .container .investment-card:nth-child(3) {*/
-/*	margin-left: 52%;*/
-/*	margin-top: 1%;*/
-/*	height: 195px;*/
-/*}*/
-
-/*.investment-in-numbers-section .container .investment-card:nth-child(3) .img-svg svg:nth-child(1) {*/
-/*	position: relative;*/
-/*	left: 1%;*/
-/*	margin-top: 15px;*/
-/*}*/
-
-/*.investment-in-numbers-section .container .investment-card:nth-child(3) .img-svg svg:nth-child(2) {*/
-/*	position: relative;*/
-/*	right: 259%;*/
-/*	bottom: 97px;*/
-/*}*/
-
-/*.investment-cards {*/
-/*	display: flex;*/
-/*	justify-content: space-between;*/
-/*}*/
-
-/*.investment-cards .investment-card:nth-child(2) {*/
-/*	position: relative;*/
-/*	right: 8%;*/
-/*}*/
-
-/*.investment-cards .investment-card:nth-child(1) .img-svg svg {*/
-/*	position: relative;*/
-/*	right: 53%;*/
-/*	margin-top: 136px;*/
-/*}*/
-
-/*.investment-cards .investment-card:nth-child(2) .img-svg svg {*/
-/*	position: relative;*/
-/*	right: 90%;*/
-/*	margin-top: 159px;*/
-/*}*/
-
-/*.investment-in-numbers-section .container .investment-card:nth-child(5) {*/
-/*	margin-left: 33%;*/
-/*	margin-top: 8%;*/
-/*	height: 320px;*/
-/*	margin-bottom: 77px;*/
-/*}*/
-
-/*!* block 5 *!*/
-/*.investment-park-section {*/
-/*	margin-top: 80px;*/
-/*}*/
-
-/*.investment-park-section .container {*/
-/*	overflow: hidden;*/
-/*}*/
-
-/*.investment-park-section .container h2 {*/
-/*	color: #141E17;*/
-/*	font-size: 32px;*/
-/*	font-style: normal;*/
-/*	font-weight: 600;*/
-/*	line-height: normal;*/
-/*	text-transform: uppercase;*/
-/*}*/
-
-/*.investment-park-slider {*/
-/*	flex: 0 0 100%;*/
-/*	box-sizing: border-box;*/
-/*}*/
-
-/*.investment-park-slider h3 {*/
-/*	color: #38423B;*/
-/*	text-align: center;*/
-/*	font-size: 32px;*/
-/*	font-style: normal;*/
-/*	font-weight: 700;*/
-/*	line-height: normal;*/
-/*}*/
-
-/*.investment-park-slider h3.slider-title-1 {*/
-/*	position: absolute;*/
-/*	margin-top: 135px;*/
-/*	left: 230px;*/
-/*}*/
-
-/*.investment-park-slider h3.slider-title-2,*/
-/*.investment-park-slider h3.slider-title-3 {*/
-/*	position: absolute;*/
-/*	margin-top: 135px;*/
-/*	left: 214px;*/
-/*}*/
-
-/*.investment-park-slider h4 {*/
-/*	color: #53785E;*/
-/*	text-align: center;*/
-/*	font-size: 25px;*/
-/*	font-style: normal;*/
-/*	font-weight: 600;*/
-/*	line-height: normal;*/
-/*}*/
-
-/*.investment-park-slider h4.slider-description-1 {*/
-/*	text-align: left;*/
-/*	padding: 0px 50px 0px 0px;*/
-/*	position: absolute;*/
-/*	margin-top: 200px;*/
-/*	left: 230px;*/
-/*	width: 70%;*/
-/*}*/
-
-/*.investment-park-slider h4.slider-description-2,*/
-/*.investment-park-slider h4.slider-description-3 {*/
-/*	text-align: left;*/
-/*	padding: 0px 50px 0px 0px;*/
-/*	position: absolute;*/
-/*	margin-top: 200px;*/
-/*	left: 215px;*/
-/*	width: 70%;*/
-/*}*/
-
-/*.investment-park-slider .img-box .slid-img-laptop {*/
-/*	width: 100%;*/
-/*}*/
-
-/*.investment-park-slider .img-box img {*/
-/*	margin-top: 5%;*/
-/*}*/
-
-/*.investment-park-slider .img-box .slid-img-phone {*/
-/*	display: none;*/
-/*}*/
-
-
-/*!* park-block-electro-car *!*/
-/*.owners-electric-cars {*/
-/*	margin-top: 80px;*/
-/*}*/
-
-/*.owners-electric-cars .title-block h2 {*/
-/*	color: #141E17;*/
-/*	font-size: 32px;*/
-/*	font-style: normal;*/
-/*	font-weight: 700;*/
-/*	line-height: normal;*/
-/*	text-transform: uppercase;*/
-/*}*/
-
-/*.owners-cars {*/
-/*	display: flex;*/
-/*	justify-content: space-between;*/
-/*}*/
-
-/*.owners-car-description h3 {*/
-/*	margin: 25px 0 25px 0px;*/
-/*	color: #53785E;*/
-/*	font-size: 25px;*/
-/*	font-style: normal;*/
-/*	font-weight: 400;*/
-/*	line-height: normal;*/
-/*}*/
-
-/*.owners-car-description span {*/
-/*	color: #EC6323;*/
-/*	font-size: 25px;*/
-/*	font-style: normal;*/
-/*	font-weight: 700;*/
-/*	line-height: normal;*/
-/*}*/
-
-/*.be-responsible h2 {*/
-/*	margin: 25px 0 23px 0;*/
-/*	color: #53785E;*/
-/*	font-size: 25px;*/
-/*	font-style: normal;*/
-/*	font-weight: 400;*/
-/*	line-height: normal;*/
-/*}*/
-
-/*.be-responsible ul {*/
-/*	list-style: none;*/
-/*	padding: 0;*/
-/*}*/
-
-/*.be-responsible ul li {*/
-/*	margin-top: 10px;*/
-/*	color: #53785E;*/
-/*	font-size: 25px;*/
-/*	font-style: normal;*/
-/*	font-weight: 400;*/
-/*	line-height: normal;*/
-/*}*/
-
-/*.be-responsible ul li::before {*/
-/*	content: "";*/
-/*	display: inline-block;*/
-/*	width: 50px;*/
-/*	height: 50px;*/
-/*	background-image: url(/static/app/images/app-check-mark.webp);*/
-/*	background-size: cover;*/
-/*	margin-right: 5px;*/
-/*	vertical-align: middle;*/
-/*}*/
-
-
-/*!* modal *!*/
-/*.invest-modal {*/
-/*	display: none;*/
-/*	position: fixed;*/
-/*	z-index: 1;*/
-/*	left: 0;*/
-/*	top: 0;*/
-/*	width: 100%;*/
-/*	height: 100%;*/
-/*	background-color: rgba(0, 0, 0, 0.4);*/
-/*}*/
-
-/*.invest-modal-content {*/
-/*	text-align: center;*/
-/*	background-color: #A1E8B9;*/
-/*	margin: 15% auto;*/
-/*	padding: 20px;*/
-/*	width: 65%;*/
-/*	height: 50%;*/
-/*	border-radius: 62px;*/
-/*	display: flex;*/
-/*	flex-direction: column;*/
-/*	justify-content: center;*/
-/*	align-items: center;*/
-/*}*/
-
-
-/*.invest-modal-content h2 {*/
-/*	color: #EC6323;*/
-/*	text-align: center;*/
-/*	font-size: 25px;*/
-/*	font-style: normal;*/
-/*	font-weight: 700;*/
-/*	line-height: normal;*/
-/*}*/
-
-/*.invest-modal-content .close-button {*/
-/*	background: none;*/
-/*	color: black;*/
-/*	float: right;*/
-/*	font-size: 28px;*/
-/*	font-weight: bold;*/
-/*	border: none;*/
-/*	margin-left: 0px;*/
-/*	position: relative;*/
-/*	right: -330px;*/
-/*	bottom: 10px;*/
-/*}*/
-
-/*#investModalForm {*/
-/*	margin-top: 45px;*/
-/*	margin-bottom: 50px;*/
-/*}*/
+.investment-five-section .question h3 svg .rotate {
+	transform: rotate(90deg);
+	transition: transform 0.3s ease;
+}
 
 
 /* adaptive vertical for phone */
