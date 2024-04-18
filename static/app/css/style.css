@@ -2803,7 +2803,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 }
 
 .auto-park-right .decorate-img img {
-	width: 200%;
+	width: 177%;
 	height: auto;
 }
 
@@ -2908,7 +2908,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	width: 460px;
 	position: relative;
 	top: 82px;
-	left: 20px;
+	left: 0;
 }
 
 .auto-park-two-section .detail-box {
@@ -7066,7 +7066,7 @@ end Drivers page*/
 }
 
 .charging-station-section .charging-right-content .decorate-img img {
-	width: 180%;
+	width: 153%;
 	height: auto;
 }
 
@@ -7824,14 +7824,14 @@ end Drivers page*/
 }
 
 .price-header-right .decorate-img {
-	top: -80px;
+	top: -145px;
 	right: 100px;
 	position: relative;
 	z-index: -1;
 }
 
 .price-header-right .decorate-img img {
-	width: 200%;
+	width: 155%;
 	height: auto;
 }
 
