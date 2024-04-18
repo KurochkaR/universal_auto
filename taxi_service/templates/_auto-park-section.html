@@ -1,0 +1,51 @@
+{% load static %}
+{% load i18n %}
+<section class="auto-park-eleven-section">
+  <div class="container">
+    <div class="description">
+      <h2>{% trans "Збільшити прибуток автопарку" %}</h2>
+      <p>
+        {% trans "Зв'яжіться з нами, якщо у вас виникли запитання, або заповніть форму " %}
+        {% trans "і очікуйте контакту з нашим менеджером." %}
+      </p>
+      <h3>{% trans "Часи роботи" %}</h3>
+      <p>{% trans "з 09.00 до 18.00" %}</p>
+      <h3>{% trans "МЕНЕДЖЕР ПО РОБОТІ З КЛІЄНТАМИ" %}</h3>
+      <p>+380937531057</p>
+      <h3>{% trans "СОЦМЕРЕЖІ" %}</h3>
+      <div class="icon-social-network">
+        <a href="https://www.instagram.com/ninjataxi.ua/" aria-label="instagram"><i
+            class="fa-brands fa-instagram"></i></a>
+        <a href="https://www.facebook.com/profile.php?id=61554407076136" aria-label="facebook"><i
+            class="fa-brands fa-facebook"></i></a>
+        <a href="https://www.tiktok.com/@ninja.taxi?_t=8gRmG4idFNl" aria-label="tiktok"><i
+            class="fa-brands fa-tiktok"></i></a>
+        <a href="https://www.linkedin.com/company/ninja-taxi/" aria-label="linkedin"><i
+            class="fa-brands fa-linkedin"></i></a>
+      </div>
+    </div>
+    <div class="box-form">
+      <form>
+        <div class="client-info">
+          <label for="name">{% trans "Ім'я:" %}</label>
+          <input type="text" id="name" name="name" placeholder="Ваше ім’я" required>
+          <span class="error-name error-message"
+                style="color: red; display: none;">{% trans "Це поле обов'язкове" %}</span>
+        </div>
+        <div class="client-info">
+          <label for="phone">{% trans "Номер телефону:" %}</label>
+          <input type="tel" id="phone" name="phone" placeholder="(###) ### - ## - ##" required>
+          <span class="error-phone error-message"
+                style="color: red; display: none;">{% trans "Це поле обов'язкове" %}</span>
+        </div>
+        <div class="client-info">
+          <label for="email">{% trans "Email:" %}</label>
+          <input type="email" id="email" name="email" placeholder="Ваш email" required>
+          <span class="error-email error-message"
+                style="color: red; display: none;">{% trans "Це поле обов'язкове" %}</span>
+        </div>
+        <button class="subscribe-client" type="submit">{% trans "Надіслати" %}</button>
+      </form>
+    </div>
+  </div>
+</section>
