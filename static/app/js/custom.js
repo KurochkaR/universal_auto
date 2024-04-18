@@ -1,4 +1,16 @@
 $.scrollTop = () => Math.max(document.documentElement.scrollTop, document.body.scrollTop);
+
+$.mask.definitions['9'] = '';
+$.mask.definitions['d'] = '[0-9]';
+
+function intlTelInit(phoneEl) {
+	let phoneSelector = $(phoneEl);
+
+	if (phoneSelector.length) {
+		phoneSelector.mask("+380 dd ddd-dd-dd");
+	}
+}
+
 $(document).ready(function () {
 	$('[id^="sub-form-"]').on('submit', function (event) {
 		event.preventDefault();
@@ -27,13 +39,6 @@ $(document).ready(function () {
 			}
 		});
 	});
-});
-
-//$(window).on('load', function () {
-//	$('.loader').remove();
-//});
-
-$(document).ready(function () {
 
 	// js for header
 
@@ -396,20 +401,7 @@ $(document).ready(function () {
 
 		submitForm(formData);
 	});
-});
 
-$.mask.definitions['9'] = '';
-$.mask.definitions['d'] = '[0-9]';
-
-function intlTelInit(phoneEl) {
-	let phoneSelector = $(phoneEl);
-
-	if (phoneSelector.length) {
-		phoneSelector.mask("+380 dd ddd-dd-dd");
-	}
-}
-
-$(document).ready(function () {
 	intlTelInit('#phone');
 	intlTelInit('#client-phone');
 
@@ -484,9 +476,7 @@ $(document).ready(function () {
 			},
 		});
 	}
-});
 
-$(document).ready(function () {
 	var consultationButton = $(".consultation-button button");
 	var learnMoreButton = $(".investment-offer-section button");
 	var investModal = $("#InvestModal");
@@ -532,6 +522,7 @@ $(document).ready(function () {
 	});
 
 	$(this).on('click', '.subscribe-client', function (event) {
+
 		event.preventDefault();
 		const form = $(this).closest('form');
 		const nameInput = form.find('#name').val();
@@ -572,6 +563,9 @@ $(document).ready(function () {
 
 		}
 
+		const clickedButton = $(this);
+		clickedButton.prop('disabled', true);
+
 		$.ajax(
 			{
 				type: "POST",
@@ -595,6 +589,7 @@ $(document).ready(function () {
 						setTimeout(function () {
 							$('#thank-you-message').hide();
 						}, 5000);
+						clickedButton.prop('disabled', false);
 					}
 				}
 			}
@@ -640,3 +635,34 @@ function isValidEmail(email) {
 	const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 	return emailRegex.test(email);
 }
+
+$(document).ready(function () {
+	function isMobileDevice() {
+		return (typeof window.orientation !== "undefined") || (navigator.userAgent.indexOf('IEMobile') !== -1);
+	}
+
+	$('.phone').on('click', function () {
+		if (isMobileDevice()) {
+			window.location.href = 'tel:' + $(this).text().replace(/\D/g, '');
+		} else {
+			var phoneNumber = $(this).text().replace(/\D/g, '');
+			var message = 'Зателефонуйте за номером: ' + phoneNumber;
+			if (navigator.userAgent.match(/Mac/i)) {
+				message += '\nХочете відкрити FaceTime?';
+			} else if (navigator.userAgent.match(/Windows/i)) {
+				message += '\nХочете відкрити додаток Phone?';
+			}
+			if (confirm(message)) {
+				window.location.href = 'tel:' + phoneNumber;
+			}
+		}
+	});
+
+	$('.email').on('click', function () {
+		var email = $(this).text().trim();
+		var message = 'Надіслати листа на адресу: ' + email;
+		if (confirm(message)) {
+			window.location.href = 'mailto:' + email;
+		}
+	});
+});

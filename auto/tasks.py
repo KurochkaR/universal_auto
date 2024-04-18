@@ -410,7 +410,7 @@ def get_car_efficiency(self, partner_pk, day=None):
                     for fleet in fleets:
                         if isinstance(fleet, UberRequest):
                             result = fleet.generate_vehicle_report(start, end, [vehicle])
-                            driver_kasa += result[0]['totalEarnings'] if result else 0
+                            driver_kasa += Decimal(result[0]['totalEarnings']) if result else 0
                         else:
                             filter_request = Q(Q(driver=driver, fleet=fleet.name, vehicle=vehicle) &
                                                Q(Q(state=FleetOrder.COMPLETED, finish_time__range=(start, end)) |

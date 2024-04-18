@@ -33,8 +33,7 @@ class UklonRequest(Fleet, Synchronizer):
         if self.partner and not self.deleted_at:
             login = CredentialPartner.get_value(key='UKLON_NAME', partner=self.partner)
             password = CredentialPartner.get_value(key='UKLON_PASSWORD', partner=self.partner)
-            device_id = ParkSettings.get_value(f'DEVICE_UKLON_{self.partner.id}',
-                                               "6648039b-0839-4588-9ead-57bdf63a6209")
+            device_id = ParkSettings.get_value(f'DEVICE_UKLON_{self.partner.id}', device_id)
         payload = {
             'client_id': ParkSettings.get_value('CLIENT_ID_UKLON'),
             'client_secret': ParkSettings.get_value('CLIENT_SECRET_UKLON'),
