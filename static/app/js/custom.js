@@ -629,11 +629,6 @@ $(document).ready(function () {
 	});
 });
 
-function isValidEmail(email) {
-	const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-	return emailRegex.test(email);
-}
-
 $(document).ready(function () {
 	function isMobileDevice() {
 		return (typeof window.orientation !== "undefined") || (navigator.userAgent.indexOf('IEMobile') !== -1);

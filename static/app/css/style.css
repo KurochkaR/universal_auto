@@ -405,6 +405,7 @@ ul.sub-menu.service {
 
 	.sub-menu {
 		width: 100%;
+		top: 55px;
 		left: 0;
 		text-align: center;
 		background: rgba(0, 0, 0, 0.50);
