@@ -567,6 +567,7 @@ ul.sub-menu.service {
 
 	.sub-menu {
 		width: 100%;
+		top: 70px;
 		left: 0;
 		text-align: center;
 		background: rgba(0, 0, 0, 0.50);
@@ -3698,7 +3699,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 @media screen and (max-width: 767px) {
 	/*block 1*/
 	.auto-park-one-section {
-		height: 685px;
+		height: 845px;
 	}
 
 	.auto-park-one-section .container {
@@ -3742,7 +3743,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 
 	.auto-park-right .decorate-img img {
 		width: 100%;
-		height: 268px;
+		height: 393px;
 	}
 
 	.auto-park-right .one-info {
@@ -3750,14 +3751,14 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 		position: relative;
 		padding: 0 80px;
 		z-index: 1022;
-		margin-top: -239px;
+		margin-top: -360px;
 		right: 0;
 	}
 
 	.auto-park-right .one-info h2 {
 		font-family: var(--second-family);
 		font-weight: 700;
-		font-size: 20px;
+		font-size: 25px;
 		text-transform: uppercase;
 		text-align: center;
 		color: #ec6323;
@@ -3766,7 +3767,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	.auto-park-right .one-info p {
 		font-family: var(--font-family);
 		font-weight: 400;
-		font-size: 15px;
+		font-size: 20px;
 		text-align: center;
 		color: #fff;
 	}
@@ -3779,7 +3780,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 
 	.free-access-btn button {
 		width: 100%;
-		font-size: 12px;
+		font-size: 16px;
 		padding: 10px 10px;
 		margin-top: 10px;
 	}
@@ -3831,9 +3832,10 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	}
 
 	.auto-park-two-section .detail-box p {
+		width: 100%;
 		font-family: var(--second-family);
 		font-weight: 600;
-		font-size: 15px;
+		font-size: 20px;
 		text-align: center;
 		color: #141e17;
 	}
@@ -3850,7 +3852,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 
 	.auto-park-two-section .contact-us button {
 		width: 100%;
-		height: 33px;
+		height: 41px;
 		margin-top: 10px;
 		padding: 5px 10px;
 		background: #EC6323;
@@ -3858,7 +3860,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 		border-color: #EC6323;
 		font-family: var(--second-family);
 		font-weight: 700;
-		font-size: 10px;
+		font-size: 16px;
 		color: #fff;
 	}
 
@@ -3868,7 +3870,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 
 	.auto-park-two-section .contact-us a button {
 		width: 100%;
-		height: 33px;
+		height: 41px;
 		margin-top: 15px;
 		border: 5px solid #EC6323;
 		background: #FFF;
@@ -3876,7 +3878,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 		cursor: pointer;
 		font-family: var(--second-family);
 		font-weight: 700;
-		font-size: 10px;
+		font-size: 16px;
 		color: #ec6323;
 	}
 
@@ -3910,7 +3912,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	.auto-park-three-section .container .description h2 {
 		font-family: var(--second-family);
 		font-weight: 700;
-		font-size: 18px;
+		font-size: 23px;
 		text-transform: uppercase;
 		color: #141e17;
 		text-align: center;
@@ -3919,7 +3921,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	.auto-park-three-section .container .description p {
 		font-family: var(--font-family);
 		font-weight: 400;
-		font-size: 15px;
+		font-size: 18px;
 		text-align: center;
 		color: #38423b;
 		padding: 0 4px 0 0;
@@ -3936,7 +3938,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 		padding: 10px 15px;
 		font-family: var(--second-family);
 		font-weight: 700;
-		font-size: 10px;
+		font-size: 16px;
 		color: #fff;
 	}
 
@@ -3974,7 +3976,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 		width: 100%;
 		font-family: var(--second-family);
 		font-weight: 700;
-		font-size: 18px;
+		font-size: 23px;
 		text-transform: uppercase;
 		text-align: center;
 		color: #141e17;
@@ -3984,7 +3986,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	.auto-park-four-section .container .description p {
 		font-family: var(--font-family);
 		font-weight: 400;
-		font-size: 15px;
+		font-size: 18px;
 		color: #38423b;
 		text-align: center;
 		margin-bottom: 10px;
@@ -3995,7 +3997,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 		padding: 10px 15px;
 		font-family: var(--second-family);
 		font-weight: 700;
-		font-size: 10px;
+		font-size: 16px;
 		color: #fff;
 	}
 
@@ -4016,8 +4018,8 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 		border-radius: 43px;
 	}
 
-	.auto-park-five-section .box-img {
-		width: 100% !important;
+	.auto-park-five-section .container .box-img {
+		width: 100%;
 		height: auto;
 	}
 
@@ -4026,47 +4028,47 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 		height: auto;
 	}
 
-	.auto-park-five-section .description {
-		padding: 10px 25px !important;
+	.auto-park-five-section .container .description {
+		padding: 10px 25px;
 	}
 
-	.auto-park-five-section .description h2 {
-		font-size: 18px !important;
+	.auto-park-five-section .container .description h2 {
+		font-size: 23px;
 		text-align: center;
 	}
 
-	.auto-park-five-section .description p {
-		font-size: 15px !important;
+	.auto-park-five-section .container .description p {
+		font-size: 18px;
 		text-align: center;
 	}
 
-	.auto-park-five-section .description .contact-us {
-		width: 100% !important;
+	.auto-park-five-section .container .description .contact-us {
+		width: 100%;
 		flex-direction: column;
 	}
 
-	.auto-park-five-section .description a {
+	.auto-park-five-section .container .description a {
 		width: 100%;
 	}
 
-	.auto-park-five-section .description a button {
+	.auto-park-five-section .container .description a button {
 		width: 100%;
 		margin-top: 15px;
 		border: 5px solid #EC6323;
-		background-color: #EC6323;
-		padding: 5px 15px !important;
-		font-size: 10px !important;
+		background-color: transparent;
+		padding: 5px 15px;
+		font-size: 16px;
 		color: #fff;
 	}
 
-	.auto-park-five-section .description button {
+	.auto-park-five-section .container .description button {
 		margin-top: 10px;
-		padding: 5px 15px !important;
+		padding: 5px 15px;
 		background: #EC6323;
 		border: 5px solid #EC6323;
 		color: #fff;
 		border-radius: 20px;
-		font-size: 10px !important;
+		font-size: 16px;
 		text-decoration: none;
 		cursor: pointer;
 		font-weight: 700;
@@ -4105,7 +4107,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	.auto-park-six-section .container .description h2 {
 		font-family: var(--second-family);
 		font-weight: 700;
-		font-size: 18px;
+		font-size: 23px;
 		text-transform: uppercase;
 		color: #141e17;
 		text-align: center;
@@ -4115,7 +4117,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	.auto-park-six-section .container .description p {
 		font-family: var(--font-family);
 		font-weight: 400;
-		font-size: 15px;
+		font-size: 18px;
 		color: #38423b;
 		text-align: center;
 		margin-bottom: 10px;
@@ -4126,7 +4128,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 		padding: 5px 15px;
 		font-family: var(--second-family);
 		font-weight: 700;
-		font-size: 10px;
+		font-size: 16px;
 		color: #fff;
 		margin: 0;
 	}
@@ -4163,7 +4165,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	.auto-park-seven-section .container .description h2 {
 		font-family: var(--second-family);
 		font-weight: 700;
-		font-size: 18px;
+		font-size: 23px;
 		text-transform: uppercase;
 		color: #141e17;
 		text-align: center;
@@ -4173,7 +4175,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	.auto-park-seven-section .container .description p {
 		font-family: var(--font-family);
 		font-weight: 400;
-		font-size: 15px;
+		font-size: 18px;
 		color: #38423b;
 		text-align: center;
 		margin-bottom: 10px;
@@ -4184,7 +4186,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 		padding: 5px 15px;
 		font-family: var(--second-family);
 		font-weight: 700;
-		font-size: 10px;
+		font-size: 16px;
 		color: #fff;
 		margin: 0;
 	}
@@ -4219,7 +4221,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	.auto-park-eight-section .container .description h2 {
 		font-family: var(--second-family);
 		font-weight: 700;
-		font-size: 18px;
+		font-size: 23px;
 		text-transform: uppercase;
 		color: #141e17;
 		text-align: center;
@@ -4229,7 +4231,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	.auto-park-eight-section .container .description p {
 		font-family: var(--font-family);
 		font-weight: 400;
-		font-size: 15px;
+		font-size: 18px;
 		color: #38423b;
 		text-align: center;
 		margin-bottom: 10px;
@@ -4240,7 +4242,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 		padding: 5px 15px;
 		font-family: var(--second-family);
 		font-weight: 700;
-		font-size: 10px;
+		font-size: 16px;
 		color: #fff;
 		margin-top: 5px;
 	}
@@ -4284,7 +4286,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	.auto-park-nine-section .container .description h2 {
 		font-family: var(--second-family);
 		font-weight: 700;
-		font-size: 18px;
+		font-size: 23px;
 		text-transform: uppercase;
 		color: #fff;
 		text-align: center;
@@ -4295,7 +4297,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 		width: 100%;
 		font-family: var(--font-family);
 		font-weight: 400;
-		font-size: 15px;
+		font-size: 18px;
 		color: #fff;
 		text-align: center;
 	}
@@ -4306,7 +4308,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 		border: 5px solid #EC6323;
 		background-color: #EC6323;
 		padding: 5px 15px;
-		font-size: 10px;
+		font-size: 16px;
 		color: #fff;
 		cursor: pointer;
 		border-radius: 25px;
@@ -4343,7 +4345,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	.auto-park-ten-section .container .description h2 {
 		font-family: var(--second-family);
 		font-weight: 700;
-		font-size: 18px;
+		font-size: 23px;
 		text-transform: uppercase;
 		color: #141e17;
 		text-align: center;
@@ -4353,7 +4355,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	.auto-park-ten-section .container .description p {
 		font-family: var(--font-family);
 		font-weight: 400;
-		font-size: 15px;
+		font-size: 18px;
 		color: #38423b;
 		text-align: center;
 		margin-bottom: 10px;
@@ -4364,7 +4366,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 		padding: 5px 15px;
 		font-family: var(--second-family);
 		font-weight: 700;
-		font-size: 10px;
+		font-size: 16px;
 		color: #fff;
 		margin-top: 5px;
 	}
@@ -4390,7 +4392,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	.auto-park-eleven-section .container .description h2 {
 		font-family: var(--second-family);
 		font-weight: 700;
-		font-size: 18px;
+		font-size: 23px;
 		text-transform: uppercase;
 		color: #141e17;
 		margin: 15px 0 10px 0;
@@ -4399,7 +4401,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	.auto-park-eleven-section .container .description h3 {
 		font-family: var(--font-family);
 		font-weight: 400;
-		font-size: 15px;
+		font-size: 18px;
 		color: rgba(83, 120, 94, 0.5);
 		margin: 15px 0 0 0;
 	}
@@ -4407,7 +4409,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	.auto-park-eleven-section .container .description p {
 		font-family: var(--font-family);
 		font-weight: 400;
-		font-size: 15px;
+		font-size: 18px;
 		color: #53785e;
 		margin: 0;
 	}
@@ -4449,7 +4451,8 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 		margin-right: 10px;
 		font-family: var(--font-family);
 		font-weight: 700;
-		font-size: 15px;
+		font-size: 23px;
+		margin-left: 15px;
 		color: #fff;
 	}
 
@@ -4460,7 +4463,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 		padding: 10px 15px;
 		font-family: var(--font-family);
 		font-weight: 400;
-		font-size: 15px;
+		font-size: 18px;
 	}
 
 	.client-info input::placeholder {
@@ -6376,309 +6379,448 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 @media screen and (min-width: 480px) and (max-width: 767px) {
 
 	/*block 1*/
-	.investment_section .container {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: space-between;
-	}
-
-	.investment-left img {
+	.investment_section {
+		margin-top: 80px;
 		width: 100%;
-		margin-top: 20px;
+		height: 690px;
 	}
 
-	.investment-right {
-		margin-top: 100px;
-		height: 305px;
+	.investment_section .container {
+		flex-direction: column;
+		padding: 0;
+		margin: 0 0 0 0;
+		max-width: 767px;
+	}
+
+	.investment_section .investment-left {
+		width: 100%;
+		height: auto;
+		top: 0;
+	}
+
+	.investment_section .investment-left img {
+		position: relative;
+		border-radius: 62px;
+		width: 100%;
+		height: auto;
+		top: 0;
+		left: 0;
+	}
+
+	.investment_section .investment-right {
+		margin-top: 37px;
+		width: 100%;
+		top: 0;
 	}
 
 	.investment-right .decorate-img {
-		right: 15px;
-	}
-
-	.investment-right .decorate-img img {
-		width: 110%;
-		height: 362px;
-	}
-
-	.invest-one-info {
-		width: 90%;
-		top: 36%;
-		left: 60%;
-	}
-
-	.invest-one-info h2 {
-		font-size: 25px;
-		margin-bottom: 10px;
-	}
-
-	.invest-one-info p {
-		font-size: 20px;
-		margin-bottom: 10px;
-	}
-
-	.invest-btn-box {
-		width: 100%;
 		right: 0;
-		margin-top: 0;
-		top: -125px;
-		flex-direction: column;
-		bottom: 120px;
-		gap: 10px;
+		position: relative;
+		z-index: -1;
 	}
 
-	.invest-btn-box .email-input, .invest-modal-form #email-input {
-		font-size: 16px;
+	.investment_section .investment-right .decorate-img img {
 		width: 100%;
-		padding: 10px 10px;
+		height: 393px;
+	}
+
+	.investment_section .invest-one-info {
+		width: 100%;
+		position: relative;
+		bottom: 350px;
+		left: 0;
+		transform: translate(0, 0);
 		text-align: center;
+		color: #ffffff;
+		padding: 0 60px;
 	}
 
-	.invest-btn-box .free-access-button {
-		font-size: 16px;
+	.investment_section .invest-one-info h2 {
 		width: 100%;
-		padding: 10px 10px;
+		margin-bottom: 10px;
+		font-style: normal;
+		line-height: normal;
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 25px;
+		text-transform: uppercase;
+		text-align: center;
+		color: #ec6323;
 		margin-left: 0;
 	}
 
+	.investment_section .invest-one-info p {
+		color: #FFF;
+		text-align: center;
+		font-size: 23px;
+		font-style: normal;
+		font-weight: 400;
+		line-height: normal;
+		margin-left: 0;
+	}
+
+	.investment_section .invest-btn-box {
+		width: 100%;
+		right: 0;
+		position: relative;
+		bottom: 350px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		margin-top: 10px;
+		gap: 11px;
+		flex-direction: column;
+	}
+
+	.investment_section .invest-btn-box .invest-btn {
+		font-size: 16px;
+		padding: 5px 10px;
+		width: 400px;
+		height: 45px;
+	}
+
+	.investment_section .invest-btn-box .how-does-it-work-btn {
+		font-size: 16px;
+		padding: 5px 10px;
+		width: 400px;
+		height: 45px;
+	}
 
 	/*block 2*/
-	.investment-slider-section {
-		margin-top: 100px;
+	.investment-two-section {
+		margin-top: 80px;
+		grid-column-gap: 10px;
+		grid-row-gap: 10px;
+		grid-template-rows: auto;
+		grid-template-columns: 1fr;
+		grid-auto-columns: 1fr;
+		display: grid;
 	}
 
-	.investment-slider-section h2 {
-		font-size: 20px;
-		margin-top: 12px;
+	.investment-two-section .how-does-it-work {
+		position: relative;
+		grid-area: span 1 / span 1 / span 1 / span 1;
+		align-self: start;
+		margin-left: 0;
+		padding: 0 25px;
+		top: 0;
 	}
 
-	.investment-slider-section .investment-slider {
-		margin-top: 20px;
+	.investment-two-section .how-does-it-work h2 {
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 23px;
+		text-transform: uppercase;
+		color: #141e17;
 	}
 
-	.investment-slider-section .investment-slider h3 {
-		font-size: 15px;
-		margin-top: 15px;
+
+	.investment-two-section .how-does-it-work p {
+		font-family: var(--font-family);
+		font-weight: 400;
+		font-size: 18px;
+		color: #53785e;
 	}
 
-	.investment-slider-section .investment-slider li,
-	.investment-slider-section .investment-slider p {
-		font-size: 12px;
+	.investment-two-section .how-does-it-work button {
+		display: none;
 	}
 
-	.splide__arrow {
-		z-index: -1 !important;
-	}
-
-	.investment-slider ul {
-		padding-left: 0;
-	}
-
-	.investment-slider-section .consultation-button button {
+	.investment-two-section .investment-cards-container {
 		width: 100%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex-direction: column;
+		background: url(/static/app/images/invest-img/invest-block-2.png) no-repeat;
+		background-size: 100% 100%;
+		padding: 52px 25px 58px 25px;
+		border-radius: 25px;
+	}
+
+	.investment-two-section .investment-cards-container .investment-cards {
+		display: flex;
+		width: 100%;
+		gap: 10px;
+		flex-direction: column;
+	}
+
+	.investment-two-section .investment-cards-container .investment-cards .investment-card {
+		width: 100%;
+		background: #fff;
+		padding: 15px 15px 15px 15px;
+		border-radius: 20px;
+	}
+
+	.investment-two-section .investment-cards-container .investment-cards .investment-card h2 {
+		font-family: var(--second-family);
+		font-weight: 600;
+		font-size: 32px;
+		text-transform: uppercase;
+		color: #38423b;
+	}
+
+	.investment-two-section .investment-cards-container .investment-cards .investment-card span {
+		font-family: var(--font-family);
+		font-weight: 400;
+		font-size: 18px;
+		color: #53785e;
+	}
+
+	.investment-two-section button {
+		display: block;
+		width: 88%;
+		position: relative;
 		font-size: 16px;
+		top: 0;
+		left: 25px;
+		padding: 5px 10px;
+		border-radius: 20px;
+		height: 45px;
 	}
 
 	/*block 3*/
-	.investment-offer-section {
-		margin-top: 30px;
+	.investment-three-section {
+		margin-top: 80px;
 	}
 
-	.investment-offer-section .container h2 {
-		text-align: left;
-		font-size: 15px;
-		margin-left: 20px;
+	.investment-three-section button {
+		display: none;
 	}
 
-	.investment-offer-section .cards {
-		margin-top: 20px;
-		flex-direction: column;
-	}
-
-	.investment-offer-section .card {
+	.investment-three-section .container {
 		display: flex;
-		flex-direction: row-reverse;
+		flex-direction: column;
 		align-items: center;
+		justify-content: center;
 	}
 
-	.investment-offer-section .card img {
+	.investment-three-section .why-us-title h2 {
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 23px;
+		text-transform: uppercase;
+		color: #141e17;
+	}
+
+	.investment-three-section .investment-slider {
+		margin-top: 20px;
 		width: 100%;
-		max-width: 200px;
-		margin-left: 5px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
 	}
 
-	.investment-offer-section .card h3,
-	.investment-offer-section .card p {
-		text-align: left;
-		font-size: 12px;
-		margin-top: 0;
-	}
-
-	.investment-offer-section .container button {
-		margin-top: 0;
-		font-size: 16px;
+	.investment-three-section .why-us-cards-container {
 		width: 100%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex: 0 0 calc(33.33% - 20px);
+		margin: 0 10px;
+		box-sizing: border-box;
+	}
+
+	.investment-three-section .why-us-card {
+		width: 100%;
+		background: #e5f9ec;
+		border-radius: 25px;
+		padding: 25px 15px;
+		transition: background-color 0.3s;
+	}
+
+	.investment-three-section .why-us-card .container-card h3 {
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 23px;
+		text-align: center;
+		color: #141e17;
+		margin: 15px 0;
+	}
+
+	.investment-three-section .why-us-card .container-card p {
+		font-family: var(--font-family);
+		font-weight: 400;
+		font-size: 18px;
+		text-align: center;
+		color: #53785e;
+	}
+
+	.investment-three-section .why-us-card:hover {
+		background: #a1e8b9;
+	}
+
+	.investment-three-section .why-us-card:hover .container-card h3,
+	.investment-three-section .why-us-card:hover .container-card p {
+		color: white;
+	}
+
+	.investment-three-section .box-btn {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.investment-three-section .splide__list {
+		display: grid;
+		grid-template-columns: 1fr;
+		grid-template-rows: 1fr;
+		grid-column-gap: 10px;
+		grid-row-gap: 10px;
+		width: 100%;
+	}
+
+	.investment-three-section .splide__slide {
+		width: 100% !important;
+
 	}
 
 	/*block 4*/
-	.investment-in-numbers-section {
-		margin-top: 30px;
+	.investment-four-section {
+		margin-top: 80px;
+		border-radius: 40px;
+		padding: 40px 25px 50px 25px;
+	}
+
+	.investment-four-section .container {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
+		justify-content: center;
+		padding: 0;
+		gap: 0;
 	}
 
-	.investment-in-numbers-section .container {
-		height: auto;
+	.investment-four-section .container .potential-income {
+		width: 100%;
+		padding-left: 0;
 	}
 
-	.investment-in-numbers-section .container h2 {
-		text-align: left;
-		font-size: 15px;
+	.investment-four-section .container .potential-income h2 {
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 23px;
+		font-variant: small-caps;
+		color: #fff;
 	}
 
-	.investment-in-numbers-section .container .durations {
-		counter-reset: paragraph-counter;
+	.investment-four-section .container .potential-income p {
+		font-family: var(--font-family);
+		font-weight: 400;
+		font-size: 18px;
+		color: #fff;
+		margin-top: 15px;
 	}
 
-	.investment-in-numbers-section .container .durations p {
-		font-size: 12px;
-		position: relative;
-	}
-
-	.investment-in-numbers-section .container .durations p::before {
-		content: counter(paragraph-counter);
-		counter-increment: paragraph-counter;
-		display: inline-block;
-		width: 20px;
-		height: 20px;
-		background-color: #A1E8B9;
-		color: #141E17;
-		border-radius: 50%;
-		text-align: center;
-		line-height: 20px;
-		position: absolute;
-		margin-left: -25px;
-	}
-
-	.investment-in-numbers-section .container .durations {
+	.investment-four-section .container .potential-income-box-form {
+		width: 100%;
+		display: flex;
 		flex-direction: column;
+		align-items: center;
+		justify-content: center;
 	}
 
-	.investment-in-numbers-section .container .durations p:nth-child(1) {
-		position: static;
-		flex: 0 0 0;
-		text-align: left;
+	.investment-four-section .container .potential-income-box-form form {
+		width: 100%;
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
 	}
 
-	.investment-in-numbers-section .container .durations p:nth-child(2) {
-		position: static;
-		text-align: left;
-		flex: 0 0 0;
-		margin-top: 0;
-	}
-
-	.investment-in-numbers-section .container .durations p:nth-child(3) {
-		position: static;
-		flex: 0;
-		text-align: left;
-		flex: 0 0 0;
-	}
-
-	.investment-in-numbers-section .container .durations p:nth-child(4) {
-		position: static;
-		flex: 0;
-		text-align: left;
-		flex: 0 0 0;
-		margin-top: 0;
-	}
-
-	.investment-in-numbers-section .container .durations p:nth-child(5) {
-		position: static;
-		flex: 0;
-		text-align: left;
-		flex: 0 0 0;
-	}
-
-	.investment-in-numbers-section .container .img-box {
-		position: static;
-	}
-
-	.investment-in-numbers-section .container .img-box .img-laptop {
-		display: none;
-	}
-
-	.investment-in-numbers-section .container .img-box .img-phone {
-		display: block;
-		width: 100% !important;
+	.investment-four-section .container .potential-income-box-form form .client-info {
+		width: 100%;
+		margin-bottom: 25px;
 		position: relative;
-		right: 15px;
+	}
+
+	.investment-four-section .container .potential-income-box-form form div {
+		margin-bottom: 10px;
+	}
+
+	.investment-four-section .container .potential-income-box-form form label {
+		display: none;
+		margin-right: 10px;
+		font-family: var(--font-family);
+		font-weight: 700;
+		font-size: 18px;
+		color: #fff;
+	}
+
+	.investment-four-section .container .potential-income-box-form form input {
+		width: 100%;
+		border: none;
+		border-radius: 25px;
+		padding: 10px 15px;
+		font-family: var(--font-family);
+		font-weight: 400;
+		font-size: 18px;
+	}
+
+	.investment-four-section .container .potential-income-box-form .box-btn {
+		width: 100%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
 	}
 
 	/*block 5*/
-	.investment-park-section {
-		margin-top: 30px;
+	.investment-five-section {
+		margin-top: 80px;
 	}
 
-	.investment-park-section .container h2 {
-		font-size: 15px;
-		text-align: left;
+	.investment-five-section .asked-questions-container {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		padding: 0 15px;
 	}
 
-	.investment-park-slider .img-box {
+	.investment-five-section .asked-questions-title {
 		width: 100%;
-		height: auto;
-		left: 0;
-		margin-top: 0;
+		text-align: center;
+		margin-bottom: 25px;
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 23px;
+		font-variant: small-caps;
+		color: #141e17;
 	}
 
-	.investment-park-slider .img-box .slid-img-laptop {
+	.investment-five-section .question {
+		width: 100%;
+		border-bottom: 3px solid #a1e8b9;
+		margin-bottom: 15px;
+	}
+
+	.investment-five-section .question h3,
+	.investment-five-section .question p {
+		font-family: var(--font-family);
+		font-weight: 400;
+		font-size: 18px;
+		color: #53785e;
+	}
+
+	.investment-five-section .question h3 {
+		width: 100%;
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+	}
+
+	.investment-five-section .question p {
 		display: none;
 	}
 
-	.investment-park-slider .img-box .slid-img-phone {
-		display: block;
+	.investment-five-section .question h3 svg {
+		width: 26px;
+		height: 26px;
+
 	}
 
-	.investment-park-slider h3 {
-		font-size: 15px;
-	}
-
-	.investment-park-slider h4 {
-		font-size: 12px;
-	}
-
-	.investment-park-slider h3.slider-title-1,
-	.investment-park-slider h3.slider-title-2,
-	.investment-park-slider h3.slider-title-3 {
-		position: absolute;
-		margin-top: 14%;
-		left: 18%;
-	}
-
-	.investment-park-slider {
-		display: flex;
-		flex-direction: column;
-	}
-
-	.investment-park-slider h4.slider-description-1,
-	.investment-park-slider h4.slider-description-2,
-	.investment-park-slider h4.slider-description-3 {
-		position: static;
-		margin-top: 10px;
-		order: 1;
-		width: 100%;
-	}
-
-	/* 6 block */
-	.auto-park-seven-section .blog-cards .blog-card img {
-		display: block;
-		margin: 0;
-		width: 110%;
-		height: 240px;
-		max-height: max-content;
-		object-fit: fill;
+	.investment-five-section .question h3 svg .rotate {
+		transform: rotate(90deg);
+		transition: transform 0.3s ease;
 	}
 }
 
