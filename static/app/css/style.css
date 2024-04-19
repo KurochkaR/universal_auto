@@ -1703,6 +1703,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	.one_section .container {
 		display: grid;
 		grid-template-columns: 1fr;
+		padding: 0;
 	}
 
 	.left_images .one-background-img {
@@ -1731,7 +1732,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	}
 
 	.right_content::before {
-		margin-right: -150px;
+		margin-right: 0;
 		content: "";
 		background-image: url(/static/app/images/index-one-block-3.webp);
 		background-size: cover;
@@ -1739,7 +1740,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 		top: 0;
 		right: 0;
 		bottom: 0;
-		left: -30px;
+		left: 0;
 		z-index: -1;
 	}
 
@@ -1765,13 +1766,13 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	}
 
 	.right_content .one-info .phone {
-		font-size: 25px;
+		font-size: 27px;
 		margin-top: 10px;
 	}
 
 	.right_content .one-info .text-1 {
 		margin-bottom: 10px;
-		font-size: 28px;
+		font-size: 25px;
 	}
 
 	.one_section .contact-me-btn button {
@@ -5671,6 +5672,14 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	line-height: normal;
 }
 
+.investment-two-section .how-does-it-work button {
+	display: block;
+}
+
+.investment-two-section button {
+	display: none;
+}
+
 
 /* block 3 */
 
@@ -5911,344 +5920,455 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 @media screen and (max-width: 479px) {
 	/*block 1*/
 	.investment_section .container {
-		display: flex;
 		flex-direction: column;
-		align-items: center;
-		justify-content: space-between;
+		margin-top: 80px;
+		padding: 0;
+	}
+
+	.investment-left {
+		width: 100%;
+		height: auto;
+		top: 0;
 	}
 
 	.investment-left img {
+		position: relative;
+		border-radius: 62px;
 		width: 100%;
-		margin-top: 20px;
+		height: auto;
+		top: 0;
+		left: 0;
 	}
 
+
 	.investment-right {
-		margin-top: 100px;
-		height: 305px;
+		margin-top: 37px;
+		width: 100%;
+		height: 265px;
+		top: 0;
 	}
 
 	.investment-right .decorate-img {
-		right: 15px;
+		right: 0;
+		position: relative;
+		z-index: -1;
 	}
 
 	.investment-right .decorate-img img {
-		width: 110%;
-		height: 305px;
+		width: 100%;
+		height: auto;
 	}
 
 	.invest-one-info {
-		width: 90%;
-		top: 36%;
-		left: 60%;
+		width: 100%;
+		position: relative;
+		bottom: 250px;
+		left: 0;
+		transform: translate(0, 0);
+		text-align: center;
+		color: #ffffff;
+		padding: 0px 60px;
 	}
 
 	.invest-one-info h2 {
-		font-size: 20px;
+		width: 100%;
 		margin-bottom: 10px;
+		font-style: normal;
+		line-height: normal;
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 20px;
+		text-transform: uppercase;
+		text-align: center;
+		color: #ec6323;
+		margin-left: 0;
 	}
 
 	.invest-one-info p {
+		color: #FFF;
+		text-align: center;
 		font-size: 15px;
-		margin-bottom: 10px;
+		font-style: normal;
+		font-weight: 400;
+		line-height: normal;
+		margin-left: 0;
 	}
 
 	.invest-btn-box {
 		width: 100%;
 		right: 0;
-		margin-top: 0;
-		top: -105px;
+		position: relative;
+		bottom: 255px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		margin-top: 10px;
+		gap: 11px;
 		flex-direction: column;
-		bottom: 120px;
-		gap: 10px;
 	}
 
-	.invest-btn-box .email-input, .invest-modal-form #email-input {
-		font-size: 14px;
-		width: 100%;
-		padding: 10px 10px;
-		text-align: center;
-		font-weight: 500;
+	.invest-btn-box .invest-btn {
+		font-size: 10px;
+		padding: 5px 10px;
+		height: 32px;
 	}
 
-	.invest-btn-box .free-access-button {
-		font-size: 16px;
-		width: 100%;
-		padding: 10px 10px;
-		margin-left: 0;
-		font-weight: bold;
+	.invest-btn-box .how-does-it-work-btn {
+		font-size: 10px;
+		padding: 5px 10px;
+		width: 260px;
+		height: 32px;
 	}
+
 
 	/*block 2*/
-	.investment-slider-section h2 {
-		font-size: 20px;
-		margin-top: 12px;
+	.investment-two-section {
+		margin-top: 80px;
+		grid-column-gap: 10px;
+		grid-row-gap: 10px;
+		grid-template-rows: auto;
+		grid-template-columns: 1fr;
+		grid-auto-columns: 1fr;
+		display: grid;
 	}
 
-	.investment-slider-section .investment-slider {
-		margin-top: 20px;
+	.investment-two-section .how-does-it-work {
+		position: relative;
+		grid-area: span 1 / span 1 / span 1 / span 1;
+		align-self: start;
+		margin-left: 0;
+		padding: 0 25px;
+		top: 0;
 	}
 
-	.investment-slider-section .investment-slider h3 {
+	.investment-two-section .how-does-it-work h2 {
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 18px;
+		text-transform: uppercase;
+		color: #141e17;
+	}
+
+	.investment-two-section .how-does-it-work p {
+		font-family: var(--font-family);
+		font-weight: 400;
 		font-size: 15px;
-		margin-top: 15px;
+		color: #53785e;
 	}
 
-	.investment-slider-section .investment-slider li,
-	.investment-slider-section .investment-slider p {
-		font-size: 12px;
+	.investment-two-section .how-does-it-work button {
+		display: none;
 	}
 
-	.splide__arrow {
-		z-index: -1 !important;
-	}
-
-	.investment-slider ul {
-		padding-left: 0;
-	}
-
-	.investment-slider-section .consultation-button button {
+	.investment-two-section .investment-cards-container {
 		width: 100%;
-		font-size: 10px;
-		font-weight: bold;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex-direction: column;
+		background: url(/static/app/images/invest-img/invest-block-2.png) no-repeat;
+		background-size: 100% 100%;
+		padding: 52px 25px 58px 25px;
+		border-radius: 25px;
+	}
+
+	.investment-two-section .investment-cards-container .investment-cards {
+		display: flex;
+		width: 100%;
+		gap: 10px;
+		flex-direction: column;
+	}
+
+	.investment-two-section .investment-cards-container .investment-cards .investment-card {
+		width: 100%;
+		background: #fff;
+		padding: 15px 15px 15px 15px;
+		border-radius: 20px;
+	}
+
+	.investment-two-section .investment-cards-container .investment-cards .investment-card h2 {
+		font-family: var(--second-family);
+		font-weight: 600;
+		font-size: 32px;
+		text-transform: uppercase;
+		color: #38423b;
+	}
+
+	.investment-two-section .investment-cards-container .investment-cards .investment-card span {
+		font-family: var(--font-family);
+		font-weight: 400;
+		font-size: 15px;
+		color: #53785e;
+	}
+
+	.investment-two-section button {
+		display: block;
+		width: 88%;
+		position: relative;
+		font-size: 15px;
+		top: 0;
+		left: 25px;
+		padding: 5px 10px;
+		border-radius: 20px;
+		height: 32px;
 	}
 
 	/*block 3*/
-	.investment-offer-section {
-		margin-top: 30px;
+	.investment-three-section {
+		margin-top: 80px;
 	}
 
-	.investment-offer-section .container h2 {
-		text-align: left;
-		font-size: 15px;
-		margin-left: 20px;
-	}
-
-	.investment-offer-section .cards {
-		margin-top: 20px;
-	}
-
-	.cards .card img {
+	.investment-three-section button {
 		display: none;
 	}
 
-	.investment-offer-section .cards {
+	.investment-three-section .container {
+		display: flex;
 		flex-direction: column;
+		align-items: center;
+		justify-content: center;
 	}
 
-	.investment-offer-section .card h3,
-	.investment-offer-section .card p {
-		margin-top: 0;
-		text-align: left;
-		font-size: 12px;
+	.investment-three-section .why-us-title h2 {
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 18px;
+		text-transform: uppercase;
+		color: #141e17;
 	}
 
-	.investment-offer-section .container button {
-		margin-top: 0;
-		font-size: 10px;
+	.investment-three-section .investment-slider {
+		margin-top: 20px;
 		width: 100%;
-		font-weight: bold;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.investment-three-section .why-us-cards-container {
+		width: 100%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex: 0 0 calc(33.33% - 20px);
+		margin: 0 10px;
+		box-sizing: border-box;
+	}
+
+	.investment-three-section .why-us-card {
+		width: 100%;
+		background: #e5f9ec;
+		border-radius: 25px;
+		padding: 25px 15px;
+		transition: background-color 0.3s;
+	}
+
+	.investment-three-section .why-us-card .container-card h3 {
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 15px;
+		text-align: center;
+		color: #141e17;
+		margin: 15px 0;
+	}
+
+	.investment-three-section .why-us-card .container-card p {
+		font-family: var(--font-family);
+		font-weight: 400;
+		font-size: 15px;
+		text-align: center;
+		color: #53785e;
+	}
+
+	.investment-three-section .why-us-card:hover {
+		background: #a1e8b9;
+	}
+
+	.investment-three-section .why-us-card:hover .container-card h3,
+	.investment-three-section .why-us-card:hover .container-card p {
+		color: white;
+	}
+
+	.investment-three-section .box-btn {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.investment-three-section .splide__list {
+		display: grid;
+		grid-template-columns: 1fr;
+		grid-template-rows: 1fr;
+		grid-column-gap: 10px;
+		grid-row-gap: 10px;
+		width: 100%;
+	}
+
+	.investment-three-section .splide__slide {
+		width: 100% !important;
+
 	}
 
 	/*block 4*/
-	.investment-in-numbers-section {
-		margin-top: 30px;
+	.investment-four-section {
+		margin-top: 80px;
+		border-radius: 40px;
+		padding: 40px 25px 50px 25px;
 	}
 
-	.img-svg {
-		display: none;
-	}
-
-	.img-svg-phone {
-		display: block;
-	}
-
-	.investment-card .img-svg-phone {
-		position: relative;
-		left: 98%;
-		bottom: 42%;
-	}
-
-	.investment-in-numbers-section .container .investment-card:nth-child(3) .img-svg-phone svg:nth-child(1) {
-		position: relative;
-		right: 119%;
-		margin-top: -11px;
-	}
-
-	.investment-cards .investment-card:nth-child(1) .img-svg-phone svg:nth-child(1) {
-		position: relative;
-		right: 0;
-		margin-top: 20px;
-	}
-
-	.investment-cards .investment-card:nth-child(2) .img-svg-phone svg:nth-child(1) {
-		position: relative;
-		right: 200px;
-		margin-top: 50px;
-	}
-
-	.investment-in-numbers-section .container {
-		height: auto;
-	}
-
-	.investment-in-numbers-section .container h2 {
-		text-align: left;
-		font-size: 15px;
-		padding-top: 5px;
-	}
-
-	.investment-card {
-		width: 297px;
-		margin-top: 25px;
-		padding: 15px 15px 15px 10px;
-		height: 152px;
-	}
-
-	.investment-in-numbers-section .investment-card h3 {
-		font-size: 15px;
-	}
-
-	.investment-in-numbers-section .container .investment-card:nth-child(3) {
-		margin-left: 75px;
-		margin-top: 65px;
-		height: 124px;
-		padding: 13px 13px 13px 7px;
-	}
-
-	.investment-cards {
+	.investment-four-section .container {
+		display: flex;
 		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		padding: 0;
+		gap: 0;
 	}
 
-	.investment-cards .investment-card:nth-child(2) {
+	.investment-four-section .container .potential-income {
+		width: 100%;
+		padding-left: 0;
+	}
+
+	.investment-four-section .container .potential-income h2 {
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 18px;
+		font-variant: small-caps;
+		color: #fff;
+	}
+
+	.investment-four-section .container .potential-income p {
+		font-family: var(--font-family);
+		font-weight: 400;
+		font-size: 15px;
+		color: #fff;
+		margin-top: 15px;
+	}
+
+	.investment-four-section .container .potential-income-box-form {
+		width: 100%;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.investment-four-section .container .potential-income-box-form form {
+		width: 100%;
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+	}
+
+	.investment-four-section .container .potential-income-box-form form .client-info {
+		width: 100%;
+		margin-bottom: 25px;
 		position: relative;
-		left: 75px;
-		height: 120px;
 	}
 
-	.investment-in-numbers-section .container .investment-card:nth-child(5) {
-		margin-left: 35px;
-		margin-top: 54px;
-		height: 180px;
-		margin-bottom: 64px;
+	.investment-four-section .container .potential-income-box-form form div {
+		margin-bottom: 10px;
+	}
+
+	.investment-four-section .container .potential-income-box-form form label {
+		display: none;
+		margin-right: 10px;
+		font-family: var(--font-family);
+		font-weight: 700;
+		font-size: 15px;
+		color: #fff;
+	}
+
+	.investment-four-section .container .potential-income-box-form form input {
+		width: 100%;
+		border: none;
+		border-radius: 25px;
+		padding: 10px 15px;
+		font-family: var(--font-family);
+		font-weight: 400;
+		font-size: 15px;
+	}
+
+	.investment-four-section .container .potential-income-box-form .box-btn {
+		width: 100%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.investment-four-section .container .potential-income-box-form .invest-btn {
+		border: none;
+		border-radius: 25px;
+		padding: 5px 10px;
+		font-family: var(--font-family);
+		font-weight: 700;
+		font-size: 10px;
+		color: #fff;
+		background: #EC6323;
+		cursor: pointer;
+		height: 32px;
+		width: 100%;
 	}
 
 	/*block 5*/
-	.investment-park-section {
-		margin-top: 30px;
+	.investment-five-section {
+		margin-top: 80px;
 	}
 
-	.investment-park-section .container h2 {
-		font-size: 15px;
-		text-align: left;
+	.investment-five-section .asked-questions-container {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		padding: 0 15px;
 	}
 
-	.investment-park-slider .img-box {
+	.investment-five-section .asked-questions-title {
 		width: 100%;
-		height: auto;
-		left: 0;
-		margin-top: 0;
+		text-align: center;
+		margin-bottom: 25px;
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 18px;
+		font-variant: small-caps;
+		color: #141e17;
 	}
 
-	.investment-park-slider .img-box .slid-img-laptop {
+	.investment-five-section .question {
+		width: 100%;
+		border-bottom: 3px solid #a1e8b9;
+		margin-bottom: 15px;
+	}
+
+	.investment-five-section .question h3,
+	.investment-five-section .question p {
+		font-family: var(--font-family);
+		font-weight: 400;
+		font-size: 15px;
+		color: #53785e;
+	}
+
+	.investment-five-section .question h3 {
+		width: 100%;
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+	}
+
+	.investment-five-section .question p {
 		display: none;
 	}
 
-	.investment-park-slider .img-box .slid-img-phone {
-		display: block;
+	.investment-five-section .question h3 svg {
+		width: 26px;
+		height: 26px;
+
 	}
 
-	.investment-park-slider h3 {
-		font-size: 15px;
-	}
-
-	.investment-park-slider h4 {
-		font-size: 12px;
-	}
-
-	.investment-park-slider h3.slider-title-1,
-	.investment-park-slider h3.slider-title-2,
-	.investment-park-slider h3.slider-title-3 {
-		position: absolute;
-		margin-top: 14%;
-		left: 18%;
-	}
-
-	.investment-park-slider {
-		display: flex;
-		flex-direction: column;
-	}
-
-	.investment-park-slider h4.slider-description-1,
-	.investment-park-slider h4.slider-description-2,
-	.investment-park-slider h4.slider-description-3 {
-		position: static;
-		margin-top: 10px;
-		order: 1;
-		width: 100%;
-	}
-
-	/* park-block-electro-car */
-	.owners-electric-cars .title-block h2 {
-		font-size: 15px;
-		text-align: left;
-	}
-
-	.owners-cars {
-		flex-direction: column;
-	}
-
-	.owners-car-img img {
-		width: 100%;
-		height: auto;
-	}
-
-	.owners-car-description h3 {
-		font-size: 15px;
-		margin: 15px 0 10px 0px;
-	}
-
-	.owners-car-description span {
-		font-size: 15px;
-	}
-
-	.be-responsible h2 {
-		font-size: 15px;
-		margin: 10px 0 10px 0;
-	}
-
-	.be-responsible ul li {
-		margin-top: 0px;
-		font-size: 15px;
-	}
-
-	.be-responsible ul li::before {
-		width: 30px;
-		height: 30px;
-	}
-
-	/* modal */
-	.invest-modal-content {
-		width: 100%;
-		height: 50%;
-		margin-top: 100px;
-	}
-
-	.invest-modal-content h2 {
-		font-size: 20px;
-	}
-
-	#investModalForm {
-		margin-top: 20px;
-		margin-bottom: 35px;
-	}
-
-	.invest-modal-form .learn-more-button {
-		width: 100%;
-		margin-left: 0;
-		padding: 10px 20px;
-	}
-
-	#email-input {
-		margin-bottom: 10px;
+	.investment-five-section .question h3 svg .rotate {
+		transform: rotate(90deg);
+		transition: transform 0.3s ease;
 	}
 }
 
@@ -7328,6 +7448,7 @@ end Drivers page*/
 		flex-direction: column;
 		align-items: center;
 		justify-content: space-between;
+		padding: 0;
 	}
 
 	.charging-station-section .charging-left-images {
@@ -7346,14 +7467,14 @@ end Drivers page*/
 
 	.charging-station-section .charging-right-content {
 		position: relative;
-		width: 109%;
+		width: 100%;
 		height: 265px;
 		left: 0;
 		top: 0;
 	}
 
 	.charging-station-section .charging-right-content .decorate-img {
-		wight: 100%;
+		width: 100%;
 		height: 265px;
 		margin-top: 20px;
 		margin-bottom: 0;
@@ -7390,7 +7511,7 @@ end Drivers page*/
 		width: 100%;
 		margin-top: 0;
 		margin-bottom: 0;
-		left: 10px;
+		left: 0;
 		top: -110px;
 	}
 

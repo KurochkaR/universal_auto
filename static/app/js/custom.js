@@ -407,24 +407,20 @@ $(document).ready(function () {
 
 //  js investment page
 	if ($(".investment-slider").length) {
-		var investmentSlider = new Splide('.investment-slider', {
-			type: 'loop',
+		var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+		var investmentSliderOptions = {
 			perPage: 3,
-			autoplay: true,
-		});
+			autoplay: !isMobile,
+		};
 
+		if (!isMobile) {
+			investmentSliderOptions.type = 'loop';
+		}
+		var investmentSlider = new Splide('.investment-slider', investmentSliderOptions);
 		investmentSlider.mount();
-
-		var investmentParkSlider = new Splide('.investment-park-slider', {
-			type: 'loop',
-			perPage: 1,
-			autoplay: true,
-			arrows: false,
-			pagination: false
-		});
-
-		investmentParkSlider.mount();
 	}
+
 
 	$(".learn-more-button").click(function (e) {
 		sendData("#email-input");
@@ -595,7 +591,9 @@ $(document).ready(function () {
 			}
 		);
 	});
+});
 
+$(document).ready(function () {
 	$(this).on('click', '#close-form-contact', function (event) {
 		event.preventDefault();
 		$('#contact-me-form').hide();
