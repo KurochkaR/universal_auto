@@ -260,13 +260,17 @@ $(document).ready(function () {
 		let href = video.attr('href');
 		let id = new URL(href).searchParams.get('v');
 
+		// Створення URL першого кадру з відео
+		let thumbnailUrl = `https://img.youtube.com/vi/${id}/0.jpg`;
+
 		video.attr('data-youtube', id);
 		video.attr('role', 'button');
 
+		// Заміна статичного зображення на перший кадр з відео
 		video.html(`
-			<img alt="" src="https://storage.googleapis.com/jobdriver-bucket/docs/index-youtube-img.png" style="border-radius: 25px" width="552" height="310" loading="lazy"><br>
-			${video.text()}
-		`);
+        <img alt="" src="${thumbnailUrl}" loading="lazy"><br>
+        ${video.text()}
+    `);
 	});
 
 	function clickHandler(event) {
