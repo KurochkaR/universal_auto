@@ -451,20 +451,33 @@ def upd_shift(action, licence_id, start_time, end_time, shift_date, driver_id, r
     return True
 
 
-def sending_to_crm(name, phone, email, theme):
-    url = f"https://my.binotel.ua/b/smartcrm/api/widget/v1/deal/create?token={os.environ.get('BINOTEL_TOKEN')}"
-    headers = {"Content-Type": "application/json"}
+def sending_to_crm(name, phone, theme, email=None, city=None, vehicle=None, year=None):
+    default_token_key = 'BINOTEL_TOKEN'
+    calculation_token_key = 'BINOTEL_TOKEN_CALCULATION'
+
+    default_token = os.environ.get(default_token_key)
+    calculation_token = os.environ.get(calculation_token_key)
+
+    token = calculation_token if theme == 'Розрахунок вартості' else default_token
+
     formData = {
-        "name": "Заявка на консультацию",
-        "fields": [{
-            "fieldId": 14024,
-            "value": theme
-        }],
-        "customerDraft": {
-            "name": name,
-            "number": phone,
-            "email": email
-        }
+        "name": "Заявка на консультацию" if theme != 'Розрахунок вартості' else "Заявка на розрахунок вартості",
+        "fields": [{"fieldId": 14024, "value": theme}]
     }
-    response = requests.post(url, headers=headers, json=json.dumps(formData))
+
+    customerDraft = {"name": name, "number": phone, "email": email}
+
+    if theme == 'Розрахунок вартості':
+        del customerDraft['email']
+        formData["fields"].extend([
+            {"fieldId": 43309, "value": city},
+            {"fieldId": 43307, "value": vehicle},
+            {"fieldId": 43308, "value": year}
+        ])
+
+    formData["customerDraft"] = customerDraft
+    url = f"https://my.binotel.ua/b/smartcrm/api/widget/v1/deal/create?token={token}"
+    headers = {"Content-Type": "application/json"}
+    response = requests.post(url, headers=headers, json=formData)
+
     return response.status_code

@@ -595,6 +595,83 @@ $(document).ready(function () {
 			}
 		);
 	});
+
+
+	$(this).on('click', '.cost-calculation', function (event) {
+		console.log('click');
+		event.preventDefault();
+		const form = $(this).closest('form');
+		const cityInput = form.find('#client-city').val();
+		const nameInput = form.find('#client-name').val();
+		const phoneInput = form.find('#client-phone').val();
+		const vehicleInput = form.find('#client-vehicle').val();
+		const yearInput = form.find('#client-year').val();
+		const theme = 'Розрахунок вартості';
+
+		const fields = [
+			{input: cityInput, error: '.error-city'},
+			{input: nameInput, error: '.error-name'},
+			{input: phoneInput, error: '.error-phone'},
+			{input: vehicleInput, error: '.error-vehicle'},
+			{input: yearInput, error: '.error-year'}
+		];
+		console.log(cityInput, nameInput, phoneInput, vehicleInput, yearInput);
+		for (const field of fields) {
+			const input = field.input;
+			const errorBlock = form.find(field.error);
+
+			if (!input) {
+				errorBlock.text("Це поле обов'язкове");
+				errorBlock.show();
+				return;
+			} else {
+				errorBlock.hide();
+			}
+
+			if (field.error === '.error-phone' && input.length !== 13 && input.length !== 17) {
+				errorBlock.text("Введіть коректний номер телефону");
+				errorBlock.show();
+				return;
+			}
+		}
+
+		const clickedButton = $(this);
+		clickedButton.prop('disabled', true);
+
+		$.ajax(
+			{
+				type: "POST",
+				url: ajaxPostUrl,
+				data: {
+					action: 'subscribe_to_client',
+					name: nameInput,
+					phone: phoneInput,
+					city: cityInput,
+					vehicle: vehicleInput,
+					year: yearInput,
+					theme: theme,
+					csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
+				},
+				success: function (response) {
+					console.log(response.data);
+					if (response.data === 200) {
+						$('#contact-me-form').hide();
+						$('#thank-you-message').show();
+						form.find('#client-city').val('');
+						form.find('#client-name').val('');
+						form.find('#client-phone').val('');
+						form.find('#client-vehicle').val('');
+						form.find('#client-year').val('');
+
+						setTimeout(function () {
+							$('#thank-you-message').hide();
+						}, 5000);
+						clickedButton.prop('disabled', false);
+					}
+				}
+			}
+		);
+	});
 });
 
 $(document).ready(function () {
