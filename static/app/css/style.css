@@ -1715,6 +1715,71 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 
 /*adaptive for phone vertical*/
 
+@media screen and (min-width: 391px) and (max-width: 430px) {
+
+	.video-box a img {
+		left: 50px !important;
+		width: 285px !important;
+		height: 188px !important;
+	}
+
+	.video-box iframe {
+		left: 50px !important;
+		width: 285px !important;
+		height: 188px !important;
+	}
+
+	.price-free-section .img-box a img {
+		width: 295px !important;
+		height: 195px !important;
+		left: 52px !important;
+	}
+
+	.price-free-section .img-box iframe {
+		width: 295px !important;
+		height: 195px !important;
+		left: 52px !important;
+	}
+}
+
+@media screen and (min-width: 391px) and (max-width: 414px) {
+	.video-box a img {
+		left: 47px !important;
+		width: 274px !important;
+	}
+
+	.video-box iframe {
+		left: 47px !important;
+		width: 274px !important;
+	}
+
+	.price-free-section .img-box a img {
+		width: 280px !important;
+		height: 190px !important;
+	}
+
+	.price-free-section .img-box iframe {
+		width: 280px !important;
+		height: 190px !important;
+	}
+}
+
+@media screen and (max-width: 375px) {
+	.video-box a img {
+		left: 39px !important;
+	}
+
+	.video-box iframe {
+		left: 39px !important;
+	}
+
+	.price-free-section .img-box a img {
+		width: 252px !important;
+		height: 170px !important;
+		left: 46px !important;
+	}
+}
+
 @media screen and (max-width: 767px) {
 	/*BLOCK-1*/
 	.one_section .container {
@@ -2108,7 +2173,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	.video-box iframe {
 		position: absolute;
 		top: 12px;
-		left: 47px;
+		left: 50px;
 		width: 251px;
 		height: 168px;
 	}
@@ -2265,6 +2330,19 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 /*adaptive for phone vertical*/
 
 /*adaptive for phone horizontal*/
+@media screen and (min-width: 667px) and (max-width: 766px) {
+	.video-box a img {
+		left: 67px;
+		width: 360px;
+		height: 250px;
+	}
+
+	.video-box iframe {
+		left: 67px;
+		width: 360px;
+		height: 250px;
+	}
+}
 
 @media screen and (min-width: 767px) and (max-width: 1199px) {
 
@@ -2296,6 +2374,19 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 		height: auto;
 	}
 
+	.right_content::before {
+		margin-right: -77px;
+		content: "";
+		background-image: url(/static/app/images/index-one-block-3.webp);
+		background-size: cover;
+		position: absolute;
+		top: 0;
+		right: 0;
+		bottom: 0;
+		left: 0;
+		z-index: -1;
+	}
+
 	.right_content .decorate-img {
 		margin-top: 20px;
 		right: 15px;
@@ -2323,6 +2414,14 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 		border-radius: 10px;
 		z-index: 1022;
 		padding-top: 55px;
+	}
+
+	.right_content .one-info {
+		position: relative;
+		padding: 10px;
+		z-index: 1022;
+		margin-top: 150px;
+		right: -75px;
 	}
 
 
@@ -2420,6 +2519,10 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	}
 
 	/*block 3*/
+	.common-background {
+		background-size: 100% 99%;
+	}
+
 	.services {
 		margin-top: 30px;
 		display: flex;
@@ -2603,12 +2706,19 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	}
 
 	.video-box a img {
-		position: relative;
-		top: 0;
-		left: -5px;
-		width: 100%;
-		height: auto;
-		border-radius: 62px;
+		position: absolute;
+		top: 25px;
+		left: 90px;
+		width: 480px;
+		height: 315px;
+	}
+
+	.video-box iframe {
+		position: absolute;
+		top: 25px;
+		left: 90px;
+		width: 480px;
+		height: 315px;
 	}
 
 	.investment-section-index .heading_container h2 {
@@ -8762,10 +8872,20 @@ end Drivers page*/
 	}
 
 	.price-progress-cards .price-progress-card {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		align-items: center;
-		justify-items: center;
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+	}
+
+	.price-progress-card .price-progress-img {
+		display: none;
+	}
+
+	.price-progress-text {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		padding: 0 10px;
 	}
 
 	.price-progress-text h3 {
@@ -8775,7 +8895,7 @@ end Drivers page*/
 
 	.price-progress-text p {
 		font-size: 15px;
-		text-align: center;
+		text-align: left;
 		margin: 0;
 	}
 
@@ -8783,13 +8903,13 @@ end Drivers page*/
 		margin-top: 0;
 	}
 
-	.price-progress-card:nth-child(2) .price-progress-img img {
-		margin-top: 35px;
+	.price-progress-card:nth-child(4) .price-progress-text p {
+		margin-bottom: 15px;
 	}
 
 	/* block 4 */
 	.price-free-section {
-		margin-top: 60px;
+		margin-top: 50px;
 	}
 
 	.price-free-section .container {
@@ -8803,20 +8923,40 @@ end Drivers page*/
 		order: -1;
 	}
 
+	.price-free-section .img-box a img {
+		position: absolute;
+		width: 500px;
+		height: 340px;
+		top: 12px;
+		left: 95px;
+	}
+
+	.price-free-section iframe {
+		position: absolute;
+		width: 500px;
+		height: 340px;
+		top: 12px;
+		left: 95px;
+	}
+
 	.price-free-section .price-free h3 {
 		font-size: 20px;
-		text-align: center;
 	}
 
 	.price-free-section .price-free p {
 		font-size: 15px;
 		margin-top: 15px;
-		text-align: center;
 	}
 
 	.price-free-section .price-free ul li {
 		font-size: 15px;
 		margin-top: 15px;
+	}
+
+	.price-free-section .price-free ul li::before {
+		width: 30px;
+		height: 30px;
+		margin-right: 5px;
 	}
 
 	.price-free-section .price-free .btn-box {
@@ -8849,6 +8989,8 @@ end Drivers page*/
 		height: 30px;
 		margin-right: 5px;
 	}
+
+
 }
 
 
