@@ -629,7 +629,7 @@ def fleets_cash_trips(self, partner_pk, pk, enable):
 
     for fleet in fleets:
         driver_rate = FleetsDriversVehiclesRate.objects.filter(
-            driver=driver, fleet=fleet).first()
+            driver=driver, fleet=fleet, deleted_at__isnull=True).first()
         if driver_rate:
             fleet.disable_cash(driver_rate.driver_external_id, enable)
 
