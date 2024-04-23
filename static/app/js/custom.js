@@ -521,8 +521,49 @@ $(document).ready(function () {
 		);
 	});
 
-	$(this).on('click', '.subscribe-client', function (event) {
+	function validateForm(fields) {
+		for (const field of fields) {
+			const input = field.input;
+			const errorBlock = $(field.error);
 
+			if (!input) {
+				errorBlock.text("Це поле обов'язкове");
+				errorBlock.show();
+				return false;
+			} else {
+				errorBlock.hide();
+			}
+
+			if (field.error === '.error-phone' && !isValidPhoneNumber(input)) {
+				errorBlock.text("Введіть коректний номер телефону");
+				errorBlock.show();
+				return false;
+			}
+
+			if (field.error === '.error-email' && !isValidEmail(input)) {
+				errorBlock.text("Введіть коректну email адресу");
+				errorBlock.show();
+				return false;
+			}
+		}
+		return true;
+	}
+
+	function isValidPhoneNumber(phone) {
+		var phoneRegex = /^\+\d{1,3} \d{2,3} \d{2,3}-\d{2,3}-\d{2,3}$/;
+		return phoneRegex.test(phone);
+	}
+
+	function sendAjaxRequest(data, successCallback) {
+		$.ajax({
+			type: "POST",
+			url: ajaxPostUrl,
+			data: data,
+			success: successCallback
+		});
+	}
+
+	$('.subscribe-client').on('click', function (event) {
 		event.preventDefault();
 		const form = $(this).closest('form');
 		const nameInput = form.find('#name').val();
@@ -530,75 +571,41 @@ $(document).ready(function () {
 		const emailInput = form.find('#email').val();
 		const theme = $(this).text();
 
-
 		const fields = [
 			{input: nameInput, error: '.error-name'},
 			{input: phoneInput, error: '.error-phone'},
 			{input: emailInput, error: '.error-email'}
 		];
 
-		for (const field of fields) {
-			const input = field.input;
-			const errorBlock = form.find(field.error);
-
-			if (!input) {
-				errorBlock.text("Це поле обов'язкове");
-				errorBlock.show();
-				return;
-			} else {
-				errorBlock.hide();
-			}
-
-			if (field.error === '.error-phone' && input.length !== 13 && input.length !== 17) {
-				errorBlock.text("Введіть коректний номер телефону");
-				errorBlock.show();
-				return;
-			}
-
-			if (field.error === '.error-email' && !isValidEmail(input)) {
-				errorBlock.text("Введіть коректну email адресу");
-				errorBlock.show();
-				return;
-			}
-
+		if (!validateForm(fields)) {
+			return;
 		}
 
-		const clickedButton = $(this);
-		clickedButton.prop('disabled', true);
+		const requestData = {
+			action: 'subscribe_to_client',
+			name: nameInput,
+			phone: phoneInput,
+			email: emailInput,
+			theme: theme,
+			csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
+		};
 
-		$.ajax(
-			{
-				type: "POST",
-				url: ajaxPostUrl,
-				data: {
-					action: 'subscribe_to_client',
-					name: nameInput,
-					phone: phoneInput,
-					email: emailInput,
-					theme: theme,
-					csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
-				},
-				success: function (response) {
-					if (response.data === 200) {
-						$('#contact-me-form').hide();
-						$('#thank-you-message').show();
-						form.find('#name').val('');
-						form.find('#phone').val('');
-						form.find('#email').val('');
+		sendAjaxRequest(requestData, function (response) {
+			if (response.data === 200) {
+				$('#contact-me-form').hide();
+				$('#thank-you-message').show();
+				form.find('#name').val('');
+				form.find('#phone').val('');
+				form.find('#email').val('');
 
-						setTimeout(function () {
-							$('#thank-you-message').hide();
-						}, 5000);
-						clickedButton.prop('disabled', false);
-					}
-				}
+				setTimeout(function () {
+					$('#thank-you-message').hide();
+				}, 5000);
 			}
-		);
+		});
 	});
 
-
-	$(this).on('click', '.cost-calculation', function (event) {
-		console.log('click');
+	$('.cost-calculation').on('click', function (event) {
 		event.preventDefault();
 		const form = $(this).closest('form');
 		const cityInput = form.find('#client-city').val();
@@ -609,68 +616,42 @@ $(document).ready(function () {
 		const theme = 'Розрахунок вартості';
 
 		const fields = [
-			{input: cityInput, error: '.error-city'},
-			{input: nameInput, error: '.error-name'},
-			{input: phoneInput, error: '.error-phone'},
-			{input: vehicleInput, error: '.error-vehicle'},
-			{input: yearInput, error: '.error-year'}
+			{input: cityInput, error: '.client-error-city'},
+			{input: nameInput, error: '.client-error-name'},
+			{input: vehicleInput, error: '.client-error-vehicle'},
+			{input: yearInput, error: '.client-error-year'},
+			{input: phoneInput, error: '.client-error-phone'}
 		];
-		console.log(cityInput, nameInput, phoneInput, vehicleInput, yearInput);
-		for (const field of fields) {
-			const input = field.input;
-			const errorBlock = form.find(field.error);
 
-			if (!input) {
-				errorBlock.text("Це поле обов'язкове");
-				errorBlock.show();
-				return;
-			} else {
-				errorBlock.hide();
-			}
-
-			if (field.error === '.error-phone' && input.length !== 13 && input.length !== 17) {
-				errorBlock.text("Введіть коректний номер телефону");
-				errorBlock.show();
-				return;
-			}
+		if (!validateForm(fields)) {
+			return;
 		}
 
-		const clickedButton = $(this);
-		clickedButton.prop('disabled', true);
+		const requestData = {
+			action: 'subscribe_to_client',
+			name: nameInput,
+			phone: phoneInput,
+			city: cityInput,
+			vehicle: vehicleInput,
+			year: yearInput,
+			theme: theme,
+			csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
+		};
 
-		$.ajax(
-			{
-				type: "POST",
-				url: ajaxPostUrl,
-				data: {
-					action: 'subscribe_to_client',
-					name: nameInput,
-					phone: phoneInput,
-					city: cityInput,
-					vehicle: vehicleInput,
-					year: yearInput,
-					theme: theme,
-					csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
-				},
-				success: function (response) {
-					console.log(response.data);
-					if (response.data === 200) {
-						$('#contact-me-form').hide();
-						$('#thank-you-message').show();
-						form.find('#client-city').val('');
-						form.find('#client-name').val('');
-						form.find('#client-phone').val('');
-						form.find('#client-vehicle').val('');
-						form.find('#client-year').val('');
+		sendAjaxRequest(requestData, function (response) {
+			if (response.data === 200) {
+				$('#thank-you-message').show();
+				form.find('#client-city').val('');
+				form.find('#client-name').val('');
+				form.find('#client-phone').val('');
+				form.find('#client-vehicle').val('');
+				form.find('#client-year').val('');
 
-						setTimeout(function () {
-							$('#thank-you-message').hide();
-						}, 5000);
-						clickedButton.prop('disabled', false);
-					}
-				}
+				setTimeout(function () {
+					$('#thank-you-message').hide();
+				}, 5000);
 			}
-		);
+		});
 	});
 });
 

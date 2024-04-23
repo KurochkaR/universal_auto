@@ -4590,13 +4590,13 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 		cursor: pointer;
 	}
 
-	span.error-message,
-	span.error-name {
+	.box-form span.error-message {
 		display: none;
 		color: red;
 		font-size: 15px;
 		float: left;
-		margin-left: 20px;
+		margin-left: 0;
+		top: 88px;
 	}
 
 	/*///////////////*/
@@ -5470,13 +5470,12 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 		cursor: pointer;
 	}
 
-	span.error-message,
-	span.error-name {
+	.box-form span.error-message {
 		display: none;
 		color: red;
 		font-size: 15px;
 		float: left;
-		margin-left: 20px;
+		top: 83px;
 	}
 
 	/*///////////////*/
@@ -5898,6 +5897,16 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	font-size: 25px;
 }
 
+.potential-income-box-form span.error-message {
+	display: none;
+	color: red;
+	font-size: 15px;
+	float: left;
+	position: absolute;
+	left: 15px;
+	top: 105px;
+}
+
 /* block 5 */
 
 .investment-five-section {
@@ -6004,7 +6013,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 		transform: translate(0, 0);
 		text-align: center;
 		color: #ffffff;
-		padding: 0px 60px;
+		padding: 0 60px;
 	}
 
 	.invest-one-info h2 {
@@ -6325,6 +6334,10 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 		font-family: var(--font-family);
 		font-weight: 400;
 		font-size: 15px;
+	}
+
+	.potential-income-box-form span.error-message {
+		top: 40px;
 	}
 
 	.investment-four-section .container .potential-income-box-form .box-btn {
@@ -6788,6 +6801,10 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 		font-family: var(--font-family);
 		font-weight: 400;
 		font-size: 18px;
+	}
+
+	.potential-income-box-form span.error-message {
+		top: 45px;
 	}
 
 	.investment-four-section .container .potential-income-box-form .box-btn {

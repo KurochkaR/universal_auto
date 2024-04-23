@@ -159,15 +159,15 @@
         <form>
           <div class="client-info">
             <label for="client-city">{% trans "Місто" %}</label>
-            <input type="text" id="client-city" name="client-city" placeholder="Оберіть ваше місто" required>
-            <span class="error-city error-message"
+            <input type="text" id="client-city" name="client-city" placeholder="Вкажіть ваше місто" required>
+            <span class="client-error-city error-message"
                   style="color: red; display: none;">{% trans "Це поле обов'язкове" %}</span>
           </div>
 
           <div class="client-info">
             <label for="client-name">{% trans "Ім’я" %}</label>
             <input type="text" id="client-name" name="client-name" placeholder="Ваше ім’я" required>
-            <span class="error-name error-message"
+            <span class="client-error-name error-message"
                   style="color: red; display: none;">{% trans "Це поле обов'язкове" %}</span>
           </div>
 
@@ -175,7 +175,7 @@
             <label for="client-vehicle">{% trans "Марка та модель" %}</label>
             <input type="text" id="client-vehicle" name="client-vehicle"
                    placeholder="Модель та марка вашого електрокара " required>
-            <span class="error-vehicle error-message"
+            <span class="client-error-vehicle error-message"
                   style="color: red; display: none;">{% trans "Це поле обов'язкове" %}</span>
           </div>
 
@@ -183,14 +183,14 @@
             <label for="client-year">{% trans "Рік" %}</label>
             <input type="text" id="client-year" name="client-year" placeholder="Рік випуску вашого електрокара"
                    required>
-            <span class="error-year error-message"
+            <span class="client-error-year error-message"
                   style="color: red; display: none;">{% trans "Це поле обов'язкове" %}</span>
           </div>
 
           <div class="client-info">
             <label for="client-phone">{% trans "Номер телефону:" %}</label>
             <input type="tel" id="client-phone" name="client-phone" placeholder="(###) ### - ## - ##" required>
-            <span class="error-phone error-message"
+            <span class="client-error-phone error-message"
                   style="color: red; display: none;">{% trans "Це поле обов'язкове" %}</span>
           </div>
           <div class="box-btn">
@@ -277,6 +277,8 @@
   </section>
 
   {% include '_auto-park-section.html' %}
+  {% include '_thank-you-message.html' %}
+  {% include '_existing-you-message.html' %}
 
   <div id="subscribeModalForm"></div>
 {% endblock %}
