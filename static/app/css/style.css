@@ -2342,6 +2342,19 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 		width: 360px;
 		height: 250px;
 	}
+
+	.price-free-section .img-box a img {
+		width: 370px !important;
+		height: 250px !important;
+		left: 70px !important;
+	}
+
+	.price-free-section .img-box iframe {
+		width: 370px !important;
+		height: 250px !important;
+		left: 70px !important;
+	}
+
 }
 
 @media screen and (min-width: 767px) and (max-width: 1199px) {
@@ -6985,252 +6998,6 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	}
 }
 
-
-/* << Drivers page >> *//*
-
-.drivers_section {
-	margin-top: 100px;
-}
-
-*//*block site breadcrumb*//*
-
-.site-breadcrumb {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-	text-align: center;
-	background-repeat: no-repeat !important;
-	background-position: center !important;
-	background-size: cover !important;
-	position: relative;
-	padding-top: 150px;
-	padding-bottom: 150px;
-}
-
-.site-breadcrumb .breadcrumb-title {
-	font-size: 60px;
-	color: #fff;
-	font-weight: 700;
-	font-style: italic;
-	text-transform: uppercase;
-}
-
-.site-breadcrumb .breadcrumb-menu {
-	font-size: 24px;
-	font-weight: bold;
-	position: relative;
-	left: -30px;
-	display: flex;
-	justify-content: center;
-	align-items: center;
-}
-
-
-.site-breadcrumb .breadcrumb-menu li:first-child {
-	margin-left: 0;
-}
-
-.site-breadcrumb .breadcrumb-menu li {
-	position: relative;
-	display: inline-block;
-	margin-left: 10px;
-	color: #fff;
-}
-
-.site-breadcrumb .breadcrumb-menu li a {
-	color: #fff;
-	transition: all .5s ease-in-out;
-	margin-right: 10px;
-}
-
-.site-breadcrumb .breadcrumb-menu li.active {
-	color: #E96F24;
-}
-
-*//*end block site breadcrumb*//*
-
-*//*block site header*//*
-
-.team-area {
-	position: relative;
-	overflow: hidden;
-}
-
-.py-120 {
-	padding: 120px 0;
-}
-
-
-.drivers_section .site-heading {
-	margin-bottom: 50px;
-	position: relative;
-}
-
-.site-title-tagline {
-	position: relative;
-	text-transform: uppercase;
-	letter-spacing: 4px;
-	font-size: 18px;
-	font-weight: 700;
-	font-style: italic;
-	color: #E96F24;
-}
-
-.site-title-tagline::before {
-	content: "";
-	position: absolute;
-	height: 10px;
-	width: 100%;
-	background: #E96F24;
-	opacity: .2;
-	left: -2px;
-	bottom: 0;
-}
-
-.site-title {
-	font-weight: 700;
-	font-style: italic;
-	font-size: 45px;
-	color: black;
-	margin-bottom: 0;
-}
-
-.heading-divider {
-	display: inline-block;
-	position: relative;
-	border: 3px solid #E96F24;
-	width: 90px;
-	height: 10px;
-	border-radius: 50px;
-}
-
-@-webkit-keyframes heading-move {
-	0% {
-		left: 0;
-	}
-	50% {
-		left: 100%;
-	}
-	100% {
-		left: 0;
-	}
-}
-
-@keyframes heading-move {
-	0% {
-		left: 0;
-	}
-	50% {
-		left: calc(100% - 15px);
-	}
-	100% {
-		left: 0;
-	}
-}
-
-.heading-divider:after {
-	content: '';
-	position: absolute;
-	left: 0;
-	top: -1px;
-	height: 7px;
-	width: 15px;
-	border-radius: 50px;
-	background: #E96F24;
-	-webkit-animation: heading-move 5s infinite linear;
-	animation: heading-move 5s infinite linear;
-}
-
-*//*block team*//*
-
-.teams {
-	display: flex;
-	flex-wrap: wrap;
-	justify-content: center;
-	margin: -10px;
-}
-
-.team-item {
-	margin: 10px 10px 20px;
-	padding: 0 20px 20px;
-	text-align: center;
-	position: relative;
-	transition: all .5s ease-in-out;
-}
-
-.team-item::before {
-	content: "";
-	position: absolute;
-	background: #fff;
-	border-radius: 30px;
-	box-shadow: 0 0 20px rgba(0, 0, 0, .1);
-	width: 100%;
-	height: 70%;
-	left: 0;
-	bottom: 0;
-	z-index: -1;
-}
-
-.team-img img {
-	max-width: 100%;
-	border-radius: 30px;
-	padding: 6px;
-	border: 3px solid #FFB300;
-	box-shadow: 0 0 20px rgba(0, 0, 0, .1);
-}
-
-.team-content {
-	font-weight: 700;
-	font-style: italic;
-	padding: 10px 0 5px;
-}
-
-.team-bio h5 {
-	font-size: 20px;
-	margin-top: 5px;
-	margin-bottom: 5px;
-	text-transform: capitalize;
-}
-
-.team-experience {
-	margin-top: 10px;
-	text-align: left;
-}
-
-.team-experience p {
-	margin: 0;
-	padding-left: 10px;
-}
-
-*//*pagination*//*
-
-.pagination {
-	text-align: center;
-	margin-top: 20px;
-}
-
-.pagination a,
-.pagination span {
-	display: inline-block;
-	padding: 6px 12px;
-	margin: 0 5px;
-	color: #fff;
-	background-color: #a8c465;
-	text-decoration: none;
-	border-radius: 25px;
-}
-
-.pagination a:hover {
-	background-color: #7aa343;
-}
-
-.pagination .current-page {
-	background-color: #7aa343;
-	font-weight: bold;
-}
-
-end Drivers page*/
 @media (max-width: 768px) {
 	.hero-banner-one form {
 		max-width: 100%;
@@ -7740,7 +7507,7 @@ end Drivers page*/
 
 
 /* adaptive vertical for phone */
-@media screen and (max-width: 479px) {
+@media screen and (max-width: 768px) {
 	/* block 1 */
 	.charging-station-section {
 		height: auto;
@@ -8567,7 +8334,8 @@ end Drivers page*/
 
 
 /* adaptive vertical for phone */
-@media screen and (max-width: 479px) {
+/*@media screen and (max-width: 479px) {*/
+@media screen and (max-width: 768px) {
 	/* block 1 */
 	.price-header-section {
 		height: auto;
