@@ -239,6 +239,7 @@ def calendar_weekly_report(partner_pk, start_date, end_date, format_start, forma
     )
     return message
 
+
 def create_investor_payments(start, end, partner_pk, investors):
     investors_schemas = {
         'share': {
@@ -251,7 +252,7 @@ def create_investor_payments(start, end, partner_pk, investors):
         },
         'rental': {
             'vehicles': Vehicle.filter_by_rental_schema(investors),
-            'method': None  # Add your method here if needed
+            'method': create_rental_investor_earn
         }
     }
 
@@ -260,7 +261,6 @@ def create_investor_payments(start, end, partner_pk, investors):
         method = data['method']
         if vehicles.exists() and method:
             method(start, end, vehicles, partner_pk)
-
 
 
 def create_share_investor_earn(start, end, vehicles_list, partner_pk):
@@ -291,7 +291,7 @@ def create_proportional_investor_earn(start, end, vehicles_list, partner_pk):
         if bolt_fleet.exists():
             for driver in drivers:
                 bonus_kasa += calc_bonus_bolt_from_orders(start, end, bolt_fleet, [vehicle], [driver])
-        investors_kasa += bonus_kasa
+        investors_kasa += Decimal(bonus_kasa)
         calc_and_create_earn(start, end, investors_kasa, vehicle)
 
 
@@ -305,6 +305,7 @@ def create_rental_investor_earn(start, end, vehicles_list, partner_pk):
             investors_kasa += overall_mileage * ParkSettings.get_value("OVERALL_MILEAGE_PRICE", default=2,
                                                                        partner=partner_pk)
         calc_and_create_earn(start, end, investors_kasa, vehicle)
+
 
 def calc_and_create_earn(start, end, kasa, vehicle):
     earning = Decimal(kasa) * vehicle.investor_percentage
