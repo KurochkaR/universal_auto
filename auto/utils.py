@@ -307,7 +307,7 @@ def create_rental_investor_earn(start, end, vehicles_list, partner_pk):
         calc_and_create_earn(start, end, investors_kasa, vehicle)
 
 def calc_and_create_earn(start, end, kasa, vehicle):
-    earning = kasa * vehicle.investor_percentage
+    earning = Decimal(kasa) * vehicle.investor_percentage
     rate = get_currency_rate(vehicle.currency_back)
     amount_usd = float(earning) / rate
     car_earnings = Decimal(str(amount_usd)).quantize(Decimal('0.00'), rounding=ROUND_HALF_UP)

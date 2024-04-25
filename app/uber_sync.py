@@ -186,15 +186,18 @@ class UberRequest(Fleet, Synchronizer):
         if format_start >= format_end or not vehicle_ids:
             return results
         query = '''query GetPerformanceReport($performanceReportRequest: PerformanceReportRequest__Input!) {
-                  getPerformanceReport(performanceReportRequest: $performanceReportRequest) {
-                    uuid
-                    totalEarnings
-                    totalTrips
-                    ... on DriverPerformanceDetail {
-                      cashEarnings
+                      getPerformanceReport(performanceReportRequest: $performanceReportRequest) {
+                        uuid
+                        totalEarnings
+                        totalTrips
+                        ... on VehiclePerformanceDetail {
+                          utilization
+                          __typename
+                        }
+                        __typename
+                      }
                     }
-                  }
-                }'''
+                    '''
         variables = {
                       "performanceReportRequest": {
                         "orgUUID": self.get_uuid(),
@@ -211,8 +214,8 @@ class UberRequest(Fleet, Synchronizer):
                         "metrics": [
                           "vs:TotalEarnings",
                           "vs:TotalTrips",
-                          "vs:CashEarnings",
-                          "vs:DriverAcceptanceRate"
+                          "vs:Utilization",
+
                         ],
                         "timeRange": {
                           "startsAt": {

@@ -1,4 +1,16 @@
 $.scrollTop = () => Math.max(document.documentElement.scrollTop, document.body.scrollTop);
+
+$.mask.definitions['9'] = '';
+$.mask.definitions['d'] = '[0-9]';
+
+function intlTelInit(phoneEl) {
+	let phoneSelector = $(phoneEl);
+
+	if (phoneSelector.length) {
+		phoneSelector.mask("+380 dd ddd-dd-dd");
+	}
+}
+
 $(document).ready(function () {
 	$('[id^="sub-form-"]').on('submit', function (event) {
 		event.preventDefault();
@@ -27,13 +39,6 @@ $(document).ready(function () {
 			}
 		});
 	});
-});
-
-//$(window).on('load', function () {
-//	$('.loader').remove();
-//});
-
-$(document).ready(function () {
 
 	// js for header
 
@@ -255,13 +260,17 @@ $(document).ready(function () {
 		let href = video.attr('href');
 		let id = new URL(href).searchParams.get('v');
 
+		// Створення URL першого кадру з відео
+		let thumbnailUrl = `https://img.youtube.com/vi/${id}/0.jpg`;
+
 		video.attr('data-youtube', id);
 		video.attr('role', 'button');
 
+		// Заміна статичного зображення на перший кадр з відео
 		video.html(`
-			<img alt="" src="https://storage.googleapis.com/jobdriver-bucket/docs/index-youtube-img.png" style="border-radius: 25px" width="552" height="310" loading="lazy"><br>
-			${video.text()}
-		`);
+        <img alt="" src="${thumbnailUrl}" loading="lazy"><br>
+        ${video.text()}
+    `);
 	});
 
 	function clickHandler(event) {
@@ -396,43 +405,26 @@ $(document).ready(function () {
 
 		submitForm(formData);
 	});
-});
 
-$.mask.definitions['9'] = '';
-$.mask.definitions['d'] = '[0-9]';
-
-function intlTelInit(phoneEl) {
-	let phoneSelector = $(phoneEl);
-
-	if (phoneSelector.length) {
-		phoneSelector.mask("+380 dd ddd-dd-dd");
-	}
-}
-
-$(document).ready(function () {
 	intlTelInit('#phone');
 	intlTelInit('#client-phone');
 
 //  js investment page
 	if ($(".investment-slider").length) {
-		var investmentSlider = new Splide('.investment-slider', {
-			type: 'loop',
-			perPage: 1,
-			autoplay: true,
-		});
+		var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
+		var investmentSliderOptions = {
+			perPage: 3,
+			autoplay: !isMobile,
+		};
+
+		if (!isMobile) {
+			investmentSliderOptions.type = 'loop';
+		}
+		var investmentSlider = new Splide('.investment-slider', investmentSliderOptions);
 		investmentSlider.mount();
-
-		var investmentParkSlider = new Splide('.investment-park-slider', {
-			type: 'loop',
-			perPage: 1,
-			autoplay: true,
-			arrows: false,
-			pagination: false
-		});
-
-		investmentParkSlider.mount();
 	}
+
 
 	$(".learn-more-button").click(function (e) {
 		sendData("#email-input");
@@ -484,9 +476,7 @@ $(document).ready(function () {
 			},
 		});
 	}
-});
 
-$(document).ready(function () {
 	var consultationButton = $(".consultation-button button");
 	var learnMoreButton = $(".investment-offer-section button");
 	var investModal = $("#InvestModal");
@@ -531,7 +521,49 @@ $(document).ready(function () {
 		);
 	});
 
-	$(this).on('click', '.subscribe-client', function (event) {
+	function validateForm(fields) {
+		for (const field of fields) {
+			const input = field.input;
+			const errorBlock = $(field.error);
+
+			if (!input) {
+				errorBlock.text("Це поле обов'язкове");
+				errorBlock.show();
+				return false;
+			} else {
+				errorBlock.hide();
+			}
+
+			if (field.error === '.error-phone' && !isValidPhoneNumber(input)) {
+				errorBlock.text("Введіть коректний номер телефону");
+				errorBlock.show();
+				return false;
+			}
+
+			if (field.error === '.error-email' && !isValidEmail(input)) {
+				errorBlock.text("Введіть коректну email адресу");
+				errorBlock.show();
+				return false;
+			}
+		}
+		return true;
+	}
+
+	function isValidPhoneNumber(phone) {
+		var phoneRegex = /^\+\d{1,3} \d{2,3} \d{2,3}-\d{2,3}-\d{2,3}$/;
+		return phoneRegex.test(phone);
+	}
+
+	function sendAjaxRequest(data, successCallback) {
+		$.ajax({
+			type: "POST",
+			url: ajaxPostUrl,
+			data: data,
+			success: successCallback
+		});
+	}
+
+	$('.subscribe-client').on('click', function (event) {
 		event.preventDefault();
 		const form = $(this).closest('form');
 		const nameInput = form.find('#name').val();
@@ -539,75 +571,153 @@ $(document).ready(function () {
 		const emailInput = form.find('#email').val();
 		const theme = $(this).text();
 
-
 		const fields = [
 			{input: nameInput, error: '.error-name'},
 			{input: phoneInput, error: '.error-phone'},
 			{input: emailInput, error: '.error-email'}
 		];
 
-		for (const field of fields) {
-			const input = field.input;
-			const errorBlock = form.find(field.error);
-
-			if (!input) {
-				errorBlock.text("Це поле обов'язкове");
-				errorBlock.show();
-				return;
-			} else {
-				errorBlock.hide();
-			}
-
-			if (field.error === '.error-phone' && input.length !== 13 && input.length !== 17) {
-				errorBlock.text("Введіть коректний номер телефону");
-				errorBlock.show();
-				return;
-			}
-
-			if (field.error === '.error-email' && !isValidEmail(input)) {
-				errorBlock.text("Введіть коректну email адресу");
-				errorBlock.show();
-				return;
-			}
-
+		if (!validateForm(fields)) {
+			return;
 		}
 
-		$.ajax(
-			{
-				type: "POST",
-				url: ajaxPostUrl,
-				data: {
-					action: 'subscribe_to_client',
-					name: nameInput,
-					phone: phoneInput,
-					email: emailInput,
-					theme: theme,
-					csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
-				},
-				success: function (response) {
-					if (response.data === 200) {
-						$('#contact-me-form').hide();
-						$('#thank-you-message').show();
-						form.find('#name').val('');
-						form.find('#phone').val('');
-						form.find('#email').val('');
+		const requestData = {
+			action: 'subscribe_to_client',
+			name: nameInput,
+			phone: phoneInput,
+			email: emailInput,
+			theme: theme,
+			csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
+		};
 
-						setTimeout(function () {
-							$('#thank-you-message').hide();
-						}, 5000);
-					}
-				}
+		sendAjaxRequest(requestData, function (response) {
+			if (response.data === 200) {
+				$('#contact-me-form').hide();
+				$('#thank-you-message').show();
+				form.find('#name').val('');
+				form.find('#phone').val('');
+				form.find('#email').val('');
+
+				setTimeout(function () {
+					$('#thank-you-message').hide();
+				}, 5000);
 			}
-		);
+		});
 	});
 
+	$('.cost-calculation').on('click', function (event) {
+		event.preventDefault();
+		const form = $(this).closest('form');
+		const cityInput = form.find('#client-city').val();
+		const nameInput = form.find('#client-name').val();
+		const phoneInput = form.find('#client-phone').val();
+		const vehicleInput = form.find('#client-vehicle').val();
+		const yearInput = form.find('#client-year').val();
+		const theme = 'Розрахунок вартості';
+
+		const fields = [
+			{input: cityInput, error: '.client-error-city'},
+			{input: nameInput, error: '.client-error-name'},
+			{input: vehicleInput, error: '.client-error-vehicle'},
+			{input: yearInput, error: '.client-error-year'},
+			{input: phoneInput, error: '.client-error-phone'}
+		];
+
+		if (!validateForm(fields)) {
+			return;
+		}
+
+		const requestData = {
+			action: 'subscribe_to_client',
+			name: nameInput,
+			phone: phoneInput,
+			city: cityInput,
+			vehicle: vehicleInput,
+			year: yearInput,
+			theme: theme,
+			csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
+		};
+
+		sendAjaxRequest(requestData, function (response) {
+			if (response.data === 200) {
+				$('#thank-you-message').show();
+				form.find('#client-city').val('');
+				form.find('#client-name').val('');
+				form.find('#client-phone').val('');
+				form.find('#client-vehicle').val('');
+				form.find('#client-year').val('');
+
+				setTimeout(function () {
+					$('#thank-you-message').hide();
+				}, 5000);
+			}
+		});
+	});
+});
+
+$(document).ready(function () {
 	$(this).on('click', '#close-form-contact', function (event) {
 		event.preventDefault();
 		$('#contact-me-form').hide();
 	});
+
+	$('.splide__arrow--next').html('<svg width="99" height="30" viewBox="0 0 99 30" fill="none" xmlns="http://www.w3.org/2000/svg">\n' +
+		'            <path\n' +
+		'                d="M3 12.5C1.61929 12.5 0.5 13.6193 0.5 15C0.5 16.3807 1.61929 17.5 3 17.5V12.5ZM99 15L74 0.566243V29.4338L99 15ZM3 17.5H76.5V12.5H3V17.5Z"\n' +
+		'                fill="#141E17"></path>\n' +
+		'          </svg>');
+
+	$('.splide__arrow--prev').html('<svg width="99" height="30" viewBox="0 0 99 30" fill="none" xmlns="http://www.w3.org/2000/svg">\n' +
+		'            <path\n' +
+		'          d="M0 15L25 29.4338V0.566243L0 15ZM96 17.5C97.3807 17.5 98.5 16.3807 98.5 15C98.5 13.6193 97.3807 12.5 96 12.5V17.5ZM22.5 17.5H96V12.5H22.5V17.5Z"\n' +
+		'          fill="#141E17"></path>\n' +
+		'    </svg>');
+
+	$('.question').each(function () {
+		const title = $(this).find('.question-title');
+		const answer = $(this).find('.answer');
+		const svg = title.find('svg');
+
+		title.on('click', function () {
+			answer.slideToggle();
+			if (svg.hasClass('rotate')) {
+				svg.removeClass('rotate');
+				svg.css('transform', 'rotate(0deg)');
+			} else {
+				svg.addClass('rotate');
+				svg.css('transform', 'rotate(90deg)');
+			}
+		});
+	});
 });
 
-function isValidEmail(email) {
-	const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-	return emailRegex.test(email);
-}
+$(document).ready(function () {
+	function isMobileDevice() {
+		return (typeof window.orientation !== "undefined") || (navigator.userAgent.indexOf('IEMobile') !== -1);
+	}
+
+	$('.phone').on('click', function () {
+		if (isMobileDevice()) {
+			window.location.href = 'tel:' + $(this).text().replace(/\D/g, '');
+		} else {
+			var phoneNumber = $(this).text().replace(/\D/g, '');
+			var message = 'Зателефонуйте за номером: ' + phoneNumber;
+			if (navigator.userAgent.match(/Mac/i)) {
+				message += '\nХочете відкрити FaceTime?';
+			} else if (navigator.userAgent.match(/Windows/i)) {
+				message += '\nХочете відкрити додаток Phone?';
+			}
+			if (confirm(message)) {
+				window.location.href = 'tel:' + phoneNumber;
+			}
+		}
+	});
+
+	$('.email').on('click', function () {
+		var email = $(this).text().trim();
+		var message = 'Надіслати листа на адресу: ' + email;
+		if (confirm(message)) {
+			window.location.href = 'mailto:' + email;
+		}
+	});
+});

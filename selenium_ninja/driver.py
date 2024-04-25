@@ -80,7 +80,7 @@ class SeleniumTools:
         options.add_argument("--start-maximized")
         options.add_argument("--disable-extensions")
         options.add_argument('--disable-dev-shm-usage')
-        options.add_argument('''user-agent=Mozilla/5.0
+        options.add_argument('''--user-agent=Mozilla/5.0
          (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.0.0 Safari/537.36''')
 
         capabilities = DesiredCapabilities.CHROME.copy()
@@ -169,6 +169,23 @@ class SeleniumTools:
 
         ]
         return cookies
+    def get_ecofactor_token(self):
+        url = "https://operator.ecofactor.eu/"
+        self.driver.get(url)
+        time.sleep(self.sleep)
+        input_login = WebDriverWait(self.driver, self.sleep).until(
+            ec.presence_of_element_located((By.XPATH, '//input[@name="username"]')))
+        click_and_clear(input_login)
+        input_login.send_keys("taxininjaua")
+        input_pass = WebDriverWait(self.driver, self.sleep).until(
+            ec.presence_of_element_located((By.XPATH, '//input[@name="password"]')))
+        click_and_clear(input_pass)
+        input_pass.send_keys("qDfetAWksj5Q")
+        WebDriverWait(self.driver, self.sleep).until(
+            ec.element_to_be_clickable((By.XPATH, '//button[@class="auth0-lock-submit"]'))).click()
+        time.sleep(self.sleep)
+        token = self.driver.execute_script('return window.localStorage.getItem("@@auth0spajs@@::R9l9zluJUz3nDRlYCvW9ShmJ9SxvBRBv::https://cpo.charging123.com/api/v1/::openid manage:cpo")')
+        print(token)
 
     def create_uber_session(self, login, password):
         self.driver.get(UberService.get_value('UBER_LOGIN_URL'))

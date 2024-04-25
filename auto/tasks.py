@@ -440,7 +440,7 @@ def get_car_efficiency(self, partner_pk, day=None):
                     for fleet in fleets:
                         if isinstance(fleet, UberRequest):
                             result = fleet.generate_vehicle_report(start, end, [vehicle])
-                            driver_kasa += result[0]['totalEarnings'] if result else 0
+                            driver_kasa += Decimal(result[0]['totalEarnings']) if result else 0
                         else:
                             filter_request = Q(Q(driver=driver, fleet=fleet.name, vehicle=vehicle) &
                                                Q(Q(state=FleetOrder.COMPLETED, finish_time__range=(start, end)) |
@@ -656,7 +656,7 @@ def fleets_cash_trips(self, partner_pk, pk, enable):
 
     for fleet in fleets:
         driver_rate = FleetsDriversVehiclesRate.objects.filter(
-            driver=driver, fleet=fleet).first()
+            driver=driver, fleet=fleet, deleted_at__isnull=True).first()
         if driver_rate:
             fleet.disable_cash(driver_rate.driver_external_id, enable)
 

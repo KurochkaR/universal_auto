@@ -531,14 +531,23 @@ class PostRequestHandler:
     @staticmethod
     def handler_subscribe_to_client(request):
         data = request.POST
+
         name = data.get('name')
         phone = data.get('phone')
-        email = data.get('email')
         theme = data.get('theme')
 
-        phone = re.sub(r'\s+|-', '', phone)
+        phone = phone.replace(' ', '').replace('-', '')
 
-        send = sending_to_crm(name, phone, email, theme)
+        if theme != 'Розрахунок вартості':
+            email = data.get('email')
+        else:
+            email = None
+
+        city = data.get('city') if theme == 'Розрахунок вартості' else None
+        vehicle = data.get('vehicle') if theme == 'Розрахунок вартості' else None
+        year = data.get('year') if theme == 'Розрахунок вартості' else None
+
+        send = sending_to_crm(name=name, phone=phone, email=email, city=city, vehicle=vehicle, year=year, theme=theme)
 
         return JsonResponse({'data': send})
 
