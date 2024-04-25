@@ -7827,7 +7827,6 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 
 	}
 
-
 	/* block 3 */
 	.charging-station-section-3 {
 		margin-top: 80px;
@@ -8040,7 +8039,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 @media screen and (min-width: 480px) and (max-width: 767px) {
 	/* block 1 */
 	.charging-station-section {
-		height: auto;
+		height: 910px;
 	}
 
 	.charging-station-section .container {
@@ -8048,20 +8047,23 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 		flex-direction: column;
 		align-items: center;
 		justify-content: space-between;
+		padding: 0;
 	}
 
 	.charging-station-section .charging-left-images {
 		position: relative;
 		width: 100%;
 		height: auto;
-		left: 20px;
+		left: 0;
 		top: 0;
 	}
 
 	.charging-station-section .charging-left-images img {
-		margin-top: 110px;
+		margin-top: 75px;
 		width: 100%;
 		height: auto;
+		left: 0;
+		top: 0;
 	}
 
 	.charging-station-section .charging-right-content {
@@ -8073,7 +8075,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	}
 
 	.charging-station-section .charging-right-content .decorate-img {
-		wight: 100%;
+		width: 100%;
 		height: auto;
 		margin-top: 20px;
 		margin-bottom: 0;
@@ -8083,56 +8085,149 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 
 	.charging-station-section .charging-right-content .decorate-img img {
 		width: 100%;
-		height: 460px;
+		height: auto;
 	}
 
 	.charging-station-section .charging-right-content .one-info {
-		width: 72%;
+		width: 80%;
 		position: relative;
-		padding: 10px;
+		padding: 0;
 		z-index: 1022;
-		margin-top: -395px;
-		margin-left: 145px;
+		margin-top: -304px;
+		margin-left: 15%;
 		right: 0;
 	}
 
+	.charging-right-content .one-info h2 {
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 25px;
+		text-transform: uppercase;
+		text-align: center;
+		color: #ec6323;
+		margin-bottom: 0;
+	}
+
+	.charging-right-content .one-info p {
+		font-family: var(--font-family);
+		font-weight: 400;
+		font-size: 23px;
+		text-align: center;
+		color: #fff;
+	}
+
 	.charging-station-section .contact-me-btn button {
-		margin-left: 26% !important;
-		font-size: 20px;
-		margin-top: 0;
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 15px;
+		color: #fff;
+		margin: 0 0 0 45px;
+		width: 390px;
+		height: 32px;
+		padding: 5px 0;
 	}
 
 	/* block 2 */
-	.charging-station-section-2 .container h2 {
-		width: 378px;
-		text-align: center;
-		font-size: 23px;
+	.charging-two-section {
+		margin-top: 80px;
 	}
 
-	.charging-station-section-2 .container .charging-cards {
-		grid-template-columns: 1fr;
+	.charging-two-section button {
+		display: none;
 	}
 
-	.charging-station-section-2 .container .charging-card {
+	.charging-two-section .container {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
+		justify-content: center;
 	}
 
-	.charging-station-section-2 .container .charging-card img {
-		width: 98px;
-		height: 94px;
+	.charging-two-section .why-us-title h2 {
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 18px;
+		text-transform: uppercase;
+		text-align: center;
+		color: #141e17;
 	}
 
-	.charging-station-section-2 .container .charging-card h3 {
-		font-size: 20px;
+	.charging-two-section .charging-slider {
 		margin-top: 20px;
+		width: 100%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
 	}
 
-	.charging-station-section-2 .container .charging-card p {
-		font-size: 15px;
-		margin-top: 10px;
-		margin-bottom: 50px;
+	.charging-two-section .why-us-cards-container {
+		width: 100%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex: 0 0 calc(33.33% - 20px);
+		margin: 0 10px;
+		box-sizing: border-box;
+	}
+
+	.charging-two-section .why-us-card {
+		width: 100%;
+		height: 316px;
+		background: #e5f9ec;
+		border-radius: 25px;
+		padding: 25px 25px;
+		transition: background-color 0.3s;
+		box-shadow: 4px 4px 4px 0 rgba(0, 0, 0, 0.25);
+	}
+
+	.charging-two-section .why-us-card .container-card h3 {
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 23px;
+		text-align: center;
+		color: #141e17;
+		margin: 15px 0;
+	}
+
+	.charging-two-section .why-us-card .container-card p {
+		font-family: var(--font-family);
+		font-weight: 400;
+		font-size: 18px;
+		text-align: center;
+		color: #53785e;
+	}
+
+	.charging-two-section .why-us-card:hover {
+		background: #a1e8b9;
+	}
+
+	.charging-two-section .why-us-card:hover .container-card h3,
+	.charging-two-section .why-us-card:hover .container-card p {
+		color: white;
+	}
+
+	.charging-two-section .box-btn {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.charging-two-section .splide__list {
+		display: grid;
+		grid-template-columns: 1fr;
+		grid-template-rows: 1fr;
+		grid-column-gap: 10px;
+		grid-row-gap: 15px;
+		width: 100%;
+	}
+
+	.charging-two-section .splide__slide {
+		width: 100% !important;
+
+	}
+
+	.charging-two-section .splide__track {
+		overflow: visible;
 	}
 
 	/* block 3 */
@@ -8143,24 +8238,18 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 		gap: 0;
 	}
 
-	.charging-station-section-3 .container .charging-station {
-		order: 1;
-	}
-
 	.charging-station-section-3 .container h2 {
-		font-size: 20px;
-		text-align: center;
+		font-size: 23px;
 	}
 
 	.charging-station-section-3 .container p {
 		font-size: 15px;
-		margin-top: 15px;
-		text-align: center;
+		margin-top: 18px;
 	}
 
 	.charging-station-section-3 .container .buttons-box button {
 		font-size: 15px;
-		padding: 10px 35px;
+		padding: 5px 35px;
 		width: 100%;
 	}
 
@@ -8176,8 +8265,11 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	}
 
 	/* block 4 */
+	.charging-station-section-4 {
+		padding: 15px 20px 20px 20px;
+	}
+
 	.charging-station-section-4 .container {
-		margin-top: 30px;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
@@ -8196,13 +8288,13 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	}
 
 	.charging-station-section-4 .charging-station-description h2 {
-		font-size: 20px;
+		font-size: 23px;
 		margin-top: 15px;
 		text-align: center;
 	}
 
 	.charging-station-section-4 .charging-station-description p {
-		font-size: 15px;
+		font-size: 18px;
 		margin-top: 15px;
 		text-align: center;
 	}
@@ -8221,15 +8313,16 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	}
 
 	.charging-station-section-5 .container .how-to-charge h2 {
-		font-size: 20px;
+		font-size: 23px;
 	}
 
 	.charging-station-section-5 .container .how-to-charge ul li {
-		font-size: 15px;
+		font-size: 18px;
 		margin-top: 0;
+		padding: 10px 0;
 	}
 
-	charging-station-section-5 .container .how-to-charge ul li::before {
+	.charging-station-section-5 .container .how-to-charge ul li::before {
 		width: 30px;
 		height: 30px;
 		margin-right: 5px;
@@ -8256,6 +8349,480 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 		width: 100%;
 		height: auto;
 		margin-top: 0 !important;
+	}
+
+	/* block 6 */
+	.charging-station-section-6 .container {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 20px;
+	}
+
+	.charging-station-section-6 .charging-station {
+		order: 2;
+	}
+
+	.charging-station-section-6 .container .charging-station h2 {
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 23px;
+		text-transform: uppercase;
+		text-align: center;
+		color: #141e17;
+	}
+
+	.charging-station-section-6 .container .charging-station p {
+		font-size: 15px;
+		margin-top: 18px;
+		text-align: center;
+		padding: 0 30px;
+	}
+
+	.charging-station-section-6 .container .buttons-box button {
+		padding: 5px 35px;
+		width: 100%;
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 15px;
+		color: #fff;
+	}
+
+	.charging-station-section-6 .container .img-box {
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		width: 100%;
+		height: auto;
+		order: 1;
+	}
+
+	.charging-station-section-6 .container .img-box img {
+		width: 100%;
+		height: auto;
+	}
+
+	.charging-station-section-6 .container .img-box a img,
+	.charging-station-section-6 .container .img-box iframe {
+		top: 15px;
+		left: 60px;
+		width: 332px;
+		height: 215px;
+	}
+}
+
+@media screen and (min-width: 540px) and (max-width: 767px) {
+	.charging-station-section-6 .container .img-box a img,
+	.charging-station-section-6 .container .img-box iframe {
+		top: 20px;
+		left: 70px;
+		width: 375px;
+		height: 237px;
+	}
+}
+
+@media screen and (min-width: 576px) and (max-width: 767px) {
+	.charging-station-section-6 .container .img-box a img,
+	.charging-station-section-6 .container .img-box iframe {
+		top: 15px;
+		left: 65px;
+		width: 380px;
+		height: 245px;
+	}
+}
+
+/* adaptive horizontal for tablet */
+@media screen and (min-width: 768px) and (max-width: 1023px) {
+	/* block 1 */
+	.charging-station-section {
+		height: auto;
+	}
+
+	.charging-station-section .container {
+		width: 100%;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: space-between;
+		padding: 0;
+		margin: 0;
+		max-width: 768px;
+	}
+
+	.charging-station-section .charging-left-images {
+		position: relative;
+		width: 100%;
+		height: auto;
+		left: 0;
+		top: 0;
+		padding-left: 177px;
+		padding-right: 102px;
+	}
+
+	.charging-station-section .charging-left-images img {
+		margin-top: 75px;
+		width: 100%;
+		height: auto;
+		left: 0;
+		top: 50px;
+	}
+
+	.charging-station-section .charging-right-content {
+		position: relative;
+		width: 100%;
+		height: 460px;
+		left: 0;
+		top: 0;
+	}
+
+	.charging-station-section .charging-right-content .decorate-img {
+		width: 100%;
+		height: auto;
+		margin-top: 20px;
+		margin-bottom: 0;
+		right: 0;
+		position: relative;
+	}
+
+	.charging-station-section .charging-right-content .decorate-img img {
+		width: 100%;
+		height: 398px;
+	}
+
+	.charging-station-section .charging-right-content .one-info {
+		width: 80%;
+		position: relative;
+		padding: 0;
+		z-index: 1022;
+		margin-top: -335px;
+		margin-left: 12%;
+		right: 0;
+	}
+
+	.charging-right-content .one-info h2 {
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 32px;
+		text-transform: uppercase;
+		text-align: center;
+		color: #ec6323;
+		margin-bottom: 0;
+	}
+
+	.charging-right-content .one-info p {
+		font-family: var(--font-family);
+		font-weight: 400;
+		font-size: 28px;
+		text-align: center;
+		color: #fff;
+	}
+
+	.charging-station-section .contact-me-btn button {
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 16px;
+		color: #fff;
+		margin-left: 75px;
+		width: 630px;
+		height: 53px;
+	}
+
+	/* block 2 */
+	.charging-two-section {
+		margin-top: 95px;
+	}
+
+	.charging-two-section button {
+		display: none;
+	}
+
+	.charging-two-section .container {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.charging-two-section .why-us-title h2 {
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 30px;
+		text-transform: uppercase;
+		text-align: center;
+		color: #141e17;
+	}
+
+	.charging-two-section .charging-slider {
+		margin-top: 20px;
+		width: 100%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.charging-two-section .why-us-cards-container {
+		width: 100%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex: 0 0 calc(33.33% - 20px);
+		margin: 0 10px;
+		box-sizing: border-box;
+	}
+
+	.charging-two-section .why-us-card {
+		width: 100%;
+		height: 316px;
+		background: #e5f9ec;
+		border-radius: 25px;
+		padding: 25px 25px;
+		transition: background-color 0.3s;
+		box-shadow: 4px 4px 4px 0 rgba(0, 0, 0, 0.25);
+	}
+
+	.charging-two-section .why-us-card .container-card h3 {
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 25px;
+		text-align: center;
+		color: #141e17;
+		margin: 15px 0;
+	}
+
+	.charging-two-section .why-us-card .container-card p {
+		font-family: var(--font-family);
+		font-weight: 400;
+		font-size: 25px;
+		text-align: center;
+		color: #53785e;
+	}
+
+	.charging-two-section .why-us-card:hover {
+		background: #a1e8b9;
+	}
+
+	.charging-two-section .why-us-card:hover .container-card h3,
+	.charging-two-section .why-us-card:hover .container-card p {
+		color: white;
+	}
+
+	.charging-two-section .box-btn {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.charging-two-section .splide__list {
+		display: grid;
+		grid-template-columns: 1fr;
+		grid-template-rows: 1fr;
+		grid-column-gap: 10px;
+		grid-row-gap: 15px;
+		width: 100%;
+	}
+
+	.charging-two-section .splide__slide {
+		width: 100% !important;
+
+	}
+
+	.charging-two-section .splide__track {
+		overflow: visible;
+	}
+
+	/* block 3 */
+	.charging-station-section-3 {
+		margin-top: 95px;
+		border-radius: 42px;
+	}
+
+	.charging-station-section-3 .container {
+		margin-top: 30px;
+		display: flex;
+		flex-direction: column;
+		gap: 0;
+	}
+
+	.charging-station-section-3 .container h2 {
+		font-size: 30px;
+	}
+
+	.charging-station-section-3 .container p {
+		font-size: 27px;
+		margin-top: 18px;
+	}
+
+	.charging-station-section-3 .container .buttons-box button {
+		font-size: 20px;
+		padding: 10px 35px;
+		width: 100%;
+	}
+
+	.charging-station-section-3 .container .img-box {
+		width: 100%;
+		height: auto;
+	}
+
+	.charging-station-section-3 .container .img-box img {
+		width: 100%;
+		height: auto;
+		margin-top: 25px;
+	}
+
+	/* block 4 */
+	.charging-station-section-4 {
+		padding: 15px 20px 20px 20px;
+	}
+
+	.charging-station-section-4 .container {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.charging-station-section-4 .container .img-box {
+		width: 100%;
+		height: auto;
+	}
+
+	.charging-station-section-4 .container .img-box img {
+		width: 100%;
+		height: auto;
+		margin-top: 0 !important;
+	}
+
+	.charging-station-section-4 .charging-station-description h2 {
+		font-size: 30px;
+		margin-top: 15px;
+		text-align: center;
+	}
+
+	.charging-station-section-4 .charging-station-description p {
+		font-size: 27px;
+		margin-top: 15px;
+		text-align: center;
+	}
+
+	/* block 5 */
+	.charging-station-section-5 {
+		margin-top: 95px;
+	}
+
+	.charging-station-section-5 .container {
+		margin-top: 30px;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.charging-station-section-5 .container .img-box {
+		order: -1;
+	}
+
+	.charging-station-section-5 .container .how-to-charge h2 {
+		font-size: 30px;
+	}
+
+	.charging-station-section-5 .container .how-to-charge ul li {
+		font-size: 27px;
+		margin-top: 0;
+		padding: 10px 0;
+	}
+
+	.charging-station-section-5 .container .how-to-charge ul li::before {
+		width: 30px;
+		height: 30px;
+		margin-right: 5px;
+	}
+
+	.charging-station-section-5 .container .how-to-charge .images-box {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.charging-station-section-5 .container .how-to-charge .images-box img {
+		margin-right: 0;
+		margin-bottom: 20px;
+	}
+
+	.charging-station-section-5 .container .img-box {
+		width: 100%;
+		height: auto;
+	}
+
+	.charging-station-section-5 .container .img-box img {
+		width: 100%;
+		height: auto;
+		margin-top: 0 !important;
+	}
+
+	/* block 6 */
+	.charging-station-section-6 {
+		margin-top: 95px;
+	}
+
+	.charging-station-section-6 .container {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 20px;
+	}
+
+	.charging-station-section-6 .charging-station {
+		order: 2;
+	}
+
+	.charging-station-section-6 .container .charging-station h2 {
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 30px;
+		text-transform: uppercase;
+		text-align: center;
+		color: #141e17;
+	}
+
+	.charging-station-section-6 .container .charging-station p {
+		font-size: 27px;
+		margin-top: 18px;
+		text-align: center;
+		padding: 0 30px;
+	}
+
+	.charging-station-section-6 .container .buttons-box button {
+		padding: 10px 35px;
+		width: 100%;
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 20px;
+		color: #fff;
+	}
+
+	.charging-station-section-6 .container .img-box {
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		width: 100%;
+		height: auto;
+		order: 1;
+	}
+
+	.charging-station-section-6 .container .img-box img {
+		width: 100%;
+		height: auto;
+	}
+
+	.charging-station-section-6 .container .img-box a img,
+	.charging-station-section-6 .container .img-box iframe {
+		top: 20px;
+		left: 89px;
+		width: 515px;
+		height: 330px;
 	}
 }
 
