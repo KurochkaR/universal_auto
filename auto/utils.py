@@ -262,7 +262,7 @@ def create_share_investor_earn(start, end, vehicles_list, partner_pk):
                 total_tips=Coalesce(Sum('tips'), 0))
             if isinstance(fleet, BoltRequest):
                 bonus_kasa = calc_bonus_bolt_from_orders(start, end, fleet, orders, drivers)
-            shared_kasa += shared_orders['total_price'] * (1 - fleet.fees) + shared_orders['total_tips']
+            shared_kasa += float(shared_orders['total_price'] * (1 - fleet.fees) + shared_orders['total_tips'])
         print(shared_kasa)
     vehicle_kasa = (shared_kasa + bonus_kasa) / vehicles_list.count()
     for vehicle in vehicles_list:
@@ -291,13 +291,13 @@ def create_proportional_investor_earn(start, end, vehicles_list, partner_pk):
                 if isinstance(fleet, BoltRequest):
                     for driver in drivers:
                         bonus_kasa += calc_bonus_bolt_from_orders(start, end, fleet, orders, [driver])
-                kasa += kasa_orders['total_price'] * (1 - fleet.fees) + kasa_orders['total_tips'] + bonus_kasa
+                kasa += float(kasa_orders['total_price'] * (1 - fleet.fees) + kasa_orders['total_tips'] + bonus_kasa)
             print(kasa)
         calc_and_create_earn(start, end, kasa, vehicle)
 
 
 def calc_and_create_earn(start, end, kasa, vehicle):
-    earning = kasa * vehicle.investor_percentage
+    earning = Decimal(kasa) * vehicle.investor_percentage
     rate = get_currency_rate(vehicle.currency_back)
     amount_usd = float(earning) / rate
     car_earnings = Decimal(str(amount_usd)).quantize(Decimal('0.00'), rounding=ROUND_HALF_UP)
