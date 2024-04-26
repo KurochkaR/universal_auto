@@ -1167,6 +1167,10 @@ def calculate_driver_reports(self, schemas, day=None):
                               f" Натисніть кнопку нижче, щоб відправити звіт Вашому менеджеру.",
                          reply_markup=keyboard)
 
+    bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"),
+                     text=f"Додано нові платежі водіів на перевірку."
+                     )
+
 
 @app.task(bind=True)
 def add_screen_to_payment(self, filename, driver_pk):
@@ -1387,7 +1391,7 @@ def get_information_from_fleets(self, partner_pk, schemas, day=None):
         get_rent_information.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
         calculate_driver_reports.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
         # send_daily_statistic.si(schemas).set(queue=f'beat_tasks_{partner_pk}'),
-        send_driver_report.si(schemas).set(queue=f'beat_tasks_{partner_pk}')
+        # send_driver_report.si(schemas).set(queue=f'beat_tasks_{partner_pk}')
     )
     task_chain()
 
