@@ -1,13 +1,16 @@
 from datetime import datetime, timedelta
 from django.utils import timezone
-from telegram import ReplyKeyboardRemove, InlineKeyboardMarkup
+from telegram import ReplyKeyboardRemove, InlineKeyboardMarkup, ParseMode
 from telegram.ext import ConversationHandler
 
-from app.models import Driver, Vehicle, ReportDriveDebt, Event
+from app.models import Driver, Vehicle, ReportDriveDebt, Event, DriverPayments
 from auto.tasks import add_screen_to_payment
-from auto_bot.handlers.driver.keyboards import service_auto_buttons, inline_debt_keyboard, inline_dates_kb
+from auto_bot.handlers.driver.keyboards import service_auto_buttons, inline_debt_keyboard, inline_dates_kb, \
+    back_to_payment, detail_payment_kb
 from auto_bot.handlers.driver.static_text import *
+from auto_bot.handlers.driver.utils import generate_detailed_info
 from auto_bot.handlers.driver_job.utils import save_storage_photo
+from auto_bot.handlers.driver_manager.utils import message_driver_report
 from auto_bot.handlers.main.keyboards import markup_keyboard_onetime, back_to_main_menu
 from scripts.redis_conn import redis_instance
 
@@ -40,6 +43,25 @@ def upload_bolt_report_photo(update, context):
         update.message.reply_text("Будь ласка, надішліть знімок екрану з поточним звітом")
         redis_instance().hset(str(chat_id), 'photo_state', BOLT_REPORT_PHOTO)
 
+
+def detailed_payment_info(update, context):
+    query = update.callback_query
+    payment_id = query.data.split()[1]
+    detailed_info = generate_detailed_info(payment_id)
+    if detailed_info:
+        query.edit_message_text(detailed_info)
+        query.edit_message_reply_markup(back_to_payment(payment_id))
+    else:
+        query.edit_message_text(no_payment_text)
+
+
+def back_to_payment_info(update, context):
+    query = update.callback_query
+    payment_id = query.data.split()[1]
+    payment_obj = DriverPayments.objects.get(pk=payment_id)
+    payment_text = message_driver_report(payment_obj)
+    context.bot.edit_message_text(chat_id=update.effective_chat.id, message_id=query.message.message_id,
+                             text=payment_text, reply_markup=detail_payment_kb(payment_id), parse_mode=ParseMode.HTML)
 
 def status_car(update, context):
     chat_id = update.message.chat.id

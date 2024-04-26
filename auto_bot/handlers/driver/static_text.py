@@ -8,3 +8,6 @@ DAY_OFF = 'Вихідний'
 SICK_DAY = 'Лікарняний'
 not_driver_text = 'Зареєструтесь як водій'
 select_off_text = 'Оберіть, будь ласка, число'
+detailed_text = "Детальніше"
+back_to_payment_text = "Назад до платежу"
+no_payment_text = "Вибачте платіж відсутній зверніться до менеджера"

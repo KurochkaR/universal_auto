@@ -16,6 +16,7 @@ from django.db.models.signals import post_save, post_delete, pre_delete
 from django.dispatch import receiver
 from app.models import Driver, StatusChange, JobApplication, ParkSettings, Partner, Order, DriverSchemaRate, \
     Schema, DriverPayments, InvestorPayments, FleetOrder, FleetsDriversVehiclesRate, Fleet, Manager, Vehicle
+from auto_bot.handlers.driver.keyboards import detail_payment_kb
 from auto_bot.handlers.driver_manager.utils import create_driver_payments, message_driver_report
 from auto_bot.handlers.order.keyboards import inline_reject_order
 from auto_bot.handlers.order.static_text import client_order_info
@@ -61,11 +62,12 @@ def create_payments(sender, instance, created, **kwargs):
     elif instance.is_pending():
         if isinstance(instance, DriverPayments):
             message = message_driver_report(instance)
+            keyboard = detail_payment_kb(instance.pk)
             try:
                 sleep(0.5)
-                bot.send_message(chat_id=instance.driver.chat_id, text=message,
+                bot.send_message(chat_id=instance.driver.manager.chat_id, text=message, reply_markup=keyboard,
                                  parse_mode=ParseMode.HTML)
-                bot.send_message(chat_id=instance.driver.manager.chat_id, text=message,
+                bot.send_message(chat_id=instance.driver.chat_id, text=message,
                                  parse_mode=ParseMode.HTML)
             except BadRequest as e:
                 if e.message == 'Chat not found':
