@@ -1717,66 +1717,71 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 
 @media screen and (min-width: 391px) and (max-width: 430px) {
 
-	.video-box a img {
-		left: 50px !important;
-		width: 285px !important;
-		height: 188px !important;
-	}
-
+	.video-box a img,
 	.video-box iframe {
 		left: 50px !important;
 		width: 285px !important;
 		height: 188px !important;
 	}
 
-	.price-free-section .img-box a img {
+	.price-free-section .img-box a img,
+	.price-free-section .img-box iframe {
 		width: 295px !important;
 		height: 195px !important;
 		left: 52px !important;
 	}
 
-	.price-free-section .img-box iframe {
-		width: 295px !important;
-		height: 195px !important;
-		left: 52px !important;
+	.charging-station-section-6 .container .img-box a img,
+	.charging-station-section-6 .container .img-box iframe {
+		top: 15px !important;
+		left: 45px !important;
+		width: 305px !important;
+		height: 190px !important;
 	}
 }
 
 @media screen and (min-width: 391px) and (max-width: 414px) {
-	.video-box a img {
-		left: 47px !important;
-		width: 274px !important;
-	}
-
+	.video-box a img,
 	.video-box iframe {
 		left: 47px !important;
 		width: 274px !important;
 	}
 
-	.price-free-section .img-box a img {
-		width: 280px !important;
-		height: 190px !important;
-	}
-
+	.price-free-section .img-box a img,
 	.price-free-section .img-box iframe {
 		width: 280px !important;
 		height: 190px !important;
 	}
+
+	.charging-station-section-6 .container .img-box a img,
+	.charging-station-section-6 .container .img-box iframe {
+		top: 15px !important;
+		left: 45px !important;
+		width: 290px !important;
+		height: 180px !important;
+	}
 }
 
 @media screen and (max-width: 375px) {
-	.video-box a img {
-		left: 39px !important;
-	}
 
+	.video-box a img,
 	.video-box iframe {
 		left: 39px !important;
 	}
 
-	.price-free-section .img-box a img {
+	.price-free-section .img-box a img,
+	.price-free-section .img-box iframe {
 		width: 252px !important;
 		height: 170px !important;
 		left: 46px !important;
+	}
+
+	.charging-station-section-6 .container .img-box a img,
+	.charging-station-section-6 .container .img-box iframe {
+		top: 15px !important;
+		left: 45px !important;
+		width: 255px !important;
+		height: 167px !important;
 	}
 }
 
@@ -7631,7 +7636,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 .charging-station-section-6 .container .img-box iframe {
 	position: absolute;
 	top: 52px;
-	left: -71px;
+	left: -32px;
 	width: 465px;
 	height: 295px;
 }
@@ -8405,20 +8410,110 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 
 	.charging-station-section-6 .container .img-box a img,
 	.charging-station-section-6 .container .img-box iframe {
-		top: 15px;
-		left: 60px;
-		width: 332px;
-		height: 215px;
+		top: 10px;
+		left: 54px;
+		width: 345px;
+		height: 225px;
 	}
 }
 
-@media screen and (min-width: 540px) and (max-width: 767px) {
+@media screen and (min-width: 491px) and (max-width: 767px) {
+	.charging-station-section-6 .container .img-box a img,
+	.charging-station-section-6 .container .img-box iframe {
+		top: 10px;
+		left: 60px;
+		width: 350px;
+		height: 235px;
+	}
+}
+
+@media screen and (min-width: 501px) and (max-width: 767px) {
+	.charging-station-section-6 .container .img-box a img,
+	.charging-station-section-6 .container .img-box iframe {
+		top: 10px;
+		left: 65px;
+		width: 355px;
+		height: 240px;
+	}
+}
+
+@media screen and (min-width: 516px) and (max-width: 767px) {
+	.charging-station-section-6 .container .img-box a img,
+	.charging-station-section-6 .container .img-box iframe {
+		top: 10px;
+		left: 60px;
+		width: 370px;
+		height: 245px;
+	}
+}
+
+@media screen and (min-width: 526px) and (max-width: 767px) {
+	.charging-station-section-6 .container .img-box a img,
+	.charging-station-section-6 .container .img-box iframe {
+		top: 10px;
+		left: 65px;
+		width: 375px;
+		height: 250px;
+	}
+}
+
+@media screen and (min-width: 538px) and (max-width: 767px) {
 	.charging-station-section-6 .container .img-box a img,
 	.charging-station-section-6 .container .img-box iframe {
 		top: 20px;
 		left: 70px;
 		width: 375px;
 		height: 237px;
+	}
+}
+
+@media screen and (min-width: 544px) and (max-width: 767px) {
+	.charging-station-section-6 .container .img-box a img,
+	.charging-station-section-6 .container .img-box iframe {
+		top: 20px;
+		left: 70px;
+		width: 380px;
+		height: 240px;
+	}
+}
+
+@media screen and (min-width: 550px) and (max-width: 767px) {
+	.charging-station-section-6 .container .img-box a img,
+	.charging-station-section-6 .container .img-box iframe {
+		top: 20px;
+		left: 70px;
+		width: 385px;
+		height: 245px;
+	}
+}
+
+@media screen and (min-width: 556px) and (max-width: 767px) {
+	.charging-station-section-6 .container .img-box a img,
+	.charging-station-section-6 .container .img-box iframe {
+		top: 20px;
+		left: 70px;
+		width: 390px;
+		height: 250px;
+	}
+}
+
+@media screen and (min-width: 562px) and (max-width: 767px) {
+	.charging-station-section-6 .container .img-box a img,
+	.charging-station-section-6 .container .img-box iframe {
+		top: 20px;
+		left: 70px;
+		width: 395px;
+		height: 255px;
+	}
+}
+
+@media screen and (min-width: 568px) and (max-width: 767px) {
+	.charging-station-section-6 .container .img-box a img,
+	.charging-station-section-6 .container .img-box iframe {
+		top: 20px;
+		left: 70px;
+		width: 405px;
+		height: 260px;
 	}
 }
 
@@ -8447,7 +8542,8 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 		justify-content: space-between;
 		padding: 0;
 		margin: 0;
-		max-width: 768px;
+		min-width: 768px;
+		max-width: 1023px;
 	}
 
 	.charging-station-section .charging-left-images {
@@ -8518,13 +8614,17 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 		color: #fff;
 	}
 
+	.charging-station-section .contact-me-btn {
+		margin: 0 45px;
+	}
+
 	.charging-station-section .contact-me-btn button {
 		font-family: var(--second-family);
 		font-weight: 700;
 		font-size: 16px;
 		color: #fff;
-		margin-left: 75px;
-		width: 630px;
+		margin-left: 0;
+		width: 100%;
 		height: 53px;
 	}
 
@@ -8740,9 +8840,9 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 
 	.charging-station-section-5 .container .how-to-charge .images-box {
 		display: flex;
-		flex-direction: column;
 		align-items: center;
 		justify-content: center;
+		gap: 50px;
 	}
 
 	.charging-station-section-5 .container .how-to-charge .images-box img {
@@ -8753,6 +8853,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	.charging-station-section-5 .container .img-box {
 		width: 100%;
 		height: auto;
+		padding: 0 175px;
 	}
 
 	.charging-station-section-5 .container .img-box img {
@@ -8823,6 +8924,16 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 		left: 89px;
 		width: 515px;
 		height: 330px;
+	}
+}
+
+@media screen and (min-width: 992px) and (max-width: 1023px) {
+	.charging-station-section-6 .container .img-box a img,
+	.charging-station-section-6 .container .img-box iframe {
+		top: 40px;
+		left: 130px;
+		width: 676px;
+		height: 427px;
 	}
 }
 
