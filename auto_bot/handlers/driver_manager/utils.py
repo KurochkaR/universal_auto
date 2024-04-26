@@ -339,7 +339,7 @@ def generate_message_report(chat_id, schema_id=None, daily=None):
             message += driver_message
 
         if driver_message:
-            message += "*" * 39 + '\n'
+            message += "*" * 37 + '\n'
     if message and user:
         manager_message = "Звіт з {0} по {1}\n".format(start.date(), end.date())
         manager_message += f'Ваш баланс:%.2f\n' % balance

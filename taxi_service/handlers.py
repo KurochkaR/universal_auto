@@ -82,11 +82,9 @@ class PostRequestHandler:
 
     @staticmethod
     def handler_success_login(request):
-        aggregator = request.POST.get('aggregator')
-        login = request.POST.get('login')
-        password = request.POST.get('password')
-        task = get_session.apply_async(args=[request.user.pk, aggregator, login, password],
-                                       queue=f'beat_tasks_{request.user.pk}')
+        data = request.POST
+        data.update({"partner_pk":request.user.pk})
+        task = get_session.apply_async(kwargs=data)
         json_data = JsonResponse({'task_id': task.id}, safe=False)
 
         return json_data
@@ -164,7 +162,7 @@ class PostRequestHandler:
         else:
             manager = Manager.objects.get(pk=request.user.pk)
             partner = manager.managers_partner.pk
-        upd = update_driver_data.apply_async(args=[partner], queue=f'beat_tasks_{partner}')
+        upd = update_driver_data.apply_async(kwargs={"partner_pk": partner})
         json_data = JsonResponse({'task_id': upd.id}, safe=False)
         return json_data
 
@@ -372,8 +370,8 @@ class PostRequestHandler:
         driver_id = request.POST.get('driver_id')
         enable = int(request.POST.get('pay_cash'))
 
-        enable_cash = fleets_cash_trips.apply_async(args=[partner_pk, driver_id, enable],
-                                                    queue=f'beat_tasks_{partner_pk}')
+        enable_cash = fleets_cash_trips.apply_async(kwargs={"partner_pk": partner_pk, "driver_id":driver_id,
+                                                            "enable":enable})
 
         json_data = JsonResponse({'task_id': enable_cash.id}, safe=False)
         response = HttpResponse(json_data, content_type='application/json')
@@ -415,24 +413,20 @@ class PostRequestHandler:
 
     @staticmethod
     def handler_create_new_payment(request):
-        partner_pk = request.user.manager.managers_partner.pk if request.user.is_manager() else request.user.pk
         driver_id = request.POST.get('driver_id')
         if not driver_id:
             driver_id = DriverPayments.objects.get(pk=request.POST.get('payment_id')).driver_id
         if Driver.objects.get(pk=int(driver_id)).driver_status == Driver.WITH_CLIENT:
             json_data = JsonResponse({'error': 'Водій виконує замовлення, спробуйте пізніше'}, status=400)
         else:
-            create_payment = create_daily_payment.apply_async(kwargs={"driver_pk": driver_id},
-                                                              queue=f'beat_tasks_{partner_pk}')
+            create_payment = create_daily_payment.apply_async(kwargs={"driver_pk": driver_id})
             json_data = JsonResponse({'task_id': create_payment.id}, safe=False)
         return json_data
 
     @staticmethod
     def handler_incorrect_payment(request):
-        partner_pk = request.user.manager.managers_partner.pk if request.user.is_manager() else request.user.pk
         data = request.POST
-        create_payment = create_daily_payment.apply_async(kwargs={"payment_id": int(data['payment_id'])},
-                                                          queue=f'beat_tasks_{partner_pk}')
+        create_payment = create_daily_payment.apply_async(kwargs={"payment_id": int(data['payment_id'])})
         json_data = JsonResponse({'task_id': create_payment.id}, safe=False)
         return json_data
 

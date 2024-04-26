@@ -1268,7 +1268,7 @@ class VehicleAdmin(SoftDeleteAdmin):
                                                  ]}),
                 ('Інформація про машину', {'fields': ['name', 'purchase_price',
                                                       'currency', 'investor_car', 'investor_schema',
-                                                      'investor_percentage',
+                                                      'investor_percentage', 'rental_price',
                                                       'currency_rate', 'currency_back',
                                                       ]}),
                 ('Особисті дані авто', {'fields': ['vin_code', 'gps_imei', 'lat', 'lon',
@@ -1285,6 +1285,7 @@ class VehicleAdmin(SoftDeleteAdmin):
                 ('Дані авто з GPS', {'fields': ['gps_imei', 'gps',
                                                 ]}),
                 ('Інформація про інвестора', {'fields': ['currency', 'investor_car', 'investor_schema',
+                                                         'rental_price',
                                                          'investor_percentage', 'currency_rate', 'currency_back',
                                                          ]}),
                 ('Додатково', {'fields': ['manager', 'branding'

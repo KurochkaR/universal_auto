@@ -347,6 +347,7 @@ class Vehicle(models.Model):
     lon = models.DecimalField(null=True, decimal_places=6, max_digits=10, default=0, verbose_name="Довгота")
     car_status = models.CharField(max_length=18, null=False, default="Serviceable", verbose_name='Статус автомобіля')
     purchase_price = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name="Вартість автомобіля")
+    rental_price = models.IntegerField(default=0, verbose_name="Ціна оренди авто")
     currency = models.CharField(max_length=4, default=Currency.UAH, choices=Currency.choices,
                                 verbose_name='Валюта покупки')
     currency_rate = models.DecimalField(decimal_places=2, max_digits=10, default=0,

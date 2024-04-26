@@ -268,11 +268,11 @@ def create_share_investor_earn(start, end, vehicles_list, partner_pk):
         swap_vehicle__in=vehicles_list, swap_time__range=(start, end)).values_list(
         'driver_start', flat=True).distinct()
     investors_kasa = CarEfficiency.objects.filter(
-        report_from__range=(start, end), vehicle__in=vehicles_list, partner=partner_pk).aggregate(
+        report_to__range=(start, end), vehicle__in=vehicles_list, partner=partner_pk).aggregate(
         total=Sum('total_kasa'))['total']
 
     fleet = Fleet.objects.filter(partner=partner_pk, name="Bolt", deleted_at=None)
-    bonus_kasa = calc_bonus_bolt_from_orders(start, end, fleet, vehicles_list, drivers) if fleet.exists() else 0
+    bonus_kasa = calc_bonus_bolt_from_orders(start, end, fleet.first(), vehicles_list, drivers) if fleet.exists() else 0
     vehicle_kasa = (investors_kasa + bonus_kasa) / vehicles_list.count()
     for vehicle in vehicles_list:
         calc_and_create_earn(start, end, vehicle_kasa, vehicle)
@@ -285,21 +285,22 @@ def create_proportional_investor_earn(start, end, vehicles_list, partner_pk):
             swap_vehicle=vehicle, swap_time__range=(start, end)).values_list(
             'driver_start', flat=True).distinct()
         investors_kasa = CarEfficiency.objects.filter(
-            report_from__range=(start, end), vehicle=vehicle, partner=partner_pk).aggregate(
+            report_to__range=(start, end), vehicle=vehicle, partner=partner_pk).aggregate(
             total=Sum('total_kasa'))['total']
+        print(investors_kasa)
         bonus_kasa = 0
         if bolt_fleet.exists():
-            for driver in drivers:
-                bonus_kasa += calc_bonus_bolt_from_orders(start, end, bolt_fleet, [vehicle], [driver])
+            bonus_kasa = calc_bonus_bolt_from_orders(start, end, bolt_fleet.first(), [vehicle], drivers)
+            print(bonus_kasa)
         investors_kasa += Decimal(bonus_kasa)
         calc_and_create_earn(start, end, investors_kasa, vehicle)
 
 
-def create_rental_investor_earn(start, end, vehicles_list, partner_pk):
+def create_rental_investor_earn(start, end, vehicles_list: list, partner_pk: int):
     for vehicle in vehicles_list:
         investors_kasa = vehicle.rental_price
         overall_mileage = CarEfficiency.objects.filter(
-            report_from__range=(start, end), vehicle=vehicle, partner=partner_pk).aggregate(
+            report_to__range=(start, end), vehicle=vehicle, partner=partner_pk).aggregate(
             total=Sum('mileage'))['total']
         if overall_mileage > ParkSettings.get_value("RENT_LIMIT",default=2000, partner=partner_pk):
             investors_kasa += overall_mileage * ParkSettings.get_value("OVERALL_MILEAGE_PRICE", default=2,
@@ -325,18 +326,21 @@ def calc_and_create_earn(start, end, kasa, vehicle):
             "sum_after_transaction": car_earnings})
 
 
-def calc_bonus_bolt_from_orders(start, end, fleet, vehicles_list, drivers_list):
+def calc_bonus_bolt_from_orders(start, end, fleet: Fleet, vehicles_list: list, drivers_list: list):
     weekly_bonus = WeeklyReport.objects.filter(
         report_from=start, report_to=end, fleet=fleet, driver__in=drivers_list).aggregate(
         kasa=Coalesce(Sum('total_amount_without_fee'), 0, output_field=DecimalField()),
         bonuses=Coalesce(Sum('bonuses'), 0, output_field=DecimalField()),
         compensations=Coalesce(Sum('compensations'), 0, output_field=DecimalField()))
     if weekly_bonus['bonuses']:
-        driver_orders = FleetOrder.objects.filter(fleet=fleet.name, vehicle__in=vehicles_list,
-            driver__in=drivers_list).aggregate(
+        driver_orders = FleetOrder.objects.filter(
+            fleet=fleet.name, vehicle__in=vehicles_list,
+            accepted_time__range=(start, end), driver__in=drivers_list).aggregate(
             total_price=Coalesce(Sum('price'), 0),
             total_tips=Coalesce(Sum('tips'), 0))
         driver_kasa = driver_orders['total_price'] * (1 - fleet.fees) + driver_orders['total_tips']
+        print(driver_kasa)
+        print(weekly_bonus)
         bonus_kasa = driver_kasa / (weekly_bonus['kasa'] - weekly_bonus['compensations'] -
                                     weekly_bonus['bonuses']) * weekly_bonus['bonuses']
     else:
