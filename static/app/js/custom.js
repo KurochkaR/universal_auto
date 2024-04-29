@@ -410,20 +410,26 @@ $(document).ready(function () {
 	intlTelInit('#client-phone');
 
 //  js investment page
-	if ($(".investment-slider").length) {
-		var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+	function initializeSlider(selector, options) {
+		if ($(selector).length) {
+			var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
-		var investmentSliderOptions = {
-			perPage: 3,
-			autoplay: !isMobile,
-		};
+			var sliderOptions = {
+				perPage: 3,
+				autoplay: !isMobile,
+				...options // додавання додаткових опцій, якщо вони передані
+			};
 
-		if (!isMobile) {
-			investmentSliderOptions.type = 'loop';
+			if (!isMobile) {
+				sliderOptions.type = 'loop';
+			}
+			var slider = new Splide(selector, sliderOptions);
+			slider.mount();
 		}
-		var investmentSlider = new Splide('.investment-slider', investmentSliderOptions);
-		investmentSlider.mount();
 	}
+
+	initializeSlider('.investment-slider');
+	initializeSlider('.charging-slider');
 
 
 	$(".learn-more-button").click(function (e) {

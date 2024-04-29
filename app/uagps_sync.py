@@ -279,7 +279,7 @@ class UaGpsSynchronizer(Fleet):
                 results_with_slots = list(zip(empty_time_slots, result))
                 for slot, result in results_with_slots:
                     if result[0]:
-                        message += f"{slot[0].strftime('%H:%M')} - {slot[1].strftime('%H:%M')} Пробіг: {result[0]}\n"
+                        message += f"({slot[0].strftime('%d.%m %H:%M')} - {slot[1].strftime('%H:%M')}) - {round(result[0], 1)} км\n"
         else:
             message = (f"Відсутні зміни в календарі для корректного розрахунку холостого пробігу у "
                        f"{driver} з {start_time.strftime('%d.%m %H:%M')} по {end_time.strftime('%d.%m %H:%M')}.")

@@ -6,7 +6,7 @@ from auto_bot.main import bot
 
 def send_long_message(chat_id, text, keyboard=None):
     try:
-        bot.send_message(chat_id=chat_id, text=text, parse_mode=ParseMode.HTML)
+        bot.send_message(chat_id=chat_id, text=text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
     except BadRequest as e:
         if e.message == 'Message is too long':
             num_parts = (len(text) - 1) // 4090 + 1
@@ -22,7 +22,8 @@ def send_long_message(chat_id, text, keyboard=None):
 
 def edit_long_message(chat_id, text, message_id,  keyboard=None):
     try:
-        bot.edit_message_text(chat_id=chat_id, text=text, message_id=message_id, parse_mode=ParseMode.HTML)
+        bot.edit_message_text(chat_id=chat_id, text=text, message_id=message_id,
+                              reply_markup=keyboard, parse_mode=ParseMode.HTML)
     except BadRequest as e:
         if e.message == 'Message_too_long':
             num_parts = (len(text) - 1) // 4090 + 1

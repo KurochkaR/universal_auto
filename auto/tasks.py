@@ -667,12 +667,17 @@ def get_rent_information(self, **kwargs):
 
 
 @app.task(bind=True)
-def generate_rent_message_driver(self, driver_id, manager_chat_id, message_id):
-    driver = Driver.objects.get(pk=driver_id)
-    end, start = get_time_for_task(driver.schema_id)[1:3]
+def generate_rent_message_driver(self, driver_id, manager_chat_id, message_id, payment=None):
+    if payment:
+        payment_obj = DriverPayments.objects.get(pk=payment)
+        end, start, driver = payment_obj.report_to, payment_obj.report_from, payment_obj.driver
+    else:
+        driver = Driver.objects.get(pk=driver_id)
+        end, start = get_time_for_task(driver.schema_id)[1:3]
+
     gps = UaGpsSynchronizer.objects.get(partner=driver.partner, deleted_at=None)
     message = gps.get_non_order_message(start, end, driver_id)
-    return manager_chat_id, message, message_id
+    return manager_chat_id, message, message_id, payment
 
 
 @app.task(bind=True, retry_backoff=30, max_retries=3)
@@ -1148,7 +1153,9 @@ def calculate_driver_reports(self, **kwargs):
     today = timezone.localtime()
     start_week, end_week = get_start_end('last_week')[:2]
     driver_list = []
-    for driver in Driver.objects.get_active(schema__in=kwargs.get('schemas')):
+    created = False
+    drivers = Driver.objects.get_active(schema__in=schemas)
+    for driver in drivers:
         bolt_weekly = WeeklyReport.objects.filter(report_from=start_week, report_to=end_week,
                                                   driver=driver, fleet__name="Bolt").aggregate(
             bonuses=Coalesce(Sum('bonuses'), 0, output_field=DecimalField()),
@@ -1194,6 +1201,12 @@ def calculate_driver_reports(self, **kwargs):
                          text=f"{driver} Не вдалося отримати всі дані Bolt."
                               f" Натисніть кнопку нижче, щоб відправити звіт Вашому менеджеру.",
                          reply_markup=keyboard)
+    if created:
+        managers = Manager.objects.filter(driver__in=drivers, chat_id__isnull=False).exclude(chat_id='').distinct()
+        for manager in managers:
+            bot.send_message(chat_id=manager.chat_id,
+                             text=f"Додано нові платежі водіів на перевірку."
+                             )
 
 
 @app.task(bind=True)
@@ -1381,7 +1394,7 @@ def get_information_from_fleets(self, **kwargs):
         generate_summary_report.si(**kwargs),
         get_rent_information.si(**kwargs),
         calculate_driver_reports.si(**kwargs),
-        send_driver_report.si(**kwargs)
+        # send_driver_report.si(**kwargs)
     )
     task_chain()
 
