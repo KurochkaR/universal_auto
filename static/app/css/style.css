@@ -1061,7 +1061,7 @@ ul.sub-menu.service {
 .heading_container h2 {
 	position: relative;
 	margin-top: 10px;
-	color: #FFFFFF;
+	color: #141e17;
 	font-size: 32px;
 	font-style: normal;
 	font-weight: 600;
@@ -1840,7 +1840,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	}
 
 	.right_content .one-info {
-		width: 80%;
+		width: 85%;
 		position: relative;
 		padding: 10px;
 		z-index: 1022;
@@ -1863,15 +1863,15 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	}
 
 	.one_section .contact-me-btn button {
-		margin-left: 0%;
+		margin-left: 0;
 		margin-top: 10px;
 		width: 100%;
 		background-color: #EC6323;
 		color: #fff;
-		padding: 15px 0;
+		padding: 10px 0;
 		border: none;
 		border-radius: 20px;
-		font-size: 16px;
+		font-size: 15px;
 		text-decoration: none;
 		cursor: pointer;
 		font-style: normal;
@@ -1887,7 +1887,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 
 	/*block 2*/
 	.about_section {
-		margin-top: 110px;
+		margin-top: 80px;
 		flex-direction: column;
 	}
 
@@ -2474,14 +2474,14 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	.heading_container h2 {
 		width: 100%;
 		text-align: center;
-		font-size: 24px;
+		font-size: 25px;
 		margin-top: 20px;
 	}
 
 	.about-section {
 		width: 100%;
 		text-align: center;
-		font-size: 15px;
+		font-size: 23px;
 	}
 
 	.col-md-6 {
@@ -2582,7 +2582,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	.services-grid__item h4,
 	.services-grid__item p {
 		height: auto;
-		font-size: 15px;
+		font-size: 18px;
 		text-align: left;
 	}
 
@@ -2655,12 +2655,12 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 
 	.detail-radio-1 p {
 		margin-top: 8px;
-		font-size: 15px;
+		font-size: 18px;
 	}
 
 	.detail-radio-1 ul li,
 	.detail-radio-2 ul li {
-		font-size: 15px;
+		font-size: 18px;
 	}
 
 	.detail-radio-1 ul li::before,
@@ -2745,7 +2745,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	}
 
 	.investment-section-index .heading_container p {
-		font-size: 15px;
+		font-size: 18px;
 		width: 100%;
 		text-align: center;
 	}
@@ -2807,7 +2807,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 
 	.automation-section-index .block-detail p {
 		margin-left: 0;
-		font-size: 15px;
+		font-size: 18px;
 		text-align: center;
 	}
 
@@ -2919,6 +2919,18 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 		font-size: 15px;
 		text-align: center;
 		padding-top: 3px;
+	}
+
+	.refueling-section .detail-box {
+		margin-top: 5%;
+	}
+
+	.refueling-section .heading_container h2 {
+		font-size: 25px;
+	}
+
+	.refueling-section .about-section {
+		font-size: 23px;
 	}
 }
 
@@ -7645,7 +7657,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 @media screen and (max-width: 479px) {
 	/* block 1 */
 	.charging-station-section {
-		height: 860px;
+		height: auto;
 	}
 
 	.charging-station-section .container {
@@ -7725,7 +7737,7 @@ input[type="radio"]#howItWorksRadio:checked + label::before {
 	.charging-station-section .contact-me-btn button {
 		margin-left: 26% !important;
 		padding: 10px 0;
-		margin-top: 55px;
+		margin-top: 25px;
 		font-family: var(--second-family);
 		font-weight: 700;
 		font-size: 10px;
