@@ -7,14 +7,17 @@
   <section class="charging-station-section">
     <div class="container">
       <div class="charging-left-images">
-        <img class="image-map" src="{% static 'app/images/charging-station/charging-block-1.webp' %}" alt="one image">
+        <img class="image-map" src="{% static 'app/images/charging-station/charging-block-1.png' %}" alt="one image">
       </div>
       <div class="charging-right-content">
         <div class="decorate-img">
           <img src="{% static 'app/images/index-one-block-3.webp' %}" alt="three image">
           <div class="one-info">
             <h2>{% trans "ninja ЗАРЯДКИ" %}</h2>
-            <p class="text-1">{% trans "Не зволікай та заряджай на швидких зарядних станціях by NINJA TAXI" %}</p>
+            <p class="text-1">
+              {% trans "- це швидкий, зручний та екологічно-чистий спосіб заряджати ваш електромобіль. " %}
+              {% trans "З NINJA TAXI ви можете рухатися вперед у майбутнє без зайвих затримок." %}
+            </p>
           </div>
         </div>
         <div class="contact-me-btn">
@@ -24,51 +27,64 @@
     </div>
   </section>
 
-  <section class="charging-station-section-2">
+  <section class="charging-two-section">
     <div class="container">
-      <h2>{% trans "прямуй прямо до цілі. Вже сьогодні" %}</h2>
-
-      <div class="charging-cards">
-        <div class="charging-card">
-          <img src="{% static 'app/images/charging-station/charging-block-2.webp' %}" alt="img 1">
-          <div class="card-description">
-            <h3>{% trans "Безпека" %}</h3>
-            <p>
-              {% trans "Наші зарядні станції мають захист від перенапруги та системи ізоляції," %}
-              {% trans "що запобігають пошкодженню електроніки електромобіля." %}
-            </p>
-          </div>
+      <div class="why-us-title">
+        <h2>{% trans "прямуй прямо до цілі. Вже сьогодні" %}</h2>
+      </div>
+      <section class="splide charging-slider" aria-label="">
+        <div class="splide__track">
+          <ul class="splide__list">
+            <li class="splide__slide">
+              <div class="why-us-card why-us-card-first">
+                <div class="container-card">
+                  <img src="{% static 'app/images/charging-station/charging-block-2-1.png' %}" alt="">
+                  <h3 class="title-card">{% trans "Бузпека" %}</h3>
+                  <p class="description-card">
+                    {% trans "Наші зарядні станції  мають захист від перенапруги та системи ізоляції, " %}
+                    {% trans "що запобігають пошкодженню електроніки електромобіля." %}
+                  </p>
+                </div>
+              </div>
+            </li>
+            <li class="splide__slide">
+              <div class="why-us-card">
+                <div class="container-card">
+                  <img src="{% static 'app/images/charging-station/charging-block-2-2.png' %}" alt="">
+                  <h3 class="title-card">{% trans "Швидкість" %}</h3>
+                  <p class="description-card">
+                    {% trans "Наші швидкісні зарядні станції можуть зарядити Ваш електрокар з 0 до 80 за 60 хвилин" %}
+                  </p>
+                </div>
+              </div>
+            </li>
+            <li class="splide__slide">
+              <div class="why-us-card">
+                <div class="container-card">
+                  <img src="{% static 'app/images/charging-station/charging-block-2-3.png' %}" alt="">
+                  <h3 class="title-card">{% trans "Вид зарядної станції" %}</h3>
+                  <p class="description-card">
+                    {% trans "Наша зарядна станція - 40 kWt GBT/DC" %}
+                  </p>
+                </div>
+              </div>
+            </li>
+            <li class="splide__slide">
+              <div class="why-us-card">
+                <div class="container-card">
+                  <img src="{% static 'app/images/charging-station/charging-block-2-4.png' %}" alt="">
+                  <h3 class="title-card">{% trans "Ми завжди на зв’язку" %}</h3>
+                  <p class="description-card">
+                    {% trans "Якщо у Вас виникнуть питання - ми завжди з Вами на зв’язку" %}
+                  </p>
+                </div>
+              </div>
+            </li>
+          </ul>
         </div>
-
-        <div class="charging-card">
-          <img src="{% static 'app/images/charging-station/charging-block-2.webp' %}" alt="img 2">
-          <div class="card-description">
-            <h3>{% trans "Швидкість" %}</h3>
-            <p>
-              {% trans "Наші швидкісні зарядні станції можуть зарядити Ваш електрокар з 0 до 80 за 60 хвилин" %}
-            </p>
-          </div>
-        </div>
-
-        <div class="charging-card">
-          <img src="{% static 'app/images/charging-station/charging-block-2.webp' %}" alt="img 3">
-          <div class="card-description">
-            <h3>{% trans "Вид зарядної станції" %}</h3>
-            <p>
-              {% trans "Наша зарядна станція - 40 kWt GBT/DC" %}
-            </p>
-          </div>
-        </div>
-
-        <div class="charging-card">
-          <img src="{% static 'app/images/charging-station/charging-block-2.webp' %}" alt="img 1">
-          <div class="card-description">
-            <h3>{% trans "Ми завжди на зв’язку" %}</h3>
-            <p>
-              {% trans "Якщо у Вас виникнуть питання - ми завжди з Вами на зв’язку" %}
-            </p>
-          </div>
-        </div>
+      </section>
+      <div class="box-btn">
+        <button class="free-access-button invest-btn">{% trans "Співпрацювати" %}</button>
       </div>
     </div>
   </section>
@@ -88,7 +104,31 @@
         </div>
       </div>
       <div class="img-box">
-        <img class="img-1" src="{% static 'app/images/charging-station/charging-block-3.webp' %}" alt="" loading="lazy">
+        <img class="img-1" src="{% static 'app/images/charging-station/charging-block-3.png' %}" alt="" loading="lazy">
+      </div>
+    </div>
+  </section>
+
+  <section class="charging-station-section-6">
+    <div class="container">
+      <div class="charging-station">
+        <div class="charging-station-description">
+          <h2>{% trans "Зарядні станції NINJA для інвесторів" %}</h2>
+          <p>
+            {% trans "NINJA TAXI пропонує інвесторам вигідні умови співпраці. Ми забезпечуємо доступ до " %}
+            {% trans "зарядних станцій NINJA для електрокарів за половину ціни в порівнянні з іншими станціями. " %}
+            {% trans "Це дозволяє надавати вигідні умови для водіїв і уникнути зайвого потоку кандидатів. " %}
+            {% trans "Кожен водій може експлуатувати автомобіль до його повного окупування." %}
+          </p>
+        </div>
+        <div class="buttons-box">
+          <button class="free-access-button">{% trans "Отримати безкоштовний доступ" %}</button>
+        </div>
+      </div>
+      <div class="img-box">
+        <img class="img-1" src="{% static 'app/images/charging-station/charging-block-6.png' %}" alt=""
+             loading="lazy">
+        <a data-youtube href="https://www.youtube.com/watch?v=2A-H4y3zkPk" title="Натисніть для запуску відео"></a>
       </div>
     </div>
   </section>
@@ -96,7 +136,8 @@
   <section class="charging-station-section-4">
     <div class="container">
       <div class="img-box">
-        <img class="img-1" src="{% static 'app/images/charging-station/charging-block-4.webp' %}" alt="" loading="lazy">
+        <img class="img-1" src="{% static 'app/images/charging-station/charging-block-4.png' %}" alt=""
+             loading="lazy">
       </div>
       <div class="charging-station-map">
         <div class="charging-station-description">
@@ -113,17 +154,17 @@
         <div>
           <h2>{% trans "Як зарядити Електрокар" %}</h2>
           <ul>
-            <li>{% trans "Завантажити застосунок CHARGEX" %}</li>
+            <li>{% trans "Завантажити застосунок  ECOFACTOR" %}</li>
             <li>{% trans "Обрати зарядну станцію NINJA TAXI" %}</li>
             <li>{% trans "Поповнити гаманець в застосунку" %}</li>
             <li>{% trans "Розпочати зарядку" %}</li>
           </ul>
           <div class="images-box">
-            <a href="https://play.google.com/store/apps/details?id=net.chargex.mobile&pli=1">
+            <a href="https://play.google.com/store/apps/details?id=eu.ecofactor&hl=ru&gl=US&pli=1">
               <img class="img-1" src="{% static 'app/images/charging-station/charging-block-5-1.webp' %}" alt=""
                    loading="lazy">
             </a>
-            <a href="https://apps.apple.com/us/app/chargex/id1464414292#?platform=iphone">
+            <a href="https://apps.apple.com/ua/app/ecofactor-network/id1438716797?l=">
               <img class="img-1" src="{% static 'app/images/charging-station/charging-block-5-2.webp' %}" alt=""
                    loading="lazy">
             </a>
