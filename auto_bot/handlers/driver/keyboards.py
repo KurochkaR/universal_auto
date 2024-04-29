@@ -9,6 +9,28 @@ from auto_bot.handlers.order.static_text import order_inline_buttons
 service_auto_buttons = [KeyboardButton(f'{SERVICEABLE}'), KeyboardButton(f'{BROKEN}')]
 
 
+def detail_payment_kb(pk):
+    keyboard = [
+        [InlineKeyboardButton(detailed_text, callback_data=f"Detail_payment {pk}")]
+    ]
+    return InlineKeyboardMarkup(keyboard)
+
+
+def detail_payment_buttons(pk):
+    keyboard = [
+        [InlineKeyboardButton(detailed_kasa, callback_data=f"Detail_payment_kasa {pk}")],
+        [InlineKeyboardButton(detailed_rent, callback_data=f"Detail_payment_rent {pk}")],
+        [InlineKeyboardButton(detailed_bonus, callback_data=f"Detail_bonus_penalty {pk}")]
+    ]
+    return InlineKeyboardMarkup(keyboard)
+
+
+def back_to_payment(pk):
+    keyboard = [
+        [InlineKeyboardButton(back_to_payment_text, callback_data=f"Payment_info {pk}")]
+    ]
+    return InlineKeyboardMarkup(keyboard)
+
 def inline_debt_keyboard():
     debt_buttons = [[InlineKeyboardButton(text=f'{SEND_REPORT_DEBT}', callback_data='photo_debt')]]
     return InlineKeyboardMarkup(debt_buttons)

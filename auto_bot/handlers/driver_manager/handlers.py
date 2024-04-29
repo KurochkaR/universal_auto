@@ -10,6 +10,7 @@ from telegram.error import BadRequest
 
 from app.models import Manager, Vehicle, User, Driver, FleetsDriversVehiclesRate, Fleet, JobApplication, \
     Payments, ParkSettings, VehicleSpending, Partner, CustomUser
+from auto_bot.handlers.driver.keyboards import back_to_payment
 from auto_bot.handlers.driver.static_text import BROKEN
 from auto_bot.handlers.driver_job.static_text import driver_job_name
 from auto_bot.handlers.driver_manager.keyboards import create_user_keyboard, role_keyboard, fleets_keyboard, \
@@ -112,7 +113,8 @@ def start_rent_info_task(update, context):
     manager = Manager.get_by_chat_id(query.from_user.id)
     partner_id = manager.managers_partner_id if manager else Partner.get_by_chat_id(query.from_user.id).pk
 
-    generate_rent_message_driver.apply_async(args=[driver_id, query.from_user.id, query.message.message_id],
+    generate_rent_message_driver.apply_async(args=[driver_id, query.from_user.id,
+                                                   query.message.message_id],
                                              queue=f"beat_tasks_{partner_id}")
     query.edit_message_text(waiting_task_text)
 
@@ -121,7 +123,8 @@ def start_rent_info_task(update, context):
 def send_rent_drivers(sender=None, **kwargs):
     if sender == generate_rent_message_driver:
         result = kwargs.get('retval')
-        bot.edit_message_text(chat_id=result[0], text=result[1], message_id=result[2], reply_markup=inline_manager_kb())
+        reply_markup = back_to_payment(result[3]) if result[3] else inline_manager_kb()
+        edit_long_message(chat_id=result[0], text=result[1], message_id=result[2], keyboard=reply_markup)
 
 
 @task_postrun.connect

@@ -601,12 +601,17 @@ def get_rent_information(self, schemas=None, day=None, driver=None, payment=None
 
 
 @app.task(bind=True)
-def generate_rent_message_driver(self, driver_id, manager_chat_id, message_id):
-    driver = Driver.objects.get(pk=driver_id)
-    end, start = get_time_for_task(driver.schema_id)[1:3]
+def generate_rent_message_driver(self, driver_id, manager_chat_id, message_id, payment=None):
+    if payment:
+        payment_obj = DriverPayments.objects.get(pk=payment)
+        end, start, driver = payment_obj.report_to, payment_obj.report_from, payment_obj.driver
+    else:
+        driver = Driver.objects.get(pk=driver_id)
+        end, start = get_time_for_task(driver.schema_id)[1:3]
+
     gps = UaGpsSynchronizer.objects.get(partner=driver.partner, deleted_at=None)
     message = gps.get_non_order_message(start, end, driver_id)
-    return manager_chat_id, message, message_id
+    return manager_chat_id, message, message_id, payment
 
 
 @app.task(bind=True, retry_backoff=30, max_retries=3)
@@ -1169,15 +1174,11 @@ def calculate_driver_reports(self, schemas, day=None):
                               f" Натисніть кнопку нижче, щоб відправити звіт Вашому менеджеру.",
                          reply_markup=keyboard)
     if created:
-        managers = Manager.objects.filter(driver__in=drivers, chat_id__isnull=False).exclude(chat_id='')
-        bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"),
-                         text=f"Додано нові платежі водіів на перевірку."
-                         )
+        managers = Manager.objects.filter(driver__in=drivers, chat_id__isnull=False).exclude(chat_id='').distinct()
         for manager in managers:
             bot.send_message(chat_id=manager.chat_id,
                              text=f"Додано нові платежі водіів на перевірку."
                              )
-
 
 
 @app.task(bind=True)
