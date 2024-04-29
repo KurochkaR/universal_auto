@@ -122,6 +122,10 @@ class UklonRequest(Fleet, Synchronizer):
     def to_float(number: int, div=100) -> Decimal:
         return Decimal("{:.2f}".format(number / div))
 
+    def get_tips(self, order):
+        return (self.to_float(order['additionalIncome']['tips']['amount']) +
+                        self.to_float(order['additionalIncome']['compensation']['amount']))
+
     def find_value(self, data: dict, *args) -> Decimal:
         """Search value if args not False and return float"""
         nested_data = data
@@ -403,9 +407,17 @@ class UklonRequest(Fleet, Synchronizer):
         ],
             order_id__in=[order['id'] for order in orders],
             partner=self.partner)
-        existing_orders = FleetOrder.objects.filter(filter_condition).values_list('order_id', flat=True)
-        filtered_orders = [order for order in orders if order['id'] not in existing_orders
+        orders_with_tips = [(order['id'], self.get_tips(order)) for order in orders if
+                            order['additionalIncome']['tips']['amount'] or
+                            order['additionalIncome']['compensation']['amount']]
+        existing_orders = FleetOrder.objects.filter(filter_condition)
+        existing_orders_ids = existing_orders.values_list('order_id', flat=True)
+        existing_orders_no_tip = existing_orders.filter(tips=0)
+        filtered_orders = [order for order in orders if order['id'] not in existing_orders_ids
                            and order['status'] not in ("running", "accepted", "arrived")]
+        for order, tips in orders_with_tips:
+            if order in existing_orders_no_tip.values_list('order_id', flat=True):
+                existing_orders_no_tip.filter(order_id=order).update(tips=tips)
         calendar_errors = {}
         for order in filtered_orders:
             formatted_uuid = str(uuid.UUID(order['driver']['id']))
@@ -424,8 +436,7 @@ class UklonRequest(Fleet, Synchronizer):
                     "completedAt") is not None else None
                 start_time = timezone.make_aware(datetime.fromtimestamp(order.get("acceptedAt"))) if order.get(
                     "acceptedAt") is not None else None
-                tips = (self.to_float(order['additionalIncome']['tips']['amount']) +
-                        self.to_float(order['additionalIncome']['compensation']['amount']))
+                tips = self.get_tips(order)
                 if order['status'] != "completed":
                     state = order["cancellation"]["initiator"]
                     price = 0

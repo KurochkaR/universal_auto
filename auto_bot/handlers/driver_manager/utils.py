@@ -195,10 +195,11 @@ def check_correct_bolt_report(start, end, driver):
             f"orders {round(bolt_order_kasa, 2)} kasa {round((bolt_report['kasa'] - bolt_report['compensations']), 2)}")
         print(no_price.exists())
         last_order = FleetOrder.objects.filter(filter_request).order_by('-accepted_time').first()
-        incorrect_with_last = round(bolt_order_kasa + Decimal(last_order.price * 0.75004 + last_order.tips), 2) - round(
-            (bolt_report['kasa'] - bolt_report['compensations']), 2)
-        if incorrect_with_last < tolerance:
-            status = PaymentsStatus.CHECKING
+        if last_order:
+            incorrect_with_last = round(bolt_order_kasa + Decimal(last_order.price * 0.75004 + last_order.tips), 2) - round(
+                (bolt_report['kasa'] - bolt_report['compensations']), 2)
+            if abs(incorrect_with_last) > tolerance:
+                status = PaymentsStatus.CHECKING
     return status, no_price.exists()
 
 

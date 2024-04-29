@@ -239,7 +239,7 @@ def check_card_cash_value(self, partner_pk):
                 disabled = []
                 for fleet in fleets:
                     driver_rate = FleetsDriversVehiclesRate.objects.filter(
-                        driver=driver, fleet=fleet).first()
+                        driver=driver, fleet=fleet, deleted_at__isnull=True).first()
                     if driver_rate and int(driver_rate.pay_cash) != enable:
                         result = fleet.disable_cash(driver_rate.driver_external_id, enable)
                         disabled.append(result)
@@ -1120,7 +1120,9 @@ def calculate_driver_reports(self, schemas, day=None):
                                                     time.max.replace(microsecond=0)))
     start_week = timezone.make_aware(datetime.combine(end_week - timedelta(days=6), time.min))
     driver_list = []
-    for driver in Driver.objects.get_active(schema__in=schemas):
+    created = False
+    drivers = Driver.objects.get_active(schema__in=schemas)
+    for driver in drivers:
         bolt_weekly = WeeklyReport.objects.filter(report_from=start_week, report_to=end_week,
                                                   driver=driver, fleet__name="Bolt").aggregate(
             bonuses=Coalesce(Sum('bonuses'), 0, output_field=DecimalField()),
@@ -1166,6 +1168,16 @@ def calculate_driver_reports(self, schemas, day=None):
                          text=f"{driver} Не вдалося отримати всі дані Bolt."
                               f" Натисніть кнопку нижче, щоб відправити звіт Вашому менеджеру.",
                          reply_markup=keyboard)
+    if created:
+        managers = Manager.objects.filter(driver__in=drivers, chat_id__isnull=False).exclude(chat_id='')
+        bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"),
+                         text=f"Додано нові платежі водіів на перевірку."
+                         )
+        for manager in managers:
+            bot.send_message(chat_id=manager.chat_id,
+                             text=f"Додано нові платежі водіів на перевірку."
+                             )
+
 
 
 @app.task(bind=True)
@@ -1387,7 +1399,7 @@ def get_information_from_fleets(self, partner_pk, schemas, day=None):
         get_rent_information.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
         calculate_driver_reports.si(schemas, day).set(queue=f'beat_tasks_{partner_pk}'),
         # send_daily_statistic.si(schemas).set(queue=f'beat_tasks_{partner_pk}'),
-        send_driver_report.si(schemas).set(queue=f'beat_tasks_{partner_pk}')
+        # send_driver_report.si(schemas).set(queue=f'beat_tasks_{partner_pk}')
     )
     task_chain()
 
