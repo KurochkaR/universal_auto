@@ -16,6 +16,15 @@ def detail_payment_kb(pk):
     return InlineKeyboardMarkup(keyboard)
 
 
+def detail_payment_buttons(pk):
+    keyboard = [
+        [InlineKeyboardButton(detailed_kasa, callback_data=f"Detail_payment_kasa {pk}")],
+        [InlineKeyboardButton(detailed_rent, callback_data=f"Detail_payment_rent {pk}")],
+        [InlineKeyboardButton(detailed_bonus, callback_data=f"Detail_bonus_penalty {pk}")]
+    ]
+    return InlineKeyboardMarkup(keyboard)
+
+
 def back_to_payment(pk):
     keyboard = [
         [InlineKeyboardButton(back_to_payment_text, callback_data=f"Payment_info {pk}")]
