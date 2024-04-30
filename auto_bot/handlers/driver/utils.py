@@ -16,14 +16,15 @@ def generate_detailed_info(payment_id):
                                              Q(state__in=[FleetOrder.CLIENT_CANCEL, FleetOrder.SYSTEM_CANCEL],
                                                accepted_time__range=(start, end)))).order_by('date_order')
 
-        fleet_map = {"Uklon": (1 - Fleet.objects.get(name="Uklon", partner=None).fees, "\U0001F7E1"),
-                     "Bolt": (1 - Fleet.objects.get(name="Bolt", partner=None).fees, "\U0001F7E2"),
-                     "Uber": (1 - Fleet.objects.get(name="Uber", partner=None).fees, "\u2B24")}
-        orders_text = f"Uklon - \U0001F7E1, Bolt - \U0001F7E2, Uber - \u2B24 \n"
-        payment_map = {"card": "\U0001F4B5", "cash": "\U0001F4B3"}
+        fleet_map = {"Uklon":  "\U0001F7E1",
+                     "Bolt":  "\U0001F7E2",
+                     "Uber": "\u26AB"}
+        payment_map = {"card": "\U0001F4B3", "cash": "\U0001F4B5"}
+        orders_text = " ".join([f"{k} - {v}" for k,v in fleet_map.items()])
+
         orders_text += "\n".join([
-            f"{fleet_map.get(order.fleet)[1]} ({timezone.localtime(order.finish_time).strftime('%d.%m - %H:%M') if order.finish_time else '-'}) {int(order.price * fleet_map.get(order.fleet)[0])}" +
-            (f"+ {order.tips}" if order.tips else "") + f" грн {payment_map.get(order.payment)}"
+            f"{fleet_map.get(order.fleet)} ({timezone.localtime(order.finish_time).strftime('%d.%m - %H:%M') if order.finish_time else 'Скасований'}) {int(order.price)}" +
+            (f"+{order.tips}" if order.tips else "") + f" грн {payment_map.get(order.payment)}"
             for order in orders
         ])
     except ObjectDoesNotExist:

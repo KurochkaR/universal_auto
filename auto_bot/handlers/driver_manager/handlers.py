@@ -110,12 +110,9 @@ def handle_page_button_click(update, context):
 def start_rent_info_task(update, context):
     query = update.callback_query
     driver_id = int(query.data.split('_')[-1])
-    manager = Manager.get_by_chat_id(query.from_user.id)
-    partner_id = manager.managers_partner_id if manager else Partner.get_by_chat_id(query.from_user.id).pk
 
     generate_rent_message_driver.apply_async(args=[driver_id, query.from_user.id,
-                                                   query.message.message_id],
-                                             queue=f"beat_tasks_{partner_id}")
+                                                   query.message.message_id])
     query.edit_message_text(waiting_task_text)
 
 

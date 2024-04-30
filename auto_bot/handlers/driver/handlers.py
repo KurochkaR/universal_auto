@@ -68,8 +68,8 @@ def detailed_payment_rent(update, context):
     payment_obj = DriverPayments.objects.get(pk=payment_id)
     query.edit_message_text(waiting_task_text)
     generate_rent_message_driver.apply_async(args=[payment_obj.driver_id, query.from_user.id,
-                                                   query.message.message_id, payment_id],
-                                             queue=f"beat_tasks_{payment_obj.partner_id}")
+                                                   query.message.message_id, payment_id])
+    query.edit_message_reply_markup(back_to_payment(payment_id))
 
 
 def detailed_payment_bonus(update, context):

@@ -83,37 +83,37 @@ def memcache_lock(lock_id, task_kwargs, oid, lock_time, finish_lock_time=10):
             # also don't release the lock if we didn't acquire it
 
 
-def lock_task(func):
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        partner_pk = kwargs.get("partner_pk")
-        print(partner_pk)
-        if not partner_pk:
-            schemas = Schema.objects.filter(pk__in=kwargs.get("schemas", set()))
-            payment = DriverPayments.objects.filter(pk=kwargs.get("payment_id"))
-            if schemas.exists():
-                partner_pk = schemas.first().partner_id
-            elif payment.exists():
-                partner_pk = payment.first().partner_id
-            else:
-                return func(*args, **kwargs)
-        lock_key = f'lock:{partner_pk}'
-        # Attempt to acquire the lock
-        lock_acquired = redis_instance().set(lock_key, 'locked', nx=True, ex=450)
-        if not lock_acquired:
-
-            from celery import current_task
-            bot.send_message(chat_id=515224934, text=f"{current_task.name} locked")
-            current_task.retry(countdown=30 * (current_task.request.retries + 1))
-
-        # Lock acquired, execute the task
-        try:
-            return func(*args, **kwargs)
-        finally:
-            # Release the lock after task execution
-            redis_instance().delete(lock_key)
-
-    return wrapper
+# def lock_task(func):
+#     @wraps(func)
+#     def wrapper(*args, **kwargs):
+#         partner_pk = kwargs.get("partner_pk")
+#         print(partner_pk)
+#         if not partner_pk:
+#             schemas = Schema.objects.filter(pk__in=kwargs.get("schemas", set()))
+#             payment = DriverPayments.objects.filter(pk=kwargs.get("payment_id"))
+#             if schemas.exists():
+#                 partner_pk = schemas.first().partner_id
+#             elif payment.exists():
+#                 partner_pk = payment.first().partner_id
+#             else:
+#                 return func(*args, **kwargs)
+#         lock_key = f'lock:{partner_pk}'
+#         # Attempt to acquire the lock
+#         lock_acquired = redis_instance().set(lock_key, 'locked', nx=True, ex=450)
+#         if not lock_acquired:
+#
+#             from celery import current_task
+#             bot.send_message(chat_id=515224934, text=f"{current_task.name} locked")
+#             current_task.retry(countdown=30 * (current_task.request.retries + 1))
+#
+#         # Lock acquired, execute the task
+#         try:
+#             return func(*args, **kwargs)
+#         finally:
+#             # Release the lock after task execution
+#             redis_instance().delete(lock_key)
+#
+#     return wrapper
 
 
 @app.task()
@@ -172,7 +172,6 @@ def auto_send_task_bot(self):
 
 
 @app.task(bind=True, ignore_result=False)
-@lock_task
 def get_session(self, **kwargs):
     aggregator = kwargs.get("aggregator")
     partner_pk = kwargs.get("partner_pk")
@@ -201,7 +200,6 @@ def remove_gps_partner(self, partner_pk):
 
 
 @app.task(bind=True, retry_backoff=30, max_retries=3)
-@lock_task
 def get_today_orders(self, **kwargs):
     partner = kwargs.get("partner_pk")
     day = kwargs.get("day")
@@ -245,7 +243,6 @@ def null_vehicle_orders(self, **kwargs):
 
 
 @app.task(bind=True, retry_backoff=30, max_retries=3)
-@lock_task
 def add_distance_for_order(self, **kwargs):
     partner = kwargs.get("partner_pk")
     driver = kwargs.get("driver")
@@ -264,7 +261,6 @@ def add_distance_for_order(self, **kwargs):
 
 
 @app.task(bind=True, retry_backoff=30, max_retries=4)
-@lock_task
 def check_card_cash_value(self, **kwargs):
     partner_pk = kwargs.get("partner_pk")
     try:
@@ -320,7 +316,6 @@ def check_card_cash_value(self, **kwargs):
 
 
 @app.task(bind=True, retry_backoff=30, max_retries=4)
-@lock_task
 def download_daily_report(self, **kwargs):
     try:
         for schema in kwargs.get("schemas"):
@@ -341,7 +336,6 @@ def download_daily_report(self, **kwargs):
 
 
 @app.task(bind=True, retry_backoff=30, max_retries=4)
-@lock_task
 def download_nightly_report(self, **kwargs):
     partner_pk = kwargs.get("partner_pk")
     try:
@@ -361,7 +355,6 @@ def download_nightly_report(self, **kwargs):
 
 
 @app.task(bind=True, retry_backoff=30, max_retries=4)
-@lock_task
 def download_weekly_report(self, **kwargs):
     try:
         start, end = get_start_end('last_week')[:2]
@@ -427,7 +420,6 @@ def generate_summary_report(self, **kwargs):
 
 
 @app.task(bind=True)
-@lock_task
 def get_car_efficiency(self, **kwargs):
     partner_pk = kwargs.get("partner_pk")
     start, end = get_start_end("yesterday", kwargs.get("day"))[:2]
@@ -495,7 +487,6 @@ def get_car_efficiency(self, **kwargs):
 
 
 @app.task(bind=True)
-@lock_task
 def get_driver_efficiency(self, **kwargs):
     partner_pk = kwargs.get("partner_pk")
     start, end = get_start_end("yesterday", kwargs.get("day"))[:2]
@@ -508,7 +499,6 @@ def get_driver_efficiency(self, **kwargs):
 
 
 @app.task(bind=True)
-@lock_task
 def get_driver_efficiency_fleet(self, **kwargs):
     partner_pk = kwargs.get("partner_pk")
     start, end = get_start_end("yesterday", kwargs.get("day"))[:2]
@@ -522,7 +512,6 @@ def get_driver_efficiency_fleet(self, **kwargs):
 
 
 @app.task(bind=True)
-@lock_task
 def update_driver_status(self, **kwargs):
     partner_pk = kwargs.get("partner_pk")
     with memcache_lock(self.name, self.request.kwargs, self.app.oid, 600) as acquired:
@@ -564,7 +553,6 @@ def update_driver_status(self, **kwargs):
 
 
 @app.task(bind=True, ignore_result=False)
-@lock_task
 def update_driver_data(self, **kwargs):
     fleets = Fleet.objects.filter(partner=kwargs.get("partner_pk"), deleted_at=None)
     for synchronization_class in fleets:
@@ -605,7 +593,6 @@ def schedule_for_detaching_uklon(self, **kwargs):
 
 
 @app.task(bind=True, retry_backoff=30, max_retries=1)
-@lock_task
 def detaching_the_driver_from_the_car(self, **kwargs):
     try:
         with memcache_lock(self.name, self.request.kwargs, self.app.oid, 600, 60) as acquired:
@@ -622,10 +609,9 @@ def detaching_the_driver_from_the_car(self, **kwargs):
 
 
 @app.task(bind=True, retry_backoff=30, max_retries=4)
-@lock_task
 def get_rent_information(self, **kwargs):
-    driver = kwargs.get("driver")
-    payment = kwargs.get("payment")
+    driver = kwargs.get("driver_pk")
+    payment = kwargs.get("payment_id")
     try:
         if driver:
             drivers = Driver.objects.filter(pk=driver)
@@ -681,7 +667,6 @@ def generate_rent_message_driver(self, driver_id, manager_chat_id, message_id, p
 
 
 @app.task(bind=True, retry_backoff=30, max_retries=3)
-@lock_task
 def get_today_rent(self, **kwargs):
     try:
         gps = UaGpsSynchronizer.objects.get(partner=kwargs.get("partner_pk"), deleted_at=None)
@@ -695,7 +680,6 @@ def get_today_rent(self, **kwargs):
 
 
 @app.task(bind=True, ignore_result=False, retry_backoff=30, max_retries=4)
-@lock_task
 def fleets_cash_trips(self, **kwargs):
     driver = Driver.objects.get(pk=kwargs.get('driver_id'))
     fleets = Fleet.objects.filter(partner=kwargs.get("partner_pk"), deleted_at=None).exclude(name='Gps')
@@ -708,7 +692,6 @@ def fleets_cash_trips(self, **kwargs):
 
 
 @app.task(bind=True, retry_backoff=30, max_retries=4)
-@lock_task
 def withdraw_uklon(self, **kwargs):
     try:
         fleet = UklonRequest.objects.get(partner=kwargs.get("partner_pk"), deleted_at=None)
@@ -872,7 +855,6 @@ def check_personal_orders(self):
 
 
 @app.task(bind=True)
-@lock_task
 def add_money_to_vehicle_weekly(self, **kwargs):
     partner_pk = kwargs.get('partner_pk')
     start, end = get_start_end('last_week')[:2]
@@ -881,7 +863,6 @@ def add_money_to_vehicle_weekly(self, **kwargs):
 
 
 @app.task(bind=True)
-@lock_task
 def add_money_to_vehicle_monthly(self, **kwargs):
     partner_pk = kwargs.get('partner_pk')
     start, end = get_start_end('last_month')[:2]
@@ -1217,7 +1198,6 @@ def add_screen_to_payment(self, filename, driver_pk):
 
 
 @app.task(bind=True, ignore_result=False)
-@lock_task
 def create_daily_payment(self, **kwargs):
     kw_driver = kwargs.get("driver_pk")
     if kw_driver:
@@ -1255,7 +1235,6 @@ def create_daily_payment(self, **kwargs):
 
 
 @app.task(bind=True)
-@lock_task
 def calculate_vehicle_earnings(self, **kwargs):
     payment = DriverPayments.objects.get(pk=kwargs.get('payment_id'))
     driver = payment.driver
@@ -1329,7 +1308,6 @@ def calculate_vehicle_spending(self, **kwargs):
 
 
 @app.task(bind=True)
-@lock_task
 def calculate_failed_earnings(self, **kwargs):
     payment = DriverPayments.objects.get(pk=kwargs.get("payment_id"))
     vehicle_income, total_income = get_failed_income(payment)
