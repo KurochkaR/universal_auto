@@ -6,4 +6,4 @@ kill_timeout = 5
   auto_rollback = true
 [processes]
   beat = "celery -A auto beat -l INFO"
-  worker_1 = "celery -A auto worker --loglevel=info -Q beat_tasks_1 -n partner_1"
+  worker_1 = "celery -A auto worker --loglevel=info -n partner_1"

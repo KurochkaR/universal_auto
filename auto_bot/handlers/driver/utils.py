@@ -17,8 +17,9 @@ def generate_detailed_info(payment_id):
                                                accepted_time__range=(start, end)))).order_by('date_order')
 
         fleet_map = {"Uklon": (1 - Fleet.objects.get(name="Uklon", partner=None).fees, "\U0001F7E1"),
-                     "Bolt": (1 - Fleet.objects.get(name="Bolt", partner=None).fees, "\U0001F7E2")}
-        orders_text = f"Uklon - \U0001F7E1, Bolt - \U0001F7E2 \n"
+                     "Bolt": (1 - Fleet.objects.get(name="Bolt", partner=None).fees, "\U0001F7E2"),
+                     "Uber": (1 - Fleet.objects.get(name="Uber", partner=None).fees, "\u2B24")}
+        orders_text = f"Uklon - \U0001F7E1, Bolt - \U0001F7E2, Uber - \u2B24 \n"
         payment_map = {"card": "\U0001F4B5", "cash": "\U0001F4B3"}
         orders_text += "\n".join([
             f"{fleet_map.get(order.fleet)[1]} ({timezone.localtime(order.finish_time).strftime('%d.%m - %H:%M') if order.finish_time else '-'}) {int(order.price * fleet_map.get(order.fleet)[0])}" +

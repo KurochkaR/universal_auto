@@ -1154,7 +1154,7 @@ def calculate_driver_reports(self, **kwargs):
     start_week, end_week = get_start_end('last_week')[:2]
     driver_list = []
     created = False
-    drivers = Driver.objects.get_active(schema__in=schemas)
+    drivers = Driver.objects.get_active(schema__in=kwargs.get("schemas"))
     for driver in drivers:
         bolt_weekly = WeeklyReport.objects.filter(report_from=start_week, report_to=end_week,
                                                   driver=driver, fleet__name="Bolt").aggregate(
