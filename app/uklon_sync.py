@@ -440,9 +440,11 @@ class UklonRequest(Fleet, Synchronizer):
                 if order['status'] != "completed":
                     state = order["cancellation"]["initiator"]
                     price = 0
+                    distance = 0
                 else:
                     state = order['status']
                     price = order['payment']['cost']
+                    distance = order['payment']['distance']
                 data = {"order_id": order['id'],
                         "fleet": self.name,
                         "driver": driver_order,
@@ -455,6 +457,7 @@ class UklonRequest(Fleet, Synchronizer):
                         "payment": PaymentTypes.map_payments(order['payment']['paymentType']),
                         "tips": tips,
                         "price": price,
+                        "fleet_distance": distance,
                         "partner": self.partner,
                         "date_order": timezone.make_aware(datetime.fromtimestamp(order["pickupTime"]))
                         }

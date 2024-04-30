@@ -10,7 +10,7 @@ from django.db.models.functions import Coalesce
 
 from app.bolt_sync import BoltRequest
 from app.models import CustomReport, ParkSettings, Vehicle, Partner, Payments, SummaryReport, DriverPayments, Penalty, \
-    Bonus, FleetOrder, Fleet, DriverReshuffle, DriverEfficiency, InvestorPayments, WeeklyReport
+    Bonus, FleetOrder, Fleet, DriverReshuffle, DriverEfficiency, InvestorPayments, WeeklyReport, CarEfficiency
 from app.uagps_sync import UaGpsSynchronizer
 from app.uber_sync import UberRequest
 from auto_bot.handlers.driver_manager.utils import create_driver_payments
@@ -240,60 +240,72 @@ def calendar_weekly_report(partner_pk, start_date, end_date, format_start, forma
     return message
 
 
+def create_investor_payments(start, end, partner_pk, investors):
+    investors_schemas = {
+        'share': {
+            'vehicles': Vehicle.filter_by_share_schema(investors),
+            'method': create_share_investor_earn
+        },
+        'proportional': {
+            'vehicles': Vehicle.filter_by_proportional_schema(investors),
+            'method': create_proportional_investor_earn
+        },
+        'rental': {
+            'vehicles': Vehicle.filter_by_rental_schema(investors),
+            'method': create_rental_investor_earn
+        }
+    }
+
+    for schema_type, data in investors_schemas.items():
+        vehicles = data['vehicles']
+        method = data['method']
+        if vehicles.exists() and method:
+            method(start, end, vehicles, partner_pk)
+
+
 def create_share_investor_earn(start, end, vehicles_list, partner_pk):
     drivers = DriverReshuffle.objects.filter(
         swap_vehicle__in=vehicles_list, swap_time__range=(start, end)).values_list(
         'driver_start', flat=True).distinct()
+    investors_kasa = CarEfficiency.objects.filter(
+        report_to__range=(start, end), vehicle__in=vehicles_list, partner=partner_pk).aggregate(
+        total=Sum('total_kasa'))['total']
 
-    shared_kasa = 0
-    bonus_kasa = 0
-    fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name__in=['Gps', 'Ninja'])
-    for fleet in fleets:
-        if isinstance(fleet, UberRequest):
-            results = fleet.generate_vehicle_report(start, end, vehicles_list)
-            for result in results:
-                shared_kasa += result['totalEarnings']
-        else:
-            orders = FleetOrder.objects.filter(
-                state__in=[FleetOrder.COMPLETED, FleetOrder.CLIENT_CANCEL, FleetOrder.SYSTEM_CANCEL],
-                accepted_time__range=(start, end), fleet=fleet.name, vehicle__in=vehicles_list)
-            shared_orders = orders.aggregate(
-                total_price=Coalesce(Sum('price'), 0),
-                total_tips=Coalesce(Sum('tips'), 0))
-            if isinstance(fleet, BoltRequest):
-                bonus_kasa = calc_bonus_bolt_from_orders(start, end, fleet, orders, drivers)
-            shared_kasa += float(shared_orders['total_price'] * (1 - fleet.fees) + shared_orders['total_tips'])
-        print(shared_kasa)
-    vehicle_kasa = (shared_kasa + bonus_kasa) / vehicles_list.count()
+    fleet = Fleet.objects.filter(partner=partner_pk, name="Bolt", deleted_at=None)
+    bonus_kasa = calc_bonus_bolt_from_orders(start, end, fleet.first(), vehicles_list, drivers) if fleet.exists() else 0
+    vehicle_kasa = (investors_kasa + bonus_kasa) / vehicles_list.count()
     for vehicle in vehicles_list:
         calc_and_create_earn(start, end, vehicle_kasa, vehicle)
 
 
 def create_proportional_investor_earn(start, end, vehicles_list, partner_pk):
-    fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name__in=['Gps', 'Ninja'])
+    bolt_fleet = Fleet.objects.filter(partner=partner_pk, name="Bolt", deleted_at=None)
     for vehicle in vehicles_list:
         drivers = DriverReshuffle.objects.filter(
             swap_vehicle=vehicle, swap_time__range=(start, end)).values_list(
             'driver_start', flat=True).distinct()
-        kasa = 0
+        investors_kasa = CarEfficiency.objects.filter(
+            report_to__range=(start, end), vehicle=vehicle, partner=partner_pk).aggregate(
+            total=Sum('total_kasa'))['total']
+        print(investors_kasa)
         bonus_kasa = 0
-        for fleet in fleets:
-            if isinstance(fleet, UberRequest):
-                result = fleet.generate_vehicle_report(start, end, [vehicle])
-                kasa += result[0]['totalEarnings'] if result else 0
-            else:
-                orders = FleetOrder.objects.filter(
-                    state__in=[FleetOrder.COMPLETED, FleetOrder.CLIENT_CANCEL, FleetOrder.SYSTEM_CANCEL],
-                    accepted_time__range=(start, end), fleet=fleet.name, vehicle=vehicle)
-                kasa_orders = orders.aggregate(
-                    total_price=Coalesce(Sum('price'), 0),
-                    total_tips=Coalesce(Sum('tips'), 0))
-                if isinstance(fleet, BoltRequest):
-                    for driver in drivers:
-                        bonus_kasa += calc_bonus_bolt_from_orders(start, end, fleet, orders, [driver])
-                kasa += float(kasa_orders['total_price'] * (1 - fleet.fees) + kasa_orders['total_tips'] + bonus_kasa)
-            print(kasa)
-        calc_and_create_earn(start, end, kasa, vehicle)
+        if bolt_fleet.exists():
+            bonus_kasa = calc_bonus_bolt_from_orders(start, end, bolt_fleet.first(), [vehicle], drivers)
+            print(bonus_kasa)
+        investors_kasa += Decimal(bonus_kasa)
+        calc_and_create_earn(start, end, investors_kasa, vehicle)
+
+
+def create_rental_investor_earn(start, end, vehicles_list: list, partner_pk: int):
+    for vehicle in vehicles_list:
+        investors_kasa = vehicle.rental_price
+        overall_mileage = CarEfficiency.objects.filter(
+            report_to__range=(start, end), vehicle=vehicle, partner=partner_pk).aggregate(
+            total=Sum('mileage'))['total']
+        if overall_mileage > ParkSettings.get_value("RENT_LIMIT",default=2000, partner=partner_pk):
+            investors_kasa += overall_mileage * ParkSettings.get_value("OVERALL_MILEAGE_PRICE", default=2,
+                                                                       partner=partner_pk)
+        calc_and_create_earn(start, end, investors_kasa, vehicle)
 
 
 def calc_and_create_earn(start, end, kasa, vehicle):
@@ -314,17 +326,21 @@ def calc_and_create_earn(start, end, kasa, vehicle):
             "sum_after_transaction": car_earnings})
 
 
-def calc_bonus_bolt_from_orders(start, end, fleet, orders, drivers_list):
+def calc_bonus_bolt_from_orders(start, end, fleet: Fleet, vehicles_list: list, drivers_list: list):
     weekly_bonus = WeeklyReport.objects.filter(
         report_from=start, report_to=end, fleet=fleet, driver__in=drivers_list).aggregate(
         kasa=Coalesce(Sum('total_amount_without_fee'), 0, output_field=DecimalField()),
         bonuses=Coalesce(Sum('bonuses'), 0, output_field=DecimalField()),
         compensations=Coalesce(Sum('compensations'), 0, output_field=DecimalField()))
     if weekly_bonus['bonuses']:
-        driver_orders = orders.filter(driver__in=drivers_list).aggregate(
+        driver_orders = FleetOrder.objects.filter(
+            fleet=fleet.name, vehicle__in=vehicles_list,
+            accepted_time__range=(start, end), driver__in=drivers_list).aggregate(
             total_price=Coalesce(Sum('price'), 0),
             total_tips=Coalesce(Sum('tips'), 0))
         driver_kasa = driver_orders['total_price'] * (1 - fleet.fees) + driver_orders['total_tips']
+        print(driver_kasa)
+        print(weekly_bonus)
         bonus_kasa = driver_kasa / (weekly_bonus['kasa'] - weekly_bonus['compensations'] -
                                     weekly_bonus['bonuses']) * weekly_bonus['bonuses']
     else:

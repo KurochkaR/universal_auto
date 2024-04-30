@@ -1,8 +1,6 @@
 import json
 import os
 import random
-import secrets
-import uuid
 from datetime import timedelta, date, datetime, time
 
 import requests
@@ -13,12 +11,8 @@ from django.core.serializers.json import DjangoJSONEncoder
 from django.contrib.auth import authenticate, login, logout
 from django.core.exceptions import ObjectDoesNotExist
 
-from app.bolt_sync import BoltRequest
 from app.models import Driver, UseOfCars, VehicleGPS, Order, ParkSettings, CredentialPartner, Fleet, \
-    Vehicle, DriverReshuffle, CustomUser
-from app.uagps_sync import UaGpsSynchronizer
-from app.uber_sync import UberRequest
-from app.uklon_sync import UklonRequest
+    Vehicle, DriverReshuffle
 from auto_bot.main import bot
 from scripts.redis_conn import get_logger
 
@@ -78,143 +72,82 @@ def restart_order(id_order, car_delivery_price, action):
 # Робота з dashboard.html
 
 
-def get_dates(period=None):
-    current_date = datetime.combine(timezone.localtime(), time.min)
+def get_dates(period, day=None):
+    current_date = timezone.localtime() if not day else datetime.strptime(day, "%Y-%m-%d")
+    previous_date = current_date - timedelta(days=1)
+    start_current_week = current_date - timedelta(days=current_date.weekday())
+    start_current_month = current_date.replace(day=1)
+    current_quarter = (current_date.month - 1) // 3 + 1
+    start_last_week = start_current_week - timedelta(days=7)
+    end_last_month = start_current_month - timedelta(days=1)
 
-    if period == 'today':
-        start_date = current_date
-        end_date = current_date.replace(hour=23, minute=59, second=59, microsecond=999999)
+    quarters = {0: (date(current_date.year - 1, 10, 1), date(current_date.year - 1, 12, 31)),
+                1: (date(current_date.year, 1, 1), date(current_date.year, 3, 31)),
+                2: (date(current_date.year, 4, 1), date(current_date.year, 6, 30)),
+                3: (date(current_date.year, 7, 1), date(current_date.year, 9, 30)),
+                4: (date(current_date.year, 10, 1), date(current_date.year, 12, 31)),}
 
-    elif period == 'yesterday':
-        previous_date = current_date - timedelta(days=1)
-        start_date = previous_date.replace(hour=0, minute=0, second=0, microsecond=0)
-        end_date = previous_date.replace(hour=23, minute=59, second=59, microsecond=999999)
+    periods = {'today': (current_date, current_date),
+               'yesterday': (previous_date, previous_date),
+               'current_week': (start_current_week, current_date),
+               'current_month': (start_current_month, current_date),
+               'current_quarter': (quarters.get(current_quarter)[0], current_date),
+               'last_week': (start_last_week, start_last_week + timedelta(days=6)),
+               'last_month': (end_last_month.replace(day=1), end_last_month),
+               'last_quarter': quarters.get(current_quarter - 1),
+               }
 
-    elif period == 'current_week':
-        weekday = current_date.weekday()
-        start_date = current_date - timedelta(days=weekday)
-        end_date = start_date + timedelta(days=6)
-
-    elif period == 'current_month':
-        start_date = current_date.replace(day=1)
-        next_month = current_date.replace(day=28) + timedelta(days=4)
-        end_date = next_month - timedelta(days=next_month.day)
-
-    elif period == 'current_quarter':
-        current_month = current_date.month
-        current_quarter = (current_month - 1) // 3 + 1
-
-        if current_quarter == 1:
-            start_date = datetime.combine(date(current_date.year, 1, 1), time.min)
-            end_date = datetime.combine(date(current_date.year, 3, 31), time.max)
-        elif current_quarter == 2:
-            start_date = datetime.combine(date(current_date.year, 4, 1), time.min)
-            end_date = datetime.combine(date(current_date.year, 6, 30), time.max)
-        elif current_quarter == 3:
-            start_date = datetime.combine(date(current_date.year, 7, 1), time.min)
-            end_date = datetime.combine(date(current_date.year, 9, 30), time.max)
-        else:
-            start_date = datetime.combine(date(current_date.year, 10, 1), time.min)
-            end_date = datetime.combine(date(current_date.year, 12, 31), time.max)
-
-    elif period == 'last_week':
-        start_date = current_date - timedelta(
-            days=current_date.weekday() + 7)
-        end_date = start_date + timedelta(days=6)
-
-    elif period == 'last_month':
-        last_month = current_date.replace(day=1) - timedelta(days=1)
-        start_date = last_month.replace(day=1)
-        end_date = last_month
-
-    elif period == 'last_quarter':
-        current_month = current_date.month
-        current_quarter = (current_month - 1) // 3 + 1
-        if current_quarter == 1:
-            start_date = datetime.combine(date(current_date.year - 1, 10, 1), time.min)
-            end_date = datetime.combine(date(current_date.year - 1, 12, 31), time.max)
-        elif current_quarter == 2:
-            start_date = datetime.combine(date(current_date.year, 1, 1), time.min)
-            end_date = datetime.combine(date(current_date.year, 3, 31), time.max)
-        elif current_quarter == 3:
-            start_date = datetime.combine(date(current_date.year, 4, 1), time.min)
-            end_date = datetime.combine(date(current_date.year, 6, 30), time.max)
-        else:
-            start_date = datetime.combine(date(current_date.year, 7, 1), time.min)
-            end_date = datetime.combine(date(current_date.year, 9, 30), time.max)
-
-
-    else:
-        weekday = current_date.weekday()
-        if weekday == 0:
-            start_date = current_date - timedelta(days=7)
-        else:
-            start_date = current_date - timedelta(days=weekday)
-        end_date = current_date
-
-    start_date = datetime.combine(start_date, time.min)
-    end_date = datetime.combine(end_date, time.max)
+    start_date, end_date = periods.get(period)
+    start_date = timezone.make_aware(datetime.combine(start_date, time.min))
+    end_date = timezone.localtime() if period == "today" and not day else (
+        timezone.make_aware(datetime.combine(end_date, time.max.replace(microsecond=0))))
     return start_date, end_date
 
 
-def get_start_end(period):
+def get_start_end(period, day=None):
     if period in ('today', 'yesterday', 'current_week', 'current_month', 'current_quarter',
                   'last_week', 'last_month', 'last_quarter'):
-        start, end = get_dates(period)
+        start, end = get_dates(period, day)
         format_start = start.strftime("%d.%m.%Y")
         format_end = end.strftime("%d.%m.%Y")
     elif period != 'all_period':
         start_str, end_str = period.split('&')
-        start = datetime.combine(datetime.strptime(start_str, "%Y-%m-%d"), time.min)
-        end = datetime.combine(datetime.strptime(end_str, "%Y-%m-%d"), time.max)
+        start = timezone.make_aware(datetime.combine(datetime.strptime(start_str, "%Y-%m-%d"), time.min))
+        end = timezone.make_aware(datetime.combine(datetime.strptime(end_str, "%Y-%m-%d"),
+                                                   time.max.replace(microsecond=0)))
         format_start = ".".join(start_str.split("-")[::-1])
         format_end = ".".join(end_str.split("-")[::-1])
     else:
         return None, None, None, None
-    return timezone.make_aware(start), timezone.make_aware(end), format_start, format_end
+    return start, end, format_start, format_end
 
 
 def update_park_set(partner, key, value, description=None, check_value=True, park=True):
+    data = {"description": description,
+            "value": value if park else CredentialPartner.encrypt_credential(value)
+            }
     if park:
-        try:
-            setting = ParkSettings.objects.get(key=key, partner=partner)
-            if setting.value != value and check_value:
-                setting.value = value
-                setting.save()
-        except ObjectDoesNotExist:
-            ParkSettings.objects.create(key=key, value=value, description=description, partner_id=partner)
+        setting, created = ParkSettings.objects.get_or_create(key=key, partner=partner, defaults=data)
     else:
-        try:
-            setting = CredentialPartner.objects.get(key=key, partner=partner)
-            if CredentialPartner.decrypt_credential(value) != value and check_value:
-                setting.value = CredentialPartner.encrypt_credential(value)
-                setting.save()
-        except ObjectDoesNotExist:
-            value = CredentialPartner.encrypt_credential(value)
-            CredentialPartner.objects.create(key=key, value=value, partner_id=partner)
+        setting, created = CredentialPartner.objects.get_or_create(key=key, partner=partner, defaults=data)
+    if all([not created, setting.value != value, check_value]):
+        setting.value = value
+        setting.save(update_fields=['value'])
 
 
 def login_in(aggregator=None, partner_id=None, login_name=None, password=None, token=None):
-    if aggregator == 'Bolt':
-        update_park_set(partner_id, 'BOLT_PASSWORD', password, description='Пароль користувача Bolt', park=False)
-        update_park_set(partner_id, 'BOLT_NAME', login_name, description='Ім\'я користувача Bolt', park=False)
-        obj, created = BoltRequest.objects.get_or_create(name=aggregator, partner_id=partner_id)
-    elif aggregator == 'Uklon':
-        update_park_set(partner_id, 'UKLON_PASSWORD', password, description='Пароль користувача Uklon', park=False)
-        update_park_set(partner_id, 'UKLON_NAME', login_name, description='Ім\'я користувача Uklon', park=False)
+    credential_dict = {
+        'Uber': (('UBER_NAME', login_name), ('UBER_PASSWORD', password)),
+        'Bolt': (('BOLT_NAME', login_name), ('BOLT_PASSWORD', password)),
+        'Uklon': (('UKLON_NAME', login_name), ('UKLON_PASSWORD', password)),
+        'Gps': (('UAGPS_TOKEN', token),)
+    }
+    settings = credential_dict.get(aggregator)
+    for setting in settings:
+        update_park_set(partner_id, setting[0], setting[1], park=False)
+    if aggregator == 'Uklon':
         update_park_set(partner_id, 'WITHDRAW_UKLON', '150000', description='Залишок грн на карті водія Uklon')
-        obj, created = UklonRequest.objects.get_or_create(name=aggregator, partner_id=partner_id)
-    elif aggregator == 'Uber':
-        update_park_set(partner_id, 'UBER_PASSWORD', password, description='Пароль користувача Uber', park=False)
-        update_park_set(partner_id, 'UBER_NAME', login_name, description='Ім\'я користувача Uber', park=False)
-        obj, created = UberRequest.objects.get_or_create(name=aggregator, partner_id=partner_id)
-    else:
-        update_park_set(partner_id, 'UAGPS_TOKEN', token, description='Токен для GPS сервісу', park=False)
-        obj, created = UaGpsSynchronizer.objects.get_or_create(name=aggregator, partner_id=partner_id)
-    if not created:
-        obj.deleted_at = None
-        obj.save(update_fields=['deleted_at'])
-    return True
+
 
 
 def partner_logout(aggregator, partner_pk):
@@ -358,12 +291,10 @@ def add_shift(licence_plate, shift_date, start_time, end_time, driver_id, recurr
             hour=start_datetime.hour, minute=start_datetime.minute, second=start_datetime.second))
         current_end_time = timezone.make_aware(current_date.replace(
             hour=end_datetime.hour, minute=end_datetime.minute, second=end_datetime.second))
-        print("CONFLICT")
         status, conflicting_vehicle = is_conflict(driver, vehicle, current_swap_time, current_end_time)
         if not status:
             messages.append(conflicting_vehicle)
             continue
-        print("CONFLICT END")
         reshuffle = DriverReshuffle(
             swap_vehicle=vehicle,
             driver_start=driver if driver_id not in ['road-accident', 'technical-service'] else None,

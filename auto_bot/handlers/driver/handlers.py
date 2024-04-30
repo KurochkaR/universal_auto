@@ -1,14 +1,19 @@
 from datetime import datetime, timedelta
 from django.utils import timezone
-from telegram import ReplyKeyboardRemove, InlineKeyboardMarkup
+from telegram import ReplyKeyboardRemove, InlineKeyboardMarkup, ParseMode
 from telegram.ext import ConversationHandler
 
-from app.models import Driver, Vehicle, ReportDriveDebt, Event
-from auto.tasks import add_screen_to_payment
-from auto_bot.handlers.driver.keyboards import service_auto_buttons, inline_debt_keyboard, inline_dates_kb
+from app.models import Driver, Vehicle, ReportDriveDebt, Event, DriverPayments
+from auto.tasks import add_screen_to_payment, generate_rent_message_driver
+from auto_bot.handlers.driver.keyboards import service_auto_buttons, inline_debt_keyboard, inline_dates_kb, \
+    back_to_payment, detail_payment_kb, detail_payment_buttons
 from auto_bot.handlers.driver.static_text import *
+from auto_bot.handlers.driver.utils import generate_detailed_info, generate_detailed_bonus
 from auto_bot.handlers.driver_job.utils import save_storage_photo
+from auto_bot.handlers.driver_manager.static_text import waiting_task_text
+from auto_bot.handlers.driver_manager.utils import message_driver_report
 from auto_bot.handlers.main.keyboards import markup_keyboard_onetime, back_to_main_menu
+from auto_bot.utils import edit_long_message
 from scripts.redis_conn import redis_instance
 
 
@@ -34,11 +39,57 @@ def upload_bolt_report_photo(update, context):
         image = update.message.photo[-1].get_file()
         filename = f'bolt/reports/{image["file_unique_id"]}.jpg'
         save_storage_photo(image, filename)
-        add_screen_to_payment.apply_async(args=[filename, driver.pk], queue=f'beat_tasks_{driver.partner.pk}')
+        add_screen_to_payment.apply_async(args=[filename, driver.pk])
         update.message.reply_text("Дякую дані збережено для розрахунку виплати")
     else:
         update.message.reply_text("Будь ласка, надішліть знімок екрану з поточним звітом")
         redis_instance().hset(str(chat_id), 'photo_state', BOLT_REPORT_PHOTO)
+
+
+def detailed_payment_info(update, context):
+    query = update.callback_query
+    payment_id = query.data.split()[1]
+    query.edit_message_reply_markup(detail_payment_buttons(payment_id))
+
+
+def detailed_payment_kasa(update, context):
+    query = update.callback_query
+    payment_id = query.data.split()[1]
+    detailed_info = generate_detailed_info(payment_id)
+    if detailed_info:
+        edit_long_message(query.from_user.id, detailed_info, query.message.message_id, back_to_payment(payment_id))
+    else:
+        query.edit_message_text(no_payment_text)
+
+
+def detailed_payment_rent(update, context):
+    query = update.callback_query
+    payment_id = query.data.split()[1]
+    payment_obj = DriverPayments.objects.get(pk=payment_id)
+    query.edit_message_text(waiting_task_text)
+    generate_rent_message_driver.apply_async(args=[payment_obj.driver_id, query.from_user.id,
+                                                   query.message.message_id, payment_id])
+    query.edit_message_reply_markup(back_to_payment(payment_id))
+
+
+def detailed_payment_bonus(update, context):
+    query = update.callback_query
+    payment_id = query.data.split()[1]
+    detailed_bonus_text = generate_detailed_bonus(payment_id)
+    if detailed_bonus_text:
+        query.edit_message_text(detailed_bonus_text)
+        query.edit_message_reply_markup(back_to_payment(payment_id))
+    else:
+        query.edit_message_text(no_payment_text)
+
+
+def back_to_payment_info(update, context):
+    query = update.callback_query
+    payment_id = query.data.split()[1]
+    payment_obj = DriverPayments.objects.get(pk=payment_id)
+    payment_text = message_driver_report(payment_obj)
+    context.bot.edit_message_text(chat_id=update.effective_chat.id, message_id=query.message.message_id,
+                             text=payment_text, reply_markup=detail_payment_kb(payment_id), parse_mode=ParseMode.HTML)
 
 
 def status_car(update, context):

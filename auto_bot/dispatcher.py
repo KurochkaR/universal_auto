@@ -18,7 +18,8 @@ from auto_bot.handlers.comment.handlers import comment, save_comment
 from auto_bot.handlers.service_manager.handlers import numberplate_car
 from auto_bot.handlers.driver.handlers import sending_report, get_debt_photo, save_debt_report, \
     take_a_day_off_or_sick_leave, numberplate, status_car, choose_day_off_or_sick, upload_bolt_report_photo, \
-    bolt_report_photo_callback
+    bolt_report_photo_callback, detailed_payment_info, back_to_payment_info, detailed_payment_kasa, \
+    detailed_payment_rent, detailed_payment_bonus
 from auto_bot.handlers.owner.handlers import driver_total_weekly_rating, drivers_rating, payments, get_card, \
     correct_transfer, wrong_transfer, get_my_commission, get_sum_for_portmone, commission
 from auto_bot.handlers.status.handlers import correct_or_not_auto, get_imei, get_vehicle_of_driver
@@ -187,6 +188,11 @@ def setup_dispatcher(dp):
     dp.add_handler(CallbackQueryHandler(functions_with_drivers, pattern="Setup_drivers"))
     dp.add_handler(CallbackQueryHandler(functions_with_vehicles, pattern="Setup_vehicles"))
     dp.add_handler(CallbackQueryHandler(statistic_functions, pattern="Get_statistic"))
+    dp.add_handler(CallbackQueryHandler(detailed_payment_info, pattern=re.compile("^Detail_payment [0-9]+$")))
+    dp.add_handler(CallbackQueryHandler(detailed_payment_kasa, pattern=re.compile("^Detail_payment_kasa [0-9]+$")))
+    dp.add_handler(CallbackQueryHandler(detailed_payment_rent, pattern=re.compile("^Detail_payment_rent [0-9]+$")))
+    dp.add_handler(CallbackQueryHandler(detailed_payment_bonus, pattern=re.compile("^Detail_bonus_penalty [0-9]+$")))
+    dp.add_handler(CallbackQueryHandler(back_to_payment_info, pattern=re.compile("^Payment_info [0-9]+$")))
     dp.add_handler(CallbackQueryHandler(get_drivers_from_fleets, pattern="Update_drivers"))
     dp.add_handler(CallbackQueryHandler(get_earning_report, pattern="Get_report"))
     dp.add_handler(CallbackQueryHandler(get_weekly_report, pattern="Weekly_payment|Daily_payment"))

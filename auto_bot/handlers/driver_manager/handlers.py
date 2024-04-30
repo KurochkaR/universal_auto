@@ -10,6 +10,7 @@ from telegram.error import BadRequest
 
 from app.models import Manager, Vehicle, User, Driver, FleetsDriversVehiclesRate, Fleet, JobApplication, \
     Payments, ParkSettings, VehicleSpending, Partner, CustomUser
+from auto_bot.handlers.driver.keyboards import back_to_payment
 from auto_bot.handlers.driver.static_text import BROKEN
 from auto_bot.handlers.driver_job.static_text import driver_job_name
 from auto_bot.handlers.driver_manager.keyboards import create_user_keyboard, role_keyboard, fleets_keyboard, \
@@ -109,11 +110,9 @@ def handle_page_button_click(update, context):
 def start_rent_info_task(update, context):
     query = update.callback_query
     driver_id = int(query.data.split('_')[-1])
-    manager = Manager.get_by_chat_id(query.from_user.id)
-    partner_id = manager.managers_partner_id if manager else Partner.get_by_chat_id(query.from_user.id).pk
 
-    generate_rent_message_driver.apply_async(args=[driver_id, query.from_user.id, query.message.message_id],
-                                             queue=f"beat_tasks_{partner_id}")
+    generate_rent_message_driver.apply_async(args=[driver_id, query.from_user.id,
+                                                   query.message.message_id])
     query.edit_message_text(waiting_task_text)
 
 
@@ -121,7 +120,8 @@ def start_rent_info_task(update, context):
 def send_rent_drivers(sender=None, **kwargs):
     if sender == generate_rent_message_driver:
         result = kwargs.get('retval')
-        bot.edit_message_text(chat_id=result[0], text=result[1], message_id=result[2], reply_markup=inline_manager_kb())
+        reply_markup = back_to_payment(result[3]) if result[3] else inline_manager_kb()
+        edit_long_message(chat_id=result[0], text=result[1], message_id=result[2], keyboard=reply_markup)
 
 
 @task_postrun.connect
@@ -198,7 +198,8 @@ def remove_cash_by_manager(update, context):
     query = update.callback_query
     data = query.data.split(' ')
     driver = Driver.objects.filter(id=int(data[2])).first()
-    fleets_cash_trips.delay(driver.partner.id, int(data[2]), enable=data[1])
+    fleets_cash_trips.apply_async(kwargs= {"partner_pk": driver.partner.id,
+                                           "driver_id": int(data[2]), "enable": data[1]})
     query.edit_message_text(remove_cash_text(driver, data[1]))
 
 
@@ -206,7 +207,7 @@ def get_drivers_from_fleets(update, context):
     query = update.callback_query
     manager = Manager.get_by_chat_id(query.from_user.id)
     partner_id = manager.managers_partner_id if manager else Partner.get_by_chat_id(query.from_user.id).pk
-    update_driver_data.apply_async(args=[partner_id, query.from_user.id], queue=f"beat_tasks_{partner_id}")
+    update_driver_data.apply_async(kwargs={"partner_pk": partner_id, "manager_id": query.from_user.id})
     query.edit_message_text(get_drivers_text)
 
 

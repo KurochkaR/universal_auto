@@ -13,7 +13,7 @@ from auto.utils import get_currency_rate
 
 
 def run(*args):
-    driver_earning = datetime(2024, 4, 1)
+    driver_earning = datetime(2024, 4, 15)
     records = CarEfficiency.objects.filter(report_from__lt=driver_earning, partner=1)
     weekly_aggregates = records.values('vehicle').annotate(
         week_start=TruncWeek('report_from'),

@@ -8,7 +8,7 @@ from operator import itemgetter
 from django.contrib.postgres.aggregates import ArrayAgg
 from django.db.models import Sum, F, OuterRef, Subquery, DecimalField, Avg, Value, CharField, ExpressionWrapper, Case, \
     When, Func, FloatField, Exists, Prefetch, Q, IntegerField
-from django.db.models.functions import Concat, Round, Coalesce
+from django.db.models.functions import Concat, Round, Coalesce, Cast
 from django.forms import DurationField
 from django.utils import timezone
 from rest_framework import generics
@@ -144,26 +144,33 @@ class InvestorCarsEarningsView(CombinedPermissionsMixin,
     def get_queryset(self):
         start, end, format_start, format_end = get_start_end(self.kwargs['period'])
         queryset = InvestorFilterMixin.get_queryset(InvestorPayments, self.request.user)
-        filtered_qs = queryset.filter(report_from__range=(start, end))
+        queryset = queryset.filter(report_from__range=(start, end))
         mileage_subquery = CarEfficiency.objects.filter(
             report_from__range=(start, end),
             investor=self.request.user
-        ).values('vehicle__licence_plate').annotate(
+        ).select_related('vehicle').values('vehicle__licence_plate').annotate(
             mileage=Sum('mileage'),
-            spending=Sum('total_spending')
+            spending=Sum('total_spending'),
+            start_mileage=Case(
+                When(vehicle__purchase_date__gt=start, then=F('vehicle__start_mileage')),
+                default=0,
+                output_field=DecimalField()
+            ),
+            total_mileage=F('start_mileage') + F('mileage')
         )
+
         total_mileage_spending = mileage_subquery.aggregate(
-            total_mileage=Coalesce(Sum('mileage', output_field=DecimalField()), Decimal(0)),
+            total_mileage=Coalesce(Sum(F('mileage') + F('start_mileage'), output_field=DecimalField()), Decimal(0)),
             total_spending=Coalesce(Sum('spending', output_field=DecimalField()), Decimal(0))
         )
-        qs = filtered_qs.values('vehicle__licence_plate').annotate(
+        qs = queryset.values('vehicle__licence_plate').annotate(
             licence_plate=F('vehicle__licence_plate'),
             earnings=Sum(F('earning')),
             mileage=Subquery(mileage_subquery.filter(
-                vehicle__licence_plate=OuterRef('vehicle__licence_plate')).values('mileage'),
+                vehicle__licence_plate=OuterRef('vehicle__licence_plate')).values('total_mileage'),
                              output_field=DecimalField())
         )
-        total_earnings = filtered_qs.aggregate(
+        total_earnings = queryset.aggregate(
             total_earnings=Coalesce(Sum(F('earning')), Decimal(0)))['total_earnings']
         total = {
             "total_earnings": total_earnings,
@@ -370,7 +377,7 @@ class CarsInformationListView(CombinedPermissionsMixin, generics.ListAPIView):
         spending_annotate = {'total_spending': Coalesce(Sum('amount'), Decimal(0), output_field=DecimalField())}
 
         if period == 'all_period':
-            start = earnings_query_all.first().report_to
+            start = earnings_query_all.first().report_from
             end = earnings_query_all.last().report_to
             format_start = start.strftime("%d.%m.%Y")
             format_end = end.strftime("%d.%m.%Y")

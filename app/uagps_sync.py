@@ -219,6 +219,7 @@ class UaGpsSynchronizer(Fleet):
     def get_order_distance(self, orders):
         batch_params = []
         updated_orders = []
+        bad_orders = []
         for instance in orders:
             batch_params.append(self.get_params_for_report(self.get_timestamp(instance.accepted_time),
                                                            self.get_timestamp(instance.finish_time),
@@ -235,6 +236,14 @@ class UaGpsSynchronizer(Fleet):
                 order.distance = distance
                 order.road_time = road_time
                 updated_orders.append(order)
+                if (order.fleet_distance and
+                        Decimal(distance) - order.fleet_distance > ParkSettings.get_value("Non-efficient", 8)):
+                    bad_orders.append(order)
+            orders_text = "\n".join([f"{order.driver}({timezone.localtime(order.accepted_time)}) "
+                                     f"дистанція за агрегатором - {order.fleet_distance}, gps - {order.distance}"
+                                     for order in bad_orders])
+            if orders_text:
+                bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"), text=orders_text)
             FleetOrder.objects.bulk_update(updated_orders, fields=['distance', 'road_time'], batch_size=200)
 
     def get_non_order_message(self, start_time, end_time, driver_pk):
@@ -279,7 +288,7 @@ class UaGpsSynchronizer(Fleet):
                 results_with_slots = list(zip(empty_time_slots, result))
                 for slot, result in results_with_slots:
                     if result[0]:
-                        message += f"{slot[0].strftime('%H:%M')} - {slot[1].strftime('%H:%M')} Пробіг: {result[0]}\n"
+                        message += f"({slot[0].strftime('%d.%m %H:%M')} - {slot[1].strftime('%H:%M')}) - {round(result[0], 1)} км\n"
         else:
             message = (f"Відсутні зміни в календарі для корректного розрахунку холостого пробігу у "
                        f"{driver} з {start_time.strftime('%d.%m %H:%M')} по {end_time.strftime('%d.%m %H:%M')}.")
@@ -512,7 +521,7 @@ class UaGpsSynchronizer(Fleet):
                 total_cash = 0
                 for fleet in fleets:
                     _, cash = fleet.get_earnings_per_driver(driver, start, end)
-                    total_cash += cash
+                    total_cash += float(cash)
                 reshuffles = DriverReshuffle.objects.filter(driver_start=driver,
                                                             swap_time__date=timezone.localtime()).order_by('swap_time')
                 start_reshuffle = timezone.localtime(reshuffles.earliest('swap_time').swap_time)

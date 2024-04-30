@@ -356,9 +356,6 @@ class BoltRequest(Fleet, Synchronizer):
             "driver_rejected": FleetOrder.DRIVER_CANCEL
         }
         orders = self.get_orders_list(start, end)
-        for order in orders:
-            if order['search_category']['id'] == 4878 and order['order_try_state'] == 'finished':
-                print(order)
         order_time = [timezone.make_aware(datetime.fromtimestamp(order['order_stops'][0]['arrived_at']))
                       if order['search_category']['id'] == 4878 and order['order_try_state'] == 'finished' else
                       timezone.make_aware(datetime.fromtimestamp(order['driver_assigned_time']))
@@ -389,41 +386,43 @@ class BoltRequest(Fleet, Synchronizer):
         for order in filtered_orders:
             if driver and driver.get_driver_external_id(self) != str(order['driver_id']):
                 continue
-            driver_order = Driver.objects.filter(
+            driver_query = Driver.objects.filter(
                 fleetsdriversvehiclesrate__driver_external_id=str(order['driver_id']),
-                fleetsdriversvehiclesrate__fleet=self, partner=self.partner).first()
-            price = order.get('total_price', 0)
-            tip = order.get("tip", 0)
-            date_order = (timezone.make_aware(datetime.fromtimestamp(order['order_stops'][0]['arrived_at'])) if
-                          order['search_category']['id'] == 4878 and order['order_try_state'] == 'finished' else
-                          timezone.make_aware(datetime.fromtimestamp(order['driver_assigned_time'])))
-            calendar_vehicle = check_vehicle(driver_order, date_time=date_order)
-            vehicle = Vehicle.objects.filter(licence_plate=normalized_plate(order['car_reg_number'])).first()
-            if calendar_vehicle != vehicle and not calendar_errors.get(driver_order.pk):
-                calendar_errors[driver_order.pk] = vehicle.licence_plate
-            try:
-                finish = timezone.make_aware(
-                    datetime.fromtimestamp(order['order_stops'][-1]['arrived_at']))
-            except TypeError:
-                finish = None
-            data = {"order_id": order['order_id'],
-                    "fleet": self.name,
-                    "driver": driver_order,
-                    "from_address": order['pickup_address'],
-                    "accepted_time": date_order,
-                    "state": bolt_states.get(order['order_try_state']),
-                    "finish_time": finish,
-                    "payment": PaymentTypes.map_payments(order['payment_method']),
-                    "destination": order['order_stops'][-1]['address'],
-                    "vehicle": calendar_vehicle,
-                    "price": price,
-                    "tips": tip,
-                    "partner": self.partner,
-                    "date_order": date_order
-                    }
+                fleetsdriversvehiclesrate__fleet=self, partner=self.partner)
+            if driver_query.exists():
+                driver_order = driver_query.first()
+                price = order.get('total_price', 0)
+                tip = order.get("tip", 0)
+                date_order = (timezone.make_aware(datetime.fromtimestamp(order['order_stops'][0]['arrived_at'])) if
+                              order['search_category']['id'] == 4878 and order['order_try_state'] == 'finished' else
+                              timezone.make_aware(datetime.fromtimestamp(order['driver_assigned_time'])))
+                calendar_vehicle = check_vehicle(driver_order, date_time=date_order)
+                vehicle = Vehicle.objects.filter(licence_plate=normalized_plate(order['car_reg_number'])).first()
+                if calendar_vehicle != vehicle and not calendar_errors.get(driver_order.pk):
+                    calendar_errors[driver_order.pk] = vehicle.licence_plate
+                try:
+                    finish = timezone.make_aware(
+                        datetime.fromtimestamp(order['order_stops'][-1]['arrived_at']))
+                except TypeError:
+                    finish = None
+                data = {"order_id": order['order_id'],
+                        "fleet": self.name,
+                        "driver": driver_order,
+                        "from_address": order['pickup_address'],
+                        "accepted_time": date_order,
+                        "state": bolt_states.get(order['order_try_state']),
+                        "finish_time": finish,
+                        "payment": PaymentTypes.map_payments(order['payment_method']),
+                        "destination": order['order_stops'][-1]['address'],
+                        "vehicle": calendar_vehicle,
+                        "price": price,
+                        "tips": tip,
+                        "partner": self.partner,
+                        "date_order": date_order
+                        }
 
-            fleet_order = FleetOrder(**data)
-            batch_data.append(fleet_order)
+                fleet_order = FleetOrder(**data)
+                batch_data.append(fleet_order)
         with transaction.atomic():
             FleetOrder.objects.bulk_create(batch_data)
         return calendar_errors
@@ -434,7 +433,8 @@ class BoltRequest(Fleet, Synchronizer):
         report = self.get_target_url(f'{self.base_url}getDriversForLiveMap', self.param())
         if report.get('data'):
             for driver in report['data']['list']:
-                name, second_name = driver['name'].split(' ')
+                name_list = driver['name'].split()
+                name, second_name = name_list[0], name_list[-1]
                 if driver['state'] == 'waiting_orders':
                     wait.append((name, second_name))
                     wait.append((second_name, name))
