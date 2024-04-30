@@ -81,13 +81,13 @@ def get_dates(period, day=None):
     start_last_week = start_current_week - timedelta(days=7)
     end_last_month = start_current_month - timedelta(days=1)
 
-    quarters = {1: (date(current_date.year, 1, 1), date(current_date.year, 3, 31)),
+    quarters = {0: (date(current_date.year - 1, 10, 1), date(current_date.year - 1, 12, 31)),
+                1: (date(current_date.year, 1, 1), date(current_date.year, 3, 31)),
                 2: (date(current_date.year, 4, 1), date(current_date.year, 6, 30)),
                 3: (date(current_date.year, 7, 1), date(current_date.year, 9, 30)),
                 4: (date(current_date.year, 10, 1), date(current_date.year, 12, 31)),}
 
-    previous_quarter = 4 if not current_quarter else current_quarter - 1
-    start_previous_quarter, end_previous_quarter = quarters.get(previous_quarter)
+    start_previous_quarter, end_previous_quarter = quarters.get(current_quarter - 1)
 
     periods = {'today': (current_date, current_date),
                'yesterday': (previous_date, previous_date),
@@ -96,9 +96,7 @@ def get_dates(period, day=None):
                'current_quarter': (quarters.get(current_quarter)[0], current_date),
                'last_week': (start_last_week, start_last_week + timedelta(days=6)),
                'last_month': (end_last_month.replace(day=1), end_last_month),
-               'last_quarter': (start_previous_quarter.replace(year=start_previous_quarter.year - 1),
-                                end_previous_quarter.replace(year=end_previous_quarter.year - 1)) if
-               previous_quarter == 4 else (start_previous_quarter, end_previous_quarter),
+               'last_quarter': (start_previous_quarter, end_previous_quarter),
                }
 
     start_date, end_date = periods.get(period)
