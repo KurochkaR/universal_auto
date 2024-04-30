@@ -56,9 +56,9 @@ def new_vehicle_notification(sender, instance, created, **kwargs):
 def create_payments(sender, instance, created, **kwargs):
     if instance.is_completed():
         if isinstance(instance, DriverPayments):
-            calculate_vehicle_earnings.apply_async(args=[instance.pk], queue=f'beat_tasks_{instance.partner.pk}')
+            calculate_vehicle_earnings.apply_async(kwargs={"payment_id":instance.pk})
         else:
-            calculate_vehicle_spending.apply_async(args=[instance.pk], queue=f'beat_tasks_{instance.partner.pk}')
+            calculate_vehicle_spending.apply_async(kwargs={"payment_id":instance.pk})
     elif instance.is_pending():
         if isinstance(instance, DriverPayments):
             message = message_driver_report(instance)
@@ -80,7 +80,7 @@ def create_payments(sender, instance, created, **kwargs):
             pass
     # InvestorMassage
     elif instance.is_failed():
-        calculate_failed_earnings.apply_async(args=[instance.pk], queue=f'beat_tasks_{instance.partner.pk}')
+        calculate_failed_earnings.apply_async(kwargs={"payment_id":instance.pk})
 
 
 @receiver(post_save, sender=Partner)

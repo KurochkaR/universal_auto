@@ -201,7 +201,8 @@ def remove_cash_by_manager(update, context):
     query = update.callback_query
     data = query.data.split(' ')
     driver = Driver.objects.filter(id=int(data[2])).first()
-    fleets_cash_trips.delay(driver.partner.id, int(data[2]), enable=data[1])
+    fleets_cash_trips.apply_async(kwargs= {"partner_pk": driver.partner.id,
+                                           "driver_id": int(data[2]), "enable": data[1]})
     query.edit_message_text(remove_cash_text(driver, data[1]))
 
 
@@ -209,7 +210,7 @@ def get_drivers_from_fleets(update, context):
     query = update.callback_query
     manager = Manager.get_by_chat_id(query.from_user.id)
     partner_id = manager.managers_partner_id if manager else Partner.get_by_chat_id(query.from_user.id).pk
-    update_driver_data.apply_async(args=[partner_id, query.from_user.id], queue=f"beat_tasks_{partner_id}")
+    update_driver_data.apply_async(kwargs={"partner_pk": partner_id, "manager_id": query.from_user.id})
     query.edit_message_text(get_drivers_text)
 
 

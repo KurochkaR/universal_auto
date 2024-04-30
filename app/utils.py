@@ -1,3 +1,5 @@
+import json
+
 from django.core.exceptions import ObjectDoesNotExist
 from django_celery_beat.models import CrontabSchedule, PeriodicTask
 
@@ -25,25 +27,23 @@ def create_task(task, partner, schedule, param=None):
         periodic_task = PeriodicTask.objects.get(
             name=f'{task}({partner}_{schedule})',
             task=f'auto.tasks.{task}',
-            queue=f"beat_tasks_{partner}"
         )
-        args_list = eval(periodic_task.args) if periodic_task.args else []
+        args_dict = eval(periodic_task.kwargs) if periodic_task.kwargs else {}
         if param:
-            if len(args_list) == 1:
-                args_list.append([param])
-            if param not in args_list[1]:
-                args_list[1].append(param)
-            periodic_task.args = str(args_list)
-            periodic_task.save(update_fields=['args'])
+            if len(args_dict) == 1:
+                args_dict.update({"schemas": {param}})
+            else:
+                args_dict["schemas"].add(param)
+            periodic_task.kwargs = json.dumps(args_dict)
+            periodic_task.save(update_fields=['kwargs'])
 
     except ObjectDoesNotExist:
-        task_args = [partner]
+        task_kwargs = {"partner_pk": partner}
         if param:
-            task_args.append([param])
+            task_kwargs.update({"schemas": {param}})
         PeriodicTask.objects.create(
             name=f'{task}({partner}_{schedule})',
             task=f'auto.tasks.{task}',
-            queue=f"beat_tasks_{partner}",
             crontab=schedule,
-            args=task_args
+            kwargs=json.dumps(task_kwargs)
         )

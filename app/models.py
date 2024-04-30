@@ -32,6 +32,7 @@ class SoftDeleteManager(models.Manager):
 class InvestorSchema(models.TextChoices):
     Equal_share = 'Equal_share', 'Рівномірна',
     Proportional = 'Proportional', 'Пропорційна',
+    Rental = 'Rental', 'Оренда'
 
 
 class Role(models.TextChoices):
@@ -70,8 +71,9 @@ class CustomUser(AbstractUser):
 
 
 class SalaryCalculation(models.TextChoices):
-    WEEK = 'WEEK', 'Тижневий'
-    DAY = 'DAY', 'Денний'
+    MONTH = 'MONTH', 'Місяць'
+    WEEK = 'WEEK', 'Тиждень'
+    DAY = 'DAY', 'День'
 
 
 class ShiftTypes(models.TextChoices):
@@ -277,7 +279,19 @@ class Manager(CustomUser):
 
 
 class Investor(CustomUser):
+    payment_type = models.CharField(max_length=25, choices=SalaryCalculation.choices,
+                                          default=SalaryCalculation.WEEK, verbose_name='Періодичність платежів')
     investors_partner = models.ForeignKey(Partner, null=True, on_delete=models.CASCADE, verbose_name='Партнер')
+
+    @classmethod
+    def filter_by_weekly_payment(cls, partner):
+        return cls.objects.filter(payment_type=SalaryCalculation.WEEK, investors_partner=partner)
+
+    @classmethod
+    def filter_by_monthly_payment(cls, partner):
+        return cls.objects.filter(payment_type=SalaryCalculation.MONTH, investors_partner=partner)
+
+
 
     class Meta:
         verbose_name = 'Інвестора'
@@ -325,6 +339,7 @@ class Vehicle(models.Model):
     uber_uuid = models.CharField(null=True, max_length=36, verbose_name='Ідентифікатор авто в Uber')
     registration = models.CharField(null=True, max_length=12, unique=True, verbose_name='Номер документа')
     purchase_date = models.DateField(null=True, verbose_name='Дата початку роботи')
+    start_mileage = models.IntegerField(default=0, verbose_name="Корекційний пробіг авто")
     vin_code = models.CharField(validators=[MaxLengthValidator(17)], max_length=17, blank=True)
     chat_id = models.CharField(max_length=15, blank=True, null=True, verbose_name="Група автомобіля телеграм")
     gps_imei = models.CharField(validators=[MaxLengthValidator(50)], max_length=50, blank=True, default='')
@@ -333,6 +348,7 @@ class Vehicle(models.Model):
     lon = models.DecimalField(null=True, decimal_places=6, max_digits=10, default=0, verbose_name="Довгота")
     car_status = models.CharField(max_length=18, null=False, default="Serviceable", verbose_name='Статус автомобіля')
     purchase_price = models.DecimalField(decimal_places=2, max_digits=10, default=0, verbose_name="Вартість автомобіля")
+    rental_price = models.IntegerField(default=0, verbose_name="Ціна оренди авто")
     currency = models.CharField(max_length=4, default=Currency.UAH, choices=Currency.choices,
                                 verbose_name='Валюта покупки')
     currency_rate = models.DecimalField(decimal_places=2, max_digits=10, default=0,
@@ -369,8 +385,12 @@ class Vehicle(models.Model):
         return cls.objects.filter(investor_car__in=investors, investor_schema=InvestorSchema.Proportional)
 
     @classmethod
-    def filter_by_investor_share_schema(cls, investors):
+    def filter_by_share_schema(cls, investors):
         return cls.objects.filter(investor_car__in=investors, investor_schema=InvestorSchema.Equal_share)
+
+    @classmethod
+    def filter_by_rental_schema(cls, investors):
+        return cls.objects.filter(investor_car__in=investors, investor_schema=InvestorSchema.Rental)
 
 
 class DeletedVehicle(Vehicle):
@@ -957,6 +977,8 @@ class FleetOrder(models.Model):
     accepted_time = models.DateTimeField(blank=True, null=True, verbose_name='Час прийняття замовлення')
     finish_time = models.DateTimeField(blank=True, null=True, verbose_name='Час завершення замовлення')
     distance = models.DecimalField(null=True, decimal_places=2, max_digits=6, verbose_name="Відстань за маршрутом")
+    fleet_distance = models.DecimalField(null=True, decimal_places=2, max_digits=6,
+                                         verbose_name="Відстань в агрегаторі")
     road_time = models.DurationField(null=True, blank=True, verbose_name='Час в дорозі')
     state = models.CharField(max_length=255, blank=True, null=True, verbose_name='Статус замовлення')
     payment = models.CharField(max_length=25, choices=PaymentTypes.choices, null=True, verbose_name="Тип оплати")

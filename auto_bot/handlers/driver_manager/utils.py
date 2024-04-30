@@ -13,9 +13,8 @@ from app.models import CarEfficiency, Driver, SummaryReport, \
     DriverPayments, FleetOrder, VehicleRent, Schema, Fleet, CustomUser, CustomReport, PaymentTypes, Payments, \
     WeeklyReport, PaymentsStatus, ParkSettings, Manager, PartnerEarnings, Bonus, Category
 from auto_bot.handlers.order.utils import check_reshuffle, check_vehicle
-from auto_bot.main import bot
 from auto_bot.utils import send_long_message
-from scripts.redis_conn import get_logger
+from taxi_service.utils import get_start_end
 
 
 def format_hours(total_hours):
@@ -25,15 +24,14 @@ def format_hours(total_hours):
     return f"{hours:02}:{minutes:02}:{seconds:02}"
 
 
-def get_start_week_time(start, end):
+def get_start_week_time(start=None, end=None):
     start_today = timezone.make_aware(datetime.combine(timezone.localtime(), time.min))
     yesterday = start_today - timedelta(days=1)
-    if not start and not end:
-        if timezone.localtime().weekday():
-            start = start_today - timedelta(days=timezone.localtime().weekday())
-        else:
-            start = start_today - timedelta(weeks=1)
-        end = timezone.make_aware(datetime.combine(yesterday, time.max.replace(microsecond=0)))
+    if timezone.localtime().weekday():
+        start = start_today - timedelta(days=timezone.localtime().weekday())
+    else:
+        start = start_today - timedelta(weeks=1)
+    end = timezone.make_aware(datetime.combine(yesterday, time.max.replace(microsecond=0)))
     return start, end, yesterday
 
 
@@ -342,7 +340,7 @@ def generate_message_report(chat_id, schema_id=None, daily=None):
             message += driver_message
 
         if driver_message:
-            message += "*" * 39 + '\n'
+            message += "*" * 37 + '\n'
     if message and user:
         manager_message = "Звіт з {0} по {1}\n".format(start.date(), end.date())
         manager_message += f'Ваш баланс:%.2f\n' % balance
@@ -453,16 +451,18 @@ def calculate_efficiency(vehicle, start, end):
     return efficiency, formatted_distance, total_kasa, vehicle_drivers
 
 
-def get_efficiency(manager_id=None, start_time=None, end_time=None):
-    start, end, yesterday = get_start_week_time(start_time, end_time)
+def get_efficiency(manager_id=None, start=None, end=None):
+    start_yesterday, end_yesterday = get_start_end('yesterday')[:2]
+    if not start and not end:
+        start, end = get_start_end("current_week")[:2]
     effective_vehicle = {}
     report = {}
     vehicles = get_drivers_vehicles_list(manager_id, Vehicle)[0]
     for vehicle in vehicles:
         effect = calculate_efficiency(vehicle, start, end)
-        yesterday_effect = calculate_efficiency(vehicle, yesterday, end)
+        yesterday_effect = calculate_efficiency(vehicle, start_yesterday, end_yesterday)
         drivers = ", ".join(effect[3])
-        if end.date() == yesterday.date() and yesterday_effect:
+        if end.date() == start_yesterday.date() and yesterday_effect:
             effective_vehicle[vehicle.licence_plate] = {
                 'Водії': drivers,
                 'Середня ефективність(грн/км)': effect[0],
@@ -517,19 +517,21 @@ def calculate_efficiency_driver(driver, start, end):
         return annotated_efficiency
 
 
-def get_driver_efficiency_report(manager_id, start_time=None, end_time=None):
-    start, end, yesterday = get_start_week_time(start_time, end_time)
+def get_driver_efficiency_report(manager_id, start=None, end=None):
+    start_yesterday, end_yesterday = get_start_end('yesterday')[:2]
+    if not start and not end:
+        start, end = get_start_end("current_week")[:2]
     drivers = get_drivers_vehicles_list(manager_id, Driver)[0]
     drivers = drivers.filter(schema__isnull=False)
     effective_driver = {}
     report = {}
     for driver in drivers:
         effect = calculate_efficiency_driver(driver, start, end)
-        yesterday_effect = calculate_efficiency_driver(driver, yesterday, end)
+        yesterday_effect = calculate_efficiency_driver(driver, start_yesterday, end_yesterday)
         if effect:
             licence_plates = ', '.join(effect['vehicles'])
             total_hours_formatted = format_hours(effect['total_hours'])
-            if end.date() == yesterday.date() and yesterday_effect:
+            if end.date() == start_yesterday.date() and yesterday_effect:
                 car_plates = ', '.join(yesterday_effect['vehicles'])
                 yesterday_hours_formatted = format_hours(yesterday_effect['total_hours'])
                 effective_driver[driver] = {
