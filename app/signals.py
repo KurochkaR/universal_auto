@@ -67,7 +67,7 @@ def create_payments(sender, instance, created, **kwargs):
                 sleep(0.5)
                 bot.send_message(chat_id=instance.driver.manager.chat_id, text=message, reply_markup=keyboard,
                                  parse_mode=ParseMode.HTML)
-                bot.send_message(chat_id=instance.driver.chat_id, text=message,
+                bot.send_message(chat_id=instance.driver.chat_id, text=message, reply_markup=keyboard,
                                  parse_mode=ParseMode.HTML)
             except BadRequest as e:
                 if e.message == 'Chat not found':
