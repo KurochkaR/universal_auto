@@ -1280,9 +1280,9 @@ class VehicleAdmin(SoftDeleteAdmin):
 
         elif request.user.is_partner():
             fieldsets = (
-                ('Інформація про машину', {'fields': ['licence_plate', 'name', 'purchase_price',
+                ('Інформація про машину', {'fields': ['licence_plate', 'name', 'purchase_price', 'purchase_date'
                                                       ]}),
-                ('Дані авто з GPS', {'fields': ['gps_imei', 'gps',
+                ('Дані авто з GPS', {'fields': ['gps_imei', 'gps', 'start_mileage'
                                                 ]}),
                 ('Інформація про інвестора', {'fields': ['currency', 'investor_car', 'investor_schema',
                                                          'rental_price',
@@ -1295,7 +1295,7 @@ class VehicleAdmin(SoftDeleteAdmin):
             fieldsets = (
                 ('Номер автомобіля', {'fields': ['licence_plate',
                                                  ]}),
-                ('Інформація про машину', {'fields': ['name', 'gps_imei', 'gps',
+                ('Інформація про машину', {'fields': ['name', 'gps_imei', 'gps', 'purchase_date', 'start_mileage'
                                                       ]}),
             )
         else:

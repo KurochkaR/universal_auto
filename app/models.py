@@ -339,6 +339,7 @@ class Vehicle(models.Model):
     uber_uuid = models.CharField(null=True, max_length=36, verbose_name='Ідентифікатор авто в Uber')
     registration = models.CharField(null=True, max_length=12, unique=True, verbose_name='Номер документа')
     purchase_date = models.DateField(null=True, verbose_name='Дата початку роботи')
+    start_mileage = models.IntegerField(default=0, verbose_name="Корекційний пробіг авто")
     vin_code = models.CharField(validators=[MaxLengthValidator(17)], max_length=17, blank=True)
     chat_id = models.CharField(max_length=15, blank=True, null=True, verbose_name="Група автомобіля телеграм")
     gps_imei = models.CharField(validators=[MaxLengthValidator(50)], max_length=50, blank=True, default='')
@@ -976,6 +977,8 @@ class FleetOrder(models.Model):
     accepted_time = models.DateTimeField(blank=True, null=True, verbose_name='Час прийняття замовлення')
     finish_time = models.DateTimeField(blank=True, null=True, verbose_name='Час завершення замовлення')
     distance = models.DecimalField(null=True, decimal_places=2, max_digits=6, verbose_name="Відстань за маршрутом")
+    fleet_distance = models.DecimalField(null=True, decimal_places=2, max_digits=6,
+                                         verbose_name="Відстань в агрегаторі")
     road_time = models.DurationField(null=True, blank=True, verbose_name='Час в дорозі')
     state = models.CharField(max_length=255, blank=True, null=True, verbose_name='Статус замовлення')
     payment = models.CharField(max_length=25, choices=PaymentTypes.choices, null=True, verbose_name="Тип оплати")

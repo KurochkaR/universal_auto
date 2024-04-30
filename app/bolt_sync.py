@@ -433,7 +433,8 @@ class BoltRequest(Fleet, Synchronizer):
         report = self.get_target_url(f'{self.base_url}getDriversForLiveMap', self.param())
         if report.get('data'):
             for driver in report['data']['list']:
-                name, second_name = driver['name'].split(' ')
+                name_list = driver['name'].split()
+                name, second_name = name_list[0], name_list[-1]
                 if driver['state'] == 'waiting_orders':
                     wait.append((name, second_name))
                     wait.append((second_name, name))
