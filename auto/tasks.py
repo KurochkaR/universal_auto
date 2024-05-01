@@ -1364,7 +1364,7 @@ def calculate_failed_earnings(self, **kwargs):
 
 
 @app.task(bind=True)
-def create_charging_transactions(**kwargs):
+def create_charging_transactions(self, **kwargs):
     day = kwargs.get('day')
     date = datetime.strptime(day, "%Y-%m-%d") if day else timezone.localtime()
     start_day = timezone.make_aware(datetime.combine(date, time.min))

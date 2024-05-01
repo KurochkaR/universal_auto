@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 
+import pytz
 import requests
 from django.db import transaction
 from django.utils import timezone
@@ -110,14 +111,15 @@ class EcoFactorRequest:
         response_data = response.json()['data']['chargings_b17e0_6b4e2']['rows']
         existing_charging = ChargeTransactions.objects.filter(
             start_time__range=(start, end)).values_list('charge_id', flat=True)
-        print(existing_charging)
         new_charges = [entry for entry in response_data if entry['pk'] not in existing_charging]
         batch_data = []
         for entry in new_charges:
             client_name = entry['clientInfo']['clientName']
             second_name, name = client_name.split()
             driver = Driver.objects.get_active(second_name=second_name, name=name).first()
-            start_time = timezone.make_aware(datetime.strptime(entry['created'], '%Y-%m-%dT%H:%M:%S.%fZ'))
+            start = timezone.make_aware(datetime.strptime(entry['created'], '%Y-%m-%dT%H:%M:%S.%fZ'),
+                                        timezone=timezone.utc)
+            start_time = timezone.localtime(start)
             vehicle = check_vehicle(driver, start_time)
 
             data = {
