@@ -10,13 +10,15 @@ from django.db.models.functions import Coalesce
 
 from app.bolt_sync import BoltRequest
 from app.models import CustomReport, ParkSettings, Vehicle, Partner, Payments, SummaryReport, DriverPayments, Penalty, \
-    Bonus, FleetOrder, Fleet, DriverReshuffle, DriverEfficiency, InvestorPayments, WeeklyReport, CarEfficiency
+    Bonus, FleetOrder, Fleet, DriverReshuffle, DriverEfficiency, InvestorPayments, WeeklyReport, CarEfficiency, \
+    ChargeTransactions, Category
 from app.uagps_sync import UaGpsSynchronizer
 from app.uber_sync import UberRequest
-from auto_bot.handlers.driver_manager.utils import create_driver_payments
+from auto_bot.handlers.driver_manager.utils import create_driver_payments, get_time_for_task
 from auto_bot.handlers.order.utils import check_vehicle
 from auto_bot.main import bot
 from selenium_ninja.synchronizer import AuthenticationError
+from taxi_service.utils import get_start_end
 
 
 def get_currency_rate(currency_code):
@@ -29,6 +31,18 @@ def get_currency_rate(currency_code):
         return data[0]['rate']
     else:
         raise AuthenticationError(response.json())
+
+
+def create_charge_penalty(driver, start_day, end_day):
+    charge_category, _ = Category.objects.get_or_create(title="Зарядка")
+    chargings = ChargeTransactions.objects.filter(start_time__range=(start_day, end_day),
+                                                  penalty__isnull=True,
+                                                  driver=driver)
+    print(chargings)
+    for charge in chargings:
+        amount = charge.get_penalty_amount()
+        Penalty.objects.create(driver=driver, vehicle=charge.vehicle,
+                               amount=amount, charge=charge, category_id=charge_category.id)
 
 
 def compare_reports(fleet, start, end, driver, correction_report, compare_model, partner_pk):
@@ -346,3 +360,22 @@ def calc_bonus_bolt_from_orders(start, end, fleet: Fleet, vehicles_list: list, d
     else:
         bonus_kasa = 0
     return bonus_kasa
+
+
+def generate_cash_text(driver, kasa, card, penalties, rent, rent_payment, ratio, rate, enable, rent_enable):
+    calc_text = f"Готівка {int(kasa - card)}"
+    if penalties:
+        calc_text += f" борг {int(penalties)}"
+    if rent_payment:
+        calc_text += f" холостий пробіг {int(rent_payment)}"
+    calc_text += f" / {int(kasa)} = {int((1 - ratio) * 100)}%\n"
+    if enable:
+        text = f"\U0001F7E2 {driver} система увімкнула отримання замовлень за готівку.\n" + calc_text
+    elif rent_enable:
+        text = f"\U0001F534 {driver} системою вимкнено готівкові замовлення.\n" \
+               f"Причина: холостий пробіг\n" + calc_text + f", перепробіг {int(rent)} км\n"
+    else:
+        text = f"\U0001F534 {driver} системою вимкнено готівкові замовлення.\n" \
+               f"Причина: високий рівень готівки\n" + calc_text
+    text += f"Дозволено готівки {rate * 100}%"
+    return text

@@ -1397,13 +1397,10 @@ class FleetOrderAdmin(admin.ModelAdmin):
         return list_filter
 
     def get_list_display(self, request):
-        if request.user.is_superuser:
-            return [f.name for f in self.model._meta.fields]
-        else:
-            return ['order_id', 'fleet', 'driver', 'from_address', 'destination',
-                    'accepted_time', 'finish_time',
-                    'state', 'payment', 'price', 'vehicle_id', 'date_order'
-                    ]
+        return ['order_id', 'fleet', 'driver', 'from_address', 'destination',
+                'accepted_time', 'finish_time',
+                'state', 'payment', 'price', 'vehicle_id', 'date_order'
+                ]
 
     def get_fieldsets(self, request, obj=None):
         fieldsets = [

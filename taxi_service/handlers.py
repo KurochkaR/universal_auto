@@ -23,6 +23,7 @@ from auto.utils import payment_24hours_create, summary_report_create
 from auto_bot.handlers.driver_manager.utils import calculate_bolt_kasa, create_driver_payments, \
     check_correct_bolt_report
 from auto_bot.handlers.order.utils import check_vehicle
+from selenium_ninja.ecofactor import EcoFactorRequest
 from taxi_service.forms import MainOrderForm, CommentForm, BonusForm, ContactMeForm
 from taxi_service.utils import (update_order_sum_or_status, restart_order,
                                 partner_logout, login_in_investor,
@@ -416,8 +417,11 @@ class PostRequestHandler:
         driver_id = request.POST.get('driver_id')
         if not driver_id:
             driver_id = DriverPayments.objects.get(pk=request.POST.get('payment_id')).driver_id
-        if Driver.objects.get(pk=int(driver_id)).driver_status == Driver.WITH_CLIENT:
+        driver = Driver.objects.get(pk=int(driver_id))
+        if driver.driver_status == Driver.WITH_CLIENT:
             json_data = JsonResponse({'error': 'Водій виконує замовлення, спробуйте пізніше'}, status=400)
+        elif EcoFactorRequest().check_active_transaction(driver):
+            json_data = JsonResponse({'error': 'Водій заряджає автомобіль, спробуйте пізніше'}, status=400)
         else:
             create_payment = create_daily_payment.apply_async(kwargs={"driver_pk": driver_id})
             json_data = JsonResponse({'task_id': create_payment.id}, safe=False)
@@ -426,8 +430,13 @@ class PostRequestHandler:
     @staticmethod
     def handler_incorrect_payment(request):
         data = request.POST
-        create_payment = create_daily_payment.apply_async(kwargs={"payment_id": int(data['payment_id'])})
-        json_data = JsonResponse({'task_id': create_payment.id}, safe=False)
+        driver_id = DriverPayments.objects.get(pk=request.POST.get('payment_id')).driver_id
+        driver = Driver.objects.get(pk=int(driver_id))
+        if EcoFactorRequest().check_active_transaction(driver):
+            json_data = JsonResponse({'error': 'Водій заряджає автомобіль, спробуйте пізніше'}, status=400)
+        else:
+            create_payment = create_daily_payment.apply_async(kwargs={"payment_id": int(data['payment_id'])})
+            json_data = JsonResponse({'task_id': create_payment.id}, safe=False)
         return json_data
 
     @staticmethod

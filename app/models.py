@@ -201,6 +201,11 @@ class Schema(models.Model):
     def is_float(self):
         return True if self.schema == "FLOAT" else False
 
+    @classmethod
+    def get_weekly_drivers(cls, partner):
+        return cls.objects.filter(salary_calculation=SalaryCalculation.WEEK,
+                                  partner=partner).values_list('driver', flat=True)
+
     class Meta:
         verbose_name = 'Схему роботи'
         verbose_name_plural = 'Схеми роботи'
@@ -444,11 +449,11 @@ class Driver(User):
         verbose_name = 'Водія'
         verbose_name_plural = 'Водії'
 
-    def get_driver_external_id(self, fleet: str):
+    def get_driver_external_id(self, fleet: Fleet):
         try:
             return FleetsDriversVehiclesRate.objects.get(fleet=fleet, driver=self,
                                                          partner=self.partner,
-                                                         deleted_at=None).driver_external_id
+                                                         deleted_at__isnull=True).driver_external_id
         except ObjectDoesNotExist:
             return
         except MultipleObjectsReturned:

@@ -31,7 +31,7 @@ from auto_bot.handlers.order.handlers import continue_order, to_the_address, fro
     finish_personal_driver, not_continue_personal_order, update_personal_order, back_step_to_finish_personal, \
     personal_order_terms, personal_order_info
 from auto_bot.handlers.main.handlers import start, update_phone_number, helptext, get_id, cancel, error_handler, \
-    more_function, start_query, get_about_us, celery_test
+    more_function, start_query, get_about_us
 from auto_bot.handlers.driver_job.handlers import update_name, restart_job_application, update_second_name, \
     update_email, update_user_information, get_job_photo, upload_photo, upload_license_front_photo, \
     upload_license_back_photo, upload_expired_date, check_auto, upload_auto_doc, upload_insurance, \
@@ -108,7 +108,6 @@ def setup_dispatcher(dp):
     # Commands for Users
     # Ordering taxi
     dp.add_handler(CommandHandler("start", start))
-    dp.add_handler(CommandHandler("test_celery", celery_test))
     dp.add_handler(CallbackQueryHandler(bolt_report_photo_callback, pattern="photo_bolt_report"))
     dp.add_handler(CallbackQueryHandler(more_function, pattern="Other_user|Other_manager|More_driver|Other_owner"))
     # incomplete auth

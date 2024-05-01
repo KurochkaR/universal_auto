@@ -22,7 +22,7 @@ from auto_bot.handlers.driver_manager.utils import get_daily_report, validate_da
     generate_message_report, get_driver_efficiency_report, validate_sum, generate_report_period
 from auto_bot.handlers.main.keyboards import markup_keyboard, markup_keyboard_onetime, inline_manager_kb
 from auto.tasks import send_on_job_application_on_driver, manager_paid_weekly, fleets_cash_trips, \
-    update_driver_data, send_daily_statistic, send_efficiency_report, send_driver_report, send_driver_efficiency, \
+    update_driver_data, send_efficiency_report, send_driver_efficiency, \
     generate_rent_message_driver
 from auto_bot.handlers.order.utils import check_vehicle
 from auto_bot.main import bot
@@ -421,7 +421,7 @@ def create_period_efficiency(update, context):
 @task_postrun.connect
 def send_into_group(sender=None, **kwargs):
     yesterday = timezone.make_aware(datetime.combine(timezone.localtime() - timedelta(days=1), time.max))
-    if sender in (send_daily_statistic, send_driver_efficiency):
+    if sender == send_driver_efficiency:
         messages, drivers_messages = kwargs.get('retval')
         for partner, message in messages.items():
             if message:
@@ -447,16 +447,6 @@ def send_vehicle_efficiency(sender=None, **kwargs):
                 send_long_message(chat_id=ParkSettings.get_value('DRIVERS_CHAT',
                                   default=Partner.objects.get(pk=partner).chat_id,
                                   partner=partner), text=message)
-
-
-@task_postrun.connect
-def send_week_report(sender=None, **kwargs):
-    if sender == send_driver_report:
-        result = kwargs.get('retval')
-        for messages in result:
-            if messages:
-                for user, message in messages.items():
-                    send_long_message(chat_id=user, text=message)
 
 
 def get_partner_vehicles(update, context):
