@@ -680,7 +680,7 @@ def send_efficiency_report(self, **kwargs):
     partner = Partner.objects.filter(pk=kwargs.get('partner_pk')).first()
     message = ''
     dict_msg = {}
-    managers = list(partner.managers.values_list('chat_id', flat=True))
+    managers = list(partner.manager_set.values_list('chat_id', flat=True))
     if not managers and partner.chat_id:
         managers = [partner.chat_id]
     for manager in managers:
@@ -700,7 +700,7 @@ def send_driver_efficiency(self, **kwargs):
     partner = Partner.objects.filter(pk=kwargs.get('partner_pk')).first()
     driver_dict_msg = {}
     dict_msg = {}
-    managers = list(partner.managers.values_list('chat_id', flat=True))
+    managers = list(partner.manager_set.values_list('chat_id', flat=True))
     if not managers and partner.chat_id:
         managers = [partner.chat_id]
     for manager in managers:
