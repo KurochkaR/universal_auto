@@ -726,4 +726,11 @@ $(document).ready(function () {
 			window.location.href = 'mailto:' + email;
 		}
 	});
+
+	$('.how-does-it-work-btn').click(function () {
+		var offset = $('.investment-two-section').offset().top - 70;
+		$('html, body').animate({
+			scrollTop: offset
+		}, 1000);
+	});
 });

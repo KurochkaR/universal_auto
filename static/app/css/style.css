@@ -2018,7 +2018,7 @@ ul.sub-menu.service {
 
 /*adaptive for tablet vertical*/
 
-@media screen and (min-width: 768px) and (max-width: 1024px) {
+@media screen and (min-width: 768px) and (max-width: 1023px) {
 	/*BLOCK-1*/
 	.one_section .container {
 		display: grid;
@@ -2355,6 +2355,364 @@ ul.sub-menu.service {
 		font-family: var(--font-family);
 		font-weight: 400;
 		font-size: 27px;
+		text-align: center;
+		color: #53785e;
+		margin: 0 0 15px 0;
+	}
+
+	.refueling-section .img-box img {
+		width: 100%;
+		height: auto;
+		margin-top: 0;
+		margin-left: 0;
+	}
+
+	.refueling-section a button {
+		width: 573px;
+		height: 45px;
+		font-family: var(--second-family);
+		font-size: 20px;
+		text-align: center;
+	}
+}
+
+@media screen and (min-width: 1024px) and (max-width: 1199px) {
+	/*BLOCK-1*/
+	.one_section .container {
+		display: grid;
+		grid-template-columns: 1fr;
+		padding: 0;
+		margin: 0;
+		max-width: 100%;
+	}
+
+	.one_section .left_images .one-background-img {
+		margin-top: 20px;
+		width: 100%;
+		position: relative;
+		left: 0;
+		z-index: -1;
+		top: 0;
+	}
+
+	.one_section .left_images .one-background-img img {
+		width: 100%;
+		height: auto;
+		padding: 38px 105px 0 168px;
+	}
+
+	.one_section .right_content {
+		margin-top: -54px;
+	}
+
+	.one_section .right_content::before {
+		margin-right: 0;
+		background-size: 100% 100%;
+	}
+
+	.one_section .right_content .one-info {
+		position: relative;
+		padding: 10px;
+		z-index: 1022;
+		margin-top: -435px;
+		right: -125px;
+	}
+
+	.one_section .right_content .one-info {
+		width: 100%;
+		position: relative;
+		padding: 10px;
+		z-index: 1022;
+		margin-top: 45px;
+		left: 0;
+		display: grid;
+		justify-items: center;
+	}
+
+	.one_section .right_content .one-info h2 {
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 45px;
+		text-transform: uppercase;
+		text-align: center;
+		color: #fff;
+		margin: 0 0 0 125px;
+	}
+
+	.one_section .right_content .one-info .phone {
+		font-family: var(--second-family);
+		font-weight: 400;
+		font-size: 35px;
+		text-align: center;
+		color: #ec6323;
+		margin: 15px 0 15px 125px;
+	}
+
+	.one_section .right_content .one-info .text-1 {
+		margin: 0 0 0 125px;
+		font-family: var(--font-family);
+		font-weight: 400;
+		font-size: 35px;
+		text-align: center;
+		color: #fff;
+	}
+
+	.one_section .contact-me-btn button {
+		margin: 15px 0 40px 125px;
+		border-radius: 20px;
+		width: 486px;
+		height: 53px;
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 20px;
+		color: #fff;
+	}
+
+	/*block 2*/
+	.about_section {
+		margin-top: 95px;
+		padding-top: 0;
+	}
+
+	.about_section .text-image {
+		display: none;
+	}
+
+	.about_section .heading_container h2 {
+		font-family: var(--second-family);
+		font-weight: 600;
+		font-size: 35px;
+		text-transform: uppercase;
+		text-align: center;
+		color: #141e17;
+		margin: 25px 0 15px 0;
+	}
+
+	.about_section .about-section {
+		font-family: var(--font-family);
+		font-weight: 400;
+		font-size: 30px;
+		text-align: center;
+		color: #53785e;
+		margin: 0;
+	}
+
+	.about_section .container .img-box img {
+		width: 100%;
+		height: auto;
+		margin-top: 0;
+	}
+
+	.about_section .row {
+		display: flex;
+		flex-direction: column;
+	}
+
+	.about_section .row .col-md-6 {
+		max-width: 100%;
+	}
+
+	.about_section .row-detail-box {
+		order: 2;
+	}
+
+	.about_section .row-detail-img {
+		order: 1;
+	}
+
+	/*block 3*/
+	.common-background {
+		margin-top: 95px;
+		background-size: 100% 100%;
+		background-repeat: no-repeat;
+	}
+
+	.investment-section-index {
+		height: auto;
+	}
+
+	.investment-section-index .container {
+		display: flex;
+		flex-direction: column;
+	}
+
+	.investment-section-index .row {
+		display: grid;
+	}
+
+	.investment-section-index .row .col-md-6 {
+		max-width: 100%;
+	}
+
+	.investment-section-index .heading_container {
+		width: 100%;
+		order: 2;
+		display: grid;
+		justify-items: center;
+	}
+
+	.investment-section-index .video-box {
+		position: relative;
+		width: 100%;
+		height: auto;
+		top: 0;
+		left: 0;
+	}
+
+	.investment-section-index.video-box a {
+		position: relative;
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: auto;
+	}
+
+	.investment-section-index .video-box a img,
+	.investment-section-index .video-box iframe {
+		position: absolute;
+		top: 20px;
+		left: 110px;
+		width: 598px;
+		height: 405px;
+	}
+
+	.investment-section-index .heading_container h2 {
+		width: 100%;
+		font-family: var(--second-family);
+		font-weight: 600;
+		font-size: 35px;
+		text-transform: uppercase;
+		text-align: center;
+		color: #fff;
+		margin: 25px 0 0 0;
+	}
+
+	.investment-section-index .heading_container p {
+		width: 100%;
+		font-family: var(--font-family);
+		font-weight: 400;
+		font-size: 30px;
+		text-align: center;
+		color: #fff;
+		margin: 15px 0;
+	}
+
+	.investment-section-index .button-container a {
+		border-radius: 20px;
+		width: 573px;
+		height: 45px;
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 20px;
+		text-align: center;
+		color: #fff;
+	}
+
+	/*block 4*/
+	.automation-section-index {
+		margin-top: 50px;
+		height: auto;
+	}
+
+	.automation-section-index .automation-img img {
+		max-width: 100%;
+		max-height: 100%;
+	}
+
+	.automation-section-index .block {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+	}
+
+	.automation-section-index .block-detail {
+		display: contents;
+		width: 100%;
+	}
+
+	.automation-section-index .block-detail h2 {
+		font-family: var(--second-family);
+		font-weight: 600;
+		font-size: 35px;
+		text-transform: uppercase;
+		text-align: center;
+		color: #fff;
+		margin: 25px 0 0 0;
+	}
+
+	.automation-section-index .block-detail p {
+		margin: 15px 0;
+		font-family: var(--font-family);
+		font-weight: 400;
+		font-size: 30px;
+		text-align: center;
+		color: #fff;
+	}
+
+	.automation-section-index .block-detail a.button {
+		justify-content: center;
+		border-radius: 20px;
+		width: 573px;
+		height: 45px;
+		padding: 10px 0;
+		margin: 0 0 65px 0;
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 20px;
+		text-align: center;
+		color: #fff;
+	}
+
+	/*block 5*/
+	.refueling-section {
+		margin-top: 95px;
+	}
+
+	.refueling-section .container {
+		flex-direction: column;
+	}
+
+	.refueling-section .heading_container h2 {
+		font-family: var(--second-family);
+		font-weight: 600;
+		font-size: 35px;
+		text-transform: uppercase;
+		text-align: center;
+		color: #141e17;
+		margin: 25px 0 15px 0;
+	}
+
+	.refueling-section .row {
+		display: flex;
+		flex-direction: column;
+		margin-left: 0;
+		margin-right: 0;
+	}
+
+	.refueling-section .row .col-md-6 {
+		max-width: 100%;
+	}
+
+	.refueling-section .row .row-detail-box {
+		order: 2;
+	}
+
+	.refueling-section .row .col-md-6 {
+		display: flex;
+		flex-direction: column;
+		padding: 0;
+		align-items: center;
+	}
+
+	.refueling-section .detail-box {
+		margin-top: 0;
+		text-align: center;
+	}
+
+	.refueling-section .about-section {
+		font-family: var(--font-family);
+		font-weight: 400;
+		font-size: 30px;
 		text-align: center;
 		color: #53785e;
 		margin: 0 0 15px 0;
@@ -4044,7 +4402,7 @@ ul.sub-menu.service {
 		width: 100%;
 		display: flex;
 		flex-direction: column;
-		align-items: flex-start;
+		align-items: center;
 	}
 
 	.auto-park-eleven-section .container .box-form form .client-info {
@@ -4082,14 +4440,16 @@ ul.sub-menu.service {
 
 	.auto-park-eleven-section .container .box-form form button {
 		border: none;
-		border-radius: 25px;
-		padding: 10px 50px;
-		font-family: var(--font-family);
-		font-weight: 700;
-		font-size: 15px;
-		color: #fff;
+		padding: 5px;
 		background: #EC6323;
 		cursor: pointer;
+		border-radius: 20px;
+		width: 270px;
+		height: 33px;
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 10px;
+		color: #fff;
 	}
 
 	/*Form styles adaptive*/
@@ -4215,7 +4575,7 @@ ul.sub-menu.service {
 }
 
 /* adaptive for phone horizontal */
-@media screen and (min-width: 767px) and (max-width: 1199px) {
+@media screen and (min-width: 768px) and (max-width: 1199px) {
 	/*block 1*/
 	.auto-park-one-section {
 		height: 969px;
@@ -5093,8 +5453,8 @@ ul.sub-menu.service {
 }
 
 /*End Auto Park page*/
-/*Invest page*/
 
+/*Invest page*/
 .invest-btn {
 	font-size: 16px;
 	padding: 15px 20px;
@@ -5578,13 +5938,13 @@ ul.sub-menu.service {
 
 	.investment-right .decorate-img img {
 		width: 100%;
-		height: auto;
+		height: 291px;
 	}
 
 	.invest-one-info {
 		width: 100%;
 		position: relative;
-		bottom: 250px;
+		bottom: 268px;
 		left: 0;
 		transform: translate(0, 0);
 		text-align: center;
@@ -5594,7 +5954,7 @@ ul.sub-menu.service {
 
 	.invest-one-info h2 {
 		width: 100%;
-		margin-bottom: 10px;
+		margin-bottom: 15px;
 		font-style: normal;
 		line-height: normal;
 		font-family: var(--second-family);
@@ -5603,7 +5963,7 @@ ul.sub-menu.service {
 		text-transform: uppercase;
 		text-align: center;
 		color: #ec6323;
-		margin-left: 0;
+		margin-left: 15px;
 	}
 
 	.invest-one-info p {
@@ -5613,26 +5973,32 @@ ul.sub-menu.service {
 		font-style: normal;
 		font-weight: 400;
 		line-height: normal;
-		margin-left: 0;
+		margin: 0 0 20px 15px;
 	}
 
 	.invest-btn-box {
 		width: 100%;
 		right: 0;
 		position: relative;
-		bottom: 255px;
+		bottom: 270px;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		margin-top: 10px;
-		gap: 11px;
+		gap: 10px;
 		flex-direction: column;
 	}
 
 	.invest-btn-box .invest-btn {
 		font-size: 10px;
 		padding: 5px 10px;
+		border-radius: 20px;
+		width: 260px;
 		height: 32px;
+		font-family: var(--second-family);
+		font-weight: 700;
+		text-align: center;
+		color: #fff;
+		margin-left: 20px;
 	}
 
 	.invest-btn-box .how-does-it-work-btn {
@@ -5640,6 +6006,11 @@ ul.sub-menu.service {
 		padding: 5px 10px;
 		width: 260px;
 		height: 32px;
+		font-family: var(--second-family);
+		font-weight: 700;
+		text-align: center;
+		color: #ec6323;
+		margin-left: 20px;
 	}
 
 
@@ -5647,11 +6018,12 @@ ul.sub-menu.service {
 	.investment-two-section {
 		margin-top: 80px;
 		grid-column-gap: 10px;
-		grid-row-gap: 10px;
+		grid-row-gap: 25px;
 		grid-template-rows: auto;
 		grid-template-columns: 1fr;
 		grid-auto-columns: 1fr;
 		display: grid;
+		justify-items: center;
 	}
 
 	.investment-two-section .how-does-it-work {
@@ -5725,14 +6097,16 @@ ul.sub-menu.service {
 
 	.investment-two-section button {
 		display: block;
-		width: 88%;
 		position: relative;
-		font-size: 15px;
 		top: 0;
-		left: 25px;
 		padding: 5px 10px;
 		border-radius: 20px;
+		width: 270px;
 		height: 32px;
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 10px;
+		text-align: center;
 	}
 
 	/*block 3*/
@@ -5925,7 +6299,6 @@ ul.sub-menu.service {
 
 	.investment-four-section .container .potential-income-box-form .invest-btn {
 		border: none;
-		border-radius: 25px;
 		padding: 5px 10px;
 		font-family: var(--font-family);
 		font-weight: 700;
@@ -5933,8 +6306,9 @@ ul.sub-menu.service {
 		color: #fff;
 		background: #EC6323;
 		cursor: pointer;
+		border-radius: 20px;
+		width: 270px;
 		height: 32px;
-		width: 100%;
 	}
 
 	/*block 5*/
@@ -5980,6 +6354,7 @@ ul.sub-menu.service {
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
+		gap: 25px;
 	}
 
 	.investment-five-section .question p {
@@ -6005,7 +6380,7 @@ ul.sub-menu.service {
 	.investment_section {
 		margin-top: 80px;
 		width: 100%;
-		height: 690px;
+		height: auto;
 	}
 
 	.investment_section .container {
@@ -6050,7 +6425,7 @@ ul.sub-menu.service {
 	.investment_section .invest-one-info {
 		width: 100%;
 		position: relative;
-		bottom: 350px;
+		bottom: 363px;
 		left: 0;
 		transform: translate(0, 0);
 		text-align: center;
@@ -6069,7 +6444,6 @@ ul.sub-menu.service {
 		text-transform: uppercase;
 		text-align: center;
 		color: #ec6323;
-		margin-left: 0;
 	}
 
 	.investment_section .invest-one-info p {
@@ -6079,27 +6453,30 @@ ul.sub-menu.service {
 		font-style: normal;
 		font-weight: 400;
 		line-height: normal;
-		margin-left: 0;
+		margin: 0 0 10px 15px;
 	}
 
 	.investment_section .invest-btn-box {
 		width: 100%;
 		right: 0;
 		position: relative;
-		bottom: 350px;
+		bottom: 364px;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		margin-top: 10px;
-		gap: 11px;
+		gap: 10px;
+		margin: 0;
 		flex-direction: column;
 	}
 
 	.investment_section .invest-btn-box .invest-btn {
-		font-size: 16px;
 		padding: 5px 10px;
 		width: 400px;
 		height: 45px;
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 16px;
+		color: #fff;
 	}
 
 	.investment_section .invest-btn-box .how-does-it-work-btn {
@@ -6107,17 +6484,21 @@ ul.sub-menu.service {
 		padding: 5px 10px;
 		width: 400px;
 		height: 45px;
+		font-family: var(--second-family);
+		font-weight: 700;
+		color: #ec6323;
 	}
 
 	/*block 2*/
 	.investment-two-section {
-		margin-top: 80px;
+		margin-top: -50px;
 		grid-column-gap: 10px;
-		grid-row-gap: 10px;
+		grid-row-gap: 25px;
 		grid-template-rows: auto;
 		grid-template-columns: 1fr;
 		grid-auto-columns: 1fr;
 		display: grid;
+		justify-items: center;
 	}
 
 	.investment-two-section .how-does-it-work {
@@ -6192,14 +6573,16 @@ ul.sub-menu.service {
 
 	.investment-two-section button {
 		display: block;
-		width: 88%;
 		position: relative;
-		font-size: 16px;
 		top: 0;
-		left: 25px;
 		padding: 5px 10px;
 		border-radius: 20px;
+		width: 429px;
 		height: 45px;
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 16px;
+		color: #fff;
 	}
 
 	/*block 3*/
@@ -6390,6 +6773,20 @@ ul.sub-menu.service {
 		justify-content: center;
 	}
 
+	.invest-btn {
+		padding: 10px 20px;
+		background-color: #EC6323;
+		border: none;
+		transition: background-color 0.3s;
+		border-radius: 20px;
+		width: 429px;
+		height: 45px;
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 16px;
+		color: #fff;
+	}
+
 	/*block 5*/
 	.investment-five-section {
 		margin-top: 80px;
@@ -6433,6 +6830,7 @@ ul.sub-menu.service {
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
+		gap: 25px;
 	}
 
 	.investment-five-section .question p {
@@ -6448,6 +6846,997 @@ ul.sub-menu.service {
 	.investment-five-section .question h3 svg .rotate {
 		transform: rotate(90deg);
 		transition: transform 0.3s ease;
+	}
+}
+
+
+@media screen and (min-width: 658px) and (max-width: 767px) {
+	.investment_section .invest-one-info {
+		padding: 0 140px !important;
+	}
+}
+
+@media screen and (min-width: 768px) and (max-width: 1023px) {
+	/*block 1*/
+	.investment_section {
+		margin-top: 80px;
+		width: 100%;
+		height: auto;
+	}
+
+	.investment_section .container {
+		flex-direction: column;
+		padding: 0;
+		margin: 0 0 0 0;
+		max-width: 767px;
+	}
+
+	.investment_section .investment-left {
+		width: 100%;
+		height: auto;
+		top: 0;
+	}
+
+	.investment_section .investment-left img {
+		position: relative;
+		border-radius: 62px;
+		width: 100%;
+		height: auto;
+		top: 0;
+		left: 0;
+	}
+
+	.investment_section .investment-right {
+		margin-top: 37px;
+		width: 100%;
+		top: 0;
+	}
+
+	.investment-right .decorate-img {
+		right: 0;
+		position: relative;
+		z-index: -1;
+	}
+
+	.investment_section .investment-right .decorate-img img {
+		width: 100%;
+		height: 431px;
+	}
+
+	.investment_section .invest-one-info {
+		width: 100%;
+		position: relative;
+		bottom: 388px;
+		left: 0;
+		transform: translate(0, 0);
+		text-align: center;
+		color: #ffffff;
+		padding: 0 60px;
+	}
+
+	.investment_section .invest-one-info h2 {
+		width: 100%;
+		margin-bottom: 10px;
+		font-style: normal;
+		line-height: normal;
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 32px;
+		text-transform: uppercase;
+		text-align: center;
+		color: #ec6323;
+	}
+
+	.investment_section .invest-one-info p {
+		color: #FFF;
+		text-align: center;
+		font-size: 28px;
+		font-style: normal;
+		font-weight: 400;
+		line-height: normal;
+		margin: 0 0 33px 15px;
+	}
+
+	.investment_section .invest-btn-box {
+		width: 100%;
+		right: 0;
+		position: relative;
+		bottom: 387px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 10px;
+		margin: 0;
+	}
+
+	.investment_section .invest-btn-box .invest-btn {
+		padding: 5px 10px;
+		border-radius: 20px;
+		width: 313px;
+		height: 53px;
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 16px;
+		color: #fff;
+	}
+
+	.investment_section .invest-btn-box .how-does-it-work-btn {
+		font-size: 16px;
+		padding: 5px 10px;
+		font-family: var(--second-family);
+		font-weight: 700;
+		color: #ec6323;
+		border-radius: 20px;
+		width: 313px;
+		height: 53px;
+	}
+
+	/*block 2*/
+	.investment-two-section {
+		margin-top: 5px;
+		grid-column-gap: 10px;
+		grid-row-gap: 15px;
+		grid-template-rows: auto;
+		grid-template-columns: 1fr;
+		grid-auto-columns: 1fr;
+		display: grid;
+		justify-items: center;
+	}
+
+	.investment-two-section .how-does-it-work {
+		position: relative;
+		grid-area: span 1 / span 1 / span 1 / span 1;
+		align-self: start;
+		margin-left: 0;
+		padding: 0 25px;
+		top: 0;
+	}
+
+	.investment-two-section .how-does-it-work h2 {
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 30px;
+		text-transform: uppercase;
+		color: #141e17;
+		text-align: center;
+		margin: 0;
+	}
+
+	.investment-two-section .how-does-it-work p {
+		font-family: var(--font-family);
+		font-weight: 400;
+		font-size: 27px;
+		color: #53785e;
+		text-align: center;
+		margin: 15px 0 0 0;
+	}
+
+	.investment-two-section .how-does-it-work button {
+		display: none;
+	}
+
+	.investment-two-section .investment-cards-container {
+		width: 100%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex-direction: column;
+		background: url(/static/app/images/invest-img/invest-block-2.png) no-repeat;
+		background-size: 100% 100%;
+		padding: 52px 25px 58px 25px;
+		border-radius: 25px;
+		order: 1;
+	}
+
+	.investment-two-section .investment-cards-container .investment-cards {
+		display: flex;
+		width: 100%;
+		gap: 10px;
+		flex-direction: column;
+	}
+
+	.investment-two-section .investment-cards-container .investment-cards .investment-card {
+		width: 100%;
+		background: #fff;
+		padding: 15px 15px 15px 15px;
+		border-radius: 20px;
+	}
+
+	.investment-two-section .investment-cards-container .investment-cards .investment-card h2 {
+		font-family: var(--second-family);
+		font-weight: 600;
+		font-size: 30px;
+		text-transform: uppercase;
+		color: #38423b;
+	}
+
+	.investment-two-section .investment-cards-container .investment-cards .investment-card span {
+		font-family: var(--font-family);
+		font-weight: 400;
+		font-size: 27px;
+		color: #53785e;
+	}
+
+	.investment-two-section button {
+		display: block;
+		position: relative;
+		top: 0;
+		padding: 5px 10px;
+		border-radius: 20px;
+		width: 429px;
+		height: 45px;
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 16px;
+		color: #fff;
+		margin-bottom: 25px;
+	}
+
+	/*block 3*/
+	.investment-three-section {
+		margin-top: 95px;
+	}
+
+	.investment-three-section button {
+		display: none;
+	}
+
+	.investment-three-section .container {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.investment-three-section .why-us-title h2 {
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 30px;
+		text-transform: uppercase;
+		color: #141e17;
+	}
+
+	.investment-three-section .investment-slider {
+		margin-top: 20px;
+		width: 100%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.investment-three-section .why-us-cards-container {
+		width: 100%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex: 0 0 calc(33.33% - 20px);
+		margin: 0 10px;
+		box-sizing: border-box;
+	}
+
+	.investment-three-section .why-us-card {
+		width: 100%;
+		background: #e5f9ec;
+		border-radius: 25px;
+		padding: 25px 15px;
+		transition: background-color 0.3s;
+		box-shadow: 4px 4px 4px 0 rgba(0, 0, 0, 0.25);
+	}
+
+	.investment-three-section .why-us-card .container-card h3 {
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 25px;
+		text-align: center;
+		color: #141e17;
+		margin: 15px 0;
+	}
+
+	.investment-three-section .why-us-card .container-card p {
+		font-family: var(--font-family);
+		font-weight: 400;
+		font-size: 25px;
+		text-align: center;
+		color: #53785e;
+	}
+
+	.investment-three-section .why-us-card:hover {
+		background: #a1e8b9;
+	}
+
+	.investment-three-section .why-us-card:hover .container-card h3,
+	.investment-three-section .why-us-card:hover .container-card p {
+		color: white;
+	}
+
+	.investment-three-section .box-btn {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.investment-three-section .splide__list {
+		display: grid;
+		grid-template-columns: 1fr;
+		grid-template-rows: 1fr;
+		grid-column-gap: 10px;
+		grid-row-gap: 25px;
+		width: 100%;
+	}
+
+	.investment-three-section .splide__slide {
+		width: 100% !important;
+
+	}
+
+	.investment-three-section .splide__track {
+		overflow: visible;
+	}
+
+	/*block 4*/
+	.investment-four-section {
+		margin-top: 95px;
+		border-radius: 40px;
+		padding: 40px 25px 50px 25px;
+	}
+
+	.investment-four-section .container {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		padding: 0;
+		gap: 0;
+	}
+
+	.investment-four-section .container .potential-income {
+		width: 100%;
+		padding-left: 0;
+	}
+
+	.investment-four-section .container .potential-income h2 {
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 30px;
+		font-variant: small-caps;
+		color: #fff;
+		margin: 0;
+		text-align: center;
+	}
+
+	.investment-four-section .container .potential-income p {
+		font-family: var(--font-family);
+		font-weight: 400;
+		font-size: 27px;
+		color: #fff;
+		margin: 25px 0;
+		text-align: center;
+	}
+
+	.investment-four-section .container .potential-income-box-form {
+		width: 100%;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.investment-four-section .container .potential-income-box-form form {
+		width: 100%;
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+	}
+
+	.investment-four-section .container .potential-income-box-form form .client-info {
+		width: 100%;
+		margin-bottom: 25px;
+		position: relative;
+	}
+
+	.investment-four-section .container .potential-income-box-form form div {
+		margin-bottom: 10px;
+	}
+
+	.investment-four-section .container .potential-income-box-form form label {
+		display: block;
+		margin-right: 10px;
+		font-family: var(--font-family);
+		font-weight: 700;
+		font-size: 25px;
+		color: #fff;
+	}
+
+	.investment-four-section .container .potential-income-box-form form input {
+		width: 100%;
+		border: none;
+		border-radius: 25px;
+		padding: 10px 15px;
+		font-family: var(--font-family);
+		font-weight: 400;
+		font-size: 25px;
+	}
+
+	.potential-income-box-form span.error-message {
+		top: 45px;
+	}
+
+	.investment-four-section .container .potential-income-box-form .box-btn {
+		width: 100%;
+		display: flex;
+		align-items: center;
+	}
+
+	.invest-btn {
+		padding: 10px 20px;
+		background-color: #EC6323;
+		border: none;
+		transition: background-color 0.3s;
+		border-radius: 20px;
+		width: 285px;
+		height: 56px;
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 16px;
+		color: #fff;
+		text-align: left;
+	}
+
+	/*block 5*/
+	.investment-five-section {
+		margin-top: 95px;
+	}
+
+	.investment-five-section .asked-questions-container {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		padding: 0 15px;
+	}
+
+	.investment-five-section .asked-questions-title {
+		width: 100%;
+		text-align: center;
+		margin-bottom: 25px;
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 30px;
+		font-variant: small-caps;
+		color: #141e17;
+		text-decoration: none;
+	}
+
+	.investment-five-section .question {
+		width: 100%;
+		border-bottom: 3px solid #a1e8b9;
+		margin-bottom: 15px;
+	}
+
+	.investment-five-section .question h3,
+	.investment-five-section .question p {
+		font-family: var(--font-family);
+		font-weight: 400;
+		font-size: 27px;
+		color: #53785e;
+	}
+
+	.investment-five-section .question h3 {
+		width: 100%;
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: 25px;
+	}
+
+	.investment-five-section .question p {
+		display: none;
+	}
+
+	.investment-five-section .question h3 svg {
+		width: 35px;
+		height: 35px;
+	}
+
+	.investment-five-section .question h3 svg .rotate {
+		transform: rotate(90deg);
+		transition: transform 0.3s ease;
+	}
+}
+
+@media screen and (min-width: 1024px) and (max-width: 1199px) {
+	/*block 1*/
+	.investment_section {
+		margin-top: 113px;
+		width: 100%;
+		height: auto;
+	}
+
+	.investment_section .container {
+		flex-direction: column;
+		padding: 0;
+		margin: 0 0 0 0;
+		max-width: 100%;
+	}
+
+	.investment_section .investment-left {
+		width: 100%;
+		height: auto;
+		top: 0;
+	}
+
+	.investment_section .investment-left img {
+		position: relative;
+		border-radius: 62px;
+		width: 100%;
+		height: auto;
+		top: 0;
+		left: 0;
+	}
+
+	.investment_section .investment-right {
+		margin-top: 37px;
+		width: 100%;
+		top: 0;
+	}
+
+	.investment-right .decorate-img {
+		right: 0;
+		position: relative;
+		z-index: -1;
+	}
+
+	.investment_section .investment-right .decorate-img img {
+		width: 100%;
+		height: 498px;
+	}
+
+	.investment_section .invest-one-info {
+		width: 100%;
+		position: relative;
+		bottom: 450px;
+		left: 0;
+		transform: translate(0, 0);
+		text-align: center;
+		color: #ffffff;
+		padding: 0px 125px;
+	}
+
+	.investment_section .invest-one-info h2 {
+		width: 100%;
+		margin-bottom: 10px;
+		font-style: normal;
+		line-height: normal;
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 45px;
+		text-transform: uppercase;
+		text-align: center;
+		color: #ec6323;
+	}
+
+	.investment_section .invest-one-info p {
+		color: #FFF;
+		text-align: center;
+		font-size: 35px;
+		font-style: normal;
+		font-weight: 400;
+		line-height: normal;
+		margin: 0 0 33px 15px;
+	}
+
+	.investment_section .invest-btn-box {
+		width: 100%;
+		right: 0;
+		position: relative;
+		bottom: 449px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 10px;
+		margin: 0;
+	}
+
+	.investment_section .invest-btn-box .invest-btn {
+		padding: 5px 10px;
+		border-radius: 20px;
+		width: 397px;
+		height: 53px;
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 20px;
+		color: #fff;
+		text-align: center;
+	}
+
+	.investment_section .invest-btn-box .how-does-it-work-btn {
+		font-size: 20px;
+		padding: 5px 10px;
+		font-family: var(--second-family);
+		font-weight: 700;
+		color: #ec6323;
+		border-radius: 20px;
+		width: 397px;
+		height: 53px;
+	}
+
+	/*block 2*/
+	.investment-two-section {
+		margin-top: 70px;
+		grid-column-gap: 10px;
+		grid-row-gap: 25px;
+		grid-template-rows: auto;
+		grid-template-columns: 1fr;
+		grid-auto-columns: 1fr;
+		display: grid;
+		justify-items: center;
+	}
+
+	.investment-two-section .how-does-it-work {
+		position: relative;
+		grid-area: span 1 / span 1 / span 1 / span 1;
+		align-self: start;
+		margin-left: 0;
+		padding: 0 25px;
+		top: 0;
+	}
+
+	.investment-two-section .how-does-it-work h2 {
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 35px;
+		text-transform: uppercase;
+		color: #141e17;
+		text-align: center;
+		margin: 0;
+	}
+
+	.investment-two-section .how-does-it-work p {
+		font-family: var(--font-family);
+		font-weight: 400;
+		font-size: 30px;
+		color: #53785e;
+		text-align: center;
+		margin: 15px 0 0 0;
+	}
+
+	.investment-two-section .how-does-it-work button {
+		display: none;
+	}
+
+	.investment-two-section .investment-cards-container {
+		width: 100%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex-direction: column;
+		background: url(/static/app/images/invest-img/invest-block-2.png) no-repeat;
+		background-size: 100% 100%;
+		padding: 52px 25px 58px 25px;
+		border-radius: 25px;
+		order: 1;
+	}
+
+	.investment-two-section .investment-cards-container .investment-cards {
+		display: flex;
+		width: 100%;
+		gap: 10px;
+		flex-direction: column;
+	}
+
+	.investment-two-section .investment-cards-container .investment-cards .investment-card {
+		width: 100%;
+		background: #fff;
+		padding: 15px 15px 15px 15px;
+		border-radius: 20px;
+	}
+
+	.investment-two-section .investment-cards-container .investment-cards .investment-card h2 {
+		font-family: var(--second-family);
+		font-weight: 600;
+		font-size: 35px;
+		text-transform: uppercase;
+		color: #38423b;
+	}
+
+	.investment-two-section .investment-cards-container .investment-cards .investment-card span {
+		font-family: var(--font-family);
+		font-weight: 400;
+		font-size: 30px;
+		color: #53785e;
+	}
+
+	.investment-two-section button {
+		display: block;
+		position: relative;
+		top: 0;
+		padding: 5px 10px;
+		border-radius: 20px;
+		width: 630px;
+		height: 53px;
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 20px;
+		color: #fff;
+		margin-bottom: 25px;
+		text-align: center;
+	}
+
+	/*block 3*/
+	.investment-three-section {
+		margin-top: 95px;
+	}
+
+	.investment-three-section button {
+		display: none;
+	}
+
+	.investment-three-section .container {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.investment-three-section .why-us-title h2 {
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 35px;
+		text-transform: uppercase;
+		color: #141e17;
+	}
+
+	.investment-three-section .investment-slider {
+		margin-top: 20px;
+		width: 100%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.investment-three-section .why-us-cards-container {
+		width: 100%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex: 0 0 calc(33.33% - 20px);
+		margin: 0 10px;
+		box-sizing: border-box;
+	}
+
+	.investment-three-section .why-us-card {
+		width: 100%;
+		background: #e5f9ec;
+		border-radius: 25px;
+		padding: 25px 15px;
+		transition: background-color 0.3s;
+		box-shadow: 4px 4px 4px 0 rgba(0, 0, 0, 0.25);
+	}
+
+	.investment-three-section .why-us-card .container-card h3 {
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 30px;
+		text-align: center;
+		color: #141e17;
+		margin: 15px 0;
+	}
+
+	.investment-three-section .why-us-card .container-card p {
+		font-family: var(--font-family);
+		font-weight: 400;
+		font-size: 30px;
+		text-align: center;
+		color: #53785e;
+	}
+
+	.investment-three-section .why-us-card:hover {
+		background: #a1e8b9;
+	}
+
+	.investment-three-section .why-us-card:hover .container-card h3,
+	.investment-three-section .why-us-card:hover .container-card p {
+		color: white;
+	}
+
+	.investment-three-section .box-btn {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.investment-three-section .splide__list {
+		display: grid;
+		grid-template-columns: 1fr;
+		grid-template-rows: 1fr;
+		grid-column-gap: 10px;
+		grid-row-gap: 25px;
+		width: 100%;
+	}
+
+	.investment-three-section .splide__slide {
+		width: 100% !important;
+
+	}
+
+	.investment-three-section .splide__track {
+		overflow: visible;
+	}
+
+	/*block 4*/
+	.investment-four-section {
+		margin-top: 95px;
+		border-radius: 40px;
+		padding: 40px 25px 50px 25px;
+	}
+
+	.investment-four-section .container {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		padding: 0;
+		gap: 0;
+	}
+
+	.investment-four-section .container .potential-income {
+		width: 100%;
+		padding-left: 0;
+	}
+
+	.investment-four-section .container .potential-income h2 {
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 35px;
+		font-variant: small-caps;
+		color: #fff;
+		margin: 0;
+		text-align: center;
+	}
+
+	.investment-four-section .container .potential-income p {
+		font-family: var(--font-family);
+		font-weight: 400;
+		font-size: 30px;
+		color: #fff;
+		margin: 25px 0;
+		text-align: center;
+	}
+
+	.investment-four-section .container .potential-income-box-form {
+		width: 100%;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.investment-four-section .container .potential-income-box-form form {
+		width: 100%;
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+	}
+
+	.investment-four-section .container .potential-income-box-form form .client-info {
+		width: 100%;
+		margin-bottom: 25px;
+		position: relative;
+	}
+
+	.investment-four-section .container .potential-income-box-form form div {
+		margin-bottom: 10px;
+	}
+
+	.investment-four-section .container .potential-income-box-form form label {
+		display: block;
+		margin-right: 10px;
+		font-family: var(--font-family);
+		font-weight: 700;
+		font-size: 30px;
+		color: #fff;
+	}
+
+	.investment-four-section .container .potential-income-box-form form input {
+		width: 100%;
+		border: none;
+		border-radius: 25px;
+		padding: 10px 15px;
+		font-family: var(--font-family);
+		font-weight: 400;
+		font-size: 25px;
+	}
+
+	.potential-income-box-form span.error-message {
+		top: 45px;
+	}
+
+	.investment-four-section .container .potential-income-box-form .box-btn {
+		width: 100%;
+		display: flex;
+		align-items: center;
+	}
+
+	.invest-btn {
+		padding: 10px 20px;
+		background-color: #EC6323;
+		border: none;
+		transition: background-color 0.3s;
+		border-radius: 20px;
+		width: 525px;
+		height: 56px;
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 20px;
+		color: #fff;
+		text-align: center;
+	}
+
+	/*block 5*/
+	.investment-five-section {
+		margin-top: 95px;
+	}
+
+	.investment-five-section .asked-questions-container {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		padding: 0 15px;
+	}
+
+	.investment-five-section .asked-questions-title {
+		width: 100%;
+		text-align: center;
+		margin-bottom: 25px;
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 30px;
+		font-variant: small-caps;
+		color: #141e17;
+		text-decoration: none;
+	}
+
+	.investment-five-section .question {
+		width: 100%;
+		border-bottom: 3px solid #a1e8b9;
+		margin-bottom: 15px;
+	}
+
+	.investment-five-section .question h3,
+	.investment-five-section .question p {
+		font-family: var(--font-family);
+		font-weight: 400;
+		font-size: 30px;
+		color: #53785e;
+	}
+
+	.investment-five-section .question h3 {
+		width: 100%;
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: 25px;
+	}
+
+	.investment-five-section .question p {
+		display: none;
+	}
+
+	.investment-five-section .question h3 svg {
+		width: 35px;
+		height: 35px;
+	}
+
+	.investment-five-section .question h3 svg .rotate {
+		transform: rotate(90deg);
+		transition: transform 0.3s ease;
+	}
+}
+
+@media screen and (min-width: 1191px) and (max-width: 1199px) {
+	.investment_section .invest-one-info {
+		padding: 0 155px;
 	}
 }
 
@@ -8479,6 +9868,15 @@ ul.sub-menu.service {
 		left: 130px;
 		width: 676px;
 		height: 427px;
+	}
+
+	.investment-section-index .video-box a img,
+	.investment-section-index .video-box iframe {
+		position: absolute;
+		top: 20px;
+		left: 110px;
+		width: 597px;
+		height: 410px;
 	}
 }
 
