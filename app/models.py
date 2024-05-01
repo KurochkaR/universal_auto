@@ -545,6 +545,24 @@ class DriverPayments(Earnings):
         return f"{self.driver}"
 
 
+
+
+class ChargeTransactions(models.Model):
+    charge_id = models.IntegerField(unique=True, verbose_name="ID транзакції")
+    start_time = models.DateTimeField(verbose_name="Початок зарядки")
+    end_time = models.DateTimeField(verbose_name="Кінець зарядки")
+    charge_amount = models.DecimalField(decimal_places=2, max_digits=8, verbose_name="Кількість")
+    price = models.DecimalField(decimal_places=2, max_digits=4, verbose_name="Ціна")
+
+    vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE, null=True, verbose_name="Авто")
+    driver = models.ForeignKey(Driver, on_delete=models.CASCADE, null=True, verbose_name="Водій")
+
+    def get_penalty_amount(self):
+        price = Decimal(str(self.price))
+        charge_amount = Decimal(str(self.charge_amount))
+        return price * charge_amount
+
+
 class PenaltyBonus(PolymorphicModel):
     photo = models.ImageField(upload_to='penalty_bonus/', blank=True, null=True, verbose_name='Фото')
     amount = models.DecimalField(max_digits=8, decimal_places=2, verbose_name='Сума')
@@ -571,7 +589,7 @@ class PenaltyBonus(PolymorphicModel):
 
 
 class Penalty(PenaltyBonus):
-    pass
+    charge = models.ForeignKey(ChargeTransactions, on_delete=models.CASCADE, null=True)
 
 
 class Bonus(PenaltyBonus):

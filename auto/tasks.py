@@ -23,7 +23,7 @@ from app.models import (RawGPS, Vehicle, Order, Driver, JobApplication, ParkSett
                         TaskScheduler, DriverEffVehicleKasa, Schema, CustomReport, Fleet,
                         VehicleGPS, PartnerEarnings, Investor, Bonus, Penalty, PaymentsStatus,
                         FleetsDriversVehiclesRate, DriverEfficiencyFleet, WeeklyReport, SalaryCalculation, Category,
-                        PenaltyCategory)
+                        PenaltyCategory, ChargeTransactions)
 from django.db.models import Sum, IntegerField, FloatField, DecimalField, Q
 from django.db.models.functions import Cast, Coalesce
 from app.utils import get_schedule, create_task
@@ -49,6 +49,7 @@ from auto.celery import app
 
 from scripts.redis_conn import redis_instance
 from app.bolt_sync import BoltRequest
+from selenium_ninja.ecofactor import EcoFactorRequest
 from selenium_ninja.synchronizer import AuthenticationError
 from app.uagps_sync import UaGpsSynchronizer
 from app.uber_sync import UberRequest
@@ -1136,6 +1137,7 @@ def calculate_driver_reports(self, **kwargs):
     driver_list = []
     created = False
     drivers = Driver.objects.get_active(schema__in=kwargs.get("schemas"))
+    charge_category, _ = Category.objects.get_or_create(title="Зарядка")
     for driver in drivers:
         bolt_weekly = WeeklyReport.objects.filter(report_from=start_week, report_to=end_week,
                                                   driver=driver, fleet__name="Bolt").aggregate(
@@ -1143,11 +1145,21 @@ def calculate_driver_reports(self, **kwargs):
             kasa=Coalesce(Sum('total_amount_without_fee'), 0, output_field=DecimalField()),
             compensations=Coalesce(Sum('compensations'), 0, output_field=DecimalField()),
         )
+        start_day, end_day = get_start_end('yesterday')[:2] if driver.schema.is_weekly() else (
+                            get_time_for_task(driver.schema_id, kwargs.get('day'))[1:3])
+        chargings = ChargeTransactions.objects.filter(end_time__range=(start_day, end_day),
+                                                      penalty__isnull=True,
+                                                      driver=driver)
+        for charge in chargings:
+            amount = charge.get_penalty_amount()
+            Penalty.objects.create(driver=driver, vehicle=charge.vehicle,
+                                   amount=amount, charge=charge, category_id=charge_category.id)
         if driver.schema.is_weekly():
             if not today.weekday():
                 start = start_week
                 end = end_week
                 bonus = bolt_weekly['bonuses']
+
             else:
                 continue
         else:
@@ -1352,11 +1364,22 @@ def calculate_failed_earnings(self, **kwargs):
 
 
 @app.task(bind=True)
+def create_charging_transactions(**kwargs):
+    day = kwargs.get('day')
+    date = datetime.strptime(day, "%Y-%m-%d") if day else timezone.localtime()
+    start_day = timezone.make_aware(datetime.combine(date, time.min))
+    start = start_day - timedelta(hours=1)
+    end = timezone.make_aware(datetime.combine(start_day, time.max)) if day else date
+    EcoFactorRequest().get_driver_transactions(start, end)
+
+
+@app.task(bind=True)
 def check_cash_and_vehicle(self, **kwargs):
     tasks = chain(get_today_orders.si(**kwargs),
                   null_vehicle_orders.si(**kwargs),
                   add_distance_for_order.si(**kwargs),
-                  check_card_cash_value.si(**kwargs)
+                  check_card_cash_value.si(**kwargs),
+                  create_charging_transactions.si(**kwargs)
                   )
     tasks()
 
@@ -1371,6 +1394,7 @@ def get_information_from_fleets(self, **kwargs):
         generate_payments.si(**kwargs),
         generate_summary_report.si(**kwargs),
         get_rent_information.si(**kwargs),
+        create_charging_transactions.si(**kwargs),
         calculate_driver_reports.si(**kwargs),
         # send_driver_report.si(**kwargs)
     )
