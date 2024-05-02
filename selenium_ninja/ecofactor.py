@@ -7,7 +7,7 @@ from django.utils import timezone
 
 from app.models import Driver, Penalty, Category, ParkSettings, ChargeTransactions
 from auto_bot.handlers.order.utils import check_vehicle
-from scripts.redis_conn import redis_instance
+from scripts.redis_conn import redis_instance, get_logger
 from selenium_ninja.driver import SeleniumTools
 
 
@@ -128,7 +128,11 @@ class EcoFactorRequest:
         batch_data = []
         for entry in new_charges:
             client_name = entry['clientInfo']['clientName']
-            second_name, name = client_name.split()
+            try:
+                second_name, name = client_name.split()
+            except ValueError as e:
+                get_logger().error(e)
+                continue
             driver = Driver.objects.get_active(second_name=second_name, name=name).first()
             start = timezone.make_aware(datetime.strptime(entry['created'], '%Y-%m-%dT%H:%M:%S.%fZ'),
                                         timezone=timezone.get_default_timezone())

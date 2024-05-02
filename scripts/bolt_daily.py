@@ -10,7 +10,6 @@ from taxi_service.utils import get_dates, get_start_end
 
 
 def run(*args):
-    partner = Partner.objects.get(pk=1)
-    print(list(partner.manager_set.values_list('chat_id', flat=True)))
-
+    driver = Driver.objects.select_related('schema').get(pk=41)
+    print(driver)
 

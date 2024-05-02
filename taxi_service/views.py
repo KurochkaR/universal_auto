@@ -15,7 +15,7 @@ from django.utils.decorators import method_decorator
 from taxi_service.forms import SubscriberForm
 from taxi_service.handlers import PostRequestHandler, GetRequestHandler
 from taxi_service.seo_keywords import *
-from app.models import Driver, Vehicle, CustomUser, DriverReshuffle, Bonus, Penalty
+from app.models import Driver, Vehicle, CustomUser, DriverReshuffle, Bonus, Penalty, PenaltyBonus
 from auto_bot.main import bot
 
 
@@ -245,18 +245,25 @@ class DriverDetailView(DetailView):
         driver_id = self.kwargs['pk']
         driver_reshuffle = DriverReshuffle.objects.filter(
             swap_time__lte=timezone.localtime(), end_time__gt=timezone.localtime(),
-            driver_start=driver_id).first()
+            driver_start=driver_id).select_related('swap_vehicle')
 
         context = super().get_context_data(**kwargs)
-        context["driver_bonus"] = Bonus.objects.filter(driver=driver_id, driver_payments__isnull=True)
-        context["driver_penalty"] = Penalty.objects.filter(driver=driver_id, driver_payments__isnull=True)
+        context["driver_bonus"] = Bonus.objects.filter(driver=driver_id, driver_payments__isnull=True).select_related('category', 'vehicle')
+        context["driver_penalty"] = Penalty.objects.filter(driver=driver_id, driver_payments__isnull=True).select_related('category', 'vehicle')
         context["investor_group"] = self.request.user.is_investor()
         context["partner_group"] = self.request.user.is_partner()
         context["manager_group"] = self.request.user.is_manager()
-        context["vehicle"] = {
-            "number": driver_reshuffle.swap_vehicle.licence_plate if driver_reshuffle else "Не назначено",
-            "name": driver_reshuffle.swap_vehicle.name if driver_reshuffle else ""
-        }
+        if driver_reshuffle.exists():
+            vehicle = driver_reshuffle.first().swap_vehicle
+            context["vehicle"] = {
+                "number": vehicle.licence_plate,
+                "name": vehicle.name
+            }
+        else:
+            context["vehicle"] = {
+                "number": "Не назначено",
+                "name": ""
+            }
         return context
 
 

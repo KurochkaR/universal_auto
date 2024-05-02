@@ -288,7 +288,7 @@ def download_daily_report(self, **kwargs):
         schema_obj = Schema.objects.filter(pk__in=schemas).first()
         if schema_obj.is_weekly() or schema_obj.shift_time == time.min:
             return
-        start, end = get_time_for_task(schema_obj, kwargs.get("day"))[:2]
+        start, end = get_time_for_task(schema_obj.pk, kwargs.get("day"))[:2]
         drivers = Driver.objects.get_active(schema__in=schemas)
         fleets = Fleet.objects.filter(fleetsdriversvehiclesrate__driver__in=drivers,
                                       deleted_at__isnull=True).exclude(name="Ninja").distinct()
@@ -1011,7 +1011,7 @@ def get_distance_trip(self, order, start_trip_with_client, end, gps_id):
 def get_calendar_weekly_report(self, **kwargs):
     start, end, format_start, format_end = get_start_end('last_week')
     message = calendar_weekly_report(kwargs.get('partner_pk'), start, end, format_start, format_end)
-    bot.send_message(chat_id=ParkSettings.get_value('DRIVERS_CHAT'), text=message)
+    bot.send_message(chat_id=ParkSettings.get_value('DRIVERS_CHAT', partner=kwargs.get('partner_pk')), text=message)
 
 
 def save_report_to_ninja_payment(start, end, partner_pk, schema, fleet_name='Ninja'):
@@ -1061,13 +1061,13 @@ def calculate_driver_reports(self, **kwargs):
     weekly_drivers = Driver.objects.get_active(pk__in=weekly_drivers_id)
     drivers = Driver.objects.get_active(schema__in=kwargs.get("schemas"))
     for driver in drivers:
-        if not today.weekday():
-            bolt_weekly = WeeklyReport.objects.filter(report_from=start_week, report_to=end_week,
-                                                      driver=driver, fleet__name="Bolt").aggregate(
-                bonuses=Coalesce(Sum('bonuses'), 0, output_field=DecimalField()),
-                kasa=Coalesce(Sum('total_amount_without_fee'), 0, output_field=DecimalField()),
-                compensations=Coalesce(Sum('compensations'), 0, output_field=DecimalField()),
-            )
+        bolt_weekly = WeeklyReport.objects.filter(report_from=start_week, report_to=end_week,
+                                                  driver=driver, fleet__name="Bolt").aggregate(
+            bonuses=Coalesce(Sum('bonuses'), 0, output_field=DecimalField()),
+            kasa=Coalesce(Sum('total_amount_without_fee'), 0, output_field=DecimalField()),
+            compensations=Coalesce(Sum('compensations'), 0, output_field=DecimalField()),
+        )
+
         if driver in weekly_drivers:
             start_day, end_day = get_start_end('yesterday')[:2]
             create_charge_penalty(driver, start_day, end_day)
@@ -1077,14 +1077,14 @@ def calculate_driver_reports(self, **kwargs):
             bonus = bolt_weekly['bonuses']
         else:
             bonus = None
-            if bolt_weekly and bolt_weekly['bonuses']:
+            if not today.weekday() and bolt_weekly and bolt_weekly['bonuses']:
                 add_bonus_earnings(start_week, end_week, driver, bolt_weekly)
             end, start = get_time_for_task(driver.schema_id, kwargs.get('day'))[1:3]
             create_charge_penalty(driver, start, end)
         reshuffles = check_reshuffle(driver, start, end)
         if reshuffles:
             data = create_driver_payments(start, end, driver, driver.schema, bonuses=bonus)[0]
-            if not driver in weekly_drivers:
+            if driver not in weekly_drivers:
                 try:
                     if data['status'] == PaymentsStatus.INCORRECT or BoltRequest.objects.get(
                             partner=driver.partner).check_driver_status(driver):

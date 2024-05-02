@@ -247,7 +247,7 @@ class User(models.Model):
         return self.full_name()
 
     def full_name(self):
-        return f'{self.name} {self.second_name}'
+        return f'{self.second_name} {self.name}'
 
     @classmethod
     def get_by_chat_id(cls, chat_id):
@@ -468,8 +468,6 @@ class Driver(User):
         filter_query = Q(penalty__isnull=False, driver_payments__isnull=True)
         return self.penaltybonus_set.filter(filter_query).aggregate(Sum('amount'))['amount__sum'] or 0
 
-    def __str__(self) -> str:
-        return f'{self.second_name} {self.name}'
 
 
 class FiredDriver(Driver):

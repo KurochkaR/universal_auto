@@ -270,10 +270,8 @@ $(document).ready(function () {
 				$('.driver-photo-container').each(function (index, container) {
 					var photos = $(container).find('.driver-photo img');
 
-					if (photos.length > 3) {
+					if (photos.length > 2) {
 						$(container).addClass('photo-small-2');
-					} else if (photos.length > 2) {
-						$(container).addClass('photo-small');
 					}
 				});
 			}
@@ -359,19 +357,19 @@ $(document).ready(function () {
 						action,
 						vehicle_licence: vehicleId,
 						date: clickedDayId,
-						start_time: startTimeInput.val(),
-						end_time: endTimeInput.val(),
+						start_time: formatTimeWithSeconds(startTimeInput.val()),
+						end_time: formatTimeWithSeconds(endTimeInput.val()),
 						driver_id: selectedDriverId,
 						reshuffle_id: idReshuffle,
 						...ajaxData
 					},
 					success: function (response) {
+						fetchCalendarData(formattedStartDate, formattedEndDate);
 						if (response.data[0] === true) {
-							fetchCalendarData(formattedStartDate, formattedEndDate);
 							filterCheck();
-							showShiftMessage(true, response.data[1]);
+							showShiftMessage(response.data[0], response.data[1]);
 						} else {
-							showShiftMessage(response.data[0], false, response.data[1]['conflicting_time'], response.data[1]['licence_plate']);
+							showConflictMessage(response.data[0], response.data[1], response.data[1]);
 						}
 					},
 				});
@@ -494,7 +492,7 @@ $(document).ready(function () {
 				if (!clickedCard.hasClass('yesterday')) {
 					const driverPh = $(this);
 					const dataName = driverPh.data('name');
-					const idDriver = driverPh.data('id-driver');
+					const idDriver = driverPh.data('id-driver') ? driverPh.data('id-driver') : driverPh.data('dtp-maintenance');
 					const idVehicle = driverPh.data('id-vehicle');
 					const idReshuffle = driverPh.attr('reshuffle-id');
 					const driverPhoto = $(this).find('img');
@@ -678,7 +676,7 @@ function showShiftMessage(success, showText, time, vehicle) {
 		if (time === undefined || time === null || time === "") {
 			$(".shift-success-message h2").text(showText);
 		} else {
-			$(".shift-success-message h2").text("Помилка оновлення зміни, існує зміна в " + time + " на авто " + vehicle);
+			$(".shift-success-message h2").text("Помилка оновлення зміни, існує зміна " + time + " на авто " + vehicle);
 		}
 		setTimeout(function () {
 			$(".shift-success-message").hide();

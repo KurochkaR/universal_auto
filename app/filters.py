@@ -45,7 +45,7 @@ class PartnerPaymentFilter(admin.SimpleListFilter):
 
     def lookups(self, request, model_admin):
         user = request.user
-        queryset = PartnerEarnings.objects.all().select_related('vehicle')
+        queryset = PartnerEarnings.objects.all().select_related('vehicle', 'driver')
         vehicle_choices = []
         if user.is_partner():
             queryset.filter(vehicle__partner=user)

@@ -195,8 +195,7 @@ class PostRequestHandler:
 
         result = add_shift(licence_plate, date, start_time, end_time, driver_id, recurrence, partner)
         json_data = JsonResponse({'data': result}, safe=False)
-        response = HttpResponse(json_data, content_type='application/json')
-        return response
+        return json_data
 
     @staticmethod
     def handler_delete_shift(request):
@@ -205,8 +204,7 @@ class PostRequestHandler:
 
         result = delete_shift(action, reshuffle_id)
         json_data = JsonResponse({'data': result}, safe=False)
-        response = HttpResponse(json_data, content_type='application/json')
-        return response
+        return json_data
 
     @staticmethod
     def handler_update_shift(request):
@@ -220,8 +218,8 @@ class PostRequestHandler:
 
         result = upd_shift(action, licence_id, start_time, end_time, date, driver_id, reshuffle_id)
         json_data = JsonResponse({'data': result}, safe=False)
-        response = HttpResponse(json_data, content_type='application/json')
-        return response
+
+        return json_data
 
     @staticmethod
     def handler_upd_payment_status(request):
@@ -233,8 +231,7 @@ class PostRequestHandler:
             driver_payments.change_status(status)
 
         json_data = JsonResponse({'data': 'success'})
-        response = HttpResponse(json_data, content_type='application/json')
-        return response
+        return json_data
 
     @staticmethod
     def handler_add_bonus_or_penalty(request):
@@ -620,9 +617,10 @@ class GetRequestHandler:
     @staticmethod
     def handle_check_cash(request):
         driver_id = request.GET.get('driver_id')
-        driver = Driver.objects.get(pk=driver_id)
+        driver = Driver.objects.select_related('schema').get(pk=driver_id)
 
-        fleet_driver_rate = FleetsDriversVehiclesRate.objects.filter(Q(driver=driver) & ~Q(fleet__name='Ninja'))
+        fleet_driver_rate = FleetsDriversVehiclesRate.objects.filter(
+            Q(driver=driver, deleted_at__isnull=True) & ~Q(fleet__name='Ninja'))
         driver_pay_cash = all(rate.pay_cash for rate in fleet_driver_rate)
         driver_cash_rate = int(driver.schema.rate * 100) if driver.cash_rate == 0 and driver.schema else int(
             driver.cash_rate * 100)

@@ -577,17 +577,17 @@ class PartnerEarningsAdmin(admin.ModelAdmin):
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
-        qs = qs.select_related('driver', 'vehicle', 'partner')
+        qs = qs.select_related('partner').prefetch_related(
+            Prefetch('driver', queryset=Driver.objects.only('name', 'second_name')),
+            Prefetch('vehicle', queryset=Vehicle.objects.only('licence_plate'))
+        )
         if request.user.is_partner():
             qs = qs.filter(partner=request.user)
         return qs
 
-
 @admin.register(CarEfficiency)
 class CarEfficiencyAdmin(admin.ModelAdmin):
     list_per_page = 25
-    raw_id_fields = ['vehicle']
-    list_select_related = ['vehicle']
 
     def get_list_filter(self, request):
         list_filter = [VehicleEfficiencyUserFilter]
@@ -617,7 +617,7 @@ class CarEfficiencyAdmin(admin.ModelAdmin):
             qs = qs.filter(partner=request.user)
         elif request.user.is_manager():
             qs = qs.filter(vehicle__manager=request.user)
-        return qs
+        return qs.select_related('vehicle', 'partner', 'investor')
 
 
 @admin.register(DriverEfficiency)
@@ -1024,10 +1024,10 @@ class DriverAdmin(SoftDeleteAdmin):
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         if request.user.is_partner():
-            qs = qs.filter(partner=request.user).select_related('schema', 'manager')
+            qs = qs.filter(partner=request.user)
         elif request.user.is_manager():
-            qs = qs.filter(manager=request.user).select_related('schema')
-        return qs
+            qs = qs.filter(manager=request.user)
+        return qs.select_related('schema', 'partner', 'manager')
 
     def get_readonly_fields(self, request, obj=None):
         return self.readonly_fields if not request.user.is_superuser else tuple()
@@ -1331,12 +1331,12 @@ class VehicleAdmin(SoftDeleteAdmin):
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         if request.user.is_manager():
-            return qs.filter(manager=request.user).select_related('gps')
+            return qs.filter(manager=request.user)
         if request.user.is_partner():
-            return qs.filter(partner=request.user).select_related('gps', 'manager', 'investor_car')
+            return qs.filter(partner=request.user)
         if request.user.is_investor():
             return qs.filter(investor_car=request.user)
-        return qs
+        return qs.select_related('gps', 'manager', 'partner','investor_car')
 
 
 @admin.register(Order)
@@ -1386,21 +1386,20 @@ class OrderAdmin(admin.ModelAdmin):
 
 @admin.register(FleetOrder)
 class FleetOrderAdmin(admin.ModelAdmin):
-    list_per_page = 25
-    raw_id_fields = ['vehicle', 'driver', 'partner']
-    list_select_related = ['vehicle', 'driver', 'partner']
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.select_related('vehicle', 'partner', 'driver')
 
     def get_list_filter(self, request):
-        list_filter = ['fleet', FleetOrderFilter]
-        if request.user.is_superuser:
-            list_filter.append('partner')
+        list_filter = ['fleet', FleetOrderFilter, 'partner']
         return list_filter
 
     def get_list_display(self, request):
-        return ['order_id', 'fleet', 'driver', 'from_address', 'destination',
+        return ('order_id', 'fleet', 'driver', 'from_address', 'destination',
                 'accepted_time', 'finish_time',
                 'state', 'payment', 'price', 'vehicle_id', 'date_order'
-                ]
+                )
 
     def get_fieldsets(self, request, obj=None):
         fieldsets = [
@@ -1424,27 +1423,36 @@ class FleetsDriversVehiclesRateAdmin(admin.ModelAdmin):
                 )
 
     def get_fieldsets(self, request, obj=None):
-        if request.user.is_partner() or request.user.is_manager():
-            fieldsets = [
-                ('Деталі', {'fields': ['fleet', 'driver',
-                                       'driver_external_id',
-                                       ]}),
-            ]
-            return fieldsets
-        return super().get_fieldsets(request)
+        fieldsets = [
+            ('Деталі', {'fields': ['fleet', 'driver',
+                                   'driver_external_id',
+                                   ]}),
+        ]
+        if request.user.is_superuser:
+            fieldsets.append(('Додатково', {'fields': ['partner', 'deleted_at',
+                                   'pay_cash',
+                                   ]}))
+
+        return fieldsets
+
+
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if request.user.is_partner():
-            if db_field.name == "driver":
-                kwargs["queryset"] = Driver.objects.get_active(partner=request.user)
-            if db_field.name == "fleet":
-                kwargs["queryset"] = Fleet.objects.filter(partner=request.user)
-        if request.user.is_manager():
-            if db_field.name == "driver":
-                kwargs["queryset"] = Driver.objects.get_active(manager=request.user)
-            if db_field.name == "fleet":
-                manager = Manager.objects.get(pk=request.user.pk)
-                kwargs["queryset"] = Fleet.objects.filter(partner=manager.managers_partner)
+            filter_map = {"driver": Q(partner=request.user, deleted_at__isnull=True),
+                                  "fleet": Q(partner=request.user)}
+        elif request.user.is_manager():
+            filter_map = {"driver": Q(manager=request.user, deleted_at__isnull=True),
+                                      "fleet": Q(partner__manager=request.user)}
+        else:
+            filter_map = {
+                      "driver": Q(deleted_at__isnull=True), "fleet": Q()
+                      }
+
+        if db_field.name == "driver":
+            kwargs["queryset"] = Driver.objects.filter(filter_map[db_field.name]).select_related('partner')
+        if db_field.name == "fleet":
+            kwargs["queryset"] = Fleet.objects.filter(filter_map[db_field.name]).select_related('partner')
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
     def get_queryset(self, request):
