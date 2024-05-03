@@ -239,24 +239,6 @@ class UaGpsSynchronizer(Fleet):
             empty_time_slots.append((start, end))
         return empty_time_slots, prev_order_end_time
 
-    # def get_order_parameters(self, orders, end, vehicle, previous_finish_time):
-    #     parameters = []
-    #     for order in orders:
-    #         end_report = order.finish_time if order.finish_time < end else end
-    #         if previous_finish_time is None or order.accepted_time >= previous_finish_time:
-    #             report = self.get_params_for_report(self.get_timestamp(timezone.localtime(order.accepted_time)),
-    #                                                 self.get_timestamp(timezone.localtime(end_report)),
-    #                                                 vehicle.gps.gps_id)
-    #         elif order.finish_time <= previous_finish_time:
-    #             continue
-    #         else:
-    #             report = self.get_params_for_report(self.get_timestamp(timezone.localtime(previous_finish_time)),
-    #                                                 self.get_timestamp(timezone.localtime(end_report)),
-    #                                                 vehicle.gps.gps_id)
-    #         previous_finish_time = end_report
-    #         parameters.append(report)
-    #     return parameters, previous_finish_time
-
     def get_vehicle_rent(self, start, end, driver, rent_distance):
         no_vehicle_gps = []
         reshuffles = check_reshuffle(driver, start, end)
@@ -351,10 +333,3 @@ class UaGpsSynchronizer(Fleet):
             result_string = ', '.join([str(obj) for obj in set(no_vehicle_gps)])
             bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"),
                              text=f"У авто {result_string} відсутній gps")
-
-
-        # if timezone.localtime().time() > time(7, 0):
-        #     send_long_message(
-        #         chat_id=ParkSettings.get_value("DRIVERS_CHAT", partner=self.partner),
-        #         text=text
-        #     )

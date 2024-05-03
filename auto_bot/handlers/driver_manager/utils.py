@@ -2,17 +2,16 @@ from collections import defaultdict
 from datetime import datetime, timedelta, time
 
 from _decimal import Decimal
-from django.db.models import Sum, Avg, DecimalField, ExpressionWrapper, F, Value, Q, Count, Func, Case, When
+from django.db.models import Sum, DecimalField, ExpressionWrapper, F, Value, Q, Count, Func
 from django.db.models.functions import Coalesce
 from django.utils import timezone
-from telegram.error import BadRequest
 
 from app.bolt_sync import BoltRequest
 from app.models import CarEfficiency, Driver, SummaryReport, \
-    Vehicle, RentInformation, DriverEfficiency, DriverSchemaRate, SalaryCalculation, \
+    Vehicle, RentInformation, DriverEfficiency, DriverSchemaRate, \
     DriverPayments, FleetOrder, VehicleRent, Schema, Fleet, CustomUser, CustomReport, PaymentTypes, Payments, \
     WeeklyReport, PaymentsStatus, ParkSettings, Manager, PartnerEarnings, Bonus, Category
-from auto_bot.handlers.order.utils import check_reshuffle, check_vehicle
+from auto_bot.handlers.order.utils import check_reshuffle
 from auto_bot.utils import send_long_message
 from taxi_service.utils import get_start_end, get_dates
 

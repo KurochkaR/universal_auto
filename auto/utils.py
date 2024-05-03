@@ -143,62 +143,6 @@ def summary_report_create(start, end, driver, partner_pk):
         return report
 
 
-# def get_efficiency_info(partner_pk, driver, start, end, payments_model, aggregator=None):
-#     filter_request = Q(driver=driver, date_order__range=(start, end), partner_id=partner_pk)
-#
-#     payment_request = Q(driver=driver, report_to__range=(start, end), partner_id=partner_pk)
-#
-#     if aggregator:
-#         filter_request &= Q(fleet=aggregator.name)
-#         payment_request &= Q(fleet=aggregator)
-#     fleet_orders = FleetOrder.objects.filter(filter_request)
-#     total_kasa = payments_model.objects.filter(payment_request).aggregate(
-#         kasa=Coalesce(Sum('total_amount_without_fee'), Decimal(0)))['kasa']
-#     total_orders = fleet_orders.count()
-#     canceled_orders = fleet_orders.filter(state=FleetOrder.DRIVER_CANCEL).count()
-#     completed_orders = fleet_orders.filter(state=FleetOrder.COMPLETED).count()
-#
-#     return total_kasa, total_orders, canceled_orders, completed_orders, fleet_orders
-
-
-# def polymorphic_efficiency_create(create_model, partner_pk, driver, start, end, get_model, aggregator=None,
-#                                   road_mileage=None):
-#     search_query = {'driver': driver, 'report_from': start}
-#     total_kasa, total_orders, canceled_orders, completed_orders, fleet_orders = get_efficiency_info(
-#         partner_pk, driver, start, end, get_model, aggregator)
-#     if aggregator:
-#         if not total_kasa and not fleet_orders:
-#             return
-#         search_query.update({'fleet': aggregator})
-#         vehicles = fleet_orders.exclude(vehicle__isnull=True).values_list('vehicle', flat=True).distinct()
-#         mileage = fleet_orders.filter(state=FleetOrder.COMPLETED).aggregate(
-#             km=Coalesce(Sum('distance'), Decimal(0)))['km']
-#     else:
-#         mileage, time, vehicles = UaGpsSynchronizer.objects.get(
-#             partner=partner_pk).calc_total_km(driver, start, end)
-#         if not mileage:
-#             return
-#     data = {
-#         'report_to': end,
-#         'total_kasa': total_kasa,
-#         'total_orders': total_orders,
-#         'total_orders_accepted': completed_orders,
-#         'total_orders_rejected': canceled_orders,
-#         'mileage': mileage,
-#         'efficiency': total_kasa / mileage if mileage else 0,
-#         'road_time': fleet_orders.filter(state=FleetOrder.COMPLETED).aggregate(
-#             road_time=Coalesce(Sum('road_time'), timedelta()))['road_time'],
-#         'average_price': total_kasa / completed_orders if completed_orders else 0,
-#         'accept_percent': (total_orders - canceled_orders) / total_orders * 100 if total_orders else 0,
-#         'partner_id': partner_pk,
-#     }
-#     if road_mileage:
-#         rent_mileage = mileage - road_mileage[driver][0] if road_mileage.get(driver) else 0
-#         data['rent_distance'] = rent_mileage
-#     result, created = create_model.objects.update_or_create(
-#         **search_query,
-#         defaults=data)
-#     result.vehicles.add(*vehicles)
 def get_efficiency_today(start, end, driver):
     filter_query = Q(date_order__range=(start,end), driver=driver)
     fleets = Fleet.objects.filter(fleetsdriversvehiclesrate__driver=driver, deleted_at=None).exclude(

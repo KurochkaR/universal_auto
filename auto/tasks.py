@@ -642,7 +642,8 @@ def get_today_rent(self, **kwargs):
         text = generate_efficiency_message(partner)
         if text:
             today_stats += text
-            send_long_message(chat_id=ParkSettings.get_value("DRIVERS_CHAT", partner=partner), text=today_stats)
+            if timezone.localtime().time() > time(7, 0):
+                send_long_message(chat_id=ParkSettings.get_value("DRIVERS_CHAT", partner=partner), text=today_stats)
     except ObjectDoesNotExist:
         return
     except Exception as e:
@@ -1355,10 +1356,3 @@ def update_schedule(self):
         else:
             schedule = get_schedule(time(9, 00))
         create_task('get_information_from_fleets', schema.partner.pk, schedule, schema.pk)
-
-# @app.on_after_finalize.connect
-# def run_periodic_tasks(sender, **kwargs):
-# sender.add_periodic_task(crontab(minute="*/2"), send_time_order.s())
-# sender.add_periodic_task(crontab(minute='*/20'), raw_gps_handler.s(queue='beat_tasks_1'))
-# sender.add_periodic_task(crontab(minute="*/2"), order_not_accepted.s())
-# sender.add_periodic_task(crontab(minute="*/4"), check_personal_orders.s())
