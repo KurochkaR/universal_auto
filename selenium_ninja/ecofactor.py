@@ -130,7 +130,7 @@ class EcoFactorRequest:
             client_name = entry['clientInfo']['clientName']
             try:
                 second_name, name = client_name.split()
-            except ValueError as e:
+            except (ValueError, AttributeError) as e:
                 get_logger().error(e)
                 continue
             driver = Driver.objects.get_active(second_name=second_name, name=name).first()
