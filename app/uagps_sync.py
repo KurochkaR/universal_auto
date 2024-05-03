@@ -1,22 +1,18 @@
 import json
-from datetime import datetime, timedelta, time
+from datetime import timedelta
 
 import requests
 from _decimal import Decimal
-
 from django.db.models import Q
 from django.utils import timezone
-from telegram import ParseMode
-from django.db import transaction
+
 
 from app.models import (Driver, GPSNumber, RentInformation, FleetOrder, CredentialPartner, ParkSettings, Fleet,
-                        Partner, VehicleRent, Vehicle, DriverReshuffle, DriverPayments, DriverEfficiency,
-                        DriverEfficiencyFleet)
-from app.utils import generate_stats_message
-from auto_bot.handlers.driver_manager.utils import get_today_statistic, find_reshuffle_period, get_efficiency_today
+                        Partner, VehicleRent, Vehicle, DriverReshuffle)
+
+from auto_bot.handlers.driver_manager.utils import find_reshuffle_period
 from auto_bot.handlers.order.utils import check_reshuffle
 from auto_bot.main import bot
-from auto_bot.utils import send_long_message
 from scripts.redis_conn import redis_instance, get_logger
 from selenium_ninja.synchronizer import AuthenticationError
 
@@ -139,7 +135,6 @@ class UaGpsSynchronizer(Fleet):
             result_list.append((Decimal(raw_distance.split(' ')[0]), timedelta(hours=clean_time[0],
                                                                                minutes=clean_time[1],
                                                                                seconds=clean_time[2])))
-        print(result_list)
         if orders:
             return result_list
         else:
@@ -357,81 +352,9 @@ class UaGpsSynchronizer(Fleet):
             bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"),
                              text=f"У авто {result_string} відсутній gps")
 
-    def process_driver_data(self, driver, result, start, end, chat_id, start_reshuffle=None, total_cash=0):
-        rent_distance, rent_time, end_time = result
-        total_km, road_time = self.calc_total_km(driver, start, end_time)[:1]
-        distance = total_km - rent_distance
-        in_order_time = road_time - rent_time
-        kasa, card, orders, canceled_orders, accepted_times, fleet_list = get_efficiency_today(start, end_time, driver)
-
-        text = generate_stats_message(driver, kasa, card, distance, orders, canceled_orders, accepted_times,
-                                      rent_distance, in_order_time, end_time, start_reshuffle)
-
-        defaults = {
-            "report_to": end_time,
-            "total_kasa": kasa,
-            "total_orders_rejected": canceled_orders,
-            "total_orders_accepted": orders,
-            "mileage": total_km,
-            "efficiency": round(kasa / total_km, 2) if total_km else 0,
-            "road_time": in_order_time,
-            "total_cash": kasa - card,
-            "rent_distance": rent_distance,
-            "average_price": round(kasa / orders, 2) if orders else 0,
-            "partner": self.partner,
-        }
-
-        DriverEfficiency.objects.update_or_create(
-            driver=driver,
-            report_from=start,
-            defaults=defaults
-        )
-
-        for fleet in fleet_list:
-            defaults = {
-                "report_from": fleet['report_from'],
-                "report_to": fleet['report_to'],
-                "total_kasa": fleet['total_kasa'],
-                "total_orders_rejected": fleet['total_orders_rejected'],
-                "total_orders_accepted": fleet['total_orders_accepted'],
-                "mileage": fleet['mileage'],
-                "efficiency": fleet['efficiency'],
-                "road_time": fleet['road_time'],
-
-                "partner": fleet['partner'],
-                "driver": fleet['driver'],
-            }
-            DriverEfficiencyFleet.objects.update_or_create(
-                driver=fleet['driver'],
-                report_from=fleet['report_from'],
-                fleet=fleet['fleet'],
-                defaults=defaults
-            )
 
         # if timezone.localtime().time() > time(7, 0):
-        #     send_long_message(chat_id=chat_id, text=text)
-        return text
-
-    def check_today_rent(self):
-        if not redis_instance().exists(f"{self.partner.id}_remove_gps"):
-            start = timezone.make_aware(datetime.combine(timezone.localtime(), time.min))
-            end = timezone.make_aware(datetime.combine(timezone.localtime(), time.max))
-            in_road = self.get_road_distance(start, end)
-            text = "Поточна статистика\n"
-            for driver, result in in_road.items():
-                fleets = Fleet.objects.filter(
-                    fleetsdriversvehiclesrate__driver=driver, deleted_at=None).exclude(name="Ninja")
-                total_cash = 0
-                for fleet in fleets:
-                    _, cash = fleet.get_earnings_per_driver(driver, start, end)
-                    total_cash += float(cash)
-                reshuffles = DriverReshuffle.objects.filter(driver_start=driver,
-                                                            swap_time__date=timezone.localtime()).order_by('swap_time')
-                start_reshuffle = timezone.localtime(reshuffles.earliest('swap_time').swap_time)
-                text += self.process_driver_data(
-                    driver, result, start, end, driver.chat_id, start_reshuffle.strftime("%H:%M"), total_cash)
-            if timezone.localtime().time() > time(7, 0):
-                send_long_message(
-                    chat_id=ParkSettings.get_value("DRIVERS_CHAT", partner=self.partner),
-                    text=text
-                )
+        #     send_long_message(
+        #         chat_id=ParkSettings.get_value("DRIVERS_CHAT", partner=self.partner),
+        #         text=text
+        #     )

@@ -17,18 +17,18 @@ from django_celery_beat.models import IntervalSchedule, PeriodicTask
 from telegram import ParseMode
 from telegram.error import BadRequest
 from app.models import (RawGPS, Vehicle, Order, Driver, JobApplication, ParkSettings, CarEfficiency,
-                        Payments, Manager, Partner, DriverEfficiency, FleetOrder, ReportTelegramPayments,
+                        Payments, Manager, Partner, FleetOrder, ReportTelegramPayments,
                         InvestorPayments, VehicleSpending, DriverReshuffle, DriverPayments,
                         TaskScheduler, DriverEffVehicleKasa, Schema, CustomReport, Fleet,
                         VehicleGPS, PartnerEarnings, Investor, Bonus, Penalty, PaymentsStatus,
-                        FleetsDriversVehiclesRate, DriverEfficiencyFleet, WeeklyReport, Category,
+                        FleetsDriversVehiclesRate, WeeklyReport, Category,
                         PenaltyCategory, PenaltyBonus)
 from django.db.models import Sum, IntegerField, FloatField, DecimalField, Q, Case, When
 from django.db.models.functions import Cast, Coalesce
-from app.utils import get_schedule, create_task
+from app.utils import get_schedule, create_task, generate_efficiency_message
 from auto.utils import payment_24hours_create, summary_report_create, compare_reports, get_corrections, \
-    polymorphic_efficiency_create, calendar_weekly_report, \
-    create_investor_payments, create_charge_penalty, generate_cash_text
+    calendar_weekly_report, \
+    create_investor_payments, create_charge_penalty, generate_cash_text, check_today_rent
 from auto_bot.handlers.driver.keyboards import inline_bolt_report_keyboard
 from auto_bot.handlers.driver_manager.utils import get_efficiency, \
     get_driver_efficiency_report, calculate_rent, get_vehicle_income, get_time_for_task, \
@@ -43,6 +43,7 @@ from auto_bot.handlers.order.static_text import decline_order, order_info, searc
     pd_order_not_accepted, driver_text_personal_end, client_text_personal_end, payment_text
 from auto_bot.handlers.order.utils import text_to_client, check_vehicle, check_reshuffle
 from auto_bot.main import bot
+from auto_bot.utils import send_long_message
 from scripts.conversion import convertion, haversine, get_location_from_db
 from auto.celery import app
 
@@ -455,27 +456,23 @@ def get_car_efficiency(self, **kwargs):
 @app.task(bind=True)
 def get_driver_efficiency(self, **kwargs):
     partner_pk = kwargs.get("partner_pk")
-    start, end = get_start_end("yesterday", kwargs.get("day"))[:2]
-    if Fleet.objects.filter(partner=partner_pk, deleted_at=None, name="Gps").exists():
-        road_mileage = UaGpsSynchronizer.objects.get(
-            partner=partner_pk).get_road_distance(start, end, payment=True)
-        for driver in Driver.objects.get_active(partner=partner_pk):
-            polymorphic_efficiency_create(DriverEfficiency, partner_pk, driver,
-                                          start, end, CustomReport, road_mileage=road_mileage)
+    gps_fleet = UaGpsSynchronizer.objects.filter(partner=partner_pk, deleted_at=None)
+    if gps_fleet.exists():
+        check_today_rent(gps_fleet.first(), "yesterday", kwargs.get("day"))
 
 
-@app.task(bind=True)
-def get_driver_efficiency_fleet(self, **kwargs):
-    partner_pk = kwargs.get("partner_pk")
-    start, end = get_start_end("yesterday", kwargs.get("day"))[:2]
-    if Fleet.objects.filter(partner=partner_pk, deleted_at=None, name="Gps").exists():
-        for driver in Driver.objects.get_active(partner=partner_pk):
-            fleets = Fleet.objects.filter(
-                fleetsdriversvehiclesrate__driver=driver, deleted_at=None).exclude(name="Ninja").distinct()
-            for fleet in fleets:
-                polymorphic_efficiency_create(DriverEfficiencyFleet, partner_pk, driver,
-                                              start, end, CustomReport, fleet)
 
+# @app.task(bind=True)
+# def get_driver_efficiency_fleet(self, **kwargs):
+#     partner_pk = kwargs.get("partner_pk")
+#     start, end = get_start_end("yesterday", kwargs.get("day"))[:2]
+#     if Fleet.objects.filter(partner=partner_pk, deleted_at=None, name="Gps").exists():
+#         for driver in Driver.objects.get_active(partner=partner_pk):
+#             fleets = Fleet.objects.filter(
+#                 fleetsdriversvehiclesrate__driver=driver, deleted_at=None).exclude(name="Ninja").distinct()
+#             for fleet in fleets:
+#                 polymorphic_efficiency_create(DriverEfficiencyFleet, partner_pk, driver,
+#                                               start, end, CustomReport, fleet)
 
 @app.task(bind=True)
 def update_driver_status(self, **kwargs):
@@ -637,9 +634,15 @@ def generate_rent_message_driver(self, driver_id, manager_chat_id, message_id, p
 
 @app.task(bind=True, retry_backoff=30, max_retries=3)
 def get_today_rent(self, **kwargs):
+    partner = kwargs.get("partner_pk")
     try:
-        gps = UaGpsSynchronizer.objects.get(partner=kwargs.get("partner_pk"), deleted_at=None)
-        gps.check_today_rent()
+        today_stats = "Поточна статистика\n"
+        gps = UaGpsSynchronizer.objects.get(partner=partner, deleted_at=None)
+        check_today_rent(gps)
+        text = generate_efficiency_message(partner)
+        if text:
+            today_stats += text
+            send_long_message(chat_id=ParkSettings.get_value("DRIVERS_CHAT", partner=partner), text=today_stats)
     except ObjectDoesNotExist:
         return
     except Exception as e:
