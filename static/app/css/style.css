@@ -9867,7 +9867,7 @@ ul.sub-menu.service {
 }
 
 .charging-station-section .charging-right-content .decorate-img {
-	right: -150px;
+	right: -165px;
 	position: relative;
 	z-index: -1;
 }
@@ -9877,7 +9877,7 @@ ul.sub-menu.service {
 	position: relative;
 	padding: 10px;
 	z-index: 1022;
-	margin-top: -400px;
+	margin-top: -350px;
 	right: -95px;
 }
 
@@ -9902,7 +9902,16 @@ ul.sub-menu.service {
 }
 
 .charging-station-section .contact-me-btn button {
-	margin-left: 325px;
+	margin-left: 340px;
+	border-radius: 20px;
+	width: 345px;
+	height: 45px;
+	background: #ec6323;
+	border: none;
+	font-family: var(--second-family);
+	font-weight: 700;
+	font-size: 20px;
+	color: #fff;
 }
 
 
@@ -9994,6 +10003,20 @@ ul.sub-menu.service {
 	justify-content: center;
 }
 
+.charging-two-section .box-btn .invest-btn {
+	font-size: 20px;
+	padding: 15px 20px;
+	background-color: #EC6323;
+	color: #fff;
+	border: none;
+	transition: background-color 0.3s;
+	border-radius: 20px;
+	width: 260px;
+	height: 56px;
+	font-family: var(--second-family);
+	font-weight: 700;
+}
+
 .charging-two-section .splide__arrow {
 	background: none;
 	top: -25px;
@@ -10053,16 +10076,20 @@ ul.sub-menu.service {
 
 .charging-station-section-3 .container .buttons-box button {
 	background-color: #EC6323;
-	color: #fff;
-	padding: 10px 55px;
+	padding: 10px 15px;
 	border: none;
 	border-radius: 25px;
-	font-size: 16px;
 	text-decoration: none;
 	cursor: pointer;
 	font-style: normal;
-	font-weight: 700;
 	line-height: normal;
+	width: 359px;
+	height: 45px;
+	font-family: var(--second-family);
+	font-weight: 700;
+	font-size: 20px;
+	color: #fff;
+	text-align: left;
 }
 
 /* block 4 */
@@ -10205,16 +10232,20 @@ ul.sub-menu.service {
 
 .charging-station-section-6 .container .buttons-box button {
 	background-color: #EC6323;
-	color: #fff;
-	padding: 10px 55px;
+	padding: 10px 10px;
 	border: none;
-	border-radius: 25px;
-	font-size: 16px;
 	text-decoration: none;
 	cursor: pointer;
 	font-style: normal;
-	font-weight: 700;
 	line-height: normal;
+	font-family: var(--second-family);
+	font-weight: 700;
+	font-size: 20px;
+	color: #fff;
+	border-radius: 20px;
+	width: 408px;
+	height: 57px;
+	text-align: left;
 }
 
 .charging-station-section-6 .container .img-box {
@@ -10233,7 +10264,7 @@ ul.sub-menu.service {
 .charging-station-section-6 .container .img-box a img,
 .charging-station-section-6 .container .img-box iframe {
 	position: absolute;
-	top: 52px;
+	top: 55px;
 	left: -32px;
 	width: 465px;
 	height: 295px;
@@ -10321,9 +10352,11 @@ ul.sub-menu.service {
 	}
 
 	.charging-station-section .contact-me-btn button {
-		margin-left: 26% !important;
-		padding: 10px 0;
+		margin-left: 16%;
+		padding: 5px 0;
 		margin-top: 25px;
+		width: 270px;
+		height: 32px;
 		font-family: var(--second-family);
 		font-weight: 700;
 		font-size: 10px;
@@ -10442,6 +10475,13 @@ ul.sub-menu.service {
 		gap: 0;
 	}
 
+	.charging-station-section-3 .container .charging-station {
+		display: grid;
+		justify-content: center;
+		justify-items: center;
+		align-items: center;
+	}
+
 	.charging-station-section-3 .container h2 {
 		font-size: 20px;
 		text-align: center;
@@ -10456,7 +10496,9 @@ ul.sub-menu.service {
 	.charging-station-section-3 .container .buttons-box button {
 		font-size: 10px;
 		padding: 10px 35px;
-		width: 100%;
+		width: 270px;
+		height: 32px;
+		text-align: center;
 	}
 
 	.charging-station-section-3 .container .img-box {
@@ -10587,6 +10629,10 @@ ul.sub-menu.service {
 
 	.charging-station-section-6 .charging-station {
 		order: 2;
+		display: grid;
+		justify-items: center;
+		align-items: center;
+		justify-content: center;
 	}
 
 
@@ -10608,11 +10654,13 @@ ul.sub-menu.service {
 
 	.charging-station-section-6 .container .buttons-box button {
 		padding: 10px 35px;
-		width: 100%;
 		font-family: var(--second-family);
 		font-weight: 700;
 		font-size: 10px;
 		color: #fff;
+		width: 270px;
+		height: 32px;
+		text-align: center;
 	}
 
 	.charging-station-section-6 .container .img-box {
@@ -10642,7 +10690,7 @@ ul.sub-menu.service {
 @media screen and (min-width: 480px) and (max-width: 767px) {
 	/* block 1 */
 	.charging-station-section {
-		height: 910px;
+		height: auto;
 	}
 
 	.charging-station-section .container {
@@ -10732,7 +10780,7 @@ ul.sub-menu.service {
 
 	/* block 2 */
 	.charging-two-section {
-		margin-top: 80px;
+		margin-top: -35px;
 	}
 
 	.charging-two-section button {
@@ -10853,7 +10901,10 @@ ul.sub-menu.service {
 	.charging-station-section-3 .container .buttons-box button {
 		font-size: 15px;
 		padding: 5px 35px;
-		width: 100%;
+		text-align: center;
+		border-radius: 20px;
+		width: 430px;
+		height: 32px;
 	}
 
 	.charging-station-section-3 .container .img-box {
@@ -10965,6 +11016,8 @@ ul.sub-menu.service {
 
 	.charging-station-section-6 .charging-station {
 		order: 2;
+		display: grid;
+		justify-items: center;
 	}
 
 	.charging-station-section-6 .container .charging-station h2 {
@@ -10985,11 +11038,13 @@ ul.sub-menu.service {
 
 	.charging-station-section-6 .container .buttons-box button {
 		padding: 5px 35px;
-		width: 100%;
 		font-family: var(--second-family);
 		font-weight: 700;
 		font-size: 15px;
 		color: #fff;
+		width: 430px;
+		height: 32px;
+		text-align: center;
 	}
 
 	.charging-station-section-6 .container .img-box {
@@ -11310,7 +11365,7 @@ ul.sub-menu.service {
 	}
 
 	.charging-station-section .contact-me-btn {
-		margin: 0 45px;
+		margin: 0 70px;
 	}
 
 	.charging-station-section .contact-me-btn button {
@@ -11439,19 +11494,31 @@ ul.sub-menu.service {
 		gap: 0;
 	}
 
+	.charging-station-section-3 .container .charging-station {
+		display: grid;
+		justify-items: center;
+	}
+
 	.charging-station-section-3 .container h2 {
 		font-size: 30px;
+		text-align: center;
 	}
 
 	.charging-station-section-3 .container p {
 		font-size: 27px;
 		margin-top: 18px;
+		text-align: center;
 	}
 
 	.charging-station-section-3 .container .buttons-box button {
-		font-size: 20px;
 		padding: 10px 35px;
-		width: 100%;
+		width: 630px;
+		height: 53px;
+		text-align: center;
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 16px;
+		color: #fff;
 	}
 
 	.charging-station-section-3 .container .img-box {
@@ -11572,6 +11639,8 @@ ul.sub-menu.service {
 
 	.charging-station-section-6 .charging-station {
 		order: 2;
+		display: grid;
+		justify-items: center;
 	}
 
 	.charging-station-section-6 .container .charging-station h2 {
@@ -11591,12 +11660,14 @@ ul.sub-menu.service {
 	}
 
 	.charging-station-section-6 .container .buttons-box button {
-		padding: 10px 35px;
-		width: 100%;
+		padding: 10px 10px;
 		font-family: var(--second-family);
 		font-weight: 700;
 		font-size: 20px;
 		color: #fff;
+		width: 408px;
+		height: 57px;
+		text-align: center;
 	}
 
 	.charging-station-section-6 .container .img-box {
@@ -11730,7 +11801,7 @@ ul.sub-menu.service {
 	.charging-station-section .contact-me-btn button {
 		font-family: var(--second-family);
 		font-weight: 700;
-		font-size: 16px;
+		font-size: 20px;
 		color: #fff;
 		margin-left: 115px;
 		width: 846px;
@@ -11864,7 +11935,9 @@ ul.sub-menu.service {
 	.charging-station-section-3 .container .buttons-box button {
 		font-size: 20px;
 		padding: 10px 35px;
-		width: 100%;
+		border-radius: 20px;
+		width: 453px;
+		height: 53px;
 	}
 
 	.charging-station-section-3 .container .img-box {
@@ -11995,6 +12068,8 @@ ul.sub-menu.service {
 
 	.charging-station-section-6 .charging-station {
 		order: 2;
+		display: grid;
+		justify-items: center;
 	}
 
 	.charging-station-section-6 .container .charging-station h2 {
@@ -12014,12 +12089,14 @@ ul.sub-menu.service {
 	}
 
 	.charging-station-section-6 .container .buttons-box button {
-		padding: 15px 35px;
-		width: 100%;
+		padding: 15px 10px;
 		font-family: var(--second-family);
 		font-weight: 700;
 		font-size: 20px;
 		color: #fff;
+		width: 408px;
+		height: 57px;
+		text-align: center;
 	}
 
 	.charging-station-section-6 .container .img-box {
