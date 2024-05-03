@@ -1293,7 +1293,7 @@ def check_cash_and_vehicle(self, **kwargs):
     tasks = chain(get_today_orders.si(**kwargs),
                   null_vehicle_orders.si(**kwargs),
                   add_distance_for_order.si(**kwargs),
-                  check_card_cash_value.si(**kwargs),
+                  # check_card_cash_value.si(**kwargs),
                   create_charging_transactions.si(**kwargs)
                   )
     tasks()

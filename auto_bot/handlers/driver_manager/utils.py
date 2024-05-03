@@ -197,7 +197,7 @@ def check_correct_bolt_report(start, end, driver):
             incorrect_with_last = round(bolt_order_kasa + Decimal(last_order.price * 0.75004 + last_order.tips), 2) - round(
                 (bolt_report['kasa'] - bolt_report['compensations']), 2)
             if abs(incorrect_with_last) > tolerance:
-                status = PaymentsStatus.CHECKING
+                status = PaymentsStatus.INCORRECT
     return status, no_price.exists()
 
 
