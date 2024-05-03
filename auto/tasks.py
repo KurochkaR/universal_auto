@@ -556,7 +556,7 @@ def schedule_for_detaching_uklon(self, **kwargs):
             eta = timezone.localtime(reshuffle.end_time)
             detaching_the_driver_from_the_car.apply_async(kwargs={"partner_pk": partner_pk,
                                                                   "licence_plate":reshuffle.swap_vehicle.licence_plate,
-                                                                  "eta":eta})
+                                                                  "eta":eta}, eta=eta)
 
 
 @app.task(bind=True, retry_backoff=30, max_retries=1)

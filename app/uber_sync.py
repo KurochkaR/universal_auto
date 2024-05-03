@@ -242,7 +242,7 @@ class UberRequest(Fleet, Synchronizer):
                                                        fleet=self,
                                                        partner=self.partner).driver
         vehicle = check_vehicle(driver, end)
-        existing_report = CustomReport.objects.filter(report_to__date=start, fleet=self, driver=driver)
+        existing_report = CustomReport.objects.filter(report_to__date=start, fleet=self, driver=driver).first()
         if existing_report:
             report_from = existing_report.report_to
             total_amount = round(Decimal(report['totalEarnings']) - existing_report.total_amount_without_fee, 2)
