@@ -738,56 +738,69 @@ def get_failed_income(payment):
     return vehicle_income, total_earning
 
 
-def get_today_statistic(start, end, driver):
-    kasa = 0
-    card = 0
+def get_kasa_and_card_driver(start, end, driver):
     fleets = Fleet.objects.filter(fleetsdriversvehiclesrate__driver=driver, deleted_at=None).exclude(
         name="Ninja").distinct()
     orders = FleetOrder.objects.filter(accepted_time__gt=start,
                                        state=FleetOrder.COMPLETED,
                                        driver=driver).order_by('-finish_time')
+    fleet_dict_kasa = {}
+    for fleet in fleets:
+        fleet_orders = orders.filter(fleet=fleet.name)
+        fleet_kasa, fleet_cash = get_fleet_kasa(fleet, fleet_orders, driver, start, end)
+        fleet_dict_kasa[fleet]= Decimal(fleet_kasa), Decimal(fleet_kasa - fleet_cash)
+    return fleet_dict_kasa
+
+
+def get_fleet_kasa(fleet, orders, driver, start, end):
+    if isinstance(fleet, BoltRequest):
+        fleet_cash = orders.filter(payment=PaymentTypes.CASH).aggregate(
+            cash_kasa=Coalesce(Sum('price'), Value(0)))['cash_kasa']
+        fleet_kasa = (1 - fleet.fees) * orders.aggregate(kasa=Coalesce(Sum('price'), Value(0)))['kasa']
+    else:
+        fleet_kasa, fleet_cash = fleet.get_earnings_per_driver(driver, start, end)
+
+    return fleet_kasa, fleet_cash
+
+
+def get_efficiency_today(start, end, driver):
+    filter_query = Q(accepted_time__gt=start, driver=driver)
+    fleets = Fleet.objects.filter(fleetsdriversvehiclesrate__driver=driver, deleted_at=None).exclude(
+        name="Ninja").distinct()
+    orders = FleetOrder.objects.filter(filter_query, state=FleetOrder.COMPLETED).order_by('-finish_time')
     accepted_times = None
     if orders:
         accepted_times = timezone.localtime(orders.last().accepted_time).time().strftime('%H:%M')
 
-    mileage = orders.aggregate(order_mileage=Coalesce(Sum('distance'), Decimal(0)))['order_mileage']
-    canceled_orders = FleetOrder.objects.filter(accepted_time__gt=start,
-                                                state=FleetOrder.DRIVER_CANCEL,
-                                                driver=driver).count()
+    canceled_orders = FleetOrder.objects.filter(filter_query, state=FleetOrder.DRIVER_CANCEL).count()
+    fleet_dict_kasa = get_kasa_and_card_driver(start, end, driver)
+    kasa, card = (sum(v[0] for v in fleet_dict_kasa.values()), sum(v[1] for v in fleet_dict_kasa.values()))
     fleet_list = []
     for fleet in fleets:
         fleet_orders = orders.filter(fleet=fleet.name)
-        if isinstance(fleet, BoltRequest):
-            fleet_cash = fleet_orders.filter(payment=PaymentTypes.CASH).aggregate(
-                cash_kasa=Coalesce(Sum('price'), Value(0)))['cash_kasa']
-            fleet_kasa = (1 - fleet.fees) * fleet_orders.aggregate(kasa=Coalesce(Sum('price'), Value(0)))['kasa']
-        else:
-            fleet_kasa, fleet_cash = fleet.get_earnings_per_driver(driver, start, end)
-
         fleet_mileage = fleet_orders.aggregate(order_mileage=Coalesce(Sum('distance'), Decimal(0)))['order_mileage']
         road_time = fleet_orders.aggregate(order_time=Coalesce(Sum('road_time'), timedelta()))['order_time']
-        fleet_orders_rejected = FleetOrder.objects.filter(accepted_time__gt=start,
+        fleet_orders_rejected = FleetOrder.objects.filter(filter_query,
                                                           state=FleetOrder.DRIVER_CANCEL,
-                                                          driver=driver, fleet=fleet.name).count()
-        fleet_orders_accepted = fleet_orders.count()
-        card += Decimal(fleet_kasa - fleet_cash)
-        kasa += Decimal(fleet_kasa)
-        if fleet_kasa:
+                                                          fleet=fleet.name).count()
+        completed_orders = fleet_orders.count()
+
+        if fleet_dict_kasa[fleet][0]:
             fleet_list.append({
                 "fleet": fleet,
                 "report_from": start,
                 "report_to": end,
-                "total_kasa": fleet_kasa,
+                "total_kasa": fleet_dict_kasa[fleet][0],
                 "total_orders_rejected": fleet_orders_rejected,
-                "total_orders_accepted": fleet_orders_accepted,
+                "total_orders_accepted": completed_orders,
                 "mileage": fleet_mileage,
-                "efficiency": round(Decimal(fleet_kasa) / fleet_mileage, 2) if fleet_mileage else 0,
+                "efficiency": round(fleet_dict_kasa[fleet][0] / fleet_mileage, 2) if fleet_mileage else 0,
+                "average_price": round(fleet_dict_kasa[fleet][0] / completed_orders, 2) if completed_orders else 0,
                 "road_time": road_time,
                 "driver": driver,
                 "partner": driver.partner,
             })
-
-    return kasa, card, mileage, orders.count(), canceled_orders, accepted_times, fleet_list
+    return kasa, card, orders.count(), canceled_orders, accepted_times, fleet_list
 
 
 def send_notify_to_check_car(wrong_cars, partner_pk):

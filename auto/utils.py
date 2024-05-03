@@ -180,7 +180,7 @@ def polymorphic_efficiency_create(create_model, partner_pk, driver, start, end, 
         mileage = fleet_orders.filter(state=FleetOrder.COMPLETED).aggregate(
             km=Coalesce(Sum('distance'), Decimal(0)))['km']
     else:
-        mileage, vehicles = UaGpsSynchronizer.objects.get(
+        mileage, time, vehicles = UaGpsSynchronizer.objects.get(
             partner=partner_pk).calc_total_km(driver, start, end)
         if not mileage:
             return

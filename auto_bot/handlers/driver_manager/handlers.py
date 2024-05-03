@@ -96,9 +96,9 @@ def get_driver_rent_info(update, context):
 
 def handle_page_button_click(update, context):
     query = update.callback_query
-    page_number = int(query.data.split('_')[-1])  # Extract the page number from the callback data
-    buttons = generate_buttons_for_page(page_number, str(query.from_user.id))  # Generate buttons for the selected page
-    buttons.extend(generate_pagination_buttons(page_number, str(query.from_user.id)))  # Append pagination buttons
+    page_number = int(query.data.split('_')[-1])
+    buttons = generate_buttons_for_page(page_number, str(query.from_user.id))
+    buttons.extend(generate_pagination_buttons(page_number, str(query.from_user.id)))
     reply_markup = InlineKeyboardMarkup(buttons)
     try:
         query.edit_message_reply_markup(reply_markup=reply_markup)
@@ -110,10 +110,10 @@ def handle_page_button_click(update, context):
 def start_rent_info_task(update, context):
     query = update.callback_query
     driver_id = int(query.data.split('_')[-1])
-
+    query.edit_message_text(waiting_task_text)
     generate_rent_message_driver.apply_async(args=[driver_id, query.from_user.id,
                                                    query.message.message_id])
-    query.edit_message_text(waiting_task_text)
+
 
 
 @task_postrun.connect

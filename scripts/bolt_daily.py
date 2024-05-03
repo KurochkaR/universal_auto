@@ -10,6 +10,7 @@ from taxi_service.utils import get_dates, get_start_end
 
 
 def run(*args):
-    driver = Driver.objects.select_related('schema').get(pk=41)
-    print(driver)
+    start = timezone.make_aware(datetime(2024,4,23,0,0,0))
+    end = timezone.make_aware(datetime(2024,4,23,23,59,59))
+    print(UaGpsSynchronizer.objects.get(partner=1).get_rent_stats(start, end, 41, False))
 

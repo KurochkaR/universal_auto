@@ -149,7 +149,6 @@ def login_in(aggregator=None, partner_id=None, login_name=None, password=None, t
         update_park_set(partner_id, 'WITHDRAW_UKLON', '150000', description='Залишок грн на карті водія Uklon')
 
 
-
 def partner_logout(aggregator, partner_pk):
     settings = ParkSettings.objects.filter(partner=partner_pk)
     Fleet.objects.filter(name=aggregator, partner=partner_pk).update(deleted_at=timezone.localtime())
