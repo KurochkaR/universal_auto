@@ -4,7 +4,6 @@
 <!-- autoparck section -->
 {% block content %}
   <!-- auto park one section -->
-
   <section class="auto-park-one-section">
     <div class="container">
       <div class="auto-park-left">
@@ -13,14 +12,14 @@
       <div class="auto-park-right">
         <div class="decorate-img">
           <img src="{% static 'app/images/index-one-block-3.webp' %}" alt="three image">
-          <div class="one-info">
+          <div class="auto-park-one-info">
             <h2>{% trans "переверніть свій автопарк на 180 градусів" %}</h2>
-            <p class="text-1">
+            <p class="auto-park-text-1">
               {% trans "Збільшуйте прибуток свого таксопарку з автоматизованою системою від NINJA TAXI, мінімізуючи витрати та ризики" %}
             </p>
           </div>
         </div>
-        <div class="free-access-btn" id="open-form">
+        <div class="auto-park-btn-box" id="open-form">
           <button class="free-access-button">{% trans "Отримати пробну версію" %}</button>
         </div>
       </div>
@@ -44,7 +43,7 @@
         {% trans "Розширюйте свій таксопарк та розвивайте його за допомогою NINJA TAXI." %}
       </p>
       <div class="contact-us">
-        <button class="free-access-button">{% trans "Пробна версія" %}</button>
+        <button class="free-access-button">{% trans "Безкоштовний місяць" %}</button>
         <a href="{% url 'price' %}">
           <button class="get-price-button">{% trans "Дізнатися вартість" %}</button>
         </a>
@@ -68,7 +67,7 @@
           {% trans "Власник автопарку зможе відслідковувати витрати на автомобілі та водіїв, " %}
           {% trans "чистий прибуток автопарку, пробіг  і середню ефективність авто." %}</p>
         <a href="{% url 'price' %}">
-          <button class="get-price-button">{% trans "Дізнатися вартість" %}</button>
+          <button class="get-price-button">{% trans "Дізнатися варість" %}</button>
         </a>
       </div>
     </div>
@@ -87,7 +86,7 @@
           {% trans "або будь-який інший період в усіх агрегаторах, а також окремо відображає, " %}
           {% trans "скільки заробив водій готівкою та на карту." %}
         </p>
-        <button class="free-access-button">{% trans "Співпрацювати" %}</button>
+        <button class="free-access-button">{% trans "Отримати безкоштовний доступ" %}</button>
       </div>
       <div class="box-img">
         <img src="{% static 'app/images/auto-park-img/park-block-4.png' %}" alt="" loading="lazy">
@@ -111,7 +110,7 @@
           {% trans "за певний період, його окупаємість та загальну вартість." %}
         </p>
         <div class="contact-us">
-          <button class="free-access-button">{% trans "Пробна версія" %}</button>
+          <button class="free-access-button">{% trans "Отримати безкоштовний доступ" %}</button>
           <a href="{% url 'price' %}">
             <button class="get-price-button">{% trans "Дізнатися вартість" %}</button>
           </a>
@@ -159,7 +158,7 @@
           {% trans "більшу прозорість та контроль над цими виплатами, " %}
           {% trans "що сприятиме поліпшенню управління флотом та спростить процеси виплат заробітної плати." %}
         </p>
-        <button class="free-access-button">{% trans "Отримати пробну версію" %}</button>
+        <button class="free-access-button">{% trans "Отримати безкоштовний доступ" %}</button>
       </div>
       <div class="box-img">
         <img src="{% static 'app/images/auto-park-img/park-block-7-2.png' %}" alt="" loading="lazy">
@@ -199,7 +198,7 @@
           {% trans "Менеджери та власники автопарків зможуть заощаджувати час, оскільки розрахунок " %}
           {% trans "заробітної плати водіїв  автоматизований, а виплати водіям  швидкі та прозорі." %}
         </p>
-        <button class="free-access-button">{% trans "Отримати пробну версію" %}</button>
+        <button class="free-access-button">{% trans "Отримати безкоштовний доступ" %}</button>
       </div>
       <div class="box-img">
         <img src="{% static 'app/images/auto-park-img/park-block-9.png' %}" alt="" loading="lazy">

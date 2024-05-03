@@ -2734,98 +2734,107 @@ ul.sub-menu.service {
 	}
 }
 
-
 /*Auto Park page*/
-
 /*block 1*/
-
-.auto-park-one-section {
-	height: 600px;
-}
-
 .auto-park-one-section .container {
 	display: flex;
-	align-items: center;
 	justify-content: space-between;
+	align-items: center;
 }
 
 .auto-park-left {
 	position: relative;
 	width: 100%;
 	height: auto;
-	left: -55px;
-	top: 65px;
+	top: 130px;
 }
 
-.auto-park-right .decorate-img {
-	right: 190px;
+.auto-park-left img {
+	position: absolute;
+	border-radius: 62px;
+	width: 200%;
+	height: auto;
+	top: -295px;
+	left: -120px;
+}
+
+.auto-park-right {
 	position: relative;
-	z-index: -1;
+	width: 806px;
+	height: 522px;
 	top: 0;
 }
 
-.auto-park-right .decorate-img img {
-	width: 177%;
-	height: auto;
-}
-
-.auto-park-right .one-info {
-	width: 130%;
+.auto-park-right .decorate-img {
+	right: -165px;
 	position: relative;
-	padding: 10px;
-	z-index: 1022;
-	margin-top: -415px;
-	right: -100px;
+	z-index: -1;
 }
 
-.auto-park-right .one-info h2 {
-	color: #EC6323;
-	text-align: center;
-	font-size: 36px;
-	font-style: normal;
-	font-weight: 700;
-	line-height: normal;
-	text-transform: uppercase;
-}
-
-.auto-park-right .one-info p {
-	color: #FFF;
-	text-align: center;
-	font-size: 27px;
-	font-style: normal;
-	font-weight: 300;
-	line-height: normal;
-}
-
-.free-access-btn button,
-.auto-park-two-section .contact-us a button {
-	margin-top: 10px;
+.auto-park-one-info {
 	width: 100%;
-	background-color: #EC6323;
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	text-align: center;
+	color: #ffffff;
+	padding: 0 139px 0 115px;
+}
+
+.auto-park-one-info h2 {
+	font-style: normal;
+	line-height: normal;
+	margin: 0;
+	font-family: var(--second-family);
+	font-weight: 700;
+	font-size: 36px;
+	text-transform: uppercase;
+	text-align: center;
+	color: #ec6323;
+}
+
+.auto-park-one-info p {
+	font-style: normal;
+	line-height: normal;
+	margin: 15px 0;
+	font-family: var(--font-family);
+	font-weight: 400;
+	font-size: 25px;
+	text-align: center;
 	color: #fff;
+}
+
+.auto-park-btn-box {
+	width: 100%;
+	right: -150px;
+	position: relative;
+	bottom: 125px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.auto-park-btn-box button {
+	background-color: #EC6323;
 	padding: 15px 0;
 	border: none;
-	border-radius: 20px;
-	font-size: 20px;
 	text-decoration: none;
 	cursor: pointer;
 	font-style: normal;
-	font-weight: 700;
 	line-height: normal;
-	z-index: 1000;
-}
-
-.free-access-btn {
-	width: 120%;
-	position: relative;
-	right: 75px;
-	bottom: 10px;
+	font-family: var(--second-family);
+	font-weight: 700;
+	font-size: 20px;
+	color: #fff;
+	border-radius: 20px;
+	width: 557px;
+	height: 57px;
 }
 
 /*block 2*/
-
 .auto-park-two-section {
-	margin-top: 120px;
+	margin-top: 60px;
 }
 
 .auto-park-two-section .container-park {
@@ -2833,7 +2842,6 @@ ul.sub-menu.service {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-
 }
 
 .auto-park-two-section .img-box {
@@ -2879,6 +2887,8 @@ ul.sub-menu.service {
 	flex-direction: column;
 	justify-content: center;
 	align-items: center;
+	position: relative;
+	top: -135px;
 }
 
 .auto-park-two-section .detail-box p {
@@ -2911,23 +2921,41 @@ ul.sub-menu.service {
 }
 
 .auto-park-two-section .contact-us button {
-	width: 300px;
 	margin-top: 10px;
 	padding: 10px 35px;
 	background: #EC6323;
 	border: 5px solid #EC6323;
-	color: #fff;
-	border-radius: 20px;
-	font-size: 20px;
 	text-decoration: none;
 	cursor: pointer;
+	border-radius: 20px;
+	width: 300px;
+	height: 57px;
+	font-family: var(--second-family);
 	font-weight: 700;
+	font-size: 20px;
+	color: #fff;
+}
+
+.auto-park-two-section .contact-us a button {
+	margin-top: 10px;
+	text-decoration: none;
+	cursor: pointer;
+	font-style: normal;
+	line-height: normal;
+	border: 6px solid #ec6323;
+	border-radius: 20px;
+	width: 300px;
+	height: 57px;
+	font-family: var(--second-family);
+	font-weight: 700;
+	font-size: 20px;
+	color: #38423b;
 }
 
 /*block 3*/
 
 .auto-park-three-section {
-	margin-top: 100px;
+	margin-top: -35px;
 	background: url(/static/app/images/auto-park-img/park-block-6-2.webp) no-repeat;
 	background-size: 100% 100%;
 }
@@ -3302,7 +3330,7 @@ ul.sub-menu.service {
 	display: flex;
 	align-items: center;
 	background: url(/static/app/images/auto-park-img/park-block-5-background.png) no-repeat;
-	background-size: 70% 100%;
+	background-size: 80% 100%;
 	position: relative;
 }
 
@@ -3664,98 +3692,109 @@ ul.sub-menu.service {
 
 /*adaptive for phone vertical*/
 
-@media screen and (max-width: 767px) {
+@media screen and (max-width: 479px) {
 	/*block 1*/
-	.auto-park-one-section {
-		height: 845px;
-	}
-
 	.auto-park-one-section .container {
-		display: flex;
 		flex-direction: column;
-		align-items: center;
-		justify-content: space-between;
+		margin-top: 80px;
 		padding: 0;
 	}
 
 	.auto-park-left {
-		position: relative;
 		width: 100%;
 		height: auto;
-		left: 0;
 		top: 0;
 	}
 
 	.auto-park-left img {
-		margin-top: 110px;
+		position: relative;
+		border-radius: 62px;
 		width: 100%;
 		height: auto;
+		top: 0;
+		left: 0;
 	}
 
 	.auto-park-right {
-		position: relative;
+		margin-top: 37px;
 		width: 100%;
-		height: auto;
-		left: 0;
+		height: 265px;
 		top: 0;
 	}
 
 	.auto-park-right .decorate-img {
-		width: 100%;
-		height: auto;
-		margin-top: 20px;
-		margin-bottom: 0;
 		right: 0;
 		position: relative;
+		z-index: -1;
 	}
 
 	.auto-park-right .decorate-img img {
 		width: 100%;
-		height: 393px;
+		height: 291px;
 	}
 
-	.auto-park-right .one-info {
+	.auto-park-one-info {
 		width: 100%;
 		position: relative;
-		padding: 0 80px;
-		z-index: 1022;
-		margin-top: -360px;
-		right: 0;
+		bottom: 268px;
+		left: 0;
+		transform: translate(0, 0);
+		text-align: center;
+		color: #ffffff;
+		padding: 0 60px;
 	}
 
-	.auto-park-right .one-info h2 {
+	.auto-park-one-info h2 {
+		width: 100%;
+		margin-bottom: 15px;
+		font-style: normal;
+		line-height: normal;
 		font-family: var(--second-family);
 		font-weight: 700;
-		font-size: 25px;
+		font-size: 20px;
 		text-transform: uppercase;
 		text-align: center;
 		color: #ec6323;
+		margin-left: 15px;
 	}
 
-	.auto-park-right .one-info p {
-		font-family: var(--font-family);
-		font-weight: 400;
-		font-size: 20px;
+	.auto-park-one-info p {
+		color: #FFF;
 		text-align: center;
-		color: #fff;
+		font-size: 15px;
+		font-style: normal;
+		font-weight: 400;
+		line-height: normal;
+		margin: 0 0 20px 15px;
 	}
 
-	.free-access-btn {
+	.auto-park-btn-box {
 		width: 100%;
 		right: 0;
-		padding: 0 25px;
+		position: relative;
+		bottom: 270px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 10px;
+		flex-direction: column;
 	}
 
-	.free-access-btn button {
-		width: 100%;
-		font-size: 16px;
-		padding: 10px 10px;
-		margin-top: 10px;
+	.auto-park-btn-box button {
+		border-radius: 20px;
+		width: 260px;
+		height: 33px;
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 10px;
+		color: #fff;
+		padding: 10px;
+		margin-left: 20px;
 	}
 
 	/*block 2*/
 	.auto-park-two-section {
-		margin-top: 80px;
+		margin-top: 100px;
 	}
 
 	.auto-park-two-section .container-park {
@@ -3772,7 +3811,7 @@ ul.sub-menu.service {
 	}
 
 	.auto-park-two-section .img-box img:nth-child(1) {
-		width: 30%;
+		width: 24%;
 		position: relative;
 		top: 0;
 	}
@@ -3782,12 +3821,13 @@ ul.sub-menu.service {
 		top: 50%;
 		left: 50%;
 		transform: translate(-50%, -50%);
+		width: 70%;
 	}
 
 	.auto-park-two-section .img-box img:nth-child(3) {
-		width: 30%;
+		width: 24%;
 		position: relative;
-		top: 23px;
+		top: 5px;
 		left: 0;
 	}
 
@@ -3797,15 +3837,17 @@ ul.sub-menu.service {
 		flex-direction: column;
 		justify-content: center;
 		align-items: center;
+		top: 0;
 	}
 
 	.auto-park-two-section .detail-box p {
 		width: 100%;
 		font-family: var(--second-family);
 		font-weight: 600;
-		font-size: 20px;
+		font-size: 15px;
 		text-align: center;
 		color: #141e17;
+		padding: 0 65px;
 	}
 
 	.auto-park-two-section .contact-us {
@@ -3819,34 +3861,31 @@ ul.sub-menu.service {
 	}
 
 	.auto-park-two-section .contact-us button {
-		width: 100%;
-		height: 41px;
 		margin-top: 10px;
 		padding: 5px 10px;
 		background: #EC6323;
-		border-radius: 25px;
 		border-color: #EC6323;
+		border-radius: 20px;
+		width: 270px;
+		height: 33px;
 		font-family: var(--second-family);
 		font-weight: 700;
-		font-size: 16px;
+		font-size: 10px;
 		color: #fff;
 	}
 
-	.auto-park-two-section .contact-us a {
-		width: 100%;
-	}
-
 	.auto-park-two-section .contact-us a button {
-		width: 100%;
-		height: 41px;
 		margin-top: 15px;
-		border: 5px solid #EC6323;
 		background: #FFF;
 		padding: 5px 10px;
 		cursor: pointer;
+		border: 3px solid #ec6323;
+		border-radius: 20px;
+		width: 270px;
+		height: 33px;
 		font-family: var(--second-family);
 		font-weight: 700;
-		font-size: 16px;
+		font-size: 10px;
 		color: #ec6323;
 	}
 
@@ -3875,24 +3914,28 @@ ul.sub-menu.service {
 	.auto-park-three-section .container .description {
 		width: 100%;
 		padding: 0 25px;
+		display: grid;
+		justify-items: center;
 	}
 
 	.auto-park-three-section .container .description h2 {
+		text-align: center;
 		font-family: var(--second-family);
 		font-weight: 700;
-		font-size: 23px;
+		font-size: 18px;
 		text-transform: uppercase;
 		color: #141e17;
-		text-align: center;
+		margin: 15px 0 10px 0;
 	}
 
 	.auto-park-three-section .container .description p {
+		padding: 0;
 		font-family: var(--font-family);
 		font-weight: 400;
-		font-size: 18px;
+		font-size: 15px;
 		text-align: center;
 		color: #38423b;
-		padding: 0 4px 0 0;
+		margin: 0 0 10px 0;
 	}
 
 	.auto-park-three-section .container .description .buttons-box {
@@ -3902,11 +3945,13 @@ ul.sub-menu.service {
 	}
 
 	.auto-park-three-section .container .description a button {
-		width: 100%;
 		padding: 10px 15px;
+		border-radius: 20px;
+		width: 270px;
+		height: 33px;
 		font-family: var(--second-family);
 		font-weight: 700;
-		font-size: 16px;
+		font-size: 10px;
 		color: #fff;
 	}
 
@@ -3938,13 +3983,14 @@ ul.sub-menu.service {
 	.auto-park-four-section .container .description {
 		width: 100%;
 		padding: 0 25px;
+		align-items: center;
 	}
 
 	.auto-park-four-section .container .description h2 {
 		width: 100%;
 		font-family: var(--second-family);
 		font-weight: 700;
-		font-size: 23px;
+		font-size: 18px;
 		text-transform: uppercase;
 		text-align: center;
 		color: #141e17;
@@ -3954,19 +4000,21 @@ ul.sub-menu.service {
 	.auto-park-four-section .container .description p {
 		font-family: var(--font-family);
 		font-weight: 400;
-		font-size: 18px;
+		font-size: 15px;
 		color: #38423b;
 		text-align: center;
 		margin-bottom: 10px;
 	}
 
 	.auto-park-four-section .container .description button {
-		width: 100%;
 		padding: 10px 15px;
 		font-family: var(--second-family);
 		font-weight: 700;
-		font-size: 16px;
+		font-size: 10px;
 		color: #fff;
+		border-radius: 20px;
+		width: 270px;
+		height: 33px;
 	}
 
 	/*block 5*/
@@ -3989,6 +4037,7 @@ ul.sub-menu.service {
 	.auto-park-five-section .container .box-img {
 		width: 100%;
 		height: auto;
+		padding: 20px 15px 0 15px;
 	}
 
 	.auto-park-five-section .box-img img {
@@ -4001,31 +4050,32 @@ ul.sub-menu.service {
 	}
 
 	.auto-park-five-section .container .description h2 {
-		font-size: 23px;
+		font-size: 18px;
 		text-align: center;
 	}
 
 	.auto-park-five-section .container .description p {
-		font-size: 18px;
+		font-size: 15px;
 		text-align: center;
 	}
 
 	.auto-park-five-section .container .description .contact-us {
 		width: 100%;
 		flex-direction: column;
-	}
-
-	.auto-park-five-section .container .description a {
-		width: 100%;
+		align-items: center;
 	}
 
 	.auto-park-five-section .container .description a button {
-		width: 100%;
 		margin-top: 15px;
 		border: 5px solid #EC6323;
 		background-color: transparent;
-		padding: 5px 15px;
-		font-size: 16px;
+		padding: 0;
+		border-radius: 20px;
+		width: 270px;
+		height: 33px;
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 10px;
 		color: #fff;
 	}
 
@@ -4034,12 +4084,15 @@ ul.sub-menu.service {
 		padding: 5px 15px;
 		background: #EC6323;
 		border: 5px solid #EC6323;
-		color: #fff;
-		border-radius: 20px;
-		font-size: 16px;
 		text-decoration: none;
 		cursor: pointer;
+		border-radius: 20px;
+		width: 270px;
+		height: 33px;
+		font-family: var(--second-family);
 		font-weight: 700;
+		font-size: 10px;
+		color: #fff;
 	}
 
 	/*block 6*/
@@ -4070,12 +4123,14 @@ ul.sub-menu.service {
 	.auto-park-six-section .container .description {
 		width: 100%;
 		padding: 0 25px;
+		display: grid;
+		justify-items: center;
 	}
 
 	.auto-park-six-section .container .description h2 {
 		font-family: var(--second-family);
 		font-weight: 700;
-		font-size: 23px;
+		font-size: 18px;
 		text-transform: uppercase;
 		color: #141e17;
 		text-align: center;
@@ -4085,20 +4140,22 @@ ul.sub-menu.service {
 	.auto-park-six-section .container .description p {
 		font-family: var(--font-family);
 		font-weight: 400;
-		font-size: 18px;
+		font-size: 15px;
 		color: #38423b;
 		text-align: center;
 		margin-bottom: 10px;
 	}
 
 	.auto-park-six-section .container .description a button {
-		width: 100%;
 		padding: 5px 15px;
+		margin: 0;
+		border-radius: 20px;
+		width: 270px;
+		height: 33px;
 		font-family: var(--second-family);
 		font-weight: 700;
-		font-size: 16px;
+		font-size: 10px;
 		color: #fff;
-		margin: 0;
 	}
 
 	/*block 7*/
@@ -4122,6 +4179,8 @@ ul.sub-menu.service {
 		flex-basis: calc(100%);
 		order: 2;
 		padding: 0 25px;
+		display: grid;
+		justify-items: center;
 	}
 
 	.auto-park-seven-section .container .box-img:last-child {
@@ -4133,7 +4192,7 @@ ul.sub-menu.service {
 	.auto-park-seven-section .container .description h2 {
 		font-family: var(--second-family);
 		font-weight: 700;
-		font-size: 23px;
+		font-size: 18px;
 		text-transform: uppercase;
 		color: #141e17;
 		text-align: center;
@@ -4143,20 +4202,22 @@ ul.sub-menu.service {
 	.auto-park-seven-section .container .description p {
 		font-family: var(--font-family);
 		font-weight: 400;
-		font-size: 18px;
+		font-size: 15px;
 		color: #38423b;
 		text-align: center;
 		margin-bottom: 10px;
 	}
 
 	.auto-park-seven-section .container .description button {
-		width: 100%;
 		padding: 5px 15px;
+		margin: 0;
+		border-radius: 20px;
+		width: 270px;
+		height: 33px;
 		font-family: var(--second-family);
 		font-weight: 700;
-		font-size: 16px;
+		font-size: 10px;
 		color: #fff;
-		margin: 0;
 	}
 
 	/* block 8 */
@@ -4184,12 +4245,14 @@ ul.sub-menu.service {
 		width: 100%;
 		padding: 0 25px;
 		left: 0;
+		display: grid;
+		justify-items: center;
 	}
 
 	.auto-park-eight-section .container .description h2 {
 		font-family: var(--second-family);
 		font-weight: 700;
-		font-size: 23px;
+		font-size: 18px;
 		text-transform: uppercase;
 		color: #141e17;
 		text-align: center;
@@ -4199,19 +4262,21 @@ ul.sub-menu.service {
 	.auto-park-eight-section .container .description p {
 		font-family: var(--font-family);
 		font-weight: 400;
-		font-size: 18px;
+		font-size: 15px;
 		color: #38423b;
 		text-align: center;
 		margin-bottom: 10px;
 	}
 
 	.auto-park-eight-section .container .description button {
-		width: 100%;
-		padding: 5px 15px;
 		font-family: var(--second-family);
 		font-weight: 700;
-		font-size: 16px;
+		font-size: 10px;
 		color: #fff;
+		border-radius: 20px;
+		width: 270px;
+		height: 33px;
+		padding: 5px 15px;
 		margin-top: 5px;
 	}
 
@@ -4249,12 +4314,14 @@ ul.sub-menu.service {
 		width: 100%;
 		padding: 0 35px;
 		order: 2;
+		display: grid;
+		justify-items: center;
 	}
 
 	.auto-park-nine-section .container .description h2 {
 		font-family: var(--second-family);
 		font-weight: 700;
-		font-size: 23px;
+		font-size: 18px;
 		text-transform: uppercase;
 		color: #fff;
 		text-align: center;
@@ -4265,22 +4332,23 @@ ul.sub-menu.service {
 		width: 100%;
 		font-family: var(--font-family);
 		font-weight: 400;
-		font-size: 18px;
+		font-size: 15px;
 		color: #fff;
 		text-align: center;
 	}
 
 	.auto-park-nine-section .container .description button {
-		width: 100%;
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 10px;
+		color: #fff;
+		border-radius: 20px;
+		width: 270px;
+		height: 33px;
 		margin-top: 5px;
 		border: 5px solid #EC6323;
 		background-color: #EC6323;
 		padding: 5px 15px;
-		font-size: 16px;
-		color: #fff;
-		cursor: pointer;
-		border-radius: 25px;
-		font-weight: 700;
 	}
 
 	/* block 10 */
@@ -4308,12 +4376,14 @@ ul.sub-menu.service {
 		width: 100%;
 		padding: 0 25px;
 		left: 0;
+		display: grid;
+		justify-items: center;
 	}
 
 	.auto-park-ten-section .container .description h2 {
 		font-family: var(--second-family);
 		font-weight: 700;
-		font-size: 23px;
+		font-size: 18px;
 		text-transform: uppercase;
 		color: #141e17;
 		text-align: center;
@@ -4323,19 +4393,21 @@ ul.sub-menu.service {
 	.auto-park-ten-section .container .description p {
 		font-family: var(--font-family);
 		font-weight: 400;
-		font-size: 18px;
+		font-size: 15px;
 		color: #38423b;
 		text-align: center;
 		margin-bottom: 10px;
 	}
 
 	.auto-park-ten-section .container .description a button {
-		width: 100%;
-		padding: 5px 15px;
 		font-family: var(--second-family);
 		font-weight: 700;
-		font-size: 16px;
+		font-size: 10px;
 		color: #fff;
+		border-radius: 20px;
+		width: 270px;
+		height: 33px;
+		padding: 5px 15px;
 		margin-top: 5px;
 	}
 
@@ -4360,24 +4432,23 @@ ul.sub-menu.service {
 	.auto-park-eleven-section .container .description h2 {
 		font-family: var(--second-family);
 		font-weight: 700;
-		font-size: 23px;
+		font-size: 18px;
 		text-transform: uppercase;
 		color: #141e17;
 		margin: 15px 0 10px 0;
 	}
 
 	.auto-park-eleven-section .container .description h3 {
-		font-family: var(--font-family);
-		font-weight: 400;
-		font-size: 18px;
+		font-family: var(--second-family);
+		font-weight: 600;
+		font-size: 15px;
 		color: rgba(83, 120, 94, 0.5);
-		margin: 15px 0 0 0;
 	}
 
 	.auto-park-eleven-section .container .description p {
 		font-family: var(--font-family);
 		font-weight: 400;
-		font-size: 18px;
+		font-size: 15px;
 		color: #53785e;
 		margin: 0;
 	}
@@ -4419,7 +4490,7 @@ ul.sub-menu.service {
 		margin-right: 10px;
 		font-family: var(--font-family);
 		font-weight: 700;
-		font-size: 23px;
+		font-size: 18px;
 		margin-left: 15px;
 		color: #fff;
 	}
@@ -4431,7 +4502,7 @@ ul.sub-menu.service {
 		padding: 10px 15px;
 		font-family: var(--font-family);
 		font-weight: 400;
-		font-size: 18px;
+		font-size: 15px;
 	}
 
 	.client-info input::placeholder {
@@ -4575,85 +4646,106 @@ ul.sub-menu.service {
 }
 
 /* adaptive for phone horizontal */
-@media screen and (min-width: 768px) and (max-width: 1199px) {
+@media screen and (min-width: 480px) and (max-width: 767px) {
 	/*block 1*/
-	.auto-park-one-section {
-		height: 969px;
-	}
-
 	.auto-park-one-section .container {
-		display: flex;
 		flex-direction: column;
-		align-items: center;
-		justify-content: space-between;
+		margin-top: 80px;
+		padding: 0;
 	}
 
 	.auto-park-left {
-		position: relative;
 		width: 100%;
 		height: auto;
-		left: 20px;
 		top: 0;
 	}
 
 	.auto-park-left img {
-		margin-top: 110px;
+		position: relative;
+		border-radius: 62px;
 		width: 100%;
 		height: auto;
+		top: 0;
+		left: 0;
 	}
 
 	.auto-park-right {
-		position: relative;
+		margin-top: 37px;
 		width: 100%;
-		height: auto;
-		left: 0;
+		height: 265px;
 		top: 0;
 	}
 
 	.auto-park-right .decorate-img {
-		width: 100%;
-		height: auto;
-		margin-top: 20px;
-		margin-bottom: 0;
 		right: 0;
 		position: relative;
+		z-index: -1;
 	}
 
 	.auto-park-right .decorate-img img {
 		width: 100%;
-		height: 358px;
+		height: 318px;
 	}
 
-	.auto-park-right .one-info {
-		width: 72%;
+	.auto-park-one-info {
+		width: 100%;
 		position: relative;
-		padding: 10px;
-		z-index: 1022;
-		margin-top: -338px;
-		margin-left: 145px;
-		right: 0;
+		bottom: 288px;
+		left: 0;
+		transform: translate(0, 0);
+		text-align: center;
+		color: #ffffff;
+		padding: 0 35px;
 	}
 
-	.auto-park-right .one-info h2 {
+	.auto-park-one-info h2 {
+		width: 100%;
+		font-style: normal;
+		line-height: normal;
+		margin: 0 0 0 15px;
+		font-family: var(--second-family);
+		font-weight: 700;
 		font-size: 25px;
+		text-transform: uppercase;
+		text-align: center;
+		color: #ec6323;
 	}
 
-	.auto-park-right .one-info p {
-		margin-top: 25px;
+	.auto-park-one-info p {
+		margin: 15px 0 15px 15px;
+		font-family: var(--font-family);
+		font-weight: 400;
 		font-size: 23px;
+		text-align: center;
+		color: #fff;
 	}
 
-	.free-access-btn button {
-		width: 80%;
+	.auto-park-btn-box {
+		width: 100%;
+		right: 0;
+		position: relative;
+		bottom: 288px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 10px;
+		flex-direction: column;
+	}
+
+	.auto-park-btn-box button {
+		padding: inherit;
+		border-radius: 20px;
+		width: 391px;
+		height: 39px;
+		font-family: var(--second-family);
+		font-weight: 700;
 		font-size: 15px;
-		padding: 10px 10px;
-		margin-left: 90px;
-		margin-top: 35px;
+		color: #fff;
 	}
 
 	/*block 2*/
 	.auto-park-two-section {
-		margin-top: 80px;
+		margin-top: 125px;
 	}
 
 	.auto-park-two-section .container-park {
@@ -4670,7 +4762,7 @@ ul.sub-menu.service {
 	}
 
 	.auto-park-two-section .img-box img:nth-child(1) {
-		width: 30%;
+		width: 24%;
 		position: relative;
 		top: 0;
 	}
@@ -4680,12 +4772,13 @@ ul.sub-menu.service {
 		top: 50%;
 		left: 50%;
 		transform: translate(-50%, -50%);
+		width: 70%;
 	}
 
 	.auto-park-two-section .img-box img:nth-child(3) {
-		width: 30%;
+		width: 24%;
 		position: relative;
-		top: 23px;
+		top: 5px;
 		left: 0;
 	}
 
@@ -4695,6 +4788,7 @@ ul.sub-menu.service {
 		flex-direction: column;
 		justify-content: center;
 		align-items: center;
+		top: 0;
 	}
 
 	.auto-park-two-section .detail-box p {
@@ -4703,6 +4797,8 @@ ul.sub-menu.service {
 		font-size: 20px;
 		text-align: center;
 		color: #141e17;
+		width: 100%;
+		padding: 0 34px;
 	}
 
 	.auto-park-two-section .contact-us {
@@ -4716,31 +4812,28 @@ ul.sub-menu.service {
 	}
 
 	.auto-park-two-section .contact-us button {
-		width: 100%;
-		height: 41px;
 		margin-top: 10px;
 		padding: 5px 10px;
 		background: #EC6323;
-		border-radius: 25px;
 		border-color: #EC6323;
+		border-radius: 20px;
+		width: 430px;
+		height: 41px;
 		font-family: var(--second-family);
 		font-weight: 700;
 		font-size: 15px;
 		color: #fff;
 	}
 
-	.auto-park-two-section .contact-us a {
-		width: 100%;
-	}
-
 	.auto-park-two-section .contact-us a button {
-		width: 100%;
-		height: 41px;
 		margin-top: 15px;
-		border: 5px solid #EC6323;
 		background: #FFF;
 		padding: 5px 10px;
 		cursor: pointer;
+		border: 4px solid #ec6323;
+		border-radius: 20px;
+		width: 430px;
+		height: 41px;
 		font-family: var(--second-family);
 		font-weight: 700;
 		font-size: 15px;
@@ -4804,7 +4897,7 @@ ul.sub-menu.service {
 		padding: 10px 15px;
 		font-family: var(--second-family);
 		font-weight: 700;
-		font-size: 15px;
+		font-size: 16px;
 		color: #fff;
 	}
 
@@ -5452,6 +5545,1675 @@ ul.sub-menu.service {
 	}
 }
 
+@media screen and (min-width: 768px) and (max-width: 1023px) {
+	/*block 1*/
+	.auto-park-one-section .container {
+		flex-direction: column;
+		padding: 0;
+		margin: 80px 0 0 0;
+		max-width: 100%;
+	}
+
+	.auto-park-left {
+		width: 100%;
+		height: auto;
+		top: 0;
+	}
+
+	.auto-park-left img {
+		position: relative;
+		border-radius: 62px;
+		width: 100%;
+		height: auto;
+		top: 0;
+		left: 0;
+	}
+
+	.auto-park-right {
+		margin-top: 37px;
+		width: 100%;
+		height: 265px;
+		top: 0;
+	}
+
+	.auto-park-right .decorate-img {
+		right: 0;
+		position: relative;
+		z-index: -1;
+		top: -55px;
+	}
+
+	.auto-park-right .decorate-img img {
+		width: 100%;
+		height: 398px;
+	}
+
+	.auto-park-one-info {
+		width: 100%;
+		position: relative;
+		bottom: 350px;
+		left: 0;
+		transform: translate(0, 0);
+		text-align: center;
+		color: #ffffff;
+		padding: 0 65px;
+	}
+
+	.auto-park-one-info h2 {
+		width: 100%;
+		font-style: normal;
+		line-height: normal;
+		margin: 0 0 0 15px;
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 32px;
+		text-transform: uppercase;
+		text-align: center;
+		color: #ec6323;
+	}
+
+	.auto-park-one-info p {
+		margin: 25px 0 25px 15px;
+		font-family: var(--font-family);
+		font-weight: 400;
+		font-size: 28px;
+		text-align: center;
+		color: #fff;
+	}
+
+	.auto-park-btn-box {
+		width: 100%;
+		right: 0;
+		position: relative;
+		bottom: 405px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 10px;
+		flex-direction: column;
+	}
+
+	.auto-park-btn-box button {
+		padding: inherit;
+		border-radius: 20px;
+		width: 630px;
+		height: 53px;
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 16px;
+		color: #fff;
+	}
+
+	/*block 2*/
+	.auto-park-two-section {
+		margin-top: 175px;
+	}
+
+	.auto-park-two-section .container-park {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: space-between;
+	}
+
+	.auto-park-two-section .img-box {
+		width: 100%;
+		height: auto;
+		margin-top: 0;
+	}
+
+	.auto-park-two-section .img-box img:nth-child(1) {
+		width: 24%;
+		position: relative;
+		top: 0;
+	}
+
+	.auto-park-two-section .img-box img:nth-child(2) {
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -50%);
+		width: 70%;
+	}
+
+	.auto-park-two-section .img-box img:nth-child(3) {
+		width: 24%;
+		position: relative;
+		top: 5px;
+		left: 0;
+	}
+
+	.auto-park-two-section .detail-box {
+		display: flex;
+		margin-right: 5px;
+		flex-direction: column;
+		justify-content: center;
+		align-items: center;
+		top: 0;
+	}
+
+	.auto-park-two-section .detail-box p {
+		font-family: var(--second-family);
+		font-weight: 600;
+		font-size: 30px;
+		text-align: center;
+		color: #141e17;
+		width: 100%;
+		padding: 0 34px;
+	}
+
+	.auto-park-two-section .contact-us {
+		width: 100%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 0 25px;
+		gap: 25px;
+	}
+
+	.auto-park-two-section .contact-us button {
+		margin-top: 10px;
+		padding: 5px 10px;
+		background: #EC6323;
+		border-color: #EC6323;
+		border-radius: 20px;
+		width: 300px;
+		height: 57px;
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 16px;
+		color: #fff;
+	}
+
+	.auto-park-two-section .contact-us a button {
+		margin-top: 15px;
+		background: #FFF;
+		padding: 5px 10px;
+		cursor: pointer;
+		border: 4px solid #ec6323;
+		border-radius: 20px;
+		width: 300px;
+		height: 57px;
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 16px;
+		color: #ec6323;
+	}
+
+	/*block 3*/
+	.auto-park-three-section {
+		margin-top: 80px;
+	}
+
+	.auto-park-three-section .container {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: space-between;
+		padding: 15px 0 24px 0;
+	}
+
+	.auto-park-three-section .container .box-img {
+		width: 100%;
+	}
+
+	.auto-park-three-section .container .box-img img {
+		width: 100%;
+		height: auto;
+	}
+
+	.auto-park-three-section .container .description {
+		width: 100%;
+		padding: 0 25px;
+		display: grid;
+		justify-items: center;
+	}
+
+	.auto-park-three-section .container .description h2 {
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 30px;
+		text-transform: uppercase;
+		color: #141e17;
+		text-align: center;
+		margin: 15px 0 10px 0;
+	}
+
+	.auto-park-three-section .container .description p {
+		font-family: var(--font-family);
+		font-weight: 400;
+		font-size: 27px;
+		color: #38423b;
+		text-align: center;
+		margin-bottom: 10px;
+	}
+
+	.auto-park-three-section .container .description .buttons-box {
+		display: flex;
+		justify-content: space-between;
+		padding: 0 25px;
+	}
+
+	.auto-park-three-section .container .description a button {
+		width: 300px;
+		height: 57px;
+		padding: 10px 15px;
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 16px;
+		color: #fff;
+	}
+
+	/*block 4*/
+	.auto-park-four-section {
+		margin-top: 80px;
+	}
+
+	.auto-park-four-section .container {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: space-between;
+	}
+
+	.auto-park-four-section .container .description {
+		order: 2;
+		text-align: center;
+	}
+
+	.auto-park-four-section .container .box-img {
+		order: 1;
+	}
+
+	.auto-park-four-section .container .box-img img {
+		max-width: 100%;
+	}
+
+	.auto-park-four-section .container .description {
+		width: 100%;
+		padding: 0 25px;
+		display: grid;
+		justify-items: center;
+	}
+
+	.auto-park-four-section .container .description h2 {
+		width: 100%;
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 30px;
+		text-transform: uppercase;
+		color: #141e17;
+		text-align: center;
+		margin: 15px 0 10px 0;
+	}
+
+	.auto-park-four-section .container .description p {
+		font-family: var(--font-family);
+		font-weight: 400;
+		font-size: 27px;
+		color: #38423b;
+		text-align: center;
+		margin-bottom: 10px;
+	}
+
+	.auto-park-four-section .container .description button {
+		width: 408px;
+		height: 57px;
+		padding: 10px 15px;
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 16px;
+		color: #fff;
+	}
+
+	/*block 5*/
+	.auto-park-five-section {
+		margin-top: 80px;
+	}
+
+	.auto-park-five-section .container {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: space-between;
+		background: url(/static/app/images/auto-park-img/park-block-5-background.png) no-repeat;
+		background-size: 100% 100%;
+		position: relative;
+		padding: 15px 0 36px 0;
+		border-radius: 75px;
+		margin: 0;
+		max-width: 100%;
+	}
+
+	.auto-park-five-section .container .box-img {
+		width: 100%;
+		height: auto;
+		padding: 36px 206px 0 206px;
+	}
+
+	.auto-park-five-section .box-img img {
+		width: 100%;
+		height: auto;
+	}
+
+	.auto-park-five-section .container .description {
+		padding: 0 15px;
+		justify-items: center;
+		margin-top: 25px;
+	}
+
+	.auto-park-five-section .container .description h2 {
+		font-size: 30px;
+		text-align: center;
+	}
+
+	.auto-park-five-section .container .description p {
+		font-size: 27px;
+		text-align: center;
+	}
+
+	.auto-park-five-section .container .description .contact-us {
+		width: 100%;
+		gap: 25px;
+		margin-bottom: 80px;
+		justify-content: space-evenly;
+	}
+
+	.auto-park-five-section .container .description a button {
+		width: 304px;
+		height: 57px;
+		padding: 10px 15px;
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 16px;
+		color: #fff;
+	}
+
+	.auto-park-five-section .container .description button {
+		padding: 10px 15px;
+		background: #EC6323;
+		color: #fff;
+		border-radius: 20px;
+		font-size: 16px;
+		text-decoration: none;
+		cursor: pointer;
+		font-weight: 700;
+		width: 408px;
+		height: 57px;
+	}
+
+	/*block 6*/
+	.auto-park-six-section {
+		margin-top: 95px;
+	}
+
+	.auto-park-six-section .container {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: space-between;
+	}
+
+	.auto-park-six-section .container .box-img {
+		width: 100%;
+	}
+
+	.auto-park-six-section .container .box-img img {
+		width: 100%;
+		height: auto;
+	}
+
+	.auto-park-six-section .container .description {
+		width: 100%;
+		padding: 0 25px;
+		display: grid;
+		justify-items: center;
+	}
+
+	.auto-park-six-section .container .description h2 {
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 30px;
+		text-transform: uppercase;
+		color: #141e17;
+		text-align: center;
+		margin: 15px 0 10px 0;
+	}
+
+	.auto-park-six-section .container .description p {
+		font-family: var(--font-family);
+		font-weight: 400;
+		font-size: 27px;
+		color: #38423b;
+		text-align: center;
+		margin-bottom: 10px;
+	}
+
+	.auto-park-six-section .container .description button {
+		width: 300px;
+		height: 57px;
+		padding: 10px 15px;
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 16px;
+		color: #fff;
+	}
+
+	/*block 7*/
+	.auto-park-seven-section {
+		margin-top: 80px;
+	}
+
+	.auto-park-seven-section .container {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: space-between;
+	}
+
+	.auto-park-seven-section .container .box-img {
+		flex-basis: calc(50% - 10px);
+	}
+
+	.auto-park-seven-section .container .description {
+		flex-basis: calc(100%);
+		order: 2;
+		padding: 0;
+		display: grid;
+		justify-items: center;
+	}
+
+	.auto-park-seven-section .container .box-img:last-child {
+		margin-right: 0;
+		order: 1;
+		margin-top: 25px;
+	}
+
+	.auto-park-seven-section .container .description h2 {
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 30px;
+		text-transform: uppercase;
+		color: #141e17;
+		text-align: center;
+		margin: 15px 0 25px 0;
+	}
+
+	.auto-park-seven-section .container .description p {
+		font-family: var(--font-family);
+		font-weight: 400;
+		font-size: 27px;
+		color: #38423b;
+		text-align: center;
+		margin-bottom: 10px;
+	}
+
+	.auto-park-seven-section .container .description button {
+		width: 408px;
+		height: 57px;
+		padding: 10px 15px;
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 16px;
+		color: #fff;
+		margin-bottom: 49px;
+	}
+
+	/* block 8 */
+	.auto-park-eight-section {
+		margin-top: 95px;
+	}
+
+	.auto-park-eight-section .container {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: space-between;
+	}
+
+	.auto-park-eight-section .container .box-img {
+		width: 100%;
+	}
+
+	.auto-park-eight-section .container .box-img img {
+		width: 100%;
+		height: auto;
+	}
+
+	.auto-park-eight-section .container .description {
+		width: 100%;
+		padding: 0 25px;
+		left: 0;
+		display: grid;
+		justify-items: center;
+	}
+
+	.auto-park-eight-section .container .description h2 {
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 30px;
+		text-transform: uppercase;
+		color: #141e17;
+		text-align: center;
+		margin: 15px 0 10px 0;
+	}
+
+	.auto-park-eight-section .container .description p {
+		font-family: var(--font-family);
+		font-weight: 400;
+		font-size: 27px;
+		color: #38423b;
+		text-align: center;
+		margin-bottom: 10px;
+	}
+
+	.auto-park-eight-section .container .description button {
+		width: 300px;
+		height: 57px;
+		padding: 10px 15px;
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 16px;
+		color: #fff;
+	}
+
+	/* block 9 */
+	.auto-park-nine-section {
+		margin-top: 80px;
+	}
+
+	.auto-park-nine-section .container {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: space-between;
+		background: url(/static/app/images/auto-park-img/park-block-5-background.png) no-repeat;
+		background-size: 100% 100%;
+		position: relative;
+		padding: 27px 0 78px 0;
+		border-radius: 49px;
+		margin: 0;
+		max-width: 100%;
+	}
+
+	.auto-park-nine-section .container .box-img {
+		width: 100%;
+		position: relative;
+		bottom: 0;
+		right: 0;
+		order: 1;
+	}
+
+	.auto-park-nine-section .container .box-img img {
+		width: 100%;
+		height: auto;
+	}
+
+	.auto-park-nine-section .container .description {
+		width: 100%;
+		padding: 0 35px;
+		order: 2;
+		display: grid;
+		justify-items: center;
+	}
+
+	.auto-park-nine-section .container .description h2 {
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 30px;
+		text-transform: uppercase;
+		color: #fff;
+		text-align: center;
+		margin: 15px 0 10px 0;
+	}
+
+	.auto-park-nine-section .container .description p {
+		width: 100%;
+		font-family: var(--font-family);
+		font-weight: 400;
+		font-size: 27px;
+		color: #fff;
+		text-align: center;
+	}
+
+	.auto-park-nine-section .container .description button {
+		width: 451px;
+		height: 57px;
+		margin-top: 5px;
+		border: 5px solid #EC6323;
+		background-color: #EC6323;
+		padding: 5px 15px;
+		font-size: 16px;
+		color: #fff;
+		cursor: pointer;
+		border-radius: 25px;
+		font-weight: 700;
+	}
+
+	/* block 10 */
+	.auto-park-ten-section {
+		margin-top: 95px;
+	}
+
+	.auto-park-ten-section .container {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: space-between;
+	}
+
+	.auto-park-ten-section .container .box-img {
+		width: 100%;
+		padding: 0 190px;
+	}
+
+	.auto-park-ten-section .container .box-img img {
+		width: 100%;
+		height: auto;
+	}
+
+	.auto-park-ten-section .container .description {
+		width: 100%;
+		padding: 0 25px;
+		left: 0;
+		display: grid;
+		justify-items: center;
+	}
+
+	.auto-park-ten-section .container .description h2 {
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 30px;
+		text-transform: uppercase;
+		color: #141e17;
+		text-align: center;
+		margin: 25px 0;
+	}
+
+	.auto-park-ten-section .container .description p {
+		font-family: var(--font-family);
+		font-weight: 400;
+		font-size: 27px;
+		color: #38423b;
+		text-align: center;
+		margin: 0 0 25px 0;
+	}
+
+	.auto-park-ten-section .container .description a button {
+		width: 300px;
+		height: 57px;
+		padding: 10px 15px;
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 15px;
+		color: #fff;
+		margin: 0;
+	}
+
+	/* block 11 */
+	.auto-park-eleven-section {
+		margin-top: 95px;
+	}
+
+	.auto-park-eleven-section .container {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: space-between;
+		padding: 0;
+	}
+
+	.auto-park-eleven-section .container .description {
+		width: 100%;
+		padding: 0 25px;
+	}
+
+	.auto-park-eleven-section .container .description h2 {
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 30px;
+		text-transform: uppercase;
+		color: #141e17;
+		margin: 15px 0 10px 0;
+	}
+
+	.auto-park-eleven-section .container .description h3 {
+		font-family: var(--font-family);
+		font-weight: 400;
+		font-size: 25px;
+		color: rgba(83, 120, 94, 0.5);
+		margin: 15px 0 0 0;
+	}
+
+	.auto-park-eleven-section .container .description p {
+		font-family: var(--font-family);
+		font-weight: 400;
+		font-size: 25px;
+		color: #53785e;
+		margin: 0;
+	}
+
+	.auto-park-eleven-section .container .description span {
+		font-size: 27px;
+		font-family: var(--font-family);
+		font-weight: 400;
+		color: #53785e;
+		margin: 0;
+	}
+
+	.auto-park-eleven-section .container .icon-social-network a i {
+		color: #fff;
+		align-items: normal;
+		justify-content: normal;
+	}
+
+	.auto-park-eleven-section .container .icon-social-network a {
+		width: 40px;
+		height: 40px;
+	}
+
+	.auto-park-eleven-section .container .box-form {
+		width: 100%;
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		align-items: center;
+		background: url(/static/app/images/auto-park-img/park-block-11.png) no-repeat;
+		background-size: 100% 100%;
+		padding: 76px 0 65px 25px;
+		margin-top: 15px;
+	}
+
+	.auto-park-eleven-section .container .box-form form {
+		width: 100%;
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+	}
+
+	.auto-park-eleven-section .container .box-form form .client-info {
+		width: 100%;
+		margin-bottom: 25px;
+		position: relative;
+	}
+
+	.auto-park-eleven-section .container .box-form form div {
+		margin-bottom: 10px;
+	}
+
+	.auto-park-eleven-section .container .box-form form label {
+		margin-right: 10px;
+		font-family: var(--font-family);
+		font-weight: 700;
+		font-size: 27px;
+		color: #fff;
+	}
+
+	.auto-park-eleven-section .container .box-form form input {
+		width: 100%;
+		border: none;
+		border-radius: 25px 0 0 25px;
+		padding: 10px 15px;
+		font-family: var(--font-family);
+		font-weight: 400;
+		font-size: 25px;
+	}
+
+	.client-info input::placeholder {
+		color: rgba(83, 120, 94, 0.5);
+	}
+
+	.auto-park-eleven-section .container .box-form form button {
+		border: none;
+		padding: 10px 50px;
+		font-family: var(--font-family);
+		font-weight: 700;
+		font-size: 16px;
+		color: #fff;
+		background: #EC6323;
+		cursor: pointer;
+		border-radius: 20px;
+		width: 285px;
+		height: 56px;
+		text-align: left;
+	}
+}
+
+@media screen and (min-width: 1024px) and (max-width: 1199px) {
+	/*block 1*/
+	.auto-park-one-section .container {
+		flex-direction: column;
+		padding: 0;
+		margin: 80px 0 0 0;
+		max-width: 100%;
+	}
+
+	.auto-park-left {
+		width: 100%;
+		height: auto;
+		top: 0;
+	}
+
+	.auto-park-left img {
+		position: relative;
+		border-radius: 62px;
+		width: 100%;
+		height: auto;
+		top: 0;
+		left: 0;
+	}
+
+	.auto-park-right {
+		margin-top: 37px;
+		width: 100%;
+		height: 265px;
+		top: 0;
+	}
+
+	.auto-park-right .decorate-img {
+		right: 0;
+		position: relative;
+		z-index: -1;
+		top: -55px;
+	}
+
+	.auto-park-right .decorate-img img {
+		width: 100%;
+		height: 500px;
+	}
+
+	.auto-park-one-info {
+		width: 100%;
+		position: relative;
+		bottom: 440px;
+		left: 0;
+		transform: translate(0, 0);
+		text-align: center;
+		color: #ffffff;
+		padding: 0 65px;
+	}
+
+	.auto-park-one-info h2 {
+		width: 100%;
+		font-style: normal;
+		line-height: normal;
+		margin: 0 0 0 15px;
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 45px;
+		text-transform: uppercase;
+		text-align: center;
+		color: #ec6323;
+	}
+
+	.auto-park-one-info p {
+		margin: 25px 0 25px 15px;
+		font-family: var(--font-family);
+		font-weight: 400;
+		font-size: 35px;
+		text-align: center;
+		color: #fff;
+	}
+
+	.auto-park-btn-box {
+		width: 100%;
+		right: 0;
+		position: relative;
+		bottom: 494px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 10px;
+		flex-direction: column;
+	}
+
+	.auto-park-btn-box button {
+		padding: inherit;
+		border-radius: 20px;
+		width: 917px;
+		height: 53px;
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 20px;
+		color: #fff;
+	}
+
+	/*block 2*/
+	.auto-park-two-section {
+		margin-top: 270px;
+	}
+
+	.auto-park-two-section .container-park {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: space-between;
+	}
+
+	.auto-park-two-section .img-box {
+		width: 100%;
+		height: auto;
+		margin-top: 0;
+	}
+
+	.auto-park-two-section .img-box img:nth-child(1) {
+		width: 24%;
+		position: relative;
+		top: 0;
+	}
+
+	.auto-park-two-section .img-box img:nth-child(2) {
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -50%);
+		width: 70%;
+	}
+
+	.auto-park-two-section .img-box img:nth-child(3) {
+		width: 24%;
+		position: relative;
+		top: 5px;
+		left: 0;
+	}
+
+	.auto-park-two-section .detail-box {
+		display: flex;
+		margin-right: 5px;
+		flex-direction: column;
+		justify-content: center;
+		align-items: center;
+		top: 0;
+	}
+
+	.auto-park-two-section .detail-box p {
+		font-family: var(--second-family);
+		font-weight: 600;
+		font-size: 35px;
+		text-align: center;
+		color: #141e17;
+		width: 100%;
+		padding: 0 34px;
+	}
+
+	.auto-park-two-section .contact-us {
+		width: 100%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 0 25px;
+		gap: 25px;
+	}
+
+	.auto-park-two-section .contact-us button {
+		margin-top: 10px;
+		padding: 5px 10px;
+		background: #EC6323;
+		border-color: #EC6323;
+		border-radius: 20px;
+		width: 349px;
+		height: 57px;
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 20px;
+		color: #fff;
+	}
+
+	.auto-park-two-section .contact-us a button {
+		margin-top: 15px;
+		background: #FFF;
+		padding: 5px 10px;
+		cursor: pointer;
+		border: 4px solid #ec6323;
+		border-radius: 20px;
+		width: 349px;
+		height: 57px;
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 16px;
+		color: #ec6323;
+	}
+
+	/*block 3*/
+	.auto-park-three-section {
+		margin-top: 95px;
+	}
+
+	.auto-park-three-section .container {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: space-between;
+		padding: 15px 0 24px 0;
+	}
+
+	.auto-park-three-section .container .box-img {
+		width: 100%;
+	}
+
+	.auto-park-three-section .container .box-img img {
+		width: 100%;
+		height: auto;
+	}
+
+	.auto-park-three-section .container .description {
+		width: 100%;
+		padding: 0 25px;
+		display: grid;
+		justify-items: center;
+	}
+
+	.auto-park-three-section .container .description h2 {
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 35px;
+		text-transform: uppercase;
+		color: #141e17;
+		text-align: center;
+		margin: 15px 0 10px 0;
+	}
+
+	.auto-park-three-section .container .description p {
+		font-family: var(--font-family);
+		font-weight: 400;
+		font-size: 30px;
+		color: #38423b;
+		text-align: center;
+		margin-bottom: 10px;
+	}
+
+	.auto-park-three-section .container .description .buttons-box {
+		display: flex;
+		justify-content: space-between;
+		padding: 0 25px;
+	}
+
+	.auto-park-three-section .container .description a button {
+		width: 300px;
+		height: 57px;
+		padding: 10px 15px;
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 20px;
+		color: #fff;
+	}
+
+	/* block 4 */
+	.auto-park-four-section {
+		margin-top: 95px;
+	}
+
+	.auto-park-four-section .container {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: space-between;
+	}
+
+	.auto-park-four-section .container .description {
+		order: 2;
+		text-align: center;
+	}
+
+	.auto-park-four-section .container .box-img {
+		order: 1;
+	}
+
+	.auto-park-four-section .container .box-img img {
+		max-width: 100%;
+	}
+
+	.auto-park-four-section .container .description {
+		width: 100%;
+		padding: 0 25px;
+		display: grid;
+		justify-items: center;
+	}
+
+	.auto-park-four-section .container .description h2 {
+		width: 100%;
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 35px;
+		text-transform: uppercase;
+		color: #141e17;
+		text-align: center;
+		margin: 15px 0 10px 0;
+	}
+
+	.auto-park-four-section .container .description p {
+		font-family: var(--font-family);
+		font-weight: 400;
+		font-size: 30px;
+		color: #38423b;
+		text-align: center;
+		margin-bottom: 10px;
+	}
+
+	.auto-park-four-section .container .description button {
+		width: 408px;
+		height: 57px;
+		padding: 10px 15px;
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 20px;
+		color: #fff;
+	}
+
+	/* block 5 */
+	.auto-park-five-section {
+		margin-top: 95px;
+	}
+
+	.auto-park-five-section .container {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		background: url(/static/app/images/auto-park-img/park-block-5-background.png) no-repeat right top;
+		background-size: 74% 99%;
+		position: relative;
+		padding: 15px 0 0 0;
+		margin: 0;
+		max-width: 100%;
+
+	}
+
+	.auto-park-five-section .container .box-img {
+		width: 100%;
+		height: auto;
+	}
+
+	.auto-park-five-section .container .box-img img {
+		width: 100%;
+		height: auto;
+	}
+
+	.auto-park-five-section .container .description {
+		padding: 0 15px;
+		justify-items: center;
+		margin-top: 25px;
+	}
+
+	.auto-park-five-section .container .description h2 {
+		font-size: 35px;
+		text-align: left;
+	}
+
+	.auto-park-five-section .container .description p {
+		font-size: 30px;
+		text-align: left;
+	}
+
+	.auto-park-five-section .container .description .contact-us {
+		width: 100%;
+		gap: 25px;
+		margin-bottom: 80px;
+		flex-direction: column;
+	}
+
+	.auto-park-five-section .container .description a button {
+		width: 570px;
+		height: 57px;
+		padding: 10px 15px;
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 20px;
+		color: #fff;
+	}
+
+	.auto-park-five-section .container .description button {
+		padding: 10px 15px;
+		background: #EC6323;
+		color: #fff;
+		border-radius: 20px;
+		font-size: 20px;
+		text-decoration: none;
+		cursor: pointer;
+		font-weight: 700;
+		width: 570px;
+		height: 57px;
+	}
+
+	/* block 6 */
+	.auto-park-six-section {
+		margin-top: 95px;
+	}
+
+	.auto-park-six-section .container {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: space-between;
+	}
+
+	.auto-park-six-section .container .box-img {
+		width: 100%;
+	}
+
+	.auto-park-six-section .container .box-img img {
+		width: 100%;
+		height: auto;
+	}
+
+	.auto-park-six-section .container .description {
+		width: 100%;
+		padding: 0 25px;
+		display: grid;
+		justify-items: center;
+	}
+
+	.auto-park-six-section .container .description h2 {
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 35px;
+		text-transform: uppercase;
+		color: #141e17;
+		text-align: center;
+		margin: 15px 0 10px 0;
+	}
+
+	.auto-park-six-section .container .description p {
+		font-family: var(--font-family);
+		font-weight: 400;
+		font-size: 30px;
+		color: #38423b;
+		text-align: center;
+		margin-bottom: 10px;
+	}
+
+	.auto-park-six-section .container .description button {
+		width: 300px;
+		height: 57px;
+		padding: 10px 15px;
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 20px;
+		color: #fff;
+	}
+
+	/* block 7 */
+	.auto-park-seven-section {
+		margin-top: 95px;
+	}
+
+	.auto-park-seven-section .container {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: space-between;
+	}
+
+	.auto-park-seven-section .container .box-img {
+		flex-basis: calc(50% - 10px);
+	}
+
+	.auto-park-seven-section .container .description {
+		flex-basis: calc(100%);
+		order: 2;
+		padding: 0;
+		display: grid;
+		justify-items: center;
+	}
+
+	.auto-park-seven-section .container .box-img img {
+		width: 100%;
+		height: auto;
+		padding: 0 50px;
+	}
+
+	.auto-park-seven-section .container .box-img:last-child {
+		margin-right: 0;
+		order: 1;
+	}
+
+	.auto-park-seven-section .container .description h2 {
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 35px;
+		text-transform: uppercase;
+		color: #141e17;
+		text-align: center;
+		margin: 15px 0 25px 0;
+	}
+
+	.auto-park-seven-section .container .description p {
+		font-family: var(--font-family);
+		font-weight: 400;
+		font-size: 30px;
+		color: #38423b;
+		text-align: center;
+		margin-bottom: 10px;
+	}
+
+	.auto-park-seven-section .container .description button {
+		width: 408px;
+		height: 57px;
+		padding: 10px 15px;
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 20px;
+		color: #fff;
+		margin-bottom: 49px;
+	}
+
+	/* block 8 */
+	.auto-park-eight-section {
+		margin-top: 95px;
+	}
+
+	.auto-park-eight-section .container {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: space-between;
+	}
+
+	.auto-park-eight-section .container .box-img {
+		width: 100%;
+	}
+
+	.auto-park-eight-section .container .box-img img {
+		width: 100%;
+		height: auto;
+	}
+
+	.auto-park-eight-section .container .description {
+		width: 100%;
+		padding: 0 25px;
+		left: 0;
+		display: grid;
+		justify-items: center;
+	}
+
+	.auto-park-eight-section .container .description h2 {
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 35px;
+		text-transform: uppercase;
+		color: #141e17;
+		text-align: center;
+		margin: 15px 0 10px 0;
+	}
+
+	.auto-park-eight-section .container .description p {
+		font-family: var(--font-family);
+		font-weight: 400;
+		font-size: 30px;
+		color: #38423b;
+		text-align: center;
+		margin-bottom: 10px;
+	}
+
+	.auto-park-eight-section .container .description button {
+		width: 300px;
+		height: 57px;
+		padding: 10px 15px;
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 20px;
+		color: #fff;
+	}
+
+	/* block 9 */
+	.auto-park-nine-section {
+		margin-top: 95px;
+	}
+
+	.auto-park-nine-section .container {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: space-between;
+		background: url(/static/app/images/auto-park-img/park-block-5-background.png) no-repeat top left;
+		background-size: 85% 89%;
+		position: relative;
+		padding: 27px 0 78px 0;
+		margin: 0;
+		max-width: 100%;
+	}
+
+	.auto-park-nine-section .container .box-img {
+		width: 100%;
+		position: relative;
+		bottom: 0;
+		right: 0;
+		padding: 0 0 0 220px;
+	}
+
+	.auto-park-nine-section .container .box-img img {
+		width: 100%;
+		height: auto;
+		margin-top: 25px;
+	}
+
+	.auto-park-nine-section .container .description {
+		width: 100%;
+		padding: 0 35px;
+		display: grid;
+		justify-items: start;
+	}
+
+	.auto-park-nine-section .container .description h2 {
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 35px;
+		text-transform: uppercase;
+		color: #fff;
+		text-align: left;
+		margin: 55px 0 10px 0;
+	}
+
+	.auto-park-nine-section .container .description p {
+		width: 100%;
+		font-family: var(--font-family);
+		font-weight: 400;
+		font-size: 30px;
+		color: #fff;
+		text-align: left;
+		padding-right: 130px;
+	}
+
+	.auto-park-nine-section .container .description button {
+		width: 451px;
+		height: 57px;
+		margin-top: 5px;
+		border: 5px solid #EC6323;
+		background-color: #EC6323;
+		padding: 5px 15px;
+		font-size: 20px;
+		color: #fff;
+		cursor: pointer;
+		border-radius: 25px;
+		font-weight: 700;
+		text-align: left;
+	}
+
+	/* block 10 */
+	.auto-park-ten-section {
+		margin-top: 95px;
+	}
+
+	.auto-park-ten-section .container {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+	}
+
+	.auto-park-ten-section .container .box-img {
+		width: 60%;
+		padding: 0;
+	}
+
+	.auto-park-ten-section .container .box-img img {
+		width: 100%;
+		height: auto;
+	}
+
+	.auto-park-ten-section .container .description {
+		width: 100%;
+		padding: 0 25px;
+		left: 0;
+		display: grid;
+		justify-items: start;
+	}
+
+	.auto-park-ten-section .container .description h2 {
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 35px;
+		text-transform: uppercase;
+		color: #141e17;
+		text-align: left;
+		margin: 25px 0;
+	}
+
+	.auto-park-ten-section .container .description p {
+		font-family: var(--font-family);
+		font-weight: 400;
+		font-size: 30px;
+		color: #38423b;
+		text-align: left;
+		margin: 0 0 25px 0;
+	}
+
+	.auto-park-ten-section .container .description a button {
+		width: 300px;
+		height: 57px;
+		padding: 10px 15px;
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 20px;
+		color: #fff;
+		margin: 0;
+	}
+
+	/* block 11 */
+	.auto-park-eleven-section {
+		margin-top: 95px;
+	}
+
+	.auto-park-eleven-section .container {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: space-between;
+		padding: 0;
+	}
+
+	.auto-park-eleven-section .container .description {
+		width: 100%;
+		padding: 0 25px;
+	}
+
+	.auto-park-eleven-section .container .description h2 {
+		font-family: var(--second-family);
+		font-weight: 700;
+		font-size: 35px;
+		text-transform: uppercase;
+		color: #141e17;
+		margin: 15px 0 10px 0;
+	}
+
+	.auto-park-eleven-section .container .description h3 {
+		font-family: var(--font-family);
+		font-weight: 400;
+		font-size: 30px;
+		color: rgba(83, 120, 94, 0.5);
+		margin: 15px 0 0 0;
+	}
+
+	.auto-park-eleven-section .container .description p {
+		font-family: var(--font-family);
+		font-weight: 400;
+		font-size: 27px;
+		color: #53785e;
+		margin: 0;
+	}
+
+	.auto-park-eleven-section .container .description span {
+		font-size: 30px;
+		font-family: var(--font-family);
+		font-weight: 400;
+		color: #53785e;
+		margin: 0;
+	}
+
+	.auto-park-eleven-section .container .icon-social-network a i {
+		color: #fff;
+		align-items: normal;
+		justify-content: normal;
+	}
+
+	.auto-park-eleven-section .container .icon-social-network a {
+		width: 40px;
+		height: 40px;
+	}
+
+	.auto-park-eleven-section .container .box-form {
+		width: 100%;
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		align-items: center;
+		background: url(/static/app/images/auto-park-img/park-block-11.png) no-repeat;
+		background-size: 100% 100%;
+		padding: 76px 0 65px 25px;
+		margin-top: 15px;
+	}
+
+	.auto-park-eleven-section .container .box-form form {
+		width: 100%;
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+	}
+
+	.auto-park-eleven-section .container .box-form form .client-info {
+		width: 100%;
+		margin-bottom: 25px;
+		position: relative;
+	}
+
+	.auto-park-eleven-section .container .box-form form div {
+		margin-bottom: 10px;
+	}
+
+	.auto-park-eleven-section .container .box-form form label {
+		margin-right: 10px;
+		font-family: var(--font-family);
+		font-weight: 700;
+		font-size: 30px;
+		color: #fff;
+	}
+
+	.auto-park-eleven-section .container .box-form form input {
+		width: 100%;
+		border: none;
+		border-radius: 25px 0 0 25px;
+		padding: 10px 15px;
+		font-family: var(--font-family);
+		font-weight: 400;
+		font-size: 27px;
+	}
+
+	.client-info input::placeholder {
+		color: rgba(83, 120, 94, 0.5);
+	}
+
+	.auto-park-eleven-section .container .box-form form button {
+		border: none;
+		padding: 10px 50px;
+		font-family: var(--font-family);
+		font-weight: 700;
+		font-size: 20px;
+		color: #fff;
+		background: #EC6323;
+		cursor: pointer;
+		border-radius: 20px;
+		width: 285px;
+		height: 56px;
+		text-align: left;
+	}
+}
+
 /*End Auto Park page*/
 
 /*Invest page*/
@@ -5501,10 +7263,9 @@ ul.sub-menu.service {
 
 
 .investment-right .decorate-img {
-	right: -150px;
+	right: -165px;
 	position: relative;
 	z-index: -1;
-
 }
 
 .invest-one-info {
