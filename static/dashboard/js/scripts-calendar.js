@@ -316,7 +316,7 @@ $(document).ready(function () {
 			$('.shift-vehicle').show();
 			$('.shift-btn').hide();
 			shiftForm.show();
-			validateInputTime(startTimeInput[0], 'startTime');
+			validateInputTime(startTimeInput[0], 'startTime', endTimeInput[0]);
 			validateInputTime(endTimeInput[0], 'endTime');
 
 			function handleDelete(action) {
@@ -410,7 +410,7 @@ $(document).ready(function () {
 			modalShiftTitle.text("Створення зміни");
 			modalShiftDate.text(formatDateString(clickedDayId));
 			shiftForm.show();
-			validateInputTime(startTimeInput[0], 'startTime');
+			validateInputTime(startTimeInput[0], 'startTime', endTimeInput[0]);
 			validateInputTime(endTimeInput[0], 'endTime');
 			shiftBtn.off('click').on('click', function (e) {
 				$('.shift-time-error').hide();
@@ -608,16 +608,18 @@ function compareTimes(time1, time2) {
 	return minutes1 - minutes2;
 }
 
-function validateInputTime(input, field) {
-	$(input).on('input', function () {
-		let numericValue = input.value.replace(/\D/g, '');
+function validateInputTime(input, field, nextInput) {
+    $(input).on('input', function (event) {
+        let inputValue = event.target.value;
 
-		let hours = numericValue.slice(0, 2);
-		let minutes = numericValue.slice(2, 4);
+        inputValue = inputValue.replace(/\D/g, '');
 
-		input.value = hours + ':' + minutes;
+        if (inputValue.length >= 2) {
+            inputValue = inputValue.slice(0, 2) + ':' + inputValue.slice(2);
+        }
 
-		input.value = input.value.slice(0, 5);
+        input.value = input.value.slice(0, 5);
+        event.target.value = inputValue;
 
 		var isValid = /^([0-1]?[0-9]|2[0-3]):([0-5][0-9])$/.test(input.value);
 
@@ -625,6 +627,9 @@ function validateInputTime(input, field) {
 			input.style.backgroundColor = '#bfa';
 			$('.shift-' + field + '-error').text('').hide();
 			blockBtn(false);
+			if (nextInput) {
+                $(nextInput).focus();
+            }
 
 			if (field === 'endTime') {
 				if (input.value === '00:00') {
@@ -640,11 +645,24 @@ function validateInputTime(input, field) {
 			}
 		} else {
 			input.style.backgroundColor = '#fba';
-			$('.shift-' + field + '-error').text('Введіть час').show();
+			$('.shift-' + field + '-error').text('Введіть коректний час').show();
 			blockBtn(true);
-		}
-	});
-	$(input).attr('inputmode', 'numeric');
+		}}).on('keydown', function(event) {
+        if (event.key === 'Backspace') {
+            let inputValue = $(this).val();
+            let cursorPosition = this.selectionStart;
+
+
+            if (inputValue.charAt(cursorPosition - 1) === ':' && cursorPosition === inputValue.length) {
+                $(this).val(inputValue.slice(0, cursorPosition - 1));
+                event.preventDefault();
+            } else if (inputValue.charAt(cursorPosition - 1).match(/\D/g)) {
+                $(this).val(inputValue.slice(0, cursorPosition - 1) + inputValue.slice(cursorPosition));
+            }
+        } else if ($(this).val().length >= 5 && event.key !== 'Backspace') {
+            event.preventDefault();
+        }
+    });
 }
 
 function blockBtn(arg) {
