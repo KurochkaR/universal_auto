@@ -207,11 +207,9 @@ def get_today_orders(self, **kwargs):
 @app.task(bind=True)
 def null_vehicle_orders(self, **kwargs):
     partner_pk = kwargs.get("partner_pk")
-    start, end = get_start_end('today', kwargs.get("day"))[:2]
     active_drivers = Driver.objects.get_active(partner=partner_pk)
-    filter_query = Q(partner=partner_pk, vehicle__isnull=True,
+    filter_query = Q(vehicle__isnull=True,
                      state__in=[FleetOrder.COMPLETED, FleetOrder.CLIENT_CANCEL, FleetOrder.SYSTEM_CANCEL],
-                     date_order__range=(start - timedelta(hours=end.hour), end),
                      driver__in=active_drivers)
     orders = FleetOrder.objects.filter(filter_query)
     for order in orders:
@@ -638,7 +636,7 @@ def get_today_rent(self, **kwargs):
     try:
         today_stats = "Поточна статистика\n"
         gps = UaGpsSynchronizer.objects.get(partner=partner, deleted_at=None)
-        check_today_rent(gps)
+        check_today_rent(gps, last_order=True)
         text = generate_efficiency_message(partner)
         if text:
             today_stats += text

@@ -387,11 +387,11 @@ class UklonRequest(Fleet, Synchronizer):
                   "System": FleetOrder.SYSTEM_CANCEL,
                   "Dispatcher": FleetOrder.SYSTEM_CANCEL
                   }
-
+        end_period = timezone.localtime() if end > timezone.localtime() else end
         params = {"limit": 100,
                   "fleetId": self.uklon_id(),
                   "from": self.report_interval(start),
-                  "to": self.report_interval(end)
+                  "to": self.report_interval(end_period)
                   }
         batch_data = []
         orders = []

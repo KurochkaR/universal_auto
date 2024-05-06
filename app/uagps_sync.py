@@ -154,12 +154,12 @@ class UaGpsSynchronizer(Fleet):
     def get_timestamp(timeframe):
         return int(timeframe.timestamp())
 
-    def get_driver_rent(self, start, end, driver):
+    def get_driver_rent(self, start, end, driver, last_order):
         reshuffles = check_reshuffle(driver, start, end, gps=True)
-        (rent_distance, rent_time), _, previous_finish_time = self.get_rent_stats(reshuffles, start, end, driver, False)
+        (rent_distance, rent_time), _, previous_finish_time = self.get_rent_stats(reshuffles, start, end, driver, False, last_order)
         return rent_distance, rent_time, previous_finish_time
 
-    def get_road_distance(self, start, end, schema_drivers=None):
+    def get_road_distance(self, start, end, last_order, schema_drivers=None):
         road_dict = {}
         if not schema_drivers:
             schema_drivers = DriverReshuffle.objects.filter(
@@ -168,7 +168,7 @@ class UaGpsSynchronizer(Fleet):
                 'driver_start', flat=True)
         drivers = Driver.objects.filter(pk__in=schema_drivers, schema__isnull=False)
         for driver in drivers:
-            road_dict[driver] = self.get_driver_rent(start, end, driver)
+            road_dict[driver] = self.get_driver_rent(start, end, driver, last_order)
         return road_dict
 
     def get_order_distance(self, orders):
@@ -201,13 +201,13 @@ class UaGpsSynchronizer(Fleet):
                 bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"), text=orders_text)
             FleetOrder.objects.bulk_update(updated_orders, fields=['distance', 'road_time'], batch_size=200)
 
-    def get_rent_stats(self, reshuffles, start_time, end_time, driver_pk, info_message):
+    def get_rent_stats(self, reshuffles, start_time, end_time, driver_pk, info_message, last_order):
         result_slots = []
         parameters = []
         prev_order_end_time = None
         for reshuffle in reshuffles:
             start, end = find_reshuffle_period(reshuffle, start_time, end_time)
-            empty_time_slots, prev_order_end_time = self.get_time_without_orders(driver_pk, start, end)
+            empty_time_slots, prev_order_end_time = self.get_time_without_orders(driver_pk, start, end, last_order)
             for slot in empty_time_slots:
                 parameters.append(self.get_params_for_report(self.get_timestamp(slot[0]),
                                                              self.get_timestamp(slot[1]),
@@ -217,7 +217,7 @@ class UaGpsSynchronizer(Fleet):
         return result, result_slots, prev_order_end_time
 
     @staticmethod
-    def get_time_without_orders(driver_pk, start, end):
+    def get_time_without_orders(driver_pk, start, end, last_order):
         empty_time_slots = []
         prev_order_end_time = start
         orders = FleetOrder.objects.filter(
@@ -233,7 +233,7 @@ class UaGpsSynchronizer(Fleet):
                 elif prev_order_end_time > order.finish_time:
                     continue
                 prev_order_end_time = timezone.localtime(order.finish_time)
-            if prev_order_end_time < end:
+            if prev_order_end_time < end and not last_order:
                 empty_time_slots.append((prev_order_end_time, end))
         else:
             empty_time_slots.append((start, end))
@@ -259,7 +259,7 @@ class UaGpsSynchronizer(Fleet):
                 parameters = []
                 if reshuffle.swap_vehicle.gps:
                     start_period, end_period = find_reshuffle_period(reshuffle, start, end)
-                    no_orders_time = self.get_time_without_orders(driver, start_period, end_period)[0]
+                    no_orders_time = self.get_time_without_orders(driver, start_period, end_period, False)[0]
                     for slot in no_orders_time:
                         parameters.append(self.get_params_for_report(self.get_timestamp(slot[0]),
                                                                      self.get_timestamp(slot[1]),
@@ -324,7 +324,7 @@ class UaGpsSynchronizer(Fleet):
         return no_gps_list
 
     def save_daily_rent(self, start, end, drivers):
-        in_road = self.get_road_distance(start, end, drivers)
+        in_road = self.get_road_distance(start, end, schema_drivers=drivers)
         no_vehicle_gps = []
         for driver, result in in_road.items():
             no_gps_list = self.calculate_driver_vehicle_rent(start, end, driver, result)

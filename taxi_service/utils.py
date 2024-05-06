@@ -211,36 +211,41 @@ def check_aggregators(user_pk):
     return list(aggregators), list(fleets)
 
 
-def is_conflict(driver, vehicle, start_time, end_time, reshuffle=None):
-    filter_query = Q(swap_vehicle=vehicle)
-    if driver:
-        filter_query |= Q(driver_start=driver)
-
+def get_overlapping_query(start_time, end_time):
     overlapping_shifts = Q(
         (Q(swap_time__lte=start_time) & Q(end_time__gt=start_time)) |
         (Q(swap_time__lt=end_time) & Q(end_time__gte=end_time)) |
         (Q(swap_time__gte=start_time) & Q(end_time__lte=end_time))
     )
-    reshuffles = DriverReshuffle.objects.filter(filter_query, overlapping_shifts).exclude(id=reshuffle)
+    return overlapping_shifts
 
-    if reshuffles.exists():
-        conflicting_shift = reshuffles.first()
-        conflicting_time = (f"{timezone.localtime(conflicting_shift.swap_time).strftime('%d.%m %H:%M')} "
-                            f"{timezone.localtime(conflicting_shift.end_time).strftime('%H:%M')}")
+
+def is_conflict(driver, vehicle, overlapping_shifts, reshuffle_upd=()):
+    filter_query = Q(swap_vehicle=vehicle)
+    if driver:
+        filter_query |= Q(driver_start=driver)
+    reshuffles = DriverReshuffle.objects.filter(filter_query, overlapping_shifts).exclude(id__in=reshuffle_upd)
+    conflict_list = []
+    conflict_dates = reshuffles.values_list("swap_time__date", flat=True)
+    for reshuffle in reshuffles:
+        conflicting_time = (f"{timezone.localtime(reshuffle.swap_time).strftime('%d.%m %H:%M')} "
+                            f"{timezone.localtime(reshuffle.end_time).strftime('%H:%M')}")
         conflicting_vehicle_data = {
-            'licence_plate': conflicting_shift.swap_vehicle.licence_plate,
-            'conflicting_time': conflicting_time
-        }
-        return conflicting_vehicle_data
+                'licence_plate': reshuffle.swap_vehicle.licence_plate,
+                'conflicting_time': conflicting_time
+            }
+        conflict_list.append(conflicting_vehicle_data)
+
+    return conflict_list, conflict_dates
 
 
 def add_shift(licence_plate, shift_date, start_time, end_time, driver_id, recurrence, partner):
     instances = []
-    messages = []
     vehicle = Vehicle.objects.filter(licence_plate=licence_plate).first()
     driver = Driver.objects.get(id=driver_id) if driver_id not in ['accident', 'maintenance'] else None
     start_datetime = datetime.strptime(f"{shift_date} {start_time}", "%Y-%m-%d %H:%M:%S")
     end_datetime = datetime.strptime(f"{shift_date} {end_time}", "%Y-%m-%d %H:%M:%S")
+
 
     today_reshuffle = DriverReshuffle.objects.filter(
         swap_time__date=shift_date,
@@ -258,24 +263,31 @@ def add_shift(licence_plate, shift_date, start_time, end_time, driver_id, recurr
         'every3Days': range(0, reshuffle_ranges, 6)
     }
     interval = recurrence_map.get(recurrence, range(1))
-
+    overlapping_query = None
+    time_dict = {}
     for day_offset in interval:
         current_date = start_datetime + timedelta(days=day_offset)
         current_swap_time = timezone.make_aware(datetime.combine(current_date, start_datetime.time()))
         current_end_time = timezone.make_aware(datetime.combine(current_date, end_datetime.time()))
-        conflicting_vehicle = is_conflict(driver, vehicle, current_swap_time, current_end_time)
-        if conflicting_vehicle:
-            messages.append(conflicting_vehicle)
-            continue
-        reshuffle = DriverReshuffle(
-            swap_vehicle=vehicle,
-            driver_start=driver,
-            swap_time=current_swap_time,
-            end_time=current_end_time,
-            partner_id=partner.pk,
-            dtp_or_maintenance=driver_id
-        )
-        instances.append(reshuffle)
+        time_dict[current_date.date()] = (current_swap_time, current_end_time)
+        if overlapping_query:
+            overlapping_query |= get_overlapping_query(current_swap_time, current_end_time)
+        else:
+            overlapping_query = get_overlapping_query(current_swap_time, current_end_time)
+
+    messages, conflict_times = is_conflict(driver, vehicle, overlapping_query)
+
+    for key_date, (start, end) in time_dict.items():
+        if key_date not in conflict_times:
+            reshuffle = DriverReshuffle(
+                swap_vehicle=vehicle,
+                driver_start=driver,
+                swap_time=start,
+                end_time=end,
+                partner_id=partner.pk,
+                dtp_or_maintenance=driver_id
+            )
+            instances.append(reshuffle)
 
     DriverReshuffle.objects.bulk_create(instances)
     return (False, messages) if messages else (True, "Зміна успішно додана")
@@ -307,9 +319,10 @@ def upd_shift(action, licence_id, start_time, end_time, shift_date, driver_id, r
     end_datetime = datetime.strptime(shift_date + ' ' + end_time, '%Y-%m-%d %H:%M:%S')
     driver = driver_id if driver_id not in ['accident', 'maintenance'] else None
     if action == 'update_shift':
-        conflicting_vehicle = is_conflict(driver, licence_id, start_datetime, end_datetime, reshuffle_id)
-        if conflicting_vehicle:
-            return False, conflicting_vehicle
+        overlapping = get_overlapping_query(start_datetime, end_datetime)
+        conflicting_message, conflict_time = is_conflict(driver, licence_id, overlapping, [reshuffle_id])
+        if conflicting_message:
+            return False, conflicting_message
 
         DriverReshuffle.objects.filter(id=reshuffle_id).update(
             swap_time=start_datetime,
@@ -322,33 +335,37 @@ def upd_shift(action, licence_id, start_time, end_time, shift_date, driver_id, r
 
     elif action == 'update_all_shift':
         selected_reshuffle = DriverReshuffle.objects.get(id=reshuffle_id)
-        messages = []
         reshuffle_upd = DriverReshuffle.objects.filter(
-            swap_time__gte=timezone.localtime(selected_reshuffle.swap_time),
-            swap_time__time=timezone.localtime(selected_reshuffle.swap_time).time(),
-            end_time__time=timezone.localtime(selected_reshuffle.end_time).time(),
+            swap_time__gte=selected_reshuffle.swap_time,
+            swap_time__time=selected_reshuffle.swap_time.time(),
+            end_time__time=selected_reshuffle.end_time.time(),
             driver_start=selected_reshuffle.driver_start,
             swap_vehicle=selected_reshuffle.swap_vehicle
         ).order_by('id')
-
+        overlapping_query = None
         updated_reshuffles = []
+        time_dict = {}
         for reshuffle in reshuffle_upd:
             start = timezone.make_aware(datetime.combine(timezone.localtime(reshuffle.swap_time).date(), start_datetime.time()))
             end = timezone.make_aware(datetime.combine(timezone.localtime(reshuffle.end_time).date(), end_datetime.time()))
-            conflicting_vehicle = is_conflict(driver, licence_id, start, end, reshuffle.id)
-            if conflicting_vehicle:
-                messages.append(conflicting_vehicle)
-                continue
-            reshuffle.swap_time = start
-            reshuffle.end_time = end
-            reshuffle.driver_start_id = driver
-            reshuffle.swap_vehicle_id = licence_id
-            reshuffle.dtp_or_maintenance = driver_id if not driver else None
-            updated_reshuffles.append(reshuffle)
+            time_dict[timezone.localtime(reshuffle.swap_time).date()] = (reshuffle, start, end)
+            if overlapping_query:
+                overlapping_query |= get_overlapping_query(start, end)
+            else:
+                overlapping_query = get_overlapping_query(start, end)
+        messages, conflict_times = is_conflict(driver, licence_id, overlapping_query, reshuffle_upd)
+        for reshuffle_time, (reshuffle, start, end) in time_dict.items():
+            if reshuffle_time not in conflict_times:
+                reshuffle.swap_time = start
+                reshuffle.end_time = end
+                reshuffle.driver_start_id = driver
+                reshuffle.swap_vehicle_id = licence_id
+                reshuffle.dtp_or_maintenance = driver_id if not driver else None
+                updated_reshuffles.append(reshuffle)
 
-            DriverReshuffle.objects.bulk_update(updated_reshuffles,
-                                                fields=['swap_time', 'end_time', 'driver_start', 'swap_vehicle',
-                                                        'dtp_or_maintenance'])
+        DriverReshuffle.objects.bulk_update(updated_reshuffles,
+                                            fields=['swap_time', 'end_time', 'driver_start', 'swap_vehicle',
+                                                    'dtp_or_maintenance'])
         return (True, f"Оновлено {len(updated_reshuffles)} змін") if not messages else (False, messages)
 
 

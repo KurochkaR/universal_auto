@@ -81,7 +81,7 @@ def generate_efficiency_message(partner):
                 f"Готівка: {efficiency.total_cash}\n" \
                 f"Виконано замовлень: {efficiency.total_orders_accepted}\n" \
                 f"Скасовано замовлень: {efficiency.total_orders_rejected}\n" \
-                f"Пробіг під замовленням: {efficiency.mileage}\n" \
+                f"Пробіг під замовленням: {efficiency.mileage - efficiency.rent_distance}\n" \
                 f"Ефективність: {efficiency.efficiency}\n" \
                 f"Холостий пробіг: {efficiency.rent_distance}\n" \
                 f"Час у дорозі: {efficiency.road_time}\n\n"
