@@ -427,9 +427,8 @@ class PostRequestHandler:
     @staticmethod
     def handler_incorrect_payment(request):
         data = request.POST
-        driver_id = DriverPayments.objects.get(pk=request.POST.get('payment_id')).driver_id
-        driver = Driver.objects.get(pk=int(driver_id))
-        if EcoFactorRequest().check_active_transaction(driver):
+        payment = DriverPayments.objects.get(pk=request.POST.get('payment_id'))
+        if EcoFactorRequest().check_active_transaction(payment.driver, payment.report_from, payment.report_to):
             json_data = JsonResponse({'error': 'Водій заряджає автомобіль, спробуйте пізніше'}, status=400)
         else:
             create_payment = create_daily_payment.apply_async(kwargs={"payment_id": int(data['payment_id'])})

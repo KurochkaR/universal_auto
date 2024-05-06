@@ -153,9 +153,9 @@ class EcoFactorRequest:
         with transaction.atomic():
             ChargeTransactions.objects.bulk_create(batch_data)
 
-    def check_active_transaction(self, driver):
+    def check_active_transaction(self, driver, start=None, end=None):
         query = self.get_transaction_query()
-        variables = self.get_varialbes_transaction("active")
+        variables = self.get_varialbes_transaction("active", start, end)
 
         data = self.get_payload(query, variables)
         response = self.response_data(data)
