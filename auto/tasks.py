@@ -23,7 +23,7 @@ from app.models import (RawGPS, Vehicle, Order, Driver, JobApplication, ParkSett
                         VehicleGPS, PartnerEarnings, Investor, Bonus, Penalty, PaymentsStatus,
                         FleetsDriversVehiclesRate, WeeklyReport, Category,
                         PenaltyCategory, PenaltyBonus)
-from django.db.models import Sum, IntegerField, FloatField, DecimalField, Q, Case, When
+from django.db.models import Sum, IntegerField, FloatField, DecimalField, Q, Case, When, F, Value
 from django.db.models.functions import Cast, Coalesce
 from app.utils import get_schedule, create_task, generate_efficiency_message
 from auto.utils import payment_24hours_create, summary_report_create, compare_reports, get_corrections, \
@@ -497,7 +497,7 @@ def update_driver_status(self, **kwargs):
                     driver_status_mapping[driver.id] = Driver.OFFLINE
             Driver.objects.filter(id__in=driver_status_mapping.keys()).update(
                 driver_status=Case(
-                    *[When(id=driver_id, then=status) for driver_id, status in driver_status_mapping.items()]
+                    *[When(id=driver_id, then=Value(status)) for driver_id, status in driver_status_mapping.items()]
                 )
             )
         else:
