@@ -83,7 +83,7 @@ class PostRequestHandler:
 
     @staticmethod
     def handler_success_login(request):
-        data = request.POST
+        data = request.POST.copy()
         data.update({"partner_pk":request.user.pk})
         task = get_session.apply_async(kwargs=data)
         json_data = JsonResponse({'task_id': task.id}, safe=False)

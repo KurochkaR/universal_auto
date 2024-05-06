@@ -156,7 +156,7 @@ def raw_gps_handler():
 
 @app.task(bind=True, ignore_result=False)
 def get_session(self, **kwargs):
-    aggregator = kwargs.get("aggregator")
+    aggregator = kwargs.get("aggregator", "Uber")
     partner_pk = kwargs.get("partner_pk")
     password = kwargs.get("password")
     login = kwargs.get("login")

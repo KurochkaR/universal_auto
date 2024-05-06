@@ -324,7 +324,7 @@ class UaGpsSynchronizer(Fleet):
         return no_gps_list
 
     def save_daily_rent(self, start, end, drivers):
-        in_road = self.get_road_distance(start, end, schema_drivers=drivers)
+        in_road = self.get_road_distance(start, end, last_order=False, schema_drivers=drivers)
         no_vehicle_gps = []
         for driver, result in in_road.items():
             no_gps_list = self.calculate_driver_vehicle_rent(start, end, driver, result)
