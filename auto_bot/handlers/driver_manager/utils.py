@@ -454,7 +454,10 @@ def calculate_efficiency(vehicle, start, end):
 def get_efficiency(manager_id=None, start=None, end=None):
     start_yesterday, end_yesterday = get_start_end('yesterday')[:2]
     if not start and not end:
-        start, end = get_start_end("current_week")[:2]
+        if timezone.localtime().weekday():
+            start, end = get_start_end("current_week")[:2]
+        else:
+            start, end = get_start_end("last_week")[:2]
     effective_vehicle = {}
     report = {}
     vehicles = get_drivers_vehicles_list(manager_id, Vehicle)[0]
@@ -520,7 +523,11 @@ def calculate_efficiency_driver(driver, start, end):
 def get_driver_efficiency_report(manager_id, start=None, end=None):
     start_yesterday, end_yesterday = get_start_end('yesterday')[:2]
     if not start and not end:
-        start, end = get_start_end("current_week")[:2]
+        if timezone.localtime().weekday():
+            start, end = get_start_end("current_week")[:2]
+        else:
+            start, end = get_start_end("last_week")[:2]
+
     drivers = get_drivers_vehicles_list(manager_id, Driver)[0]
     drivers = drivers.filter(schema__isnull=False)
     effective_driver = {}
