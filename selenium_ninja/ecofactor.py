@@ -135,21 +135,21 @@ class EcoFactorRequest:
                 continue
             driver = Driver.objects.get_active(second_name=second_name, name=name).first()
             start = timezone.make_aware(datetime.strptime(entry['created'], '%Y-%m-%dT%H:%M:%S.%fZ'),
-                                        timezone=timezone.get_default_timezone())
+                                        timezone=pytz.timezone('UTC'))
             start_time = timezone.localtime(start)
             vehicle = check_vehicle(driver, start_time)
-
-            data = {
-                "charge_id": entry['pk'],
-                "start_time": start_time,
-                "end_time": start_time + timedelta(seconds=entry['duration']),
-                "charge_amount": entry['charged'] / 1000,
-                "driver": driver,
-                "vehicle": vehicle,
-                "price": ParkSettings.get_value("CHARGE_PRICE", partner=driver.partner if driver else 1, default=8)
-            }
-            charge_transaction = ChargeTransactions(**data)
-            batch_data.append(charge_transaction)
+            if vehicle:
+                data = {
+                    "charge_id": entry['pk'],
+                    "start_time": start_time,
+                    "end_time": start_time + timedelta(seconds=entry['duration']),
+                    "charge_amount": entry['charged'] / 1000,
+                    "driver": driver,
+                    "vehicle": vehicle,
+                    "price": ParkSettings.get_value("CHARGE_PRICE", partner=driver.partner if driver else 1, default=7)
+                }
+                charge_transaction = ChargeTransactions(**data)
+                batch_data.append(charge_transaction)
         with transaction.atomic():
             ChargeTransactions.objects.bulk_create(batch_data)
 
