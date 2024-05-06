@@ -1570,7 +1570,7 @@ class DriverPaymentsAdmin(admin.ModelAdmin):
 
 @admin.register(DriverEfficiencyFleet)
 class DriverFleetEfficiencyAdmin(admin.ModelAdmin):
-    list_display = ['report_from', 'driver', 'efficiency', 'total_kasa', 'total_orders', 'mileage', 'fleet']
+    list_display = ['report_from', 'driver', 'efficiency', 'total_kasa', 'total_orders_accepted', 'mileage', 'fleet']
 
     def get_list_filter(self, request):
         if request.user.is_superuser:

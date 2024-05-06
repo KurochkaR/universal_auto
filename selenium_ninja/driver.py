@@ -8,6 +8,7 @@ import re
 from urllib.parse import urlparse
 
 import redis
+from selenium.webdriver.common.proxy import ProxyType
 from selenium.webdriver.support import expected_conditions as ec
 import requests
 from django.utils import timezone
@@ -15,7 +16,7 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver import DesiredCapabilities
+from selenium.webdriver import DesiredCapabilities, Proxy
 from selenium.common import TimeoutException, NoSuchElementException, InvalidArgumentException
 
 from app.models import FleetOrder, Vehicle, FleetsDriversVehiclesRate, UberService, UberSession, \
@@ -82,9 +83,12 @@ class SeleniumTools:
         options.add_argument('--disable-dev-shm-usage')
         options.add_argument('''--user-agent=Mozilla/5.0
          (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.0.0 Safari/537.36''')
-
+        proxy = Proxy()
+        proxy.proxy_type = ProxyType.MANUAL
+        proxy.http_proxy = ParkSettings.get_value("SELENIUM_PROXY")
         capabilities = DesiredCapabilities.CHROME.copy()
         capabilities['acceptInsecureCerts'] = True
+        proxy.add_to_capabilities(capabilities)
 
         driver = webdriver.Remote(
             os.environ['SELENIUM_HUB_HOST'],
