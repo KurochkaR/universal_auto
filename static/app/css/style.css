@@ -1240,7 +1240,7 @@ ul.sub-menu.service {
 
 @media screen and (min-width: 768px) and (max-width: 1023px) {
 	.footer_section {
-		margin-top: 30px;
+		margin-top: 95px;
 		height: auto;
 	}
 
@@ -1327,7 +1327,7 @@ ul.sub-menu.service {
 
 @media screen and (min-width: 1024px) and (max-width: 1199px) {
 	.footer_section {
-		margin-top: 30px;
+		margin-top: 95px;
 		height: auto;
 	}
 
@@ -3433,7 +3433,7 @@ ul.sub-menu.service {
 
 .auto-park-two-section .contact-us button {
 	margin-top: 10px;
-	padding: 10px 35px;
+	padding: 10px 10px;
 	background: #EC6323;
 	border: 5px solid #EC6323;
 	text-decoration: none;
