@@ -428,31 +428,31 @@ class BoltRequest(Fleet, Synchronizer):
         return calendar_errors
 
     def get_drivers_status(self, photo=None):
-        with_client = []
-        wait = []
+        with_client = wait = Driver.objects.none()
+
         report = self.get_target_url(f'{self.base_url}getDriversForLiveMap', self.param())
         if report.get('data'):
             for driver in report['data']['list']:
-                name_list = driver['name'].split()
-                name, second_name = name_list[0], name_list[-1]
-                if driver['state'] == 'waiting_orders':
-                    wait.append((name, second_name))
-                    wait.append((second_name, name))
+                db_driver = Driver.objects.filter(
+                                fleetsdriversvehiclesrate__driver_external_id=str(driver['id']),
+                                fleetsdriversvehiclesrate__fleet=self, partner=self.partner)
+                if db_driver.exists():
+                    driver_obj = db_driver.first()
+                    if driver['state'] == 'waiting_orders':
+                        wait = wait.union(db_driver)
+
+                    else:
+                        with_client = with_client.union(db_driver)
+                    if photo and driver_obj.photo == 'drivers/default-driver.png':
+                        response = requests.get(driver['picture'])
+                        if response.status_code == 200:
+                            image_data = response.content
+                            image_file = BytesIO(image_data)
+                            driver_obj.photo = File(image_file,
+                                                     name=f"{db_driver.name}_{db_driver.second_name}.jpg")
+                            driver_obj.save(update_fields=["photo"])
                 else:
-                    with_client.append((name, second_name))
-                    with_client.append((second_name, name))
-                if photo:
-                    try:
-                        bolt_driver = Driver.objects.get(name=name, second_name=second_name, partner=self.partner)
-                        if bolt_driver.photo == 'drivers/default-driver.png':
-                            response = requests.get(driver['picture'])
-                            if response.status_code == 200:
-                                image_data = response.content
-                                image_file = BytesIO(image_data)
-                                bolt_driver.photo = File(image_file, name=f"{name}_{second_name}.jpg")
-                                bolt_driver.save(update_fields=["photo"])
-                    except (ObjectDoesNotExist, KeyError):
-                        continue
+                    continue
         return {'wait': wait,
                 'with_client': with_client}
 

@@ -312,23 +312,23 @@ class UberRequest(Fleet, Synchronizer):
         variables = {
                     "orgUUID": self.get_uuid()
                      }
-        with_client = []
-        wait = []
+        with_client = wait = Driver.objects.none()
         data = self.get_payload(query, variables)
         response = requests.post(str(self.base_url), headers=self.get_header(), json=data)
         if response.status_code == 200:
             drivers = response.json()['data']['getDriverEvents']['driverEvents']
             if drivers:
                 for rider in drivers:
-                    rate = FleetsDriversVehiclesRate.objects.filter(driver_external_id=rider['driverUUID']).first()
-                    if rate:
-                        name, second_name = rate.driver.name, rate.driver.second_name
+                    db_driver = Driver.objects.filter(
+                        fleetsdriversvehiclesrate__driver_external_id=rider['driverUUID'],
+                        fleetsdriversvehiclesrate__fleet=self, partner=self.partner)
+                    if db_driver.exists():
                         if rider["driverStatus"] == "online":
-                            wait.append((name, second_name))
-                            wait.append((second_name, name))
+                            wait = wait.union(db_driver)
                         elif rider["driverStatus"] in ("accepted", "in_progress"):
-                            with_client.append((name, second_name))
-                            with_client.append((second_name, name))
+                            with_client = with_client.union(db_driver)
+                    else:
+                        continue
         return {'wait': wait,
                 'with_client': with_client}
 

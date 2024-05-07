@@ -458,8 +458,6 @@ def get_driver_efficiency(self, **kwargs):
     if gps_fleet.exists():
         check_today_rent(gps_fleet.first(), "yesterday", kwargs.get("day"))
 
-
-
 # @app.task(bind=True)
 # def get_driver_efficiency_fleet(self, **kwargs):
 #     partner_pk = kwargs.get("partner_pk")
@@ -472,34 +470,24 @@ def get_driver_efficiency(self, **kwargs):
 #                 polymorphic_efficiency_create(DriverEfficiencyFleet, partner_pk, driver,
 #                                               start, end, CustomReport, fleet)
 
+
 @app.task(bind=True)
 def update_driver_status(self, **kwargs):
     partner_pk = kwargs.get("partner_pk")
     with memcache_lock(self.name, self.request.kwargs, self.app.oid, 600) as acquired:
         if acquired:
-            status_online = set()
-            status_with_client = set()
+            status_online = status_with_client = Driver.objects.none()
             fleets = Fleet.objects.filter(partner=partner_pk, deleted_at=None).exclude(name='Gps')
             for fleet in fleets:
                 statuses = fleet.get_drivers_status(kwargs.get('photo')) if isinstance(fleet,
                                                                          BoltRequest) else fleet.get_drivers_status()
-                status_online = status_online.union(set(statuses['wait']))
-                status_with_client = status_with_client.union(set(statuses['with_client']))
-            drivers = Driver.objects.get_active(partner=partner_pk)
-            driver_status_mapping = {}
-            for driver in drivers:
-                if any(Order.objects.filter(driver=driver, status_order=Order.IN_PROGRESS)) or \
-                        (driver.name, driver.second_name) in status_with_client:
-                    driver_status_mapping[driver.id] = Driver.WITH_CLIENT
-                elif (driver.name, driver.second_name) in status_online:
-                    driver_status_mapping[driver.id] = Driver.ACTIVE
-                else:
-                    driver_status_mapping[driver.id] = Driver.OFFLINE
-            Driver.objects.filter(id__in=driver_status_mapping.keys()).update(
-                driver_status=Case(
-                    *[When(id=driver_id, then=Value(status)) for driver_id, status in driver_status_mapping.items()]
-                )
-            )
+                status_online = status_online.union(statuses['wait'])
+                status_with_client = status_with_client.union(statuses['with_client'])
+            work_drivers = status_online.union(status_with_client)
+            off_drivers = Driver.objects.get_active(partner=partner_pk).exclude(id__in=work_drivers.values_list('id', flat=True))
+            Driver.objects.filter(id__in=status_online.values_list('id', flat=True)).update(driver_status=Driver.ACTIVE)
+            Driver.objects.filter(id__in=status_with_client.values_list('id', flat=True)).update(driver_status=Driver.WITH_CLIENT)
+            off_drivers.update(driver_status=Driver.OFFLINE)
         else:
             logger.info(f'{self.name}: passed')
 

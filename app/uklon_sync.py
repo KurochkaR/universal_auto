@@ -315,25 +315,23 @@ class UklonRequest(Fleet, Synchronizer):
         return total_amount_without_fee, total_amount_cash
 
     def get_drivers_status(self):
-        drivers = {
-            'with_client': [],
-            'wait': [],
-        }
+        with_client = wait = Driver.objects.none()
         url = f"{Service.get_value('UKLON_5')}{self.uklon_id()}"
         url += Service.get_value('UKLON_6')
         data = self.response_data(url, params={'limit': '50', 'offset': '0'})
-        if data:
-            for driver in data.get('data', []):
-                name, second_name = driver['first_name'].split()[0], driver['last_name'].split()[0]
-                first_data = (second_name, name)
-                second_data = (name, second_name)
+        for driver in data.get('data', []):
+            db_driver = Driver.objects.filter(
+                fleetsdriversvehiclesrate__driver_external_id=driver['id'],
+                fleetsdriversvehiclesrate__fleet=self, partner=self.partner)
+            if db_driver.exists():
                 if driver['status'] == 'Active':
-                    drivers['wait'].append(first_data)
-                    drivers['wait'].append(second_data)
+                    wait = wait.union(db_driver)
                 elif driver['status'] == 'OrderExecution':
-                    drivers['with_client'].append(first_data)
-                    drivers['with_client'].append(second_data)
-        return drivers
+                    with_client = with_client.union(db_driver)
+            else:
+                continue
+        return {'wait': wait,
+                'with_client': with_client}
 
     def get_drivers_table(self):
         drivers = []
