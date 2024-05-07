@@ -144,7 +144,7 @@ def summary_report_create(start, end, driver, partner_pk):
 
 
 def get_efficiency_today(start, end, driver):
-    filter_query = Q(date_order__range=(start,end), driver=driver)
+    filter_query = Q(date_order__range=(start, end), driver=driver)
     fleets = Fleet.objects.filter(fleetsdriversvehiclesrate__driver=driver, deleted_at=None).exclude(
         name="Ninja").distinct()
     orders = FleetOrder.objects.filter(filter_query)
@@ -193,7 +193,7 @@ def process_driver_data(driver, result, start, end):
     if end > end_time:
         end_time = end
     total_km, road_time, vehicles = UaGpsSynchronizer.objects.get(
-            partner=driver.partner).calc_total_km(driver, start, end_time)
+        partner=driver.partner).calc_total_km(driver, start, end_time)
     in_order_time = road_time - rent_time
     kasa, card, orders, orders_accepted, canceled_orders, fleet_list = get_efficiency_today(start, end_time, driver)
     if total_km:
@@ -204,7 +204,7 @@ def process_driver_data(driver, result, start, end):
             "total_orders_rejected": canceled_orders,
             "total_orders_accepted": orders_accepted,
             "mileage": total_km - rent_distance,
-            "efficiency": round(kasa / (total_km - rent_distance), 2) if (total_km - rent_distance) else 0,
+            "efficiency": round(kasa / (total_km - rent_distance), 2) if total_km - rent_distance else 0,
             "road_time": in_order_time,
             "total_cash": kasa - card,
             "rent_distance": rent_distance,
@@ -234,7 +234,7 @@ def process_driver_data(driver, result, start, end):
 def calendar_weekly_report(partner_pk, start_date, end_date, format_start, format_end):
     weekly_kasa = CustomReport.objects.filter(
         report_from__range=(start_date, end_date), partner=partner_pk).aggregate(
-            kasa=Coalesce(Sum('total_amount_without_fee'), Decimal(0)))['kasa']
+        kasa=Coalesce(Sum('total_amount_without_fee'), Decimal(0)))['kasa']
     weekly_bonus = WeeklyReport.objects.filter(
         report_from__range=(start_date, end_date), partner=partner_pk).aggregate(
         bonus=Coalesce(Sum('bonuses'), Decimal(0)))['bonus']
@@ -338,7 +338,7 @@ def create_rental_investor_earn(start, end, vehicles_list: list, partner_pk: int
         overall_mileage = CarEfficiency.objects.filter(
             report_to__range=(start, end), vehicle=vehicle, partner=partner_pk).aggregate(
             total=Sum('mileage'))['total']
-        if overall_mileage > ParkSettings.get_value("RENT_LIMIT",default=2000, partner=partner_pk):
+        if overall_mileage > ParkSettings.get_value("RENT_LIMIT", default=2000, partner=partner_pk):
             investors_kasa += overall_mileage * ParkSettings.get_value("OVERALL_MILEAGE_PRICE", default=2,
                                                                        partner=partner_pk)
         calc_and_create_earn(start, end, investors_kasa, vehicle)
