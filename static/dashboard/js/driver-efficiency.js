@@ -213,61 +213,13 @@ function fetchDriverFleetEfficiencyData(period, start, end, aggregators) {
 	});
 }
 
-let $table = $('.driver-table');
-let $tbody = $table.find('tbody');
-
-function sortTable(column, order) {
-	var groups = [];
-	var group = [];
-
-	$('tr:not(.table-header)').each(function () {
-		if ($(this).find('.driver').length > 0) {
-			if (group.length > 0) {
-				groups.push(group);
-			}
-			group = [$(this)];
-		} else {
-			group.push($(this));
-		}
-	});
-
-	if (group.length > 0) {
-		groups.push(group);
-	}
-
-	groups.sort(function (a, b) {
-		var sumA = 0;
-		a.forEach(function (row) {
-			sumA += parseFloat($(row).find(`td.${column}`).text());
-		});
-		var sumB = 0;
-		b.forEach(function (row) {
-			sumB += parseFloat($(row).find(`td.${column}`).text());
-		});
-		// return sumA - sumB;
-		if (order === 'asc') {
-			return sumA - sumB;
-		} else {
-			return sumB - sumA;
-		}
-	});
-
-	$tbody.empty();
-	groups.forEach(function (group) {
-		group.forEach(function (row) {
-			$tbody.append(row);
-		});
-	});
-}
-
 
 $(document).ready(function () {
-	fetchDriverEfficiencyData('today', null, null);
 
 	$(document).on('click', 'th.sortable', function () {
 		let column = $(this).data('sort');
 		let sortOrder = $(this).hasClass('sorted-asc') ? 'desc' : 'asc';
-		$table.find('th.sortable').removeClass('sorted-asc sorted-desc');
+		$('.driver-efficiency-table').find('th.sortable').removeClass('sorted-asc sorted-desc');
 
 		if (sortOrder === 'asc') {
 			$(this).addClass('sorted-asc');

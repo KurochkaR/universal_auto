@@ -463,7 +463,6 @@ $(document).ready(function () {
 		$('#modal-add-bonus').show();
 	});
 
-	driverPayment(null, null, null, paymentStatus = "on_inspection");
 	var clickedDate = sessionStorage.getItem('clickedDate');
 	var clickedId = sessionStorage.getItem('clickedId');
 	if (clickedDate && clickedId) {

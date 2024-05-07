@@ -204,7 +204,7 @@ def process_driver_data(driver, result, start, end):
             "total_orders_rejected": canceled_orders,
             "total_orders_accepted": orders_accepted,
             "mileage": total_km - rent_distance,
-            "efficiency": round(kasa / (total_km - rent_distance), 2) if total_km else 0,
+            "efficiency": round(kasa / (total_km - rent_distance), 2) if (total_km - rent_distance) else 0,
             "road_time": in_order_time,
             "total_cash": kasa - card,
             "rent_distance": rent_distance,

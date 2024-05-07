@@ -1,5 +1,13 @@
 $(document).ready(function () {
-	$.ajax({
+    getDriversList()
+	$(this).on('click', '.driver-name-info', function () {
+		var driverId = $(this).data('id');
+		window.location.href = "/dashboard/driver/" + driverId;
+	});
+});
+
+function getDriversList(){
+    $.ajax({
 		url: `/api/driver_info/`,
 		type: 'GET',
 		dataType: 'json',
@@ -22,9 +30,4 @@ $(document).ready(function () {
 			});
 		}
 	});
-
-	$(this).on('click', '.driver-name-info', function () {
-		var driverId = $(this).data('id');
-		window.location.href = "/dashboard/driver/" + driverId;
-	});
-});
+}

@@ -93,6 +93,9 @@ class GetRequestView(View):
                 "render_bonus": handler.handle_render_bonus_form,
                 "render_bonus_driver": handler.handle_render_bonus_form,
                 "check_cash": handler.handle_check_cash,
+                "render_drivers_list": handler.handle_render_driver_list,
+                "render_drivers_payments": handler.handle_render_driver_payments,
+                "render_drivers_efficiency": handler.handle_render_driver_efficiency
             }
 
             if action in method:

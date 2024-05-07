@@ -7,8 +7,8 @@ from operator import itemgetter
 
 from django.contrib.postgres.aggregates import ArrayAgg
 from django.db.models import Sum, F, OuterRef, Subquery, DecimalField, Avg, Value, CharField, ExpressionWrapper, Case, \
-    When, Func, FloatField, Exists, Prefetch, Q, IntegerField
-from django.db.models.functions import Concat, Round, Coalesce, Cast
+    When, Func, FloatField, Exists, Prefetch, Q, IntegerField, DateField
+from django.db.models.functions import Concat, Round, Coalesce, Cast, Extract
 from django.forms import DurationField
 from django.utils import timezone
 from rest_framework import generics
@@ -20,7 +20,8 @@ from api.serializers import SummaryReportSerializer, CarEfficiencySerializer, Ca
     DriverEfficiencyFleetRentSerializer, DriverInformationSerializer
 from app.models import SummaryReport, CarEfficiency, Vehicle, DriverEfficiency, RentInformation, DriverReshuffle, \
     PartnerEarnings, InvestorPayments, DriverPayments, PaymentsStatus, PenaltyBonus, Penalty, Bonus, \
-    DriverEfficiencyFleet, VehicleSpending, Driver, BonusCategory, CustomReport, SalaryCalculation, WeeklyReport
+    DriverEfficiencyFleet, VehicleSpending, Driver, BonusCategory, CustomReport, SalaryCalculation, WeeklyReport, \
+    ParkSettings
 from taxi_service.utils import get_start_end
 
 
@@ -145,12 +146,22 @@ class InvestorCarsEarningsView(CombinedPermissionsMixin,
         start, end, format_start, format_end = get_start_end(self.kwargs['period'])
         queryset = InvestorFilterMixin.get_queryset(InvestorPayments, self.request.user)
         queryset = queryset.filter(report_from__range=(start, end))
+        lose_percent = ParkSettings.get_value("LOSE_PERCENT", default=10)
         mileage_subquery = CarEfficiency.objects.filter(
             report_from__range=(start, end),
             investor=self.request.user
         ).select_related('vehicle').values('vehicle__licence_plate').annotate(
             mileage=Sum('mileage'),
             spending=Sum('total_spending'),
+            price=F('vehicle__purchase_price'),
+            start_count_roi=Case(
+                When(vehicle__purchase_date__gt=start, then=F('vehicle__purchase_date')),
+                     default=start,
+                     output_field=DateField()),
+            days_since_purchase=Extract(end - F('start_count_roi'), 'day'),
+            current_price=F('vehicle__purchase_price') -
+                          (F('days_since_purchase') / 365) * lose_percent *
+                          F('vehicle__purchase_price') / 100,
             start_mileage=Case(
                 When(vehicle__purchase_date__gt=start, then=F('vehicle__start_mileage')),
                 default=0,
@@ -161,8 +172,12 @@ class InvestorCarsEarningsView(CombinedPermissionsMixin,
 
         total_mileage_spending = mileage_subquery.aggregate(
             total_mileage=Coalesce(Sum(F('mileage') + F('start_mileage'), output_field=DecimalField()), Decimal(0)),
-            total_spending=Coalesce(Sum('spending', output_field=DecimalField()), Decimal(0))
+            total_spending=Coalesce(Sum('spending', output_field=DecimalField()), Decimal(0)),
+            total_investment=Coalesce(Sum('price', output_field=IntegerField()), 0),
+            total_actives=Coalesce(Sum('current_price', output_field=DecimalField()), Decimal(0))
+
         )
+        print(total_mileage_spending["total_actives"])
         qs = queryset.values('vehicle__licence_plate').annotate(
             licence_plate=F('vehicle__licence_plate'),
             earnings=Sum(F('earning')),
@@ -172,11 +187,11 @@ class InvestorCarsEarningsView(CombinedPermissionsMixin,
         )
         total_earnings = queryset.aggregate(
             total_earnings=Coalesce(Sum(F('earning')), Decimal(0)))['total_earnings']
-        total = {
-            "total_earnings": total_earnings,
-            "total_mileage": total_mileage_spending["total_mileage"],
-            "total_spending": total_mileage_spending["total_spending"]
-        }
+        total_investment = total_mileage_spending["total_investment"] if total_mileage_spending["total_investment"] else 1
+        total = dict(total_earnings=total_earnings, total_mileage=total_mileage_spending["total_mileage"],
+                     total_spending=total_mileage_spending["total_spending"],
+                     roi=((total_earnings - total_mileage_spending["total_spending"] +
+                          total_mileage_spending["total_actives"] - total_investment) / total_investment) * 100)
         return [{'start': format_start, 'end': format_end, 'car_earnings': qs, 'totals': total}]
 
 
