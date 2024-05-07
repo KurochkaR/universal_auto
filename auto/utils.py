@@ -196,7 +196,7 @@ def process_driver_data(driver, result, start, end):
             partner=driver.partner).calc_total_km(driver, start, end_time)
     in_order_time = road_time - rent_time
     kasa, card, orders, orders_accepted, canceled_orders, fleet_list = get_efficiency_today(start, end_time, driver)
-    if kasa and total_km:
+    if total_km:
         defaults = {
             "report_to": end_time,
             "total_kasa": kasa,
