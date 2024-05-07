@@ -25,7 +25,6 @@ urlpatterns = [
     path('sign-in/', GoogleAuthView.as_view(), name='sign_in'),
     path('send-to-telegram/', SendToTelegramView.as_view(), name='send_to_telegram'),
 
-    path('blog/', blog, name='blog'),
     path('why/', why, name='why'),
     path('user-agreement/', agreement, name='user_agreement'),
     path("jsi18n/", JavaScriptCatalog.as_view(), name="javascript-catalog"),

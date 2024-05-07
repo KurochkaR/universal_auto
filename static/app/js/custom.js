@@ -70,8 +70,14 @@ $(document).ready(function () {
 	});
 
 	$('.stripes').click(function () {
-		$('.sub-menu').slideToggle();
+		var $subMenu = $(this).siblings('.sub-menu');
+		if ($subMenu.css('display') === 'none') {
+			$subMenu.css('display', 'flex').hide().slideDown();
+		} else {
+			$subMenu.slideUp();
+		}
 	});
+
 
 	let pagesLink = $("#pagesLink");
 	let pagesList = $("#pagesList");
