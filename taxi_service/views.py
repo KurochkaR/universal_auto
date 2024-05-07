@@ -301,10 +301,6 @@ class SendToTelegramView(View):
         return HttpResponseRedirect(telegram_link)
 
 
-def blog(request):
-    return render(request, "blog.html")
-
-
 def why(request):
     return render(request, "why.html", {"subscribe_form": SubscriberForm()})
 

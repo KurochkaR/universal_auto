@@ -70,8 +70,24 @@ $(document).ready(function () {
 	});
 
 	$('.stripes').click(function () {
-		$('.sub-menu').slideToggle();
+		var $subMenu = $(this).siblings('.sub-menu');
+		var isMobile = window.matchMedia("(max-width: 767px)").matches;
+
+		if (isMobile) {
+			if ($subMenu.css('display') === 'none') {
+				$subMenu.css('display', 'block').hide().slideDown();
+			} else {
+				$subMenu.slideUp();
+			}
+		} else {
+			if ($subMenu.css('display') === 'none') {
+				$subMenu.css('display', 'flex').hide().slideDown();
+			} else {
+				$subMenu.slideUp();
+			}
+		}
 	});
+
 
 	let pagesLink = $("#pagesLink");
 	let pagesList = $("#pagesList");
@@ -725,5 +741,12 @@ $(document).ready(function () {
 		if (confirm(message)) {
 			window.location.href = 'mailto:' + email;
 		}
+	});
+
+	$('.how-does-it-work-btn').click(function () {
+		var offset = $('.investment-two-section').offset().top - 70;
+		$('html, body').animate({
+			scrollTop: offset
+		}, 1000);
 	});
 });
