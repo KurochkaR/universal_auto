@@ -1,4 +1,6 @@
 from datetime import datetime
+from decimal import Decimal
+
 import requests
 from django.db import models
 from app.models import UberService, UberSession, FleetsDriversVehiclesRate, FleetOrder, \
@@ -240,15 +242,26 @@ class UberRequest(Fleet, Synchronizer):
                                                        fleet=self,
                                                        partner=self.partner).driver
         vehicle = check_vehicle(driver, end)
+        existing_report = CustomReport.objects.filter(report_to__date=start, fleet=self, driver=driver).first()
+        if existing_report:
+            report_from = existing_report.report_to
+            total_amount = round(Decimal(report['totalEarnings']) - existing_report.total_amount_without_fee, 2)
+            total_amount_cash = round(Decimal(report['cashEarnings']) - existing_report.total_amount_cash, 2)
+            total_rides = report['totalTrips'] - existing_report.total_rides
+        else:
+            report_from = start
+            total_amount = round(report['totalEarnings'], 2)
+            total_amount_cash = round(report['cashEarnings'], 2)
+            total_rides = report['totalTrips']
         payment = {
-            "report_from": start,
+            "report_from": report_from,
             "report_to": end,
             "fleet": self,
             "driver": driver,
-            "total_amount": round(report['totalEarnings'], 2),
-            "total_amount_without_fee": round(report['totalEarnings'], 2),
-            "total_amount_cash": round(report['cashEarnings'], 2),
-            "total_rides": report['totalTrips'],
+            "total_amount": total_amount,
+            "total_amount_without_fee": total_amount,
+            "total_amount_cash": total_amount_cash,
+            "total_rides": total_rides,
             "partner": self.partner,
             "vehicle": vehicle
         }

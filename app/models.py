@@ -201,6 +201,11 @@ class Schema(models.Model):
     def is_float(self):
         return True if self.schema == "FLOAT" else False
 
+    @classmethod
+    def get_weekly_drivers(cls, partner):
+        return cls.objects.filter(salary_calculation=SalaryCalculation.WEEK,
+                                  partner=partner).values_list('driver', flat=True)
+
     class Meta:
         verbose_name = 'Схему роботи'
         verbose_name_plural = 'Схеми роботи'
@@ -242,7 +247,7 @@ class User(models.Model):
         return self.full_name()
 
     def full_name(self):
-        return f'{self.name} {self.second_name}'
+        return f'{self.second_name} {self.name}'
 
     @classmethod
     def get_by_chat_id(cls, chat_id):
@@ -444,11 +449,11 @@ class Driver(User):
         verbose_name = 'Водія'
         verbose_name_plural = 'Водії'
 
-    def get_driver_external_id(self, fleet: str):
+    def get_driver_external_id(self, fleet: Fleet):
         try:
             return FleetsDriversVehiclesRate.objects.get(fleet=fleet, driver=self,
                                                          partner=self.partner,
-                                                         deleted_at=None).driver_external_id
+                                                         deleted_at__isnull=True).driver_external_id
         except ObjectDoesNotExist:
             return
         except MultipleObjectsReturned:
@@ -463,8 +468,6 @@ class Driver(User):
         filter_query = Q(penalty__isnull=False, driver_payments__isnull=True)
         return self.penaltybonus_set.filter(filter_query).aggregate(Sum('amount'))['amount__sum'] or 0
 
-    def __str__(self) -> str:
-        return f'{self.second_name} {self.name}'
 
 
 class FiredDriver(Driver):
@@ -545,6 +548,24 @@ class DriverPayments(Earnings):
         return f"{self.driver}"
 
 
+
+
+class ChargeTransactions(models.Model):
+    charge_id = models.IntegerField(unique=True, verbose_name="ID транзакції")
+    start_time = models.DateTimeField(verbose_name="Початок зарядки")
+    end_time = models.DateTimeField(verbose_name="Кінець зарядки")
+    charge_amount = models.DecimalField(decimal_places=2, max_digits=8, verbose_name="Кількість")
+    price = models.DecimalField(decimal_places=2, max_digits=4, verbose_name="Ціна")
+
+    vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE, null=True, verbose_name="Авто")
+    driver = models.ForeignKey(Driver, on_delete=models.CASCADE, null=True, verbose_name="Водій")
+
+    def get_penalty_amount(self):
+        price = Decimal(str(self.price))
+        charge_amount = Decimal(str(self.charge_amount))
+        return price * charge_amount
+
+
 class PenaltyBonus(PolymorphicModel):
     photo = models.ImageField(upload_to='penalty_bonus/', blank=True, null=True, verbose_name='Фото')
     amount = models.DecimalField(max_digits=8, decimal_places=2, verbose_name='Сума')
@@ -571,7 +592,7 @@ class PenaltyBonus(PolymorphicModel):
 
 
 class Penalty(PenaltyBonus):
-    pass
+    charge = models.ForeignKey(ChargeTransactions, on_delete=models.CASCADE, null=True)
 
 
 class Bonus(PenaltyBonus):

@@ -270,10 +270,8 @@ $(document).ready(function () {
 				$('.driver-photo-container').each(function (index, container) {
 					var photos = $(container).find('.driver-photo img');
 
-					if (photos.length > 3) {
+					if (photos.length > 2) {
 						$(container).addClass('photo-small-2');
-					} else if (photos.length > 2) {
-						$(container).addClass('photo-small');
 					}
 				});
 			}
@@ -318,7 +316,7 @@ $(document).ready(function () {
 			$('.shift-vehicle').show();
 			$('.shift-btn').hide();
 			shiftForm.show();
-			validateInputTime(startTimeInput[0], 'startTime');
+			validateInputTime(startTimeInput[0], 'startTime', endTimeInput[0]);
 			validateInputTime(endTimeInput[0], 'endTime');
 
 			function handleDelete(action) {
@@ -359,19 +357,19 @@ $(document).ready(function () {
 						action,
 						vehicle_licence: vehicleId,
 						date: clickedDayId,
-						start_time: startTimeInput.val(),
-						end_time: endTimeInput.val(),
+						start_time: formatTimeWithSeconds(startTimeInput.val()),
+						end_time: formatTimeWithSeconds(endTimeInput.val()),
 						driver_id: selectedDriverId,
 						reshuffle_id: idReshuffle,
 						...ajaxData
 					},
 					success: function (response) {
+						fetchCalendarData(formattedStartDate, formattedEndDate);
 						if (response.data[0] === true) {
-							fetchCalendarData(formattedStartDate, formattedEndDate);
 							filterCheck();
-							showShiftMessage(true, response.data[1]);
+							showShiftMessage(response.data[0], response.data[1]);
 						} else {
-							showShiftMessage(response.data[0], false, response.data[1]['conflicting_time'], response.data[1]['licence_plate']);
+							showConflictMessage(response.data[0], response.data[1], response.data[1]);
 						}
 					},
 				});
@@ -412,7 +410,7 @@ $(document).ready(function () {
 			modalShiftTitle.text("Створення зміни");
 			modalShiftDate.text(formatDateString(clickedDayId));
 			shiftForm.show();
-			validateInputTime(startTimeInput[0], 'startTime');
+			validateInputTime(startTimeInput[0], 'startTime', endTimeInput[0]);
 			validateInputTime(endTimeInput[0], 'endTime');
 			shiftBtn.off('click').on('click', function (e) {
 				$('.shift-time-error').hide();
@@ -494,7 +492,7 @@ $(document).ready(function () {
 				if (!clickedCard.hasClass('yesterday')) {
 					const driverPh = $(this);
 					const dataName = driverPh.data('name');
-					const idDriver = driverPh.data('id-driver');
+					const idDriver = driverPh.data('id-driver') ? driverPh.data('id-driver') : driverPh.data('dtp-maintenance');
 					const idVehicle = driverPh.data('id-vehicle');
 					const idReshuffle = driverPh.attr('reshuffle-id');
 					const driverPhoto = $(this).find('img');
@@ -610,16 +608,18 @@ function compareTimes(time1, time2) {
 	return minutes1 - minutes2;
 }
 
-function validateInputTime(input, field) {
-	$(input).on('input', function () {
-		let numericValue = input.value.replace(/\D/g, '');
+function validateInputTime(input, field, nextInput) {
+    $(input).on('input', function (event) {
+        let inputValue = event.target.value;
 
-		let hours = numericValue.slice(0, 2);
-		let minutes = numericValue.slice(2, 4);
+        inputValue = inputValue.replace(/\D/g, '');
 
-		input.value = hours + ':' + minutes;
+        if (inputValue.length >= 2) {
+            inputValue = inputValue.slice(0, 2) + ':' + inputValue.slice(2);
+        }
 
-		input.value = input.value.slice(0, 5);
+        input.value = input.value.slice(0, 5);
+        event.target.value = inputValue;
 
 		var isValid = /^([0-1]?[0-9]|2[0-3]):([0-5][0-9])$/.test(input.value);
 
@@ -627,6 +627,9 @@ function validateInputTime(input, field) {
 			input.style.backgroundColor = '#bfa';
 			$('.shift-' + field + '-error').text('').hide();
 			blockBtn(false);
+			if (nextInput) {
+                $(nextInput).focus();
+            }
 
 			if (field === 'endTime') {
 				if (input.value === '00:00') {
@@ -642,11 +645,24 @@ function validateInputTime(input, field) {
 			}
 		} else {
 			input.style.backgroundColor = '#fba';
-			$('.shift-' + field + '-error').text('Введіть час').show();
+			$('.shift-' + field + '-error').text('Введіть коректний час').show();
 			blockBtn(true);
-		}
-	});
-	$(input).attr('inputmode', 'numeric');
+		}}).on('keydown', function(event) {
+        if (event.key === 'Backspace') {
+            let inputValue = $(this).val();
+            let cursorPosition = this.selectionStart;
+
+
+            if (inputValue.charAt(cursorPosition - 1) === ':' && cursorPosition === inputValue.length) {
+                $(this).val(inputValue.slice(0, cursorPosition - 1));
+                event.preventDefault();
+            } else if (inputValue.charAt(cursorPosition - 1).match(/\D/g)) {
+                $(this).val(inputValue.slice(0, cursorPosition - 1) + inputValue.slice(cursorPosition));
+            }
+        } else if ($(this).val().length >= 5 && event.key !== 'Backspace') {
+            event.preventDefault();
+        }
+    });
 }
 
 function blockBtn(arg) {
@@ -678,7 +694,7 @@ function showShiftMessage(success, showText, time, vehicle) {
 		if (time === undefined || time === null || time === "") {
 			$(".shift-success-message h2").text(showText);
 		} else {
-			$(".shift-success-message h2").text("Помилка оновлення зміни, існує зміна в " + time + " на авто " + vehicle);
+			$(".shift-success-message h2").text("Помилка оновлення зміни, існує зміна " + time + " на авто " + vehicle);
 		}
 		setTimeout(function () {
 			$(".shift-success-message").hide();

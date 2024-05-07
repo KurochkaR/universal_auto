@@ -5,7 +5,6 @@ import os
 import rollbar
 from telegram import BotCommand, Update, ParseMode, ReplyKeyboardRemove
 from telegram.ext import ConversationHandler
-from auto.tasks import health_check
 from app.models import User, Client, ParkSettings, Manager, UserBank, Partner, CustomUser
 from auto_bot.handlers.main.keyboards import markup_keyboard, inline_user_kb, contact_keyboard, get_start_kb, \
     inline_owner_kb, inline_manager_kb, get_more_func_kb, inline_about_us
@@ -108,12 +107,6 @@ def get_about_us(update, context):
     query.edit_message_text(text=more_func_text)
     query.edit_message_reply_markup(reply_markup=inline_about_us())
 
-
-def celery_test(update, context):
-    try:
-        health_check.delay()
-    except Exception as e:
-        context.bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"), text=e)
 
 
 def helptext(update, context):

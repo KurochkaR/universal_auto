@@ -101,8 +101,8 @@
         <div class="shift-driver">
           <label for="shift-driver">{% trans "Водії" %}</label>
           <select id="shift-driver">
-            <option value="road-accident">ДТП</option>
-            <option value="technical-service">Тех.Обслуговування</option>
+            <option value="accident">ДТП</option>
+            <option value="maintenance">Тех.Обслуговування</option>
             {% for driver in get_all_driver %}
               <option value="{{ driver.id }}">{{ driver }}</option>
             {% endfor %}

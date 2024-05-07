@@ -367,6 +367,19 @@ $(document).ready(function () {
 						console.error('Error:', error)
 					})
 			},
+			error: function (xhr, textStatus, errorThrown) {
+                if (xhr.status === 400) {
+                    let error = xhr.responseJSON.error;
+                    $('#loadingModal').show();
+                    $('#loadingMessage').text(xhr.responseJSON.error)
+                    $("#loader").hide();
+                    setTimeout(function () {
+                        $('#loadingModal').hide();
+                    }, 3000);
+                } else {
+                    console.error('Помилка запиту: ' + textStatus);
+                }
+            },
 		});
 	})
 

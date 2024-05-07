@@ -20,7 +20,7 @@ def generate_detailed_info(payment_id):
                      "Bolt":  "\U0001F7E2",
                      "Uber": "\u26AB"}
         payment_map = {"card": "\U0001F4B3", "cash": "\U0001F4B5"}
-        orders_text = " ".join([f"{k} - {v}" for k,v in fleet_map.items()])
+        orders_text = " ".join([f"{k} - {v}" for k,v in fleet_map.items()]) + "\n"
 
         orders_text += "\n".join([
             f"{fleet_map.get(order.fleet)} ({timezone.localtime(order.finish_time).strftime('%d.%m - %H:%M') if order.finish_time else 'Скасований'}) {int(order.price)}" +

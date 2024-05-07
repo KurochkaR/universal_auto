@@ -72,7 +72,7 @@ function fetchDriverEfficiencyData(period, start, end) {
 					$('.driver-container').append(driverBlock);
 				});
 			}
-			if (period === 'yesterday') {
+			if (startDate === endDate) {
 				$('.income-drivers-date').text(startDate);
 			} else {
 				$('.income-drivers-date').text('З ' + startDate + ' ' + gettext('по') + ' ' + endDate);
@@ -200,7 +200,7 @@ function fetchDriverFleetEfficiencyData(period, start, end, aggregators) {
 				});
 			}
 
-			if (period === 'yesterday') {
+			if (startDate === endDate) {
 				$('.income-drivers-date').text(startDate);
 			} else {
 				$('.income-drivers-date').text('З ' + startDate + ' ' + gettext('по') + ' ' + endDate);

@@ -23,6 +23,7 @@ from auto.utils import payment_24hours_create, summary_report_create
 from auto_bot.handlers.driver_manager.utils import calculate_bolt_kasa, create_driver_payments, \
     check_correct_bolt_report
 from auto_bot.handlers.order.utils import check_vehicle
+from selenium_ninja.ecofactor import EcoFactorRequest
 from taxi_service.forms import MainOrderForm, CommentForm, BonusForm, ContactMeForm
 from taxi_service.utils import (update_order_sum_or_status, restart_order,
                                 partner_logout, login_in_investor,
@@ -82,7 +83,7 @@ class PostRequestHandler:
 
     @staticmethod
     def handler_success_login(request):
-        data = request.POST
+        data = request.POST.copy()
         data.update({"partner_pk":request.user.pk})
         task = get_session.apply_async(kwargs=data)
         json_data = JsonResponse({'task_id': task.id}, safe=False)
@@ -194,8 +195,7 @@ class PostRequestHandler:
 
         result = add_shift(licence_plate, date, start_time, end_time, driver_id, recurrence, partner)
         json_data = JsonResponse({'data': result}, safe=False)
-        response = HttpResponse(json_data, content_type='application/json')
-        return response
+        return json_data
 
     @staticmethod
     def handler_delete_shift(request):
@@ -204,8 +204,7 @@ class PostRequestHandler:
 
         result = delete_shift(action, reshuffle_id)
         json_data = JsonResponse({'data': result}, safe=False)
-        response = HttpResponse(json_data, content_type='application/json')
-        return response
+        return json_data
 
     @staticmethod
     def handler_update_shift(request):
@@ -219,8 +218,8 @@ class PostRequestHandler:
 
         result = upd_shift(action, licence_id, start_time, end_time, date, driver_id, reshuffle_id)
         json_data = JsonResponse({'data': result}, safe=False)
-        response = HttpResponse(json_data, content_type='application/json')
-        return response
+
+        return json_data
 
     @staticmethod
     def handler_upd_payment_status(request):
@@ -232,8 +231,7 @@ class PostRequestHandler:
             driver_payments.change_status(status)
 
         json_data = JsonResponse({'data': 'success'})
-        response = HttpResponse(json_data, content_type='application/json')
-        return response
+        return json_data
 
     @staticmethod
     def handler_add_bonus_or_penalty(request):
@@ -416,8 +414,11 @@ class PostRequestHandler:
         driver_id = request.POST.get('driver_id')
         if not driver_id:
             driver_id = DriverPayments.objects.get(pk=request.POST.get('payment_id')).driver_id
-        if Driver.objects.get(pk=int(driver_id)).driver_status == Driver.WITH_CLIENT:
+        driver = Driver.objects.get(pk=int(driver_id))
+        if driver.driver_status == Driver.WITH_CLIENT:
             json_data = JsonResponse({'error': 'Водій виконує замовлення, спробуйте пізніше'}, status=400)
+        elif EcoFactorRequest().check_active_transaction(driver):
+            json_data = JsonResponse({'error': 'Водій заряджає автомобіль, спробуйте пізніше'}, status=400)
         else:
             create_payment = create_daily_payment.apply_async(kwargs={"driver_pk": driver_id})
             json_data = JsonResponse({'task_id': create_payment.id}, safe=False)
@@ -426,8 +427,12 @@ class PostRequestHandler:
     @staticmethod
     def handler_incorrect_payment(request):
         data = request.POST
-        create_payment = create_daily_payment.apply_async(kwargs={"payment_id": int(data['payment_id'])})
-        json_data = JsonResponse({'task_id': create_payment.id}, safe=False)
+        payment = DriverPayments.objects.get(pk=request.POST.get('payment_id'))
+        if EcoFactorRequest().check_active_transaction(payment.driver, payment.report_from, payment.report_to):
+            json_data = JsonResponse({'error': 'Водій заряджає автомобіль, спробуйте пізніше'}, status=400)
+        else:
+            create_payment = create_daily_payment.apply_async(kwargs={"payment_id": int(data['payment_id'])})
+            json_data = JsonResponse({'task_id': create_payment.id}, safe=False)
         return json_data
 
     @staticmethod
@@ -611,9 +616,10 @@ class GetRequestHandler:
     @staticmethod
     def handle_check_cash(request):
         driver_id = request.GET.get('driver_id')
-        driver = Driver.objects.get(pk=driver_id)
+        driver = Driver.objects.select_related('schema').get(pk=driver_id)
 
-        fleet_driver_rate = FleetsDriversVehiclesRate.objects.filter(Q(driver=driver) & ~Q(fleet__name='Ninja'))
+        fleet_driver_rate = FleetsDriversVehiclesRate.objects.filter(
+            Q(driver=driver, deleted_at__isnull=True) & ~Q(fleet__name='Ninja'))
         driver_pay_cash = all(rate.pay_cash for rate in fleet_driver_rate)
         driver_cash_rate = int(driver.schema.rate * 100) if driver.cash_rate == 0 and driver.schema else int(
             driver.cash_rate * 100)

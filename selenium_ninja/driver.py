@@ -8,6 +8,7 @@ import re
 from urllib.parse import urlparse
 
 import redis
+from selenium.webdriver.common.proxy import ProxyType
 from selenium.webdriver.support import expected_conditions as ec
 import requests
 from django.utils import timezone
@@ -15,7 +16,7 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver import DesiredCapabilities
+from selenium.webdriver import DesiredCapabilities, Proxy
 from selenium.common import TimeoutException, NoSuchElementException, InvalidArgumentException
 
 from app.models import FleetOrder, Vehicle, FleetsDriversVehiclesRate, UberService, UberSession, \
@@ -82,9 +83,12 @@ class SeleniumTools:
         options.add_argument('--disable-dev-shm-usage')
         options.add_argument('''--user-agent=Mozilla/5.0
          (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.0.0 Safari/537.36''')
-
+        proxy = Proxy()
+        proxy.proxy_type = ProxyType.MANUAL
+        proxy.http_proxy = ParkSettings.get_value("SELENIUM_PROXY")
         capabilities = DesiredCapabilities.CHROME.copy()
         capabilities['acceptInsecureCerts'] = True
+        proxy.add_to_capabilities(capabilities)
 
         driver = webdriver.Remote(
             os.environ['SELENIUM_HUB_HOST'],
@@ -169,6 +173,7 @@ class SeleniumTools:
 
         ]
         return cookies
+
     def get_ecofactor_token(self):
         url = "https://operator.ecofactor.eu/"
         self.driver.get(url)
@@ -176,16 +181,18 @@ class SeleniumTools:
         input_login = WebDriverWait(self.driver, self.sleep).until(
             ec.presence_of_element_located((By.XPATH, '//input[@name="username"]')))
         click_and_clear(input_login)
-        input_login.send_keys("taxininjaua")
+        input_login.send_keys(ParkSettings.get_value("ECO_LOGIN"))
         input_pass = WebDriverWait(self.driver, self.sleep).until(
             ec.presence_of_element_located((By.XPATH, '//input[@name="password"]')))
         click_and_clear(input_pass)
-        input_pass.send_keys("qDfetAWksj5Q")
+        input_pass.send_keys(ParkSettings.get_value("ECO_PASSWORD"))
         WebDriverWait(self.driver, self.sleep).until(
             ec.element_to_be_clickable((By.XPATH, '//button[@class="auth0-lock-submit"]'))).click()
         time.sleep(self.sleep)
         token = self.driver.execute_script('return window.localStorage.getItem("@@auth0spajs@@::R9l9zluJUz3nDRlYCvW9ShmJ9SxvBRBv::https://cpo.charging123.com/api/v1/::openid manage:cpo")')
-        print(token)
+        token_dict = json.loads(token)
+        redis_instance().set("eco_token", token_dict['body']['access_token'])
+        self.quit()
 
     def create_uber_session(self, login, password):
         self.driver.get(UberService.get_value('UBER_LOGIN_URL'))
