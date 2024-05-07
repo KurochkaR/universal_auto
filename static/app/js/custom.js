@@ -71,10 +71,20 @@ $(document).ready(function () {
 
 	$('.stripes').click(function () {
 		var $subMenu = $(this).siblings('.sub-menu');
-		if ($subMenu.css('display') === 'none') {
-			$subMenu.css('display', 'flex').hide().slideDown();
+		var isMobile = window.matchMedia("(max-width: 767px)").matches;
+
+		if (isMobile) {
+			if ($subMenu.css('display') === 'none') {
+				$subMenu.css('display', 'block').hide().slideDown();
+			} else {
+				$subMenu.slideUp();
+			}
 		} else {
-			$subMenu.slideUp();
+			if ($subMenu.css('display') === 'none') {
+				$subMenu.css('display', 'flex').hide().slideDown();
+			} else {
+				$subMenu.slideUp();
+			}
 		}
 	});
 
