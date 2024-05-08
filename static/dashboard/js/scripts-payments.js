@@ -8,7 +8,21 @@ function driverPayment(period = null, start = null, end = null, paymentStatus = 
 		type: 'GET',
 		dataType: 'json',
 		success: function (response) {
-			$(".apply-filter-button_driver").prop("disabled", false);
+            var statusTh = $('th[data-sort="status"]');
+
+            if (paymentStatus === 'closed') {
+                $('th[data-sort="button"]').hide();
+                statusTh.text("Статус виплати");
+            } else if (paymentStatus === 'not_closed') {
+                statusTh.text("Дії");
+                $('th[data-sort="button"]').hide();
+                $('#datePicker').hide();
+                $('.filter').hide();
+            } else {
+                $('#datePicker').hide();
+                $('.filter').hide();
+            }
+			$(".apply-filter-button").prop("disabled", false);
 			var tableBody = $('.driver-table tbody');
 			tableBody.empty();
 			var addButtonBonus = '<button class="add-btn-bonus" title="Додати бонус"><i class="fa fa-plus"></i></button>';
@@ -19,20 +33,7 @@ function driverPayment(period = null, start = null, end = null, paymentStatus = 
 			var arrowBtn = '<button class="arrow-btn">Повернути на перевірку</button>';
 			var payBtn = '<button class="pay-btn">Отримано</button>';
 			var notPayBtn = '<button class="not-pay-btn">Не отримано</button>';
-			var statusTh = $('th[data-sort="status"]');
 
-			if (paymentStatus === 'closed') {
-				$('th[data-sort="button"]').hide();
-				statusTh.text("Статус виплати");
-			}
-
-			if (paymentStatus === 'not_closed') {
-				statusTh.text("Дії");
-				$('th[data-sort="button"]').hide();
-				$('#datePickerPayments').hide();
-			} else {
-				$('#datePickerPayments').hide();
-			}
 
 			for (const payment of response) {
 				const {
@@ -162,7 +163,7 @@ $(document).on('click', function (event) {
 $(document).ready(function () {
 	var itemId, actionType, itemType, drivers;
 
-	$(this).on('click', '.driver-table tbody .driver-name', function () {
+	$(this).on('click', '.driver-table tbody .driver-name, .correct-bolt-btn', function () {
 		var row = $(this).closest('tr');
 		var bonusTable = row.next().find('.bonus-table');
 
@@ -171,14 +172,14 @@ $(document).ready(function () {
 		return false;
 	});
 
-    $(this).on('click', '.correct-bolt-btn', function () {
-		var row = $(this).closest('tr');
-		var bonusTable = row.next().find('.bonus-table');
-
-		bonusTable.toggleClass('expanded');
-		bonusTable.toggle();
-		return false;
-	});
+//    $(this).on('click', '.correct-bolt-btn', function () {
+//		var row = $(this).closest('tr');
+//		var bonusTable = row.next().find('.bonus-table');
+//
+//		bonusTable.toggleClass('expanded');
+//		bonusTable.toggle();
+//		return false;
+//	});
 	function populateButtons(filteredDrivers) {
 		var createPaymentList = $(".create-payment-list");
 		createPaymentList.empty();
@@ -225,7 +226,7 @@ $(document).ready(function () {
 
 	});
 
-	$("#search-driver").on("keyup", function () {
+	$("#search-driver").on("keyup", function (e) {
 
 		var searchText = $(this).val().toLowerCase();
 
@@ -469,14 +470,15 @@ $(document).ready(function () {
 		var $targetElement = $('.tr-driver-payments[data-id="' + clickedId + '"]');
 		$targetElement.find('.bonus-table').show();
 	}
-	$('input[name="payment-status"]').change(function () {
+
+	$(this).on('change', 'input[name="payment-status"]', function () {
 		if ($(this).val() === 'closed') {
 			driverPayment(period = 'today', null, null, paymentStatus = $(this).val());
-			$('.filter-driver-payments').css('display', 'flex');
+			$('.filter').css('display', 'flex');
 		} else {
 			driverPayment(null, null, null, paymentStatus = $(this).val());
-			$('.filter-driver-payments').hide();
-			$('#datePickerDriver').hide();
+			$('.filter').hide();
+			$('#datePicker').hide();
 		}
 	});
 
@@ -546,40 +548,21 @@ $(document).ready(function () {
 		}
 	});
 
-	function initializeCustomPaymentsSelect(customSelect, selectedOption, optionsList, iconDown, datePicker) {
-		iconDown.click(function () {
-			customSelect.toggleClass("active");
-		});
+    initializeCustomSelect(function(clickedValue) {
+        if (sessionStorage.getItem('selectedOption') === 'driver-payments') {
+            driverPayment(period = clickedValue, null, null, paymentStatus = "closed");
+        }
+    });
 
-		selectedOption.click(function () {
-			customSelect.toggleClass("active");
-		});
+    $(this).on('click', '.apply-filter-button', function(){
+        if (sessionStorage.getItem('selectedOption') === 'driver-payments') {
+            applyDateRange(function(selectedPeriod, startDate, endDate) {
+                driverPayment(selectedPeriod, startDate, endDate, paymentStatus = "closed");
+            });
+        }
+    })
 
-		optionsList.on("click", "li", function () {
-			const clickedValue = $(this).data("value");
-			selectedOption.text($(this).text());
-			customSelect.removeClass("active");
-
-			if (clickedValue !== "custom") {
-				driverPayment(clickedValue, null, null, paymentStatus = "closed");
-				datePicker.css("display", "none");
-			} else {
-				datePicker.css("display", "block");
-			}
-		});
-	}
-
-	const customSelectDriver = $(".custom-select-payments");
-	const selectedOptionDriver = customSelectDriver.find(".selected-option-payments");
-	const optionsListDriver = customSelectDriver.find(".options-payments");
-	const iconDownDriver = customSelectDriver.find(".fas.fa-angle-down");
-	const datePickerDriver = $("#datePickerPayments");
-
-	initializeCustomPaymentsSelect(customSelectDriver, selectedOptionDriver, optionsListDriver, iconDownDriver, datePickerDriver);
-
-	const driverTableTbody = $(".driver-table tbody");
-
-	driverTableTbody.on('click', '.driver-rate', function (event) {
+	$(this).on('click', '.driver-rate', function (event) {
 		var $rateContainer = $(this);
 		var $rateText = $rateContainer.find('.rate-payment');
 		var $rateInput = $rateContainer.find('.driver-rate-input');
@@ -596,7 +579,7 @@ $(document).ready(function () {
 		}
 	});
 
-	driverTableTbody.on('click', '.add-btn-bonus, .add-btn-penalty', function () {
+	$(this).on('click', '.add-btn-bonus, .add-btn-penalty', function () {
 		var id = $(this).closest('tr').data('id');
 		if ($(this).hasClass('add-btn-bonus')) {
 			openForm(id, null, 'bonus', null);
@@ -606,7 +589,7 @@ $(document).ready(function () {
 	});
 
 
-	driverTableTbody.on('click', '.apply-btn', function () {
+	$(this).on('click', '.apply-btn', function () {
 		var id = $(this).closest('tr').data('id');
 		$(this).closest('tr').find('.edit-btn, .apply-btn').hide();
 		$(this).closest('tr').find('.box-btn-upd').css('display', 'flex');
@@ -614,7 +597,7 @@ $(document).ready(function () {
 		updStatusDriverPayments(id, status = 'pending', paymentStatus = "on_inspection");
 	});
 
-	driverTableTbody.on('click', '.arrow-btn', function () {
+	$(this).on('click', '.arrow-btn', function () {
 		var id = $(this).closest('tr').data('id');
 		$(this).closest('tr').find('.edit-btn, .apply-btn').show()
 		$(this).closest('tr').find('.box-btn-upd').hide();
@@ -622,7 +605,7 @@ $(document).ready(function () {
 		updStatusDriverPayments(id, status = 'checking', paymentStatus = "not_closed");
 	});
 
-	driverTableTbody.on('click', '.pay-btn, .not-pay-btn', function (e) {
+	$(this).on('click', '.pay-btn, .not-pay-btn', function (e) {
 		e.stopPropagation();
 		var $closestTr = $(this).closest('tr');
 		var id = $closestTr.data('id');
@@ -699,7 +682,7 @@ $(document).ready(function () {
 		});
 	});
 
-	$('.send-all-button').on('click', function () {
+	$(this).on('click', '.send-all-button', function () {
 		var allDataIds = [];
 		$('tr[data-id]').each(function () {
 		if (!$(this).hasClass('incorrect')) {
@@ -729,7 +712,6 @@ $(document).ready(function () {
 });
 
 function updStatusDriverPayments(id, status, paymentStatus, all = null) {
-    console.log(id, all)
 	if (all !== null) {
 		var allId = all.join(',');
 	}

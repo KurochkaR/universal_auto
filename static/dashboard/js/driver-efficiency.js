@@ -1,4 +1,4 @@
-function fetchDriverEfficiencyData(period, start, end) {
+function fetchDriverEfficiencyData(period, start = null, end = null) {
 	let apiUrl;
 	if (period === 'custom') {
 		apiUrl = `/api/drivers_efficiency/${start}&${end}/`;
@@ -12,8 +12,7 @@ function fetchDriverEfficiencyData(period, start, end) {
 		dataType: 'json',
 		success: function (data) {
 			$('th[data-sort="fleet"]').hide();
-			$(".aggregator").css("display", "none");
-			$(".apply-filter-button_driver").prop("disabled", false);
+			$(".aggregator").hide();
 			let table = $('.info-driver table');
 			let startDate = data[0]['start'];
 			let endDate = data[0]['end'];
@@ -87,7 +86,7 @@ function fetchDriverEfficiencyData(period, start, end) {
 }
 
 
-function fetchDriverFleetEfficiencyData(period, start, end, aggregators) {
+function fetchDriverFleetEfficiencyData(period, aggregators, start = null, end = null) {
 	let apiUrl;
 	if (period === 'custom') {
 		apiUrl = `/api/drivers_efficiency/${start}&${end}/${aggregators}/`;
@@ -102,7 +101,6 @@ function fetchDriverFleetEfficiencyData(period, start, end, aggregators) {
 		success: function (data) {
 			$('th[data-sort="fleet"]').show();
 			$(".aggregator").css("display", "block");
-			$(".apply-filter-button_driver").prop("disabled", false);
 			let table = $('.info-driver table');
 			let startDate = data[0]['start'];
 			let endDate = data[0]['end'];
@@ -224,53 +222,37 @@ $(document).ready(function () {
 		sortTable(column, sortOrder);
 	});
 
-	function initializeCustomSelect(customSelect, selectedOption, optionsList, iconDown, datePicker) {
-		iconDown.click(function () {
-			customSelect.toggleClass("active");
-		});
+	initializeCustomSelect(function(clickedValue) {
+        if (sessionStorage.getItem('selectedOption') === 'driver-efficiency') {
+            var aggregatorsString = checkedAggregators()
+            if (aggregatorsString === "shared") {
+                $('th[data-sort="idling-mileage"]').show();
+                fetchDriverEfficiencyData(clickedValue);
+            } else {
+                fetchDriverFleetEfficiencyData(clickedValue, aggregatorsString);
+            }
+        }
+    });
 
-		selectedOption.click(function () {
-			customSelect.toggleClass("active");
-		});
+    $(this).on('click', '.apply-filter-button', function() {
+        if (sessionStorage.getItem('selectedOption') === 'driver-efficiency') {
+            applyDateRange(function(selectedPeriod, startDate, endDate) {
+            var aggregatorsString = checkedAggregators()
+            if (aggregatorsString === "shared") {
+                $('th[data-sort="idling-mileage"]').show();
+                fetchDriverEfficiencyData(selectedPeriod, startDate, endDate);
+            } else {
+                fetchDriverFleetEfficiencyData(selectedPeriod, aggregatorsString, startDate, endDate);
+            }
+            });
+        }
+    })
 
-		optionsList.on("click", "li", function () {
 
-			const clickedValue = $(this).data("value");
-			selectedOption.data("value", clickedValue);
-			selectedOption.text($(this).text());
-			customSelect.removeClass("active");
 
-			aggregators = $('.checkbox-container input[type="checkbox"]:checked').map(function () {
-				return $(this).val();
-			}).get();
-
-			var aggregatorsString = aggregators.join('&');
-
-			if (clickedValue !== "custom") {
-			    datePicker.css("display", "none");
-				if (aggregatorsString === "shared") {
-					$('th[data-sort="idling-mileage"]').show();
-					fetchDriverEfficiencyData(clickedValue, null, null);
-				} else {
-					fetchDriverFleetEfficiencyData(clickedValue, null, null, aggregatorsString);
-				}
-			} else {
-				datePicker.css("display", "block");
-			}
-		});
-	}
-
-	const customSelectDriver = $(".custom-select-drivers");
-	const selectedOptionDriver = customSelectDriver.find(".selected-option-drivers");
-	const optionsListDriver = customSelectDriver.find(".options-drivers");
-	const iconDownDriver = customSelectDriver.find(".fas.fa-angle-down");
-	const datePickerDriver = $("#datePickerDriver");
-
-	initializeCustomSelect(customSelectDriver, selectedOptionDriver, optionsListDriver, iconDownDriver, datePickerDriver);
-
-	var sharedCheckbox = $('#sharedCheckbox');
-	$('.checkbox-container input[type="checkbox"]').change(function () {
+	$(this).on('change', '.checkbox-container input[type="checkbox"]', function () {
 		var checkboxId = $(this).attr('id');
+        var sharedCheckbox = $('#sharedCheckbox');
 
 		if (checkboxId === 'sharedCheckbox' && $(this).prop('checked')) {
 			$('.checkbox-container input[type="checkbox"]').not(this).prop('checked', false);
@@ -287,26 +269,23 @@ $(document).ready(function () {
 });
 
 function checkSelection() {
-	var selectedAggregators = [];
-
-	$('.checkbox-container input[type="checkbox"]:checked').each(function () {
-		selectedAggregators.push($(this).val());
-	});
-
-	var aggregatorsString = selectedAggregators.join('&');
-	var selectedPeriod = $('#period .selected-option-drivers').data('value');
-	var startDate = $("#start_report_driver").val();
-	var endDate = $("#end_report_driver").val();
-
-	if (selectedPeriod !== "custom" && aggregatorsString === "shared") {
-		$('th[data-sort="idling-mileage"]').show();
-		fetchDriverEfficiencyData(selectedPeriod, startDate, endDate);
-	} else {
-		if (aggregatorsString === "shared") {
+	var selectedPeriod = $('#period .selected-option').data('value');
+	var startDate = $("#start_report").val();
+	var endDate = $("#end_report").val();
+    var aggregatorsString = checkedAggregators()
+    if (aggregatorsString === "shared") {
+		    $('th[data-sort="idling-mileage"]').show();
 			fetchDriverEfficiencyData(selectedPeriod, startDate, endDate);
 		} else {
 			$('th[data-sort="idling-mileage"]').hide();
-			fetchDriverFleetEfficiencyData(selectedPeriod, startDate, endDate, aggregatorsString);
+			fetchDriverFleetEfficiencyData(selectedPeriod, aggregatorsString, startDate, endDate);
 		}
-	}
+}
+
+function checkedAggregators() {
+    aggregators = $('.checkbox-container input[type="checkbox"]:checked').map(function () {
+				return $(this).val();
+			}).get();
+
+	return aggregators.join('&');
 }

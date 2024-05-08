@@ -1,4 +1,4 @@
-function fetchVehicleEarningsData(period, start, end) {
+function fetchVehicleEarningsData(period, start = null, end = null) {
 	let apiUrl;
 		if (period === 'custom') {
 			apiUrl = `/api/vehicles_info/${start}&${end}/`;
@@ -44,45 +44,16 @@ function fetchVehicleEarningsData(period, start, end) {
 }
 
 
-
 $(document).ready(function() {
+	fetchVehicleEarningsData("yesterday");
 
-	fetchVehicleEarningsData("yesterday", null, null);
+    initializeCustomSelect(function(clickedValue) {
+        fetchVehicleEarningsData(clickedValue);
+    });
 
-	function initializeCustomSelect(customSelect, selectedOption, optionsList, iconDown, datePicker) {
-
-		iconDown.click(function() {
-			customSelect.toggleClass("active");
-		});
-
-		selectedOption.click(function() {
-			customSelect.toggleClass("active");
-		});
-
-		optionsList.on("click", "li", function() {
-
-			const clickedValue = $(this).data("value");
-			selectedOption.data("value", clickedValue);
-			selectedOption.text($(this).text());
-			customSelect.removeClass("active");
-
-			if (clickedValue !== "custom") {
-				fetchVehicleEarningsData(clickedValue, null, null);
-			}
-
-			if (clickedValue === "custom") {
-				datePicker.css("display", "block");
-			} else {
-				datePicker.css("display", "none");
-			}
-		});
-	}
-
-	const customSelectDriver = $(".custom-select-drivers");
-	const selectedOptionDriver = customSelectDriver.find(".selected-option-drivers");
-	const optionsListDriver = customSelectDriver.find(".options-drivers");
-	const iconDownDriver = customSelectDriver.find(".fas.fa-angle-down");
-	const datePickerDriver = $("#datePickerDriver");
-
-	initializeCustomSelect(customSelectDriver, selectedOptionDriver, optionsListDriver, iconDownDriver, datePickerDriver);
+    $(this).on('click', '.apply-filter-button', function(){
+        applyDateRange(function(selectedPeriod, startDate, endDate) {
+            fetchVehicleEarningsData(selectedPeriod, startDate, endDate);
+        });
+    })
 });

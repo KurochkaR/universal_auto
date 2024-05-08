@@ -249,40 +249,22 @@ $(document).ready(function () {
 		});
 	}
 
-//	var selectedOption = sessionStorage.getItem('selectedOption');
-//	if (selectedOption) {
-//		$('input[name="driver-info"][value="' + selectedOption + '"]').prop('checked', true);
-//	}
+	var selectedOption = sessionStorage.getItem('selectedOption');
+	if (selectedOption && window.location.pathname === '/dashboard/drivers/') {
+		$('input[name="driver-info"][value="' + selectedOption + '"]').prop('checked', true);
+            switcherDriverPage(selectedOption)
+	}
 
 	$('#DriverBtnContainers').on('click', function () {
 		$('input[name="driver-info"][value="driver-list"]').prop('checked', true);
-//		sessionStorage.setItem('selectedOption', 'driver-list');
+		sessionStorage.setItem('selectedOption', 'driver-list');
 	});
 
 	$('input[name="driver-info"]').change(function () {
 		var selectedValue = $(this).val();
-//		sessionStorage.setItem('selectedOption', selectedValue);
+		sessionStorage.setItem('selectedOption', selectedValue);
+        switcherDriverPage(selectedValue)
 
-		switch (selectedValue) {
-            case 'driver-list':
-                loadDashboardContent("render_drivers_list", function(){
-                getDriversList()
-                });
-                break;
-            case 'driver-payments':
-            console.log($('input[name="csrfmiddlewaretoken"]').val())
-                loadDashboardContent("render_drivers_payments", function(){
-                driverPayment(null, null, null, paymentStatus = "on_inspection");
-                });
-                break;
-            case 'driver-efficiency':
-                loadDashboardContent("render_drivers_efficiency", function(){
-                fetchDriverEfficiencyData('today', null, null);
-                });
-                break;
-            default:
-                break;
-        }
 
 	});
 
@@ -418,49 +400,78 @@ $(document).ready(function () {
 		$('.modal-not-closed-payments').show();
 	});
 
+	$(this).on("click", ".selected-option", function() {
+        $(".custom-select").toggleClass("active");
+    });
+
+
+
 });
 
-function applyCustomDateRange(item) {
-	let startDate = $("#start_report_driver").val();
-	let endDate = $("#end_report_driver").val();
+function initializeCustomSelect(callback) {
+
+    $(document).on("click", ".options li", function() {
+        const customSelect = $(".custom-select");
+        const selectedOption = customSelect.find(".selected-option");
+        const datePicker = $("#datePicker");
+        const clickedValue = $(this).data("value");
+        selectedOption.data("value", clickedValue);
+        selectedOption.text($(this).text());
+        customSelect.removeClass("active");
+        if (clickedValue !== "custom") {
+            datePicker.hide();
+            callback(clickedValue);
+        } else {
+            if (window.innerWidth <= 768) {
+                    datePicker.show();
+            } else {
+                datePicker.css("display", "inline-block");
+            }
+        }
+    });
+
+}
+
+function switcherDriverPage(selectedOption) {
+    switch (selectedOption) {
+        case 'driver-list':
+            loadDashboardContent("render_drivers_list", function() {
+            getDriversList()
+            });
+            break;
+        case 'driver-payments':
+            loadDashboardContent("render_drivers_payments", function() {
+            driverPayment(null, null, null, paymentStatus = "on_inspection");
+            });
+            break;
+        case 'driver-efficiency':
+            loadDashboardContent("render_drivers_efficiency", function() {
+            $('#period .selected-option').data('value', 'today')
+            fetchDriverEfficiencyData('today', null, null);
+            });
+            break;
+        default:
+            break;
+    }
+}
+
+function applyDateRange(callback) {
+    const selectedPeriod = 'custom';
+	let startDate = $("#start_report").val();
+	let endDate = $("#end_report").val();
 	const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
 
-	if (!startDate.match(dateRegex) || !endDate.match(dateRegex)) {
-		$("#error_message").text("Дата повинна бути у форматі YYYY-MM-DD").show();
-		return;
-	}
-
-	if (startDate > endDate) {
-		$("#error_message").text("Кінцева дата повинна бути більшою або рівною початковій даті").show();
-		return;
-	}
+    if (!startDate.match(dateRegex) || !endDate.match(dateRegex)) {
+        $("#error_message").text("Дата повинна бути у форматі YYYY-MM-DD").show();
+        return;
+    } else if (startDate > endDate) {
+        $("#error_message").text("Кінцева дата повинна бути більшою або рівною початковій даті").show();
+        return;
+    }
 
 	$("#error_message").hide();
-	const selectedPeriod = 'custom';
 
-	if (item === 'driver') {
-		$(".apply-filter-button_driver").prop("disabled", true);
-		aggregator = $('.checkbox-container input[type="checkbox"]:checked').map(function () {
-			return $(this).val();
-		}).get();
-		var aggregatorsString = aggregator.join('&');
-
-		if (aggregatorsString === 'shared') {
-			fetchDriverEfficiencyData(selectedPeriod, startDate, endDate);
-		} else {
-			fetchDriverFleetEfficiencyData(selectedPeriod, startDate, endDate, aggregatorsString);
-		}
-	}
-
-	if (item === 'vehicle') {
-		$(".apply-filter-button_vehicle").prop("disabled", true);
-		fetchVehicleEarningsData(selectedPeriod, startDate, endDate);
-	}
-
-	if (item === 'payments') {
-		$(".apply-filter-button_driver").prop("disabled", true);
-		driverPayment(selectedPeriod, startDate, endDate, paymentStatus = "closed");
-	}
+    callback(selectedPeriod, startDate, endDate)
 }
 
 function openForm(paymentId, bonusPenaltyId, itemType, driverId) {
@@ -581,7 +592,7 @@ function sortTable(column, order) {
 			sumB += parseFloat($(row).find(`td.${column}`).text());
 		});
 		// return sumA - sumB;
-		if (order === 'asc') {
+		if (order === 'sorted-asc') {
 			return sumA - sumB;
 		} else {
 			return sumB - sumA;
@@ -637,4 +648,6 @@ function validNumberInput(maxValue = 100, element) {
 	sanitizedValue = Math.min(Math.max(integerValue, 0), maxValue);
 	element.val(sanitizedValue);
 }
+
+
 

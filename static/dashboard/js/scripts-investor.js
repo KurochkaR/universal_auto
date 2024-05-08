@@ -133,10 +133,10 @@ function fetchInvestorData(period, start, end) {
 		type: 'GET',
 		dataType: 'json',
 		success: function (data) {
-			$(".apply-filter-button").prop("disabled", false);
 			let totalEarnings = data[0]['totals']['total_earnings'];
 			let totalMileage = data[0]['totals']['total_mileage'];
 			let roi = data[0]['totals']['roi'];
+//			let annualizedRoi = data[0]['totals']['annualized-roi'];
 			let totalSpending = data[0]['totals']['total_spending'];
 			let startDate = data[0]['start'];
 			let endDate = data[0]['end'];
@@ -180,7 +180,7 @@ function fetchInvestorData(period, start, end) {
 			$('.spending-all').text(totalSpending + gettext(' грн'));
 			$('.income-km').text(totalMileage + gettext(' км'));
 			$('.roi').text(roi + gettext(' %'));
-//			$('.annualized-roi').text(annualized_roi + gettext(' %'));
+//			$('.annualized-roi').text(annualizedRoi + gettext(' %'));
 		},
 		error: function (error) {
 				console.error(error);
@@ -188,67 +188,15 @@ function fetchInvestorData(period, start, end) {
 	});
 }
 
-const commonPeriodSelect = $('#period-common');
-
-commonPeriodSelect.on('change', function () {
-	const selectedPeriod = commonPeriodSelect.val();
-	if (selectedPeriod !== "custom") {
-	    $("#datePicker").css("display", "none");
-		fetchInvestorData(selectedPeriod);
-	} else {
-	    $("#datePicker").css("display", "block");
-	}
-});
-
-function applyDateRange() {
-	$(".apply-filter-button").prop("disabled", true);
-
-	let startDate = $("#start_report").val();
-	let endDate = $("#end_report").val();
-
-	const selectedPeriod = "custom";
-	fetchInvestorData(selectedPeriod, startDate, endDate);
-}
-
 $(document).ready(function () {
-    const customSelect = $(".custom-select");
-	const selectedOption = customSelect.find(".selected-option");
-	const optionsList = customSelect.find(".options");
-	const iconDown = customSelect.find(".fas.fa-angle-down");
-	const datePicker = $("#datePicker");
 
-	const firstVehicle = $(".custom-dropdown .dropdown-options li:first");
-	const vehicleId = firstVehicle.data('value');
-	const vehicle_lc = firstVehicle.text();
+    fetchInvestorData('yesterday');
+	initializeCustomSelect(function(clickedValue) {
+        fetchInvestorData(clickedValue);
+    });
 
-
-	function initializeCustomSelect(customSelect, selectedOption, optionsList, iconDown, datePicker, vehicleId, vehicle_lc) {
-		iconDown.click(function() {
-			customSelect.toggleClass("active");
-		});
-
-		selectedOption.click(function() {
-			customSelect.toggleClass("active");
-		});
-
-		optionsList.on("click", "li", function() {
-			const clickedValue = $(this).data("value");
-			selectedOption.text($(this).text());
-			customSelect.removeClass("active");
-
-			if (clickedValue !== "custom") {
-			    datePicker.hide();
-				fetchInvestorData(clickedValue);
-			} else {
-			    datePicker.show();
-			}
-		});
-	}
-
-	fetchInvestorData('yesterday');
-	if (vehicleId !== undefined) {
-	    fetchCarEfficiencyData('yesterday', vehicleId, vehicle_lc);
-       }
-	initializeCustomSelect(customSelect, selectedOption, optionsList, iconDown, datePicker, vehicleId, vehicle_lc);
+    applyDateRange(function(selectedPeriod, startDate, endDate) {
+            fetchInvestorData(selectedPeriod, startDate, endDate);
+        });
 
 });

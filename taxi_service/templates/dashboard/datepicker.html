@@ -1,0 +1,10 @@
+{% load static %}
+{% load i18n %}
+<div id="datePicker" style="display: none;">
+    <label for="start_report">{% trans 'Початкова дата:' %}</label>
+    <input type="date" id="start_report" name="start_date">
+    <label for="end_report">{% trans 'Кінцева дата:' %}</label>
+    <input type="date" id="end_report" name="end_date">
+    <input class="apply-filter-button" type="button" value="{% trans 'Фільтрувати' %}">
+    <div id="error_message" style="display: none; color: red;"></div>
+  </div>
