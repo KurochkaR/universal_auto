@@ -30,8 +30,8 @@ function fetchVehicleEarningsData(period, start = null, end = null) {
 						"<div class='progress-bar'>" +
 						"<div class='progress' style='width: " + vehicle.total_progress_percentage + "%; max-width: 100%'>" +
 						"<div class='progress-label' style='color: #0a0a0a'>" + vehicle.total_progress_percentage + "%</div>" +
-						"<div class='progress-period' style='left: " + vehicle.progress_percentage + "%;'>" +
-						"</div>" +
+//						"<div class='progress-period' style='left: " + vehicle.progress_percentage + "%;'>" +
+//						"</div>" +
 						"</div>" +
 						"</div>" +
 						"<p>Вартість авто:<br><span class='vehicle-price'>₴ " + vehicle.price + "</span></p>");
