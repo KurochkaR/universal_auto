@@ -336,9 +336,9 @@ def upd_shift(action, licence_id, start_time, end_time, shift_date, driver_id, r
     elif action == 'update_all_shift':
         selected_reshuffle = DriverReshuffle.objects.get(id=reshuffle_id)
         reshuffle_upd = DriverReshuffle.objects.filter(
-            swap_time__gte=selected_reshuffle.swap_time,
-            swap_time__time=selected_reshuffle.swap_time.time(),
-            end_time__time=selected_reshuffle.end_time.time(),
+            swap_time__gte=timezone.localtime(selected_reshuffle.swap_time),
+            swap_time__time=timezone.localtime(selected_reshuffle.swap_time).time(),
+            end_time__time=timezone.localtime(selected_reshuffle.end_time).time(),
             driver_start=selected_reshuffle.driver_start,
             swap_vehicle=selected_reshuffle.swap_vehicle
         ).order_by('id')

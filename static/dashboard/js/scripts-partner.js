@@ -1,30 +1,3 @@
-function applyDateRange() {
-	let startDate = $("#start_report").val();
-	let endDate = $("#end_report").val();
-
-	const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-
-	if (!startDate.match(dateRegex) || !endDate.match(dateRegex)) {
-		$("#error_message").text("Дата повинна бути у форматі YYYY-MM-DD").show();
-		return;
-	}
-
-	if (startDate > endDate) {
-		$("#error_message").text("Кінцева дата повинна бути більшою або рівною початковій даті").show();
-		return;
-	}
-
-	$("#error_message").hide();
-	const firstVehicle = $(".custom-dropdown .dropdown-options li:first");
-	const vehicleId = firstVehicle.data('value');
-	const vehicle_lc = firstVehicle.text();
-	const selectedPeriod = 'custom';
-	$(".apply-filter-button").prop("disabled", true);
-	fetchSummaryReportData(selectedPeriod, startDate, endDate);
-	fetchCarEfficiencyData(selectedPeriod, vehicleId, vehicle_lc, startDate, endDate);
-}
-
-
 // ---------- CHARTS ---------- //
 
 var barChart = echarts.init(document.getElementById('bar-chart'));
@@ -456,53 +429,25 @@ function fetchCarEfficiencyData(period, vehicleId, vehicle_lc, start, end) {
 }
 
 $(document).ready(function () {
-
-	function initializeCustomSelect(customSelect, selectedOption, optionsList, iconDown, datePicker, vehicleId, vehicle_lc) {
-		iconDown.click(function () {
-			customSelect.toggleClass("active");
-		});
-
-		selectedOption.click(function () {
-			customSelect.toggleClass("active");
-		});
-
-		optionsList.on("click", "li", function () {
-			const clickedValue = $(this).data("value");
-			selectedOption.text($(this).text());
-			customSelect.removeClass("active");
-
-			if (clickedValue !== "custom") {
-				fetchSummaryReportData(clickedValue);
-				fetchCarEfficiencyData(clickedValue, vehicleId, vehicle_lc);
-			}
-
-			if (clickedValue === "custom") {
-				if (window.innerWidth <= 768) {
-					datePicker.css("display", "block");
-				} else {
-					datePicker.css("display", "inline-block");
-				}
-			} else {
-				datePicker.css("display", "none");
-			}
-		});
-	}
-
-	const customSelect = $(".custom-select");
-	const selectedOption = customSelect.find(".selected-option");
-	const optionsList = customSelect.find(".options");
-	const iconDown = customSelect.find(".fas.fa-angle-down");
-	const datePicker = $("#datePicker");
+    fetchSummaryReportData('yesterday');
 
 	const firstVehicle = $(".custom-dropdown .dropdown-options li:first");
 	const vehicleId = firstVehicle.data('value');
 	const vehicle_lc = firstVehicle.text();
 
-	fetchSummaryReportData('yesterday');
-	if (vehicleId !== undefined) {
-		fetchCarEfficiencyData('yesterday', vehicleId, vehicle_lc);
-	}
-	initializeCustomSelect(customSelect, selectedOption, optionsList, iconDown, datePicker, vehicleId, vehicle_lc);
+	fetchCarEfficiencyData('yesterday', vehicleId, vehicle_lc);
+
+	$(this).on('click', '.apply-filter-button', function(){
+        applyDateRange(function(selectedPeriod, startDate, endDate) {
+            fetchSummaryReportData(selectedPeriod, startDate, endDate);
+	        fetchCarEfficiencyData(selectedPeriod, vehicleId, vehicle_lc, startDate, endDate);
+        });
+    })
+
+	initializeCustomSelect(function(clickedValue) {
+        fetchSummaryReportData(clickedValue);
+	    fetchCarEfficiencyData(clickedValue, vehicleId, vehicle_lc);
+    });
 
 	$(".custom-dropdown .selected-option").click(function () {
 		$(".custom-dropdown .dropdown-options").toggle();

@@ -337,23 +337,14 @@ label {
 	margin-right: 10px;
 }
 
-.custom-select,
-.custom-select-drivers,
-.custom-select-payments {
+.custom-select {
 	position: relative;
 	display: inline-block;
 	width: 215px;
-	top: 35px;
-}
-
-.custom-select-drivers,
-.custom-select-payments {
 	top: 15px;
 }
 
-.selected-option,
-.selected-option-drivers,
-.selected-option-payments {
+.selected-option {
 	color: #53785E;
 	font-size: 20px;
 	font-style: normal;
@@ -368,9 +359,7 @@ label {
 	cursor: pointer;
 }
 
-.options,
-.options-drivers,
-.options-payments {
+.options {
 	width: 200px;
 	position: absolute;
 	top: 60%;
@@ -386,9 +375,7 @@ label {
 	z-index: 1;
 }
 
-.options li,
-.options-drivers li,
-.options-payments li {
+.options li {
 	color: #53785E;
 	font-size: 20px;
 	font-style: normal;
@@ -398,9 +385,7 @@ label {
 	cursor: pointer;
 }
 
-.custom-select.active .options,
-.custom-select-drivers.active .options-drivers,
-.custom-select-payments.active .options-payments {
+.custom-select.active .options {
 	display: block;
 }
 
@@ -416,20 +401,16 @@ i.fas.fa-angle-down {
 	cursor: pointer;
 }
 
-#datePicker,
-#datePickerDriver,
-#datePickerPayments {
+#datePicker {
 	display: none;
-	margin-top: 20px;
+	margin: 15px 0;
 	align-content: center;
 	align-items: center;
 	flex-direction: row;
 	justify-content: flex-start;
 }
 
-#start_date, #end_date,
-#start_report, #end_report,
-#start_report_driver, #end_report_driver {
+#start_report, #end_report {
 	padding: 5px;
 	font-size: 16px;
 	margin-right: 10px;
@@ -1088,16 +1069,15 @@ i.fas.fa-power-off {
 	box-shadow: 0 10px 10px rgba(0, 0, 0, 0.2);
 }
 
-.filter,
-.filter-driver-payments {
+.filter {
 	display: flex;
 	justify-content: left;
 	align-items: center;
-	margin-bottom: 20px;
 }
 
-.filter-driver-payments {
-	display: none;
+.filter-efficiency {
+    display: flex;
+    align-items: center;
 }
 
 .info-driver table {

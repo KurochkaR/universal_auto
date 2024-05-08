@@ -17,10 +17,10 @@ class CarDetailSerializer(serializers.Serializer):
     end_date = serializers.CharField()
     licence_plate = serializers.CharField()
     price = serializers.IntegerField()
-    kasa = serializers.DecimalField(max_digits=10, decimal_places=2)
-    spending = serializers.DecimalField(max_digits=10, decimal_places=2)
-    progress_percentage = serializers.DecimalField(max_digits=10, decimal_places=2)
-    total_progress_percentage = serializers.DecimalField(max_digits=10, decimal_places=2)
+    kasa = serializers.IntegerField()
+    spending = serializers.IntegerField()
+    progress_percentage = serializers.IntegerField()
+    total_progress_percentage = serializers.IntegerField()
 
     class Meta:
         fields = (

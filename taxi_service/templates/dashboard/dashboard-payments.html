@@ -15,33 +15,8 @@
       <input type="radio" id="closed" name="payment-status" value="closed">
       <label for="closed">{% trans 'Закриті' %}</label>
     </div>
-    <div class="filter-driver-payments">
-      <label for="period">{% trans 'Виберіть період:' %}</label>
-      <div class="custom-select-payments" id="period">
-        <span class="selected-option-payments">{% trans 'Сьогодні' %}</span>
-        <i class="fas fa-angle-down"></i>
-        <ul class="options-payments">
-          <li data-value="today">{% trans 'Сьогодні' %}</li>
-          <li data-value="yesterday">{% trans 'Вчора' %}</li>
-          <li data-value="current_week">{% trans 'Поточний тиждень' %}</li>
-          <li data-value="last_week">{% trans 'Минулий тиждень' %}</li>
-          <li data-value="current_month">{% trans 'Поточний місяць' %}</li>
-          <li data-value="last_month">{% trans 'Минулий місяць' %}</li>
-          <li data-value="current_quarter">{% trans 'Поточний квартал' %}</li>
-          <li data-value="last_quarter">{% trans 'Минулий квартал' %}</li>
-          <li data-value="custom">{% trans 'Вибрати період >' %}</li>
-        </ul>
-      </div>
-    </div>
-    <div id="datePickerPayments" style="display: none;">
-      <label for="start_report_driver">{% trans 'Початкова дата:' %}</label>
-      <input type="date" id="start_report_driver" name="start_date">
-      <label for="end_report_driver">{% trans 'Кінцева дата:' %}</label>
-      <input type="date" id="end_report_driver" name="end_date">
-      <input class="apply-filter-button_driver" type="button" onclick="applyCustomDateRange('payments')"
-             value="{% trans 'Фільтрувати' %}">
-      <div id="error_message" style="display: none; color: red;"></div>
-    </div>
+    {% include 'dashboard/filter.html' %}
+  {% include 'dashboard/datepicker.html' %}
     <div class="table-container">
       <table class="driver-table">
         <thead>
@@ -66,7 +41,6 @@
       </table>
     </div>
   <div id="formContainer"></div>
-  <script src="{% static 'dashboard/js/scripts-payments.js' %}" defer></script>
 
 {% endblock %}
 

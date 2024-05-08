@@ -1,5 +1,4 @@
 $(document).ready(function () {
-    getDriversList()
 	$(this).on('click', '.driver-name-info', function () {
 		var driverId = $(this).data('id');
 		window.location.href = "/dashboard/driver/" + driverId;

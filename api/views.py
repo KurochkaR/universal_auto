@@ -389,8 +389,8 @@ class CarsInformationListView(CombinedPermissionsMixin, generics.ListAPIView):
             )
             earnings_query_all = PartnerEarnings.objects.all()
 
-        earning_annotate = {'vehicle_earning': Coalesce(Sum('earning'), Decimal(0), output_field=DecimalField())}
-        spending_annotate = {'total_spending': Coalesce(Sum('amount'), Decimal(0), output_field=DecimalField())}
+        earning_annotate = {'vehicle_earning': Coalesce(Sum('earning'), 0, output_field=IntegerField())}
+        spending_annotate = {'total_spending': Coalesce(Sum('amount'), 0, output_field=IntegerField())}
 
         if period == 'all_period':
             start = earnings_query_all.first().report_from
@@ -419,21 +419,21 @@ class CarsInformationListView(CombinedPermissionsMixin, generics.ListAPIView):
             price=F('purchase_price'),
             kasa=Case(When(earning_subquery_exists, then=Subquery(earning_subquery.values('vehicle_earning'))),
                       default=Value(0),
-                      output_field=DecimalField()),
+                      output_field=IntegerField()),
             total_kasa=Subquery(total_earning_subquery.values('vehicle_earning')),
             spending=Coalesce(
                 Subquery(spending_subquery.filter(
                     vehicle__licence_plate=OuterRef('licence_plate')).values('total_spending'),
-                         output_field=DecimalField()
+                         output_field=IntegerField()
                          ),
-                Decimal(0)
+                Value(0)
             ),
             total_spending=Coalesce(
                 Subquery(total_spending_subquery.filter(
                     vehicle__licence_plate=OuterRef('licence_plate')).values('total_spending'),
-                         output_field=DecimalField()
+                         output_field=IntegerField()
                          ),
-                Decimal(0)
+                Value(0)
             )
         ).annotate(
             start_date=Value(format_start),
@@ -442,18 +442,18 @@ class CarsInformationListView(CombinedPermissionsMixin, generics.ListAPIView):
                 Case(
                     When(purchase_price__gt=0, then=Round((F('kasa') - F('spending')) / F('purchase_price') * 100)),
                     default=Value(0),
-                    output_field=DecimalField(max_digits=4, decimal_places=1)
+                    output_field=IntegerField()
                 ),
-                output_field=DecimalField(max_digits=4, decimal_places=1)
+                output_field=IntegerField()
             ),
             total_progress_percentage=ExpressionWrapper(
                 Case(
                     When(purchase_price__gt=0,
                          then=Round((F('total_kasa') - F('total_spending')) / F('purchase_price') * 100)),
                     default=Value(0),
-                    output_field=DecimalField(max_digits=4, decimal_places=1)
+                    output_field=IntegerField()
                 ),
-                output_field=DecimalField(max_digits=4, decimal_places=1)
+                output_field=IntegerField()
             )
         )
 
