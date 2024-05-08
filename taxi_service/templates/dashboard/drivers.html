@@ -17,67 +17,24 @@
       <label for="driver-payments-radio">{% trans "Виплати водіїв" %}</label>
     </div>
   </div>
-  {% block content %}
   <div class="info-driver">
-    <div class="title-driver">
-    <h2>Водії</h2>
+  {% block content %}
+    {% include 'dashboard/driver-list.html' %}
+  {% endblock %}
     </div>
-    <div class="search-filter-block">
-      <div class="search-inputs">
-        <div class="search-input">
-          <input type="text" id="search-name" placeholder="Пошук за іменем">
-        </div>
-        <div class="search-input">
-          <input type="text" id="search-phone" placeholder="Пошук за номером телефону">
-          </div>
-      </div>
-      <div class="custom-select-driver">
-        <select id="status-filter">
-            <option value="all">Усі статуси</option>
-            <option value="active">Активні</option>
-            <option value="inactive">Неактивні</option>
-            <option value="blocked">Заблоковані</option>
-        </select>
-      </div>
-      <div class="custom-select-driver">
-        <select id="block-drivers">
-            <option value="all-drivers">Всі водії</option>
-            <option value="dismissed-drivers">Звільнені водії</option>
-            <option value="blocked-drivers">Заблоковані водії</option>
-        </select>
-      </div>
-      <div class="update-database"><span>Оновити базу</span></div>
-    </div>
-      <div class="drivers-list">
-        <div class="driver-item driver-item-header">
-          <h3>Прізвище та ім'я</h3>
-          <h3>Номер телефону</h3>
-          <h3>Ідентифікатор чату</h3>
-          <h3>Схема роботи</h3>
-          <h3>Статус водія</h3>
-          <h3>Автомобіль</h3>
-        </div>
-      </div>
-  </div>
   {% include 'dashboard/forms/_password-change-form.html' %}
   {% include 'dashboard/forms/_aggregator-form.html' %}
+  {% include 'dashboard/forms/_payment-driver-list.html' %}
+  {% include 'dashboard/forms/_bolt-confirmation-form.html' %}
   {% include 'dashboard/_confirmation-update-database.html' %}
-  {% endblock %}
 </main>
 </div>
-
-<script>
-  const VehicleImg = "{% static 'app/images/index-one-block-2.webp' %}";
-  const logoImageUrl = "{% static 'app/images/logo-2.svg' %}";
-  let ajaxPostUrl = "{% url 'post_request' %}";
-  let ajaxGetUrl = "{% url 'get_request' %}";
-</script>
 
 {% block js %}
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.3/dist/jquery.min.js" defer></script>
 <script src="{% static 'dashboard/js/header-sidebar.js' %}" defer></script>
-<script src="{% static 'dashboard/js/scripts-drivers.js' %}" defer></script>
 <script src="{% static 'dashboard/js/scripts.js' %}" defer></script>
+<script src="{% static 'dashboard/js/scripts-drivers.js' %}" defer></script>
 {% endblock %}
 
 </body>

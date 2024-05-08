@@ -120,6 +120,8 @@ class TotalEarningsSerializer(serializers.Serializer):
     total_earnings = serializers.DecimalField(max_digits=10, decimal_places=2)
     total_mileage = serializers.DecimalField(max_digits=10, decimal_places=2)
     total_spending = serializers.DecimalField(max_digits=10, decimal_places=2)
+    roi = serializers.IntegerField()
+    # annualized_roi = serializers.IntegerField()
 
 
 class InvestorCarsSerializer(serializers.Serializer):

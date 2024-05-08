@@ -51,6 +51,11 @@
         <h2>{% trans 'Загальні витрати на авто' %}</h2>
         <span class="spending-all"></span>
       </div>
+      <div class="card">
+        <h2>{% trans 'Рентабельність інвестицій' %}</h2>
+        <span class="roi"></span>
+<!--        <span class="annualized-roi"></span>-->
+      </div>
     {% else %}
       <div class="card">
         {% if partner_group %}
@@ -210,12 +215,12 @@
 </div>
 
 <!-- Scripts -->
-<script>
-	const VehicleImg = "{% static 'app/images/index-one-block-2.webp' %}";
-	const logoImageUrl = "{% static 'app/images/logo-2.svg' %}";
-	let ajaxPostUrl = "{% url 'post_request' %}";
-	let ajaxGetUrl = "{% url 'get_request' %}";
-</script>
+<!--<script>-->
+<!--	const VehicleImg = "{% static 'app/images/index-one-block-2.webp' %}";-->
+<!--	const logoImageUrl = "{% static 'app/images/logo-2.svg' %}";-->
+<!--	let ajaxPostUrl = "{% url 'post_request' %}";-->
+<!--	let ajaxGetUrl = "{% url 'get_request' %}";-->
+<!--</script>-->
 <!-- ApexCharts -->
 <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.41.0/dist/apexcharts.min.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>

@@ -1,0 +1,46 @@
+{% load static %}
+{% load i18n %}
+
+<!-- Content -->
+{% block content %}
+<div class="title-driver">
+    <h2>Водії</h2>
+    </div>
+    <div class="search-filter-block">
+      <div class="search-inputs">
+        <div class="search-input">
+          <input type="text" id="search-name" placeholder="Пошук за іменем">
+        </div>
+        <div class="search-input">
+          <input type="text" id="search-phone" placeholder="Пошук за номером телефону">
+          </div>
+      </div>
+      <div class="custom-select-driver">
+        <select id="status-filter">
+            <option value="all">Усі статуси</option>
+            <option value="active">Активні</option>
+            <option value="inactive">Неактивні</option>
+            <option value="blocked">Заблоковані</option>
+        </select>
+      </div>
+      <div class="custom-select-driver">
+        <select id="block-drivers">
+            <option value="all-drivers">Всі водії</option>
+            <option value="dismissed-drivers">Звільнені водії</option>
+            <option value="blocked-drivers">Заблоковані водії</option>
+        </select>
+      </div>
+      <div class="update-database"><span>Оновити базу</span></div>
+    </div>
+      <div class="drivers-list">
+        <div class="driver-item driver-item-header">
+          <h3>Прізвище та ім'я</h3>
+          <h3>Номер телефону</h3>
+          <h3>Ідентифікатор чату</h3>
+          <h3>Схема роботи</h3>
+          <h3>Статус водія</h3>
+          <h3>Автомобіль</h3>
+        </div>
+      </div>
+  {% endblock %}
+

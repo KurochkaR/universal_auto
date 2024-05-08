@@ -1,9 +1,7 @@
-{% extends 'dashboard/drivers.html' %}
 {% load static %}
 {% load i18n %}
 <!-- Content -->
 {% block content %}
-  <div class="info-driver">
     <div class="title-driver">
       <h2>{% trans 'Ефективність Водіїв' %}</h2>
       <h2 class="income-drivers-date"></h2>
@@ -51,7 +49,7 @@
       <div id="error_message" style="display: none; color: red;"></div>
     </div>
     <div class="table-container">
-      <table class="driver-table">
+      <table class="driver-efficiency-table">
         <thead>
         <tr class="table-header">
           <th class="sortable" data-sort="driver">{% trans 'Водій' %}</th>
@@ -70,16 +68,8 @@
         </tbody>
       </table>
     </div>
-  </div>
   <div class="driver-container"></div>
-  {% include 'dashboard/forms/_password-change-form.html' %}
-  {% include 'dashboard/forms/_aggregator-form.html' %}
-  {% include 'dashboard/_confirmation-update-database.html' %}
+  <script src="{% static 'dashboard/js/driver-efficiency.js' %}" defer></script>
 {% endblock %}
 
-{% block js %}
-  <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.3/dist/jquery.min.js" defer></script>
-  <script src="{% static 'dashboard/js/header-sidebar.js' %}" defer></script>
-  <script src="{% static 'dashboard/js/driver-efficiency.js' %}" defer></script>
-  <script src="{% static 'dashboard/js/scripts.js' %}" defer></script>
-{% endblock %}
+

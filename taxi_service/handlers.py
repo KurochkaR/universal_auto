@@ -614,6 +614,22 @@ class GetRequestHandler:
         return JsonResponse({"data": form_html})
 
     @staticmethod
+    def handle_render_driver_list(request):
+        html = render_to_string('dashboard/driver-list.html')
+        return JsonResponse({"data": html})
+
+    @staticmethod
+    def handle_render_driver_payments(request):
+        html = render_to_string('dashboard/dashboard-payments.html')
+        return JsonResponse({"data": html})
+
+    @staticmethod
+    def handle_render_driver_efficiency(request):
+        html = render_to_string('dashboard/dashboard-efficiency.html')
+        return JsonResponse({"data": html})
+
+
+    @staticmethod
     def handle_check_cash(request):
         driver_id = request.GET.get('driver_id')
         driver = Driver.objects.select_related('schema').get(pk=driver_id)

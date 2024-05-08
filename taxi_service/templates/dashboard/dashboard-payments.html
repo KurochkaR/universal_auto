@@ -1,11 +1,8 @@
-{% extends 'dashboard/drivers.html' %}
 {% load static %}
 {% load i18n %}
 
 <!-- Content -->
 {% block content %}
-  <div class="modal-overlay" style="display: none;"></div>
-  <div class="info-driver">
     <div class="title-driver">
       <h2>{% trans 'Виплати водіям' %}</h2>
       <button class="create-payment"><span>{% trans 'Створити виплату' %}</span></button>
@@ -68,17 +65,8 @@
         </tbody>
       </table>
     </div>
-  </div>
   <div id="formContainer"></div>
-  {% include 'dashboard/forms/_password-change-form.html' %}
-  {% include 'dashboard/forms/_aggregator-form.html' %}
-  {% include 'dashboard/forms/_payment-driver-list.html' %}
-  {% include 'dashboard/forms/_bolt-confirmation-form.html' %}
-  {% include 'dashboard/_confirmation-update-database.html' %}
-{% endblock %}
-{% block js %}
-  <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.3/dist/jquery.min.js" defer></script>
-  <script src="{% static 'dashboard/js/header-sidebar.js' %}" defer></script>
   <script src="{% static 'dashboard/js/scripts-payments.js' %}" defer></script>
-  <script src="{% static 'dashboard/js/scripts.js' %}" defer></script>
+
 {% endblock %}
+

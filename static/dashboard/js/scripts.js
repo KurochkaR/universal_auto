@@ -58,6 +58,7 @@ $(document).ready(function () {
 							}
 							setTimeout(function () {
 								$("#loadingModal").hide(0);
+								$("#checkmark").hide(0);
 							}, 3000);
 						})
 						.catch(function (error) {
@@ -248,33 +249,41 @@ $(document).ready(function () {
 		});
 	}
 
-	var selectedOption = sessionStorage.getItem('selectedOption');
-	if (selectedOption) {
-		$('input[name="driver-info"][value="' + selectedOption + '"]').prop('checked', true);
-	}
+//	var selectedOption = sessionStorage.getItem('selectedOption');
+//	if (selectedOption) {
+//		$('input[name="driver-info"][value="' + selectedOption + '"]').prop('checked', true);
+//	}
 
 	$('#DriverBtnContainers').on('click', function () {
 		$('input[name="driver-info"][value="driver-list"]').prop('checked', true);
-		sessionStorage.setItem('selectedOption', 'driver-list');
+//		sessionStorage.setItem('selectedOption', 'driver-list');
 	});
 
 	$('input[name="driver-info"]').change(function () {
 		var selectedValue = $(this).val();
-		sessionStorage.setItem('selectedOption', selectedValue);
+//		sessionStorage.setItem('selectedOption', selectedValue);
 
 		switch (selectedValue) {
-			case 'driver-list':
-				window.location.href = "/dashboard/drivers/";
-				break;
-			case 'driver-payments':
-				window.location.href = "/dashboard/drivers-payment/";
-				break;
-			case 'driver-efficiency':
-				window.location.href = "/dashboard/drivers-efficiency/";
-				break;
-			default:
-				break;
-		}
+            case 'driver-list':
+                loadDashboardContent("render_drivers_list", function(){
+                getDriversList()
+                });
+                break;
+            case 'driver-payments':
+            console.log($('input[name="csrfmiddlewaretoken"]').val())
+                loadDashboardContent("render_drivers_payments", function(){
+                driverPayment(null, null, null, paymentStatus = "on_inspection");
+                });
+                break;
+            case 'driver-efficiency':
+                loadDashboardContent("render_drivers_efficiency", function(){
+                fetchDriverEfficiencyData('today', null, null);
+                });
+                break;
+            default:
+                break;
+        }
+
 	});
 
 	$(this).on('click', '.shift-close-btn', function () {
@@ -518,6 +527,73 @@ function formatTime(time) {
 		// Format the string as HH:mm:ss
 		return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 	}
+}
+
+function loadDashboardContent(action, callback) {
+    $.ajax({
+        url: ajaxGetUrl,
+        type: 'GET',
+		data: {
+            action: action,
+        },
+        success: function(response) {
+            // Update the specific portion of the page with the fetched content
+            $('.info-driver').html(response.data);
+            if (callback && typeof callback === "function") {
+                // Call the callback function
+                callback();
+            }
+        },
+        error: function(xhr, status, error) {
+            // Handle errors
+            console.error(error);
+        }
+    });
+}
+
+function sortTable(column, order) {
+    let $tbody = $('.driver-efficiency-table').find('tbody');
+	var groups = [];
+	var group = [];
+
+	$('tr:not(.table-header)').each(function () {
+		if ($(this).find('.driver').length > 0) {
+			if (group.length > 0) {
+				groups.push(group);
+			}
+			group = [$(this)];
+		} else {
+			group.push($(this));
+		}
+	});
+
+	if (group.length > 0) {
+		groups.push(group);
+	}
+
+	groups.sort(function (a, b) {
+		var sumA = 0;
+		a.forEach(function (row) {
+			sumA += parseFloat($(row).find(`td.${column}`).text());
+		});
+		var sumB = 0;
+		b.forEach(function (row) {
+			sumB += parseFloat($(row).find(`td.${column}`).text());
+		});
+		// return sumA - sumB;
+		if (order === 'asc') {
+			return sumA - sumB;
+		} else {
+			return sumB - sumA;
+		}
+	});
+
+	$tbody.empty();
+	groups.forEach(function (group) {
+		group.forEach(function (row) {
+			$tbody.append(row);
+		});
+	});
 }
 
 function checkTaskStatus(taskId) {

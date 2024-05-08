@@ -25,9 +25,15 @@
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.3/js/lightbox.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
-
   <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
   <script src="{% url 'javascript-catalog' %}"></script>
+  <script>
+	const VehicleImg = "{% static 'app/images/index-one-block-2.webp' %}";
+	const logoImageUrl = "{% static 'app/images/logo-2.svg' %}";
+	let ajaxPostUrl = "{% url 'post_request' %}";
+	let ajaxGetUrl = "{% url 'get_request' %}";
+  </script>
+
 </head>
 <body>
 <div class="grid-container">

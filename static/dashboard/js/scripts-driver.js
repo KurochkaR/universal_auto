@@ -151,14 +151,13 @@ $(document).ready(function () {
 			$('.status-cash').show();
 			$('.confirmation-cash-control h2').text("Ви точно бажаєте увімкнути автоматичне слідкування за готівкою?");
 			$('#loader-confirmation-cash p').text("Зачекайти поки увімкнеться автоматичне слідкування за готівкою");
-			$('.confirmation-cash-control').attr('id', 'cash-auto').show();
 		} else {
 			$('.switch-control').show()
 			$('.status-cash').hide();
 			$('.confirmation-cash-control h2').text("Ви точно бажаєте вимкнути автоматичне слідкування за готівкою?");
 			$('#loader-confirmation-cash p').text("Зачекайти поки вимкнеться автоматичне слідкування за готівкою");
-			$('.confirmation-cash-control').attr('id', 'cash-auto').show();
 		}
+		$('.confirmation-cash-control').attr('id', 'cash-auto').show();
 	});
 
 	$(document).on('click', '#confirmation-btn-on', function () {
@@ -338,7 +337,6 @@ $(document).ready(function () {
 
 	$('.debt-repayment-input-container').find('input[type="text"]').on('keydown', function (event) {
 		if (event.which === 13) {
-			console.log("Клавіша Enter була натиснута.");
 			$(this).closest('.driver-bonus-penalty-info').find('.debt-repayment-input-container i').click();
 		}
 	});

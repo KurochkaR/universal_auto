@@ -1,4 +1,6 @@
+from taxi_service.utils import get_dates
 
 
 def run(*args):
-    pass
+    start, end = get_dates('current_month')
+    print((end-start).days/365)

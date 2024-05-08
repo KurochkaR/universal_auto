@@ -136,6 +136,7 @@ function fetchInvestorData(period, start, end) {
 			$(".apply-filter-button").prop("disabled", false);
 			let totalEarnings = data[0]['totals']['total_earnings'];
 			let totalMileage = data[0]['totals']['total_mileage'];
+			let roi = data[0]['totals']['roi'];
 			let totalSpending = data[0]['totals']['total_spending'];
 			let startDate = data[0]['start'];
 			let endDate = data[0]['end'];
@@ -170,7 +171,7 @@ function fetchInvestorData(period, start, end) {
 				$('#investor-area-chart').hide();
 			};
 
-			if (period === 'yesterday') {
+			if (startDate === endDate) {
 				$('.weekly-income-dates').text(startDate);
 			} else {
 				$('.weekly-income-dates').text(gettext('З ') + startDate + ' ' + gettext('по') + ' ' + endDate);
@@ -178,6 +179,8 @@ function fetchInvestorData(period, start, end) {
 			$('.weekly-income-amount').text(totalEarnings + gettext(' грн'));
 			$('.spending-all').text(totalSpending + gettext(' грн'));
 			$('.income-km').text(totalMileage + gettext(' км'));
+			$('.roi').text(roi + gettext(' %'));
+//			$('.annualized-roi').text(annualized_roi + gettext(' %'));
 		},
 		error: function (error) {
 				console.error(error);
@@ -190,17 +193,12 @@ const commonPeriodSelect = $('#period-common');
 commonPeriodSelect.on('change', function () {
 	const selectedPeriod = commonPeriodSelect.val();
 	if (selectedPeriod !== "custom") {
+	    $("#datePicker").css("display", "none");
 		fetchInvestorData(selectedPeriod);
-	}
-	if (selectedPeriod === "custom") {
-		$("#datePicker").css("display", "block");
 	} else {
-		$("#datePicker").css("display", "none");
+	    $("#datePicker").css("display", "block");
 	}
 });
-
-fetchInvestorData('yesterday');
-
 
 function applyDateRange() {
 	$(".apply-filter-button").prop("disabled", true);
@@ -213,6 +211,17 @@ function applyDateRange() {
 }
 
 $(document).ready(function () {
+    const customSelect = $(".custom-select");
+	const selectedOption = customSelect.find(".selected-option");
+	const optionsList = customSelect.find(".options");
+	const iconDown = customSelect.find(".fas.fa-angle-down");
+	const datePicker = $("#datePicker");
+
+	const firstVehicle = $(".custom-dropdown .dropdown-options li:first");
+	const vehicleId = firstVehicle.data('value');
+	const vehicle_lc = firstVehicle.text();
+
+
 	function initializeCustomSelect(customSelect, selectedOption, optionsList, iconDown, datePicker, vehicleId, vehicle_lc) {
 		iconDown.click(function() {
 			customSelect.toggleClass("active");
@@ -228,30 +237,13 @@ $(document).ready(function () {
 			customSelect.removeClass("active");
 
 			if (clickedValue !== "custom") {
-				if (vehicle_lc) {
-					fetchInvestorData(clickedValue);
-				} else {
-					fetchInvestorData(clickedValue);
-				}
-			}
-
-			if (clickedValue === "custom") {
-				datePicker.css("display", "block");
+			    datePicker.hide();
+				fetchInvestorData(clickedValue);
 			} else {
-				datePicker.css("display", "none");
+			    datePicker.show();
 			}
 		});
 	}
-
-	const customSelect = $(".custom-select");
-	const selectedOption = customSelect.find(".selected-option");
-	const optionsList = customSelect.find(".options");
-	const iconDown = customSelect.find(".fas.fa-angle-down");
-	const datePicker = $("#datePicker");
-
-	const firstVehicle = $(".custom-dropdown .dropdown-options li:first");
-	const vehicleId = firstVehicle.data('value');
-	const vehicle_lc = firstVehicle.text();
 
 	fetchInvestorData('yesterday');
 	if (vehicleId !== undefined) {
