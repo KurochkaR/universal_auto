@@ -146,7 +146,7 @@ class InvestorCarsEarningsView(CombinedPermissionsMixin,
         start, end, format_start, format_end = get_start_end(self.kwargs['period'])
         queryset = InvestorFilterMixin.get_queryset(InvestorPayments, self.request.user)
         queryset = queryset.filter(report_from__range=(start, end))
-        lose_percent = ParkSettings.get_value("LOSE_PERCENT", default=10)
+        lose_percent = ParkSettings.get_value("LOSE_PERCENT", default=12)
         mileage_subquery = CarEfficiency.objects.filter(
             report_from__range=(start, end),
             investor=self.request.user
@@ -177,7 +177,6 @@ class InvestorCarsEarningsView(CombinedPermissionsMixin,
             total_actives=Coalesce(Sum('current_price', output_field=DecimalField()), Decimal(0))
 
         )
-        print(total_mileage_spending["total_actives"])
         qs = queryset.values('vehicle__licence_plate').annotate(
             licence_plate=F('vehicle__licence_plate'),
             earnings=Sum(F('earning')),
@@ -188,10 +187,12 @@ class InvestorCarsEarningsView(CombinedPermissionsMixin,
         total_earnings = queryset.aggregate(
             total_earnings=Coalesce(Sum(F('earning')), Decimal(0)))['total_earnings']
         total_investment = total_mileage_spending["total_investment"] if total_mileage_spending["total_investment"] else 1
+        roi = ((total_earnings - total_mileage_spending["total_spending"] +
+                total_mileage_spending["total_actives"] - total_investment) / total_investment)
         total = dict(total_earnings=total_earnings, total_mileage=total_mileage_spending["total_mileage"],
                      total_spending=total_mileage_spending["total_spending"],
-                     roi=((total_earnings - total_mileage_spending["total_spending"] +
-                          total_mileage_spending["total_actives"] - total_investment) / total_investment) * 100)
+                     roi=roi*100,)
+                     # annualized_roi=(pow((1+roi), 1/days_since_purchase) - 1) * 100)
         return [{'start': format_start, 'end': format_end, 'car_earnings': qs, 'totals': total}]
 
 

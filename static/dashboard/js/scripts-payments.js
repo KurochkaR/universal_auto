@@ -562,14 +562,9 @@ $(document).ready(function () {
 
 			if (clickedValue !== "custom") {
 				driverPayment(clickedValue, null, null, paymentStatus = "closed");
-			} else {
-				datePicker.css("display", "block");
-			}
-
-			if (clickedValue === "custom") {
-				datePicker.css("display", "block");
-			} else {
 				datePicker.css("display", "none");
+			} else {
+				datePicker.css("display", "block");
 			}
 		});
 	}

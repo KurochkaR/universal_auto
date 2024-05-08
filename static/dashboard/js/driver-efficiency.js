@@ -218,14 +218,9 @@ $(document).ready(function () {
 
 	$(document).on('click', 'th.sortable', function () {
 		let column = $(this).data('sort');
-		let sortOrder = $(this).hasClass('sorted-asc') ? 'desc' : 'asc';
+		let sortOrder = $(this).hasClass('sorted-asc') ? 'sorted-desc' : 'sorted-asc';
 		$('.driver-efficiency-table').find('th.sortable').removeClass('sorted-asc sorted-desc');
-
-		if (sortOrder === 'asc') {
-			$(this).addClass('sorted-asc');
-		} else {
-			$(this).addClass('sorted-desc');
-		}
+		$(this).addClass(sortOrder);
 		sortTable(column, sortOrder);
 	});
 
@@ -252,18 +247,15 @@ $(document).ready(function () {
 			var aggregatorsString = aggregators.join('&');
 
 			if (clickedValue !== "custom") {
+			    datePicker.css("display", "none");
 				if (aggregatorsString === "shared") {
 					$('th[data-sort="idling-mileage"]').show();
 					fetchDriverEfficiencyData(clickedValue, null, null);
 				} else {
 					fetchDriverFleetEfficiencyData(clickedValue, null, null, aggregatorsString);
 				}
-			}
-
-			if (clickedValue === "custom") {
-				datePicker.css("display", "block");
 			} else {
-				datePicker.css("display", "none");
+				datePicker.css("display", "block");
 			}
 		});
 	}

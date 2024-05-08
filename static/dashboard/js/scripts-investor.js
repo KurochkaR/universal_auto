@@ -180,6 +180,7 @@ function fetchInvestorData(period, start, end) {
 			$('.spending-all').text(totalSpending + gettext(' грн'));
 			$('.income-km').text(totalMileage + gettext(' км'));
 			$('.roi').text(roi + gettext(' %'));
+//			$('.annualized-roi').text(annualized_roi + gettext(' %'));
 		},
 		error: function (error) {
 				console.error(error);
