@@ -195,8 +195,9 @@ $(document).ready(function () {
         fetchInvestorData(clickedValue);
     });
 
-    applyDateRange(function(selectedPeriod, startDate, endDate) {
-            fetchInvestorData(selectedPeriod, startDate, endDate);
-        });
-
+    $(this).on('click', '.apply-filter-button', function() {
+        applyDateRange(function(selectedPeriod, startDate, endDate) {
+                fetchInvestorData(selectedPeriod, startDate, endDate);
+            });
+    })
 });

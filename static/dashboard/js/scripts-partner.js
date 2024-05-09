@@ -437,7 +437,7 @@ $(document).ready(function () {
 
 	fetchCarEfficiencyData('yesterday', vehicleId, vehicle_lc);
 
-	$(this).on('click', '.apply-filter-button', function(){
+	$(this).on('click', '.apply-filter-button', function() {
         applyDateRange(function(selectedPeriod, startDate, endDate) {
             fetchSummaryReportData(selectedPeriod, startDate, endDate);
 	        fetchCarEfficiencyData(selectedPeriod, vehicleId, vehicle_lc, startDate, endDate);

@@ -185,12 +185,12 @@ def check_today_rent(gps, period="today", day=None, last_order=False):
     start, end = get_dates(period, day)
     in_road = gps.get_road_distance(start, end, last_order)
     for driver, result in in_road.items():
-        process_driver_data(driver, result, start, end)
+        process_driver_data(driver, result, start, end, last_order)
 
 
-def process_driver_data(driver, result, start, end):
+def process_driver_data(driver, result, start, end, last_order):
     rent_distance, rent_time, end_time = result
-    if end > end_time:
+    if end > end_time and not last_order:
         end_time = end
     total_km, road_time, vehicles = UaGpsSynchronizer.objects.get(
         partner=driver.partner).calc_total_km(driver, start, end_time)
