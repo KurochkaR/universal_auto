@@ -187,23 +187,15 @@
 <!-- End Main Manager-->
 </div>
 
-<!-- Scripts -->
-<!--<script>-->
-<!--	const VehicleImg = "{% static 'app/images/index-one-block-2.webp' %}";-->
-<!--	const logoImageUrl = "{% static 'app/images/logo-2.svg' %}";-->
-<!--	let ajaxPostUrl = "{% url 'post_request' %}";-->
-<!--	let ajaxGetUrl = "{% url 'get_request' %}";-->
-<!--</script>-->
-<!-- ApexCharts -->
 <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.41.0/dist/apexcharts.min.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.3/dist/jquery.min.js" defer></script>
+<script src="{% static 'dashboard/js/header-sidebar.js' %}" defer></script>
+<script src="{% static 'dashboard/js/scripts.js' %}" defer></script>
 {% if investor_group %}
   <script src="{% static 'dashboard/js/scripts-investor.js' %}" defer></script>
 {% else %}
   <script src="{% static 'dashboard/js/scripts-partner.js' %}" defer></script>
 {% endif %}
-<script src="{% static 'dashboard/js/header-sidebar.js' %}" defer></script>
-<script src="{% static 'dashboard/js/scripts.js' %}" defer></script>
 </body>
 </html>
