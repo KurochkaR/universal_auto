@@ -45,13 +45,13 @@ function fetchVehicleEarningsData(period, start = null, end = null) {
 
 
 $(document).ready(function() {
-	fetchVehicleEarningsData("yesterday");
+	fetchVehicleEarningsData("today");
 
     initializeCustomSelect(function(clickedValue) {
         fetchVehicleEarningsData(clickedValue);
     });
 
-    $(this).on('click', '.apply-filter-button', function(){
+    $(this).on('click', '.apply-filter-button', function() {
         applyDateRange(function(selectedPeriod, startDate, endDate) {
             fetchVehicleEarningsData(selectedPeriod, startDate, endDate);
         });

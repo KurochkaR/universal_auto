@@ -1,156 +1,3 @@
-function driverPayment(period = null, start = null, end = null, paymentStatus = null) {
-	const url = period === null ? `/api/driver_payments/${paymentStatus}/` :
-		period === 'custom' ? `/api/driver_payments/${start}&${end}/` :
-			`/api/driver_payments/${period}/`;
-
-	$.ajax({
-		url: url,
-		type: 'GET',
-		dataType: 'json',
-		success: function (response) {
-            var statusTh = $('th[data-sort="status"]');
-
-            if (paymentStatus === 'closed') {
-                $('th[data-sort="button"]').hide();
-                statusTh.text("Статус виплати");
-            } else if (paymentStatus === 'not_closed') {
-                statusTh.text("Дії");
-                $('th[data-sort="button"]').hide();
-                $('#datePicker').hide();
-                $('.filter').hide();
-            } else {
-                $('#datePicker').hide();
-                $('.filter').hide();
-            }
-			$(".apply-filter-button").prop("disabled", false);
-			var tableBody = $('.driver-table tbody');
-			tableBody.empty();
-			var addButtonBonus = '<button class="add-btn-bonus" title="Додати бонус"><i class="fa fa-plus"></i></button>';
-			var addButtonPenalty = '<button class="add-btn-penalty" title="Додати штраф"><i class="fa fa-plus"></i></button>';
-			var incorrectBtn = '<button class="incorrect-payment-btn">Перерахувати виплату</button>';
-			var calculateBtn = '<button class="calculate-payment-btn">Розрахувати на зараз</button>';
-			var confirmButton = '<button class="apply-btn" title="Відправити водію"></button>';
-			var arrowBtn = '<button class="arrow-btn">Повернути на перевірку</button>';
-			var payBtn = '<button class="pay-btn">Отримано</button>';
-			var notPayBtn = '<button class="not-pay-btn">Не отримано</button>';
-
-
-			for (const payment of response) {
-				const {
-					id: dataId, status, payment_type, report_from, report_to, bonuses_list,
-					penalties_list, full_name, kasa, cash, rent, rate, earning, bonuses, penalties, bolt_screen
-				} = payment;
-				if ((paymentStatus === 'on_inspection' && (status === 'Перевіряється' || status === 'Потребує поправок')) ||
-					(paymentStatus === 'not_closed' && status === 'Очікується') ||
-					(paymentStatus === 'closed' && (status === 'Виплачений' || status === 'Не сплачений'))) {
-                    let bonusMainClass = status === 'Потребує поправок' ? '"tr-driver-payments incorrect"': "tr-driver-payments"
-
-					var responseDate = moment(report_to, "DD.MM.YYYY HH:mm");
-					var rowBonus = '<tr class=' + bonusMainClass + ' data-id="' + dataId + '">' +
-						'<td colspan="11" class="bonus-table"><table class="bonus-penalty-table"><tr class="title-bonus-penalty">' +
-						'<th class="edit-bonus-penalty">Тип</th>' +
-						'<th class="edit-bonus-penalty">Сума</th>' +
-						'<th class="edit-bonus-penalty">Категорія</th>' +
-						'<th class="edit-bonus-penalty">Автомобіль</th>' +
-						(status === 'Перевіряється' ? '<th class="edit-bonus-penalty">Дії</th>' : '') + '</tr>';
-
-					function generateRow(items, type) {
-						var rowBon = '';
-						for (const item of items) {
-							rowBon += '<tr class="description-bonus-penalty">';
-							rowBon += '<td class="' + type + '-type" data-bonus-penalty-id="' + item.id + '">' + (type === 'bonus' ? 'Бонус' : 'Штраф') + '</td>';
-							rowBon += '<td class="' + type + '-amount">' + item.amount + '</td>';
-							rowBon += '<td class="' + type + '-category">' + item.category + '</td>';
-							rowBon += '<td class="' + type + '-car">' + item.vehicle + '</td>';
-							if (status === 'Перевіряється' && item.category !== 'Бонуси Bolt' && item.category !== 'Борг по виплаті') {
-								rowBon += '<td><button class="edit-' + type + '-btn" data-bonus-penalty-id="' + item.id + '" data-type="edit"><i class="fa fa-pencil-alt"></i></button> <button class="delete-bonus-penalty-btn" data-bonus-penalty-id="' + item.id + '" data-type="delete"><i class="fa fa-times"></i></button></td>';
-							}
-							rowBon += '</tr>';
-						}
-						return rowBon;
-					}
-
-					rowBonus += generateRow(bonuses_list, 'bonus', 'edit-bonus-btn', 'delete-bonus-penalty-btn');
-					rowBonus += generateRow(penalties_list, 'penalty', 'edit-penalty-btn', 'delete-bonus-penalty-btn');
-					rowBonus += '</table></td></tr>';
-					var row = $('<tr class="tr-driver-payments">');
-					row.attr('data-id', dataId);
-					row.append('<td>' + report_from + ' <br> ' + report_to + '</td>');
-					row.append('<td class="driver-name cell-with-triangle" title="Натиснути для огляду бонусів та штрафів">' + full_name + ' <i class="fa fa-caret-down"></i></td>');
-					row.append('<td>' + kasa + '</td>');
-					row.append('<td>' + cash + '</td>');
-					row.append('<td>' + rent + '</td>');
-					if (status === 'Перевіряється') {
-
-
-						row.append('<td>' + '<div style="display: flex;justify-content: space-evenly; align-items: center;">' + bonuses + addButtonBonus + '</div>' + '</td>');
-						row.append('<td>' + '<div style="display: flex;justify-content: space-evenly; align-items: center;">' + penalties + addButtonPenalty + '</div>' + '</td>');
-						row.append('<td class="driver-rate" title="Натиснути для зміни відсотка"><div style="display: flex; justify-content: space-evenly; align-items: center;"><span class="rate-payment">' + rate + '</span><input type="text" class="driver-rate-input" placeholder="100" style="display: none;"><i class="fa fa-check check-icon"></i><i class="fa fa-pencil-alt pencil-icon"></i></div></td>');
-					} else {
-						row.append('<td>' + '<div class="no-pencil-rate" style="display: flex;justify-content: space-evenly; align-items: center;">' + bonuses + '</div>' + '</td>');
-						row.append('<td>' + '<div class="no-pencil-rate" style="display: flex;justify-content: space-evenly; align-items: center;">' + penalties + '</div>' + '</td>');
-						row.append('<td><div style="display: flex;justify-content: space-evenly; align-items: center;"><span class="rate-payment no-pencil-rate" >' + rate + ' </span></div></td>')
-
-					}
-					row.append('<td class="payment-earning">' + earning + '</td>');
-					var showAllButton = $('.send-all-button');
-					showAllButton.hide(0);
-					if (status === 'Очікується') {
-						row.append('<td><div class="box-btn-upd">' + arrowBtn + payBtn + notPayBtn + '</div></td>');
-						if (earning > 0) {
-							row.find('.not-pay-btn').remove();
-							row.find('.pay-btn').text('Сплатити');
-
-						}
-					}
-					if (status === 'Перевіряється') {
-						showAllButton.show(0);
-						statusTh.text("Перерахування виплат");
-						$('th[data-sort="button"]').show();
-						if (payment_type === "DAY" && moment().startOf('day').isSame(responseDate.startOf('day'))) {
-							row.append('<td class="calc-buttons">' + calculateBtn + '</td>')
-						} else {
-							row.append('<td></td>')
-						}
-						row.append('<td class="send-buttons">' + confirmButton + '</td>');
-					}
-					if (status === 'Потребує поправок') {
-						row.addClass('incorrect');
-						showAllButton.show(0);
-						if (payment_type === "DAY" && moment().startOf('day').isSame(responseDate.startOf('day'))) {
-							row.append('<td class="calc-buttons">' + calculateBtn + incorrectBtn +'</td>');
-
-							if (bolt_screen) {
-							    var correctButton = '<a class="correct-bolt-btn" href="' + bolt_screen + '" data-lightbox="payments"><i class="fa fa-camera"></i></a>'
-							    row.append('<td class="send-buttons">'+ correctButton + '</td>')
-							} else {
-						        row.append('<td></td>') ;
-						        }
-						} else {
-							row.append('<td></td>');
-							row.append('<td></td>')
-						}
-					}
-
-					if (status === 'Виплачений' || status === 'Не сплачений') {
-						row.append('<td>' + status + '</td>');
-					}
-
-					tableBody.append(row);
-					tableBody.append(rowBonus);
-				}
-			}
-			if (clickedDate && clickedId) {
-				var $targetElement = $('.tr-driver-payments[data-id="' + clickedId + '"]');
-				$targetElement.find('.bonus-table').show();
-			}
-		}
-
-	});
-	var clickedDate = sessionStorage.getItem('clickedDate');
-	var clickedId = sessionStorage.getItem('clickedId');
-}
-
 $(document).on('click', function (event) {
 	if (!$(event.target).closest('.driver-rate').length) {
 		$('.driver-rate-input').hide();
@@ -243,145 +90,54 @@ $(document).ready(function () {
 	});
 
 	$(this).on('click', '.driver-button, .calculate-payment-btn', function (e) {
+        e.stopPropagation();
 		e.preventDefault();
 		const driverId = $(this).data('driver-id');
 		const paymentId = $(this).closest('tr').data('id');
-		const confirmationText = $(this).hasClass('calculate-payment-btn') ?
+		var confirmationBoxText = $(".confirmation-box h2");
+        const confirmationText = $(this).hasClass('calculate-payment-btn') ?
 			"Ви справді хочете розрахувати на зараз?" :
 			"Ви впевнені, що хочете створити нову виплату?";
-		const confirmationBox = `
-			<div class="confirmation-calculate-payment">
-				<div class="container">
-					<div class="confirmation-box">
-						<h2>${confirmationText}</h2>
-						<div class="btn-box">
-							<button class="confirm-yes">Так</button>
-							<button class="confirm-no">Ні</button>
-						</div>
-					</div>
-				</div>
-			</div>`;
-		$('body').append(confirmationBox);
-		$('.confirmation-calculate-payment').show();
-
-		$('.confirm-yes').on('click', function () {
-			$('.confirmation-calculate-payment').remove();
-			$('#payment-driver-list').hide();
-			$('.create-payment').css('background', '#a1e8b9')
-			$('.modal-overlay').hide();
-			$("#loadingModal").show();
-			$("#loadingMessage").text(gettext("Створюється нова виплата"));
-			$("#loader").show();
-			$.ajax({
-				url: ajaxPostUrl,
-				type: 'POST',
-				data: {
-					driver_id: driverId,
-					payment_id: paymentId,
-					action: 'create-new-payment',
-					csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
-				},
-				success: function (response) {
-					checkTaskStatus(response.task_id)
-						.then(function (response) {
-							if (response.data === "SUCCESS") {
-								$("#loadingModal").hide();
-								if (response.result.status === 'incorrect' && response.result.order === false) {
-									$(".bolt-confirm-button").data("payment-id", response.result.id)
-									$("#bolt-confirmation-form").show();
-									$('.modal-overlay').show();
-								} else if (response.result.status === 'error') {
-									$('#loadingModal').show();
-									$('#loadingMessage').text("Немає звітів по водію за цей період")
-									$("#loader").hide();
-									setTimeout(function () {
-										$('#loadingModal').hide();
-									}, 3000);
-
-								} else {
-									driverPayment(null, null, null, paymentStatus = "on_inspection");
-								}
-							}
-						})
-						.catch(function (error) {
-							console.error('Error:', error)
-						})
-				},
-				error: function (xhr, textStatus, errorThrown) {
-					if (xhr.status === 400) {
-						let error = xhr.responseJSON.error;
-						$('#loadingModal').show();
-						$('#loadingMessage').text(xhr.responseJSON.error)
-						$("#loader").hide();
-						setTimeout(function () {
-							$('#loadingModal').hide();
-						}, 3000);
-					} else {
-						console.error('Помилка запиту: ' + textStatus);
-					}
-				},
-			});
-		});
-
-		$('.confirm-no').on('click', function () {
-			$('.confirmation-calculate-payment').remove();
-		});
+		confirmationBoxText.text(confirmationText);
+		$("#confirmation-btn-on").data({
+            'driver-id': driverId,
+            'payment-id': paymentId
+        }).addClass('confirm-yes').removeClass('confirmation-btn-on');
+		$(".confirmation-update-database").show();
 	});
 
+	$(this).on('click','.confirm-yes', function () {
+        var confirmationBtnOn = $("#confirmation-btn-on")
+        var driverId = confirmationBtnOn.data('driver-id');
+        var paymentId = confirmationBtnOn.data('payment-id');
+        $(".confirmation-update-database").hide();
+        confirmationBtnOn.addClass('confirmation-btn-on').removeClass('confirm-yes');
+        $('#payment-driver-list').hide();
+        $('.create-payment').css('background', '#a1e8b9')
+        $('.modal-overlay').hide();
+        $("#loadingModal").show();
+        $("#loadingMessage").text(gettext("Створюється нова виплата"));
+        $("#loader").show();
+        var ajaxData = {
+                driver_id: driverId,
+                payment_id: paymentId,
+                action: 'create-new-payment',
+                csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
+            };
+        calculate_payment_ajax(ajaxData)
+    });
 
 	$(this).on('click', '.incorrect-payment-btn', function () {
 		paymentId = $(this).closest('tr').data('id')
 		$("#loadingModal").show();
 		$("#loadingMessage").text(gettext("Перераховуємо виплату"));
 		$("#loader").show();
-		$.ajax({
-			url: ajaxPostUrl,
-			type: 'POST',
-			data: {
-				payment_id: paymentId,
-				action: 'update_incorrect_payment',
-				csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
-			},
-			success: function (response) {
-				checkTaskStatus(response.task_id)
-					.then(function (response) {
-						if (response.data === "SUCCESS") {
-							$("#loadingModal").hide();
-							if (response.result.status === 'incorrect' && response.result.order === false) {
-								$(".bolt-confirm-button").data("payment-id", response.result.id)
-								$("#bolt-confirmation-form").show();
-								$('.modal-overlay').show();
-							} else if (response.result.order === true) {
-								$("#loadingMessage").text(gettext("Вибачте, не всі замовлення розраховані агрегатором, спробуйте пізніше"));
-								$("#loader").hide();
-								$("#loadingModal").show();
-								setTimeout(function () {
-									$('#loadingModal').hide();
-								}, 3000);
-							} else {
-								driverPayment(null, null, null, paymentStatus = "on_inspection");
-							}
-						}
-
-					})
-					.catch(function (error) {
-						console.error('Error:', error)
-					})
-			},
-			error: function (xhr, textStatus, errorThrown) {
-                if (xhr.status === 400) {
-                    let error = xhr.responseJSON.error;
-                    $('#loadingModal').show();
-                    $('#loadingMessage').text(xhr.responseJSON.error)
-                    $("#loader").hide();
-                    setTimeout(function () {
-                        $('#loadingModal').hide();
-                    }, 3000);
-                } else {
-                    console.error('Помилка запиту: ' + textStatus);
-                }
-            },
-		});
+        var ajaxData = {
+                        payment_id: paymentId,
+                        action: 'update_incorrect_payment',
+                        csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
+                        };
+		calculate_payment_ajax(ajaxData)
 	})
 
 	$(this).on('click', '.bolt-confirm-button', function (e) {
@@ -411,20 +167,6 @@ $(document).ready(function () {
 				$('.modal-overlay').hide();
 				driverPayment(null, null, null, paymentStatus = "on_inspection");
 			},
-			error: function (xhr, textStatus, errorThrown) {
-				if (xhr.status === 400) {
-					$('.modal-overlay').hide();
-					let error = xhr.responseJSON.error;
-					$('#loadingModal').show();
-					$('#loadingMessage').text(xhr.responseJSON.error);
-					$("#loader").hide();
-					setTimeout(function () {
-						$('#loadingModal').hide();
-					}, 3000);
-				} else {
-					console.error('Помилка запиту: ' + textStatus);
-				}
-			}
 		});
 	});
 
@@ -472,6 +214,7 @@ $(document).ready(function () {
 	}
 
 	$(this).on('change', 'input[name="payment-status"]', function () {
+	    sessionStorage.setItem('paymentStatus', $(this).val());
 		if ($(this).val() === 'closed') {
 			driverPayment(period = 'today', null, null, paymentStatus = $(this).val());
 			$('.filter').css('display', 'flex');
@@ -535,9 +278,6 @@ $(document).ready(function () {
 				$rateInput.hide();
 				rateText.show();
 			},
-			error: function (error) {
-				console.error("Error:", error);
-			}
 		});
 	});
 
@@ -619,10 +359,7 @@ $(document).ready(function () {
 
 		if ($(this).hasClass('pay-btn')) {
 			status = 'completed';
-			confirmationTextOn = "Так";
-			confirmationTextOff = "Ні";
 			$confirmationBox.find("h2").text("Ви впевнені, що хочете закрити платіж ?");
-			$confirmationInput.hide();
 		} else {
 			status = 'failed';
 			confirmationTextOn = "Водій не розрахувався";
@@ -640,46 +377,52 @@ $(document).ready(function () {
 	$(document).on('click', function (event) {
 		if (!$(event.target).closest('.confirmation-update-database').length) {
 			$(".confirmation-update-database").hide();
+			$("#confirmation-btn-on").text("Так")
+			$("#confirmation-btn-off").text("Ні");
+			$(".confirmation-box input").hide();
 		}
 	});
 
 
-	$(this).on("click", ".close-payment", function () {
-		var id = $(this).data('id');
-		var status = $(this).data('status');
-		updStatusDriverPayments(id, status, paymentStatus = "not_closed");
-		$(".confirmation-update-database").hide();
-		$(".close-payment").addClass('confirmation-btn-on').removeClass('close-payment');
-		$(".close-payment-with-debt").addClass('confirmation-btn-off').removeClass('close-payment-with-debt');
-	});
+//	$(this).on("click", ".close-payment", function () {
+//		var id = $(this).data('id');
+//		var status = $(this).data('status');
+//		updStatusDriverPayments(id, status, paymentStatus = "not_closed");
+//		$(".confirmation-update-database").hide();
+//		$(".close-payment").addClass('confirmation-btn-on').removeClass('close-payment');
+//		$(".close-payment-with-debt").addClass('confirmation-btn-off').removeClass('close-payment-with-debt');
+//	});
 
 	$(this).on("input", "#amount", function () {
 		validNumberInput($(this).data("maxVal"), $(this))
 	});
 
-	$(this).on("click", ".close-payment-with-debt", function () {
+	$(this).on("click", ".close-payment-with-debt, .close-payment", function () {
 		var id = $(this).data('id');
 		var status = $(this).data('status');
-		var amount = $("#amount").val()
-		$.ajax({
-			url: ajaxPostUrl,
-			type: 'POST',
-			data: {
-				amount: amount,
-				payment: id,
-				action: 'add-debt-payment',
-				csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
-			},
-			success: function (response) {
-				updStatusDriverPayments(id, status, paymentStatus = "not_closed");
-				$(".confirmation-update-database").hide();
-				$(".close-payment-with-debt").addClass('confirmation-btn-off').removeClass('close-payment-with-debt');
-				$(".close-payment").addClass('confirmation-btn-on').removeClass('close-payment');
-			},
-			error: function (error) {
-				console.error("Error:", error);
-			}
+		if ($(this).hasClass("close-payment-with-debt")) {
+            var amount = $("#amount").val()
+            $.ajax({
+                url: ajaxPostUrl,
+                type: 'POST',
+                data: {
+                    amount: amount,
+                    payment: id,
+                    action: 'add-debt-payment',
+                    csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val()
+                },
+//			success: function (response) {
+//				updStatusDriverPayments(id, status, paymentStatus = "not_closed");
+//				$(".confirmation-update-database").hide();
+//				$(".close-payment-with-debt").addClass('confirmation-btn-off').removeClass('close-payment-with-debt');
+//				$(".close-payment").addClass('confirmation-btn-on').removeClass('close-payment');
+//			},
 		});
+		}
+		updStatusDriverPayments(id, status, paymentStatus = "not_closed");
+		$(".confirmation-update-database").hide();
+		$(".close-payment").addClass('confirmation-btn-on').removeClass('close-payment');
+		$(".close-payment-with-debt").addClass('confirmation-btn-off').removeClass('close-payment-with-debt');
 	});
 
 	$(this).on('click', '.send-all-button', function () {
@@ -730,4 +473,47 @@ function updStatusDriverPayments(id, status, paymentStatus, all = null) {
 			driverPayment(null, null, null, paymentStatus = paymentStatus);
 		}
 	});
+}
+
+
+function calculate_payment_ajax(ajaxData) {
+    $.ajax({
+			url: ajaxPostUrl,
+			type: 'POST',
+            data: ajaxData,
+			success: function (response) {
+				checkTaskStatus(response.task_id)
+					.then(function (response) {
+						if (response.data === "SUCCESS") {
+							$("#loadingModal").hide();
+							if (response.result.status === 'incorrect' && response.result.order === false) {
+								$(".bolt-confirm-button").data("payment-id", response.result.id)
+								$("#bolt-confirmation-form").show();
+								$('.modal-overlay').show();
+							} else if (response.result.order === true) {
+								$("#loadingMessage").text(gettext("Вибачте, не всі замовлення розраховані агрегатором, спробуйте пізніше"));
+								$("#loader").hide();
+								$("#loadingModal").show();
+								setTimeout(function () {
+									$('#loadingModal').hide();
+								}, 3000);
+							} else if (response.result.status === 'error') {
+									$('#loadingModal').show();
+									$('#loadingMessage').text("Немає звітів по водію за цей період")
+									$("#loader").hide();
+									setTimeout(function () {
+										$('#loadingModal').hide();
+									}, 3000);
+							} else {
+								driverPayment(null, null, null, paymentStatus = "on_inspection");
+							}
+						}
+
+					})
+					.catch(function (error) {
+						console.error('Error:', error)
+					})
+			},
+		});
+	return
 }

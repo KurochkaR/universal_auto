@@ -22,23 +22,15 @@
     {% include 'dashboard/driver-list.html' %}
   {% endblock %}
     </div>
-  {% include 'dashboard/forms/_password-change-form.html' %}
-  {% include 'dashboard/forms/_aggregator-form.html' %}
-  {% include 'dashboard/forms/_payment-driver-list.html' %}
-  {% include 'dashboard/forms/_bolt-confirmation-form.html' %}
   {% include 'dashboard/_confirmation-update-database.html' %}
 </main>
 </div>
 
 {% block js %}
-<script src="https://cdn.jsdelivr.net/npm/jquery@3.6.3/dist/jquery.min.js" defer></script>
-<script src="{% static 'dashboard/js/header-sidebar.js' %}" defer></script>
-<script src="{% static 'dashboard/js/scripts.js' %}" defer></script>
+
 <script src="{% static 'dashboard/js/scripts-drivers.js' %}" defer></script>
 <script src="{% static 'dashboard/js/driver-efficiency.js' %}" defer></script>
 <script src="{% static 'dashboard/js/scripts-payments.js' %}" defer></script>
-
-
 {% endblock %}
 
 </body>

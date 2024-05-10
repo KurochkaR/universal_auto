@@ -325,7 +325,7 @@
   <div id="loader-confirmation-cash" class="modal">
     <div class="modal-content">
       <div class="loading-content">
-        <p id="loadingMessage">{% trans 'Зачекайте поки відключиться готівка' %}</p>
+        <p id="loadingMessage">{% trans 'Зачекайте поки вимкнеться готівка' %}</p>
         <div id="loader" class="loader"></div>
         <div id="checkmark" class="checkmark"></div>
       </div>
@@ -344,13 +344,7 @@
     </div>
   </div>
 </main>
-{% include 'dashboard/forms/_password-change-form.html' %}
-{% include 'dashboard/forms/_aggregator-form.html' %}
 
-<script src="https://cdn.jsdelivr.net/npm/jquery@3.6.3/dist/jquery.min.js" defer></script>
-<script src="{% static 'dashboard/js/header-sidebar.js' %}" defer></script>
 <script src="{% static 'dashboard/js/scripts-driver.js' %}" defer></script>
-<script src="{% static 'dashboard/js/scripts.js' %}" defer></script>
-
 </body>
 </html>
