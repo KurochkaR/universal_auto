@@ -108,7 +108,40 @@ let barChartOptions = {
 			itemStyle: {
 				color: '#A1E8B9'
 			},
-			data: []
+			data: [],
+			markLine: {
+				data: [
+					{
+						yAxis: 0,
+						name: 'Another Value',
+						lineStyle: {color: 'green', width: 3}
+					},
+					{
+						yAxis: 0,
+						name: 'Another Value',
+						lineStyle: {color: 'orange', width: 3}
+					},
+					{
+						yAxis: 0,
+						name: 'Another Value',
+						lineStyle: {color: 'red', width: 3}
+					}
+				]
+			}
+		},
+		{
+			name: 'vision_color',
+			type: 'bar',
+			stack: 'total',
+			label: {
+				focus: 'series'
+			},
+			itemStyle: {
+				color: '#A1E8B9',
+				borderColor: 'green',
+				borderWidth: 5
+			},
+			data: [1, 1, 1, 1, 1]
 		},
 	]
 };
@@ -290,13 +323,30 @@ function fetchSummaryReportData(period, start, end) {
 						formattedNamesList.push(name);
 					}
 				});
+				const maxEarningsPeriod = calculateEarnings(startDate, endDate, 2500);
+				const earnings6 = maxEarningsPeriod.earnings6;
+				const earnings5 = maxEarningsPeriod.earnings5;
+				const earnings4 = maxEarningsPeriod.earnings4;
 
-				const total_card = driversData.map(driver => driver.total_card);
-				const total_cash = driversData.map(driver => driver.total_cash);
+				const total_card = driversData.map(driver => ({value: parseFloat(driver.total_card)}));
+				const total_cash = driversData.map(driver => ({value: parseFloat(driver.total_cash)}));
 
 				barChartOptions.series[1].data = total_card;
 				barChartOptions.series[0].data = total_cash;
+				barChartOptions.series[2].data = Array.from({length: total_card.length}, () => ({value: 1}));
+
 				barChartOptions.xAxis.data = formattedNamesList;
+				barChartOptions.series[1].markLine.data[0].yAxis = earnings6;
+				barChartOptions.series[1].markLine.data[1].yAxis = earnings5;
+				barChartOptions.series[1].markLine.data[2].yAxis = earnings4;
+
+				for (var i = 0; i < total_card.length; i++) {
+					var sum = total_card[i].value + total_cash[i].value;
+					var color = getColor(sum, earnings6, earnings5, earnings4);
+					barChartOptions.series[2].data[i].itemStyle = {
+						borderColor: color
+					};
+				}
 				barChart.setOption(barChartOptions);
 			} else {
 				$(".noDataMessage1").show();
@@ -429,7 +479,7 @@ function fetchCarEfficiencyData(period, vehicleId, vehicle_lc, start, end) {
 }
 
 $(document).ready(function () {
-    fetchSummaryReportData('yesterday');
+	fetchSummaryReportData('yesterday');
 
 	const firstVehicle = $(".custom-dropdown .dropdown-options li:first");
 	const vehicleId = firstVehicle.data('value');
@@ -437,17 +487,17 @@ $(document).ready(function () {
 
 	fetchCarEfficiencyData('yesterday', vehicleId, vehicle_lc);
 
-	$(this).on('click', '.apply-filter-button', function(){
-        applyDateRange(function(selectedPeriod, startDate, endDate) {
-            fetchSummaryReportData(selectedPeriod, startDate, endDate);
-	        fetchCarEfficiencyData(selectedPeriod, vehicleId, vehicle_lc, startDate, endDate);
-        });
-    })
+	$(this).on('click', '.apply-filter-button', function () {
+		applyDateRange(function (selectedPeriod, startDate, endDate) {
+			fetchSummaryReportData(selectedPeriod, startDate, endDate);
+			fetchCarEfficiencyData(selectedPeriod, vehicleId, vehicle_lc, startDate, endDate);
+		});
+	})
 
-	initializeCustomSelect(function(clickedValue) {
-        fetchSummaryReportData(clickedValue);
-	    fetchCarEfficiencyData(clickedValue, vehicleId, vehicle_lc);
-    });
+	initializeCustomSelect(function (clickedValue) {
+		fetchSummaryReportData(clickedValue);
+		fetchCarEfficiencyData(clickedValue, vehicleId, vehicle_lc);
+	});
 
 	$(".custom-dropdown .selected-option").click(function () {
 		$(".custom-dropdown .dropdown-options").toggle();
@@ -473,3 +523,37 @@ $(document).ready(function () {
 		}
 	});
 });
+
+function calculateEarnings(start, end, dailyWage) {
+	const startDateParts = start.split('.');
+	const endDateParts = end.split('.');
+	const startDateFormatted = `${startDateParts[2]}-${startDateParts[1]}-${startDateParts[0]}`;
+	const endDateFormatted = `${endDateParts[2]}-${endDateParts[1]}-${endDateParts[0]}`;
+	const startDate = new Date(startDateFormatted);
+	const endDate = new Date(endDateFormatted);
+
+	const oneDay = 24 * 60 * 60 * 1000;
+	const totalDays = Math.round(Math.abs((endDate - startDate) / oneDay)) + 1;
+
+	const workDays6_1 = Math.floor(totalDays / 7) * 6 + Math.min(totalDays % 7, 6);
+	const workDays5_2 = Math.floor(totalDays / 7) * 5 + Math.min(totalDays % 7, 5);
+	const workDays4_3 = Math.floor(totalDays / 7) * 4 + Math.min(totalDays % 7, 4);
+
+	const earnings6 = workDays6_1 * dailyWage;
+	const earnings5 = workDays5_2 * dailyWage;
+	const earnings4 = workDays4_3 * dailyWage;
+
+	return {earnings6, earnings5, earnings4};
+}
+
+function getColor(value, earnings6, earnings5, earnings4) {
+	if (value < earnings4) {
+		return 'red';
+	} else if (value >= earnings4 && value < earnings5) {
+		return 'orange';
+	} else if (value >= earnings5 && value < earnings6) {
+		return 'green';
+	} else {
+		return 'violet';
+	}
+}
