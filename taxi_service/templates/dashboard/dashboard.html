@@ -180,18 +180,11 @@
       </div>
     </div>
   </div>
-  {% include 'dashboard/_confirmation-update-database.html' %}
-  {% include 'dashboard/forms/_password-change-form.html' %}
-  {% include 'dashboard/forms/_aggregator-form.html' %}
 </main>
 <!-- End Main Manager-->
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/apexcharts@3.41.0/dist/apexcharts.min.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/jquery@3.6.3/dist/jquery.min.js" defer></script>
-<script src="{% static 'dashboard/js/header-sidebar.js' %}" defer></script>
-<script src="{% static 'dashboard/js/scripts.js' %}" defer></script>
 {% if investor_group %}
   <script src="{% static 'dashboard/js/scripts-investor.js' %}" defer></script>
 {% else %}
