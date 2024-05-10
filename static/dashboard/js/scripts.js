@@ -30,7 +30,7 @@ $(document).ready(function () {
 		$(".confirmation-update-database").show();
 	});
 
-	$("#confirmation-btn-on").click(function () {
+	$(this).on('click',"#confirmation-btn-on", function () {
 		$(".confirmation-update-database").hide(0);
 
 		if ($(this).data("confirmUpdate")) {
