@@ -190,13 +190,14 @@ function fetchInvestorData(period, start, end) {
 
 $(document).ready(function () {
 
-    fetchInvestorData('yesterday');
+    fetchInvestorData('today');
 	initializeCustomSelect(function(clickedValue) {
         fetchInvestorData(clickedValue);
     });
 
-    applyDateRange(function(selectedPeriod, startDate, endDate) {
-            fetchInvestorData(selectedPeriod, startDate, endDate);
-        });
-
+    $(this).on('click', '.apply-filter-button', function() {
+        applyDateRange(function(selectedPeriod, startDate, endDate) {
+                fetchInvestorData(selectedPeriod, startDate, endDate);
+            });
+    })
 });

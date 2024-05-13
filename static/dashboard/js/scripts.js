@@ -11,10 +11,22 @@ $(document).ajaxStop(function () {
 
 $(document).ajaxError(function (event, xhr, settings) {
 	console.error('Error:', xhr);
-	var status = xhr.status;
-	if (status === 403) {
-		window.location.href = '/';
-	}
+    var status = xhr.status;
+    var error = xhr.responseJSON.error;
+    if (status === 403) {
+        window.location.href = '/';
+    } else if (status === 400) {
+        $('.modal-overlay').hide();
+        $('#loadingModal').show();
+        $('#loadingMessage').text(error);
+        $("#loader").hide();
+        setTimeout(function () {
+            $('#loadingModal').hide();
+        }, 3000);
+    } else {
+        console.error('Помилка запиту: ' + error);
+    }
+    return;
 });
 
 $(document).ready(function () {
@@ -24,13 +36,14 @@ $(document).ready(function () {
 		window.open(adminUrl, "_blank");
 	});
 
-	$(this).on('click', '.update-database', function () {
+	$(this).on('click', '.update-database', function (event) {
+	    event.stopPropagation();
 		$(".confirmation-box h2").text("Бажаєте оновити базу даних?");
 		$("#confirmation-btn-on").data("confirmUpdate", true)
 		$(".confirmation-update-database").show();
 	});
 
-	$("#confirmation-btn-on").click(function () {
+	$(this).on('click',"#confirmation-btn-on", function () {
 		$(".confirmation-update-database").hide(0);
 
 		if ($(this).data("confirmUpdate")) {
@@ -57,8 +70,7 @@ $(document).ready(function () {
 								$("#loader, #checkmark").hide(0);
 							}
 							setTimeout(function () {
-								$("#loadingModal").hide(0);
-								$("#checkmark").hide(0);
+								$("#loadingModal, #checkmark").hide(0);
 							}, 3000);
 						})
 						.catch(function (error) {
@@ -127,15 +139,13 @@ $(document).ready(function () {
 	$(this).on('click', '.opt-partnerForm span', function () {
 		var passwordField = $('.partnerPassword');
 		var fieldType = passwordField.attr('type');
-
+        $(".circle-password").toggleClass('circle-active')
 		if (fieldType === 'password') {
 			passwordField.attr('type', 'text');
 			$(".showPasswordText").text('Приховати пароль');
-			$(".circle-password").addClass('circle-active')
 		} else {
 			passwordField.attr('type', 'password');
 			$(".showPasswordText").text('Показати пароль');
-			$(".circle-password").removeClass('circle-active')
 		}
 	});
 
@@ -151,27 +161,19 @@ $(document).ready(function () {
 	}
 
 	function hideAllShowConnect() {
-		$("#partnerLogin").hide()
-		$(".helper-token").hide()
-		$("#partnerPassword").hide()
-		$(".opt-partnerForm").hide()
+		$("#partnerLogin, #loginErrorMessage, .opt-partnerForm, #partnerPassword, .helper-token").hide()
 		$(".login-ok").show()
-		$("#loginErrorMessage").hide()
 	}
 
 	function showAllHideConnect(aggregator) {
 		if (aggregator.toLowerCase() !== 'gps') {
-			$("#partnerLogin").show();
+			$("#partnerLogin, .circle-password, .showPasswordText").show();
 			$(".helper-token").hide();
-			$(".showPasswordText").show();
-			$(".circle-password").show();
 			partnerLoginField.attr('required', true)
 			$("#partnerPassword").attr('placeholder', "Пароль")
 		} else {
 			$(".helper-token").show();
-			$("#partnerLogin").hide();
-			$(".showPasswordText").hide();
-			$(".circle-password").hide();
+			$("#partnerLogin, .showPasswordText, .circle-password").hide();
 			partnerLoginField.removeAttr('required')
 			$("#partnerPassword").attr('placeholder', "Введіть токен gps")
 		}
@@ -218,9 +220,6 @@ $(document).ready(function () {
 							$(".opt-partnerForm").show();
 							partner === "Gps" ? $("#loginErrorMessage").text("Вказано неправильний токен") : $("#loginErrorMessage").text("Вказано неправильний логін або пароль");
 							$("#loginErrorMessage").show();
-
-							//$("#partnerLogin").val("").addClass("error-border");
-							//$("#partnerPassword").val("").addClass("error-border");
 						}
 						hideLoader(partnerForm);
 					})
@@ -249,24 +248,6 @@ $(document).ready(function () {
 		});
 	}
 
-	var selectedOption = sessionStorage.getItem('selectedOption');
-	if (selectedOption && window.location.pathname === '/dashboard/drivers/') {
-		$('input[name="driver-info"][value="' + selectedOption + '"]').prop('checked', true);
-            switcherDriverPage(selectedOption)
-	}
-
-	$('#DriverBtnContainers').on('click', function () {
-		$('input[name="driver-info"][value="driver-list"]').prop('checked', true);
-		sessionStorage.setItem('selectedOption', 'driver-list');
-	});
-
-	$('input[name="driver-info"]').change(function () {
-		var selectedValue = $(this).val();
-		sessionStorage.setItem('selectedOption', selectedValue);
-        switcherDriverPage(selectedValue)
-
-
-	});
 
 	$(this).on('click', '.shift-close-btn', function () {
 		$(this).closest('form').hide();
@@ -283,11 +264,8 @@ $(document).ready(function () {
 
 	$(this).on('click', '#add-bonus-btn, #add-penalty-btn', function (e) {
 		e.preventDefault();
-		var $button = $(this);
-		if ($button.hasClass('disabled')) {
-			return;
-		}
-		$button.addClass('disabled');
+		var button = $(this)
+		button.prop("disabled", true);
 		$('#amount-bonus-error, #category-bonus-error, #vehicle-bonus-error').hide();
 		var idPayments = $('#modal-add-bonus').data('id');
 		var driverId = $('#modal-add-bonus').data('driver-id');
@@ -315,7 +293,7 @@ $(document).ready(function () {
 			success: function (data) {
 				$('#modal-add-bonus')[0].reset();
 				$('#modal-add-bonus').hide();
-				$button.removeClass('disabled');
+				button.prop("disabled", false);
 				if (idPayments === null) {
 					window.location.reload();
 				} else {
@@ -323,6 +301,7 @@ $(document).ready(function () {
 				}
 			},
 			error: function (xhr, textStatus, errorThrown) {
+			    button.prop("disabled", false);
 				if (xhr.status === 400) {
 					let errors = xhr.responseJSON.errors;
 					$.each(errors, function (key, value) {
@@ -331,7 +310,7 @@ $(document).ready(function () {
 				} else {
 					console.error('Помилка запиту: ' + textStatus);
 				}
-				$button.removeClass('disabled');
+
 			},
 		});
 	});
@@ -339,10 +318,7 @@ $(document).ready(function () {
 	$(this).on('click', '#edit-button-bonus-penalty', function (e) {
 		e.preventDefault();
 		var $button = $(this);
-		if ($button.hasClass('disabled')) {
-			return;
-		}
-		$button.addClass('disabled');
+		button.prop("disabled", true);
 		$('#amount-bonus-error, #category-bonus-error, #vehicle-bonus-error').hide();
 		var idBonus = $('#modal-add-bonus').data('bonus-penalty-id');
 		var category = $('#modal-add-bonus').data('category-type');
@@ -367,7 +343,7 @@ $(document).ready(function () {
 			success: function (data) {
 				$('#modal-add-bonus')[0].reset();
 				$('#modal-add-bonus').hide();
-				$button.removeClass('disabled');
+                button.prop("disabled", false);
 				if (paymentId === undefined || paymentId === null) {
 					window.location.reload();
 				} else {
@@ -375,6 +351,7 @@ $(document).ready(function () {
 				}
 			},
 			error: function (xhr, textStatus, errorThrown) {
+			    button.prop("disabled", false);
 				if (xhr.status === 400) {
 					let errors = xhr.responseJSON.errors;
 					$.each(errors, function (key, value) {
@@ -383,7 +360,6 @@ $(document).ready(function () {
 				} else {
 					console.error('Помилка запиту: ' + textStatus);
 				}
-				$button.removeClass('disabled');
 			},
 		});
 	});
@@ -432,42 +408,19 @@ function initializeCustomSelect(callback) {
 
 }
 
-function switcherDriverPage(selectedOption) {
-    switch (selectedOption) {
-        case 'driver-list':
-            loadDashboardContent("render_drivers_list", function() {
-            getDriversList()
-            });
-            break;
-        case 'driver-payments':
-            loadDashboardContent("render_drivers_payments", function() {
-            driverPayment(null, null, null, paymentStatus = "on_inspection");
-            });
-            break;
-        case 'driver-efficiency':
-            loadDashboardContent("render_drivers_efficiency", function() {
-            $('#period .selected-option').data('value', 'today')
-            fetchDriverEfficiencyData('today', null, null);
-            });
-            break;
-        default:
-            break;
-    }
-}
+
 
 function applyDateRange(callback) {
     const selectedPeriod = 'custom';
 	let startDate = $("#start_report").val();
 	let endDate = $("#end_report").val();
-	const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-
-    if (!startDate.match(dateRegex) || !endDate.match(dateRegex)) {
-        $("#error_message").text("Дата повинна бути у форматі YYYY-MM-DD").show();
-        return;
-    } else if (startDate > endDate) {
-        $("#error_message").text("Кінцева дата повинна бути більшою або рівною початковій даті").show();
+	if (!startDate || !endDate) {
+        $("#error_message").text("Поле не може бути пустим, введіть дату").show();
         return;
     }
+	if (startDate > endDate) {
+	    [startDate, endDate] = [endDate, startDate];
+	}
 
 	$("#error_message").hide();
 
@@ -540,27 +493,7 @@ function formatTime(time) {
 	}
 }
 
-function loadDashboardContent(action, callback) {
-    $.ajax({
-        url: ajaxGetUrl,
-        type: 'GET',
-		data: {
-            action: action,
-        },
-        success: function(response) {
-            // Update the specific portion of the page with the fetched content
-            $('.info-driver').html(response.data);
-            if (callback && typeof callback === "function") {
-                // Call the callback function
-                callback();
-            }
-        },
-        error: function(xhr, status, error) {
-            // Handle errors
-            console.error(error);
-        }
-    });
-}
+
 
 function sortTable(column, order) {
     let $tbody = $('.driver-efficiency-table').find('tbody');

@@ -8,7 +8,7 @@
       <button class="create-payment"><span>{% trans 'Створити виплату' %}</span></button>
     </div>
     <div class="radio-btn-box">
-      <input type="radio" id="on_inspection" name="payment-status" value="on_inspection" checked>
+      <input type="radio" id="on_inspection" name="payment-status" value="on_inspection">
       <label for="on_inspection">{% trans 'На перевірці' %}</label>
       <input type="radio" id="not_closed" name="payment-status" value="not_closed">
       <label for="not_closed">{% trans 'Не закриті' %}</label>
@@ -41,6 +41,8 @@
       </table>
     </div>
   <div id="formContainer"></div>
+  {% include 'dashboard/forms/_payment-driver-list.html' %}
+  {% include 'dashboard/forms/_bolt-confirmation-form.html' %}
 
 {% endblock %}
 

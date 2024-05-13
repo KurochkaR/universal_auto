@@ -150,12 +150,12 @@ $(document).ready(function () {
 			$('.switch-control').hide()
 			$('.status-cash').show();
 			$('.confirmation-cash-control h2').text("Ви точно бажаєте увімкнути автоматичне слідкування за готівкою?");
-			$('#loader-confirmation-cash p').text("Зачекайти поки увімкнеться автоматичне слідкування за готівкою");
+			$('#loader-confirmation-cash p').text("Зачекайте поки увімкнеться автоматичне слідкування за готівкою");
 		} else {
 			$('.switch-control').show()
 			$('.status-cash').hide();
 			$('.confirmation-cash-control h2').text("Ви точно бажаєте вимкнути автоматичне слідкування за готівкою?");
-			$('#loader-confirmation-cash p').text("Зачекайти поки вимкнеться автоматичне слідкування за готівкою");
+			$('#loader-confirmation-cash p').text("Зачекайте поки вимкнеться автоматичне слідкування за готівкою");
 		}
 		$('.confirmation-cash-control').attr('id', 'cash-auto').show();
 	});

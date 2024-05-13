@@ -1,4 +1,5 @@
 // ---------- CHARTS ---------- //
+
 var barChart = echarts.init(document.getElementById('bar-chart'));
 window.addEventListener('resize', function () {
 	barChart.resize();
@@ -428,7 +429,7 @@ function fetchSummaryReportData(period, start, end) {
 				$(".noDataMessage1").show();
 				$('#bar-chart').hide();
 			}
-			if (period === 'yesterday') {
+			if (startDate === endDate) {
 				$('.weekly-income-dates').text(startDate);
 			} else {
 				$('.weekly-income-dates').text(gettext('З ') + startDate + ' ' + gettext('по') + ' ' + endDate);
@@ -571,16 +572,16 @@ function fetchCarEfficiencyData(period, vehicleId, vehicle_lc, start, end) {
 }
 
 $(document).ready(function () {
-	fetchSummaryReportData('yesterday');
+    fetchSummaryReportData('today');
 
 	const firstVehicle = $(".custom-dropdown .dropdown-options li:first");
 	const vehicleId = firstVehicle.data('value');
 	const vehicle_lc = firstVehicle.text();
 
-	fetchCarEfficiencyData('yesterday', vehicleId, vehicle_lc);
+	fetchCarEfficiencyData('today', vehicleId, vehicle_lc);
 
-	$(this).on('click', '.apply-filter-button', function () {
-		applyDateRange(function (selectedPeriod, startDate, endDate) {
+	$(this).on('click', '.apply-filter-button', function() {
+		applyDateRange(function(selectedPeriod, startDate, endDate) {
 			fetchSummaryReportData(selectedPeriod, startDate, endDate);
 			fetchCarEfficiencyData(selectedPeriod, vehicleId, vehicle_lc, startDate, endDate);
 		});

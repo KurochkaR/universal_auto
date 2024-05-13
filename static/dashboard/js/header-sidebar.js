@@ -102,16 +102,16 @@ $(document).ready(function () {
 		}
 	});
 
-	// burger-menu
-	$('.header-right').click(function () {
-		$('.change-password-btn').show();
-	});
-
-	const resetButton = $("#reset-button");
-
-	resetButton.on("click", function () {
-		areaChart.resetSeries();
-	});
+//	// burger-menu
+//	$('.header-right').click(function () {
+//		$('.change-password-btn').show();
+//	});
+//
+//	const resetButton = $("#reset-button");
+//
+//	resetButton.on("click", function () {
+//		areaChart.resetSeries();
+//	});
 
 	let isSidebarOpen = false;
 

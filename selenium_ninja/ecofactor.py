@@ -34,6 +34,7 @@ class EcoFactorRequest:
 
     def response_data(self, json):
         response = requests.post(self.url, headers=self.get_header(), json=json)
+        get_logger().info(response.text)
         if response.json().get('errors'):
             self.create_session()
             response = requests.post(self.url, headers=self.get_header(), json=json)

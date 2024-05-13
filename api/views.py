@@ -22,6 +22,7 @@ from app.models import SummaryReport, CarEfficiency, Vehicle, DriverEfficiency, 
     PartnerEarnings, InvestorPayments, DriverPayments, PaymentsStatus, PenaltyBonus, Penalty, Bonus, \
     DriverEfficiencyFleet, VehicleSpending, Driver, BonusCategory, CustomReport, SalaryCalculation, WeeklyReport, \
     ParkSettings
+from scripts.redis_conn import get_logger
 from taxi_service.utils import get_start_end
 
 
@@ -182,6 +183,8 @@ class InvestorCarsEarningsView(CombinedPermissionsMixin,
             total_actives=Coalesce(Sum('current_price', output_field=DecimalField()), Decimal(0))
 
         )
+        # mileage_info = mileage_subquery.values('vehicle').annotate('mileage')
+        # get_logger().info(mileage_info)
         qs = queryset.values('vehicle__licence_plate').annotate(
             licence_plate=F('vehicle__licence_plate'),
             earnings=Sum(F('earning')),

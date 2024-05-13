@@ -11,6 +11,7 @@ from django.utils import timezone
 from django.views.generic import View, TemplateView, DetailView
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
+from django.views.generic.detail import BaseDetailView
 
 from taxi_service.forms import SubscriberForm
 from taxi_service.handlers import PostRequestHandler, GetRequestHandler
@@ -115,7 +116,7 @@ class BaseContextView(TemplateView):
         return context
 
 
-class IndexView(BaseContextView, TemplateView):
+class IndexView(BaseContextView):
     template_name = "index.html"
 
     def get_context_data(self, **kwargs):
@@ -126,7 +127,7 @@ class IndexView(BaseContextView, TemplateView):
         return context
 
 
-class AutoParkView(BaseContextView, TemplateView):
+class AutoParkView(BaseContextView):
     template_name = "auto-park.html"
 
     def get_context_data(self, **kwargs):
@@ -137,7 +138,7 @@ class AutoParkView(BaseContextView, TemplateView):
         return context
 
 
-class InvestmentView(BaseContextView, TemplateView):
+class InvestmentView(BaseContextView):
     template_name = "investment.html"
 
     def get_context_data(self, **kwargs):
@@ -148,7 +149,7 @@ class InvestmentView(BaseContextView, TemplateView):
         return context
 
 
-class ChargingStationsView(BaseContextView, TemplateView):
+class ChargingStationsView(BaseContextView):
     template_name = "charging-station.html"
 
     def get_context_data(self, **kwargs):
@@ -159,7 +160,7 @@ class ChargingStationsView(BaseContextView, TemplateView):
         return context
 
 
-class PriceView(BaseContextView, TemplateView):
+class PriceView(BaseContextView):
     template_name = "price.html"
 
     def get_context_data(self, **kwargs):
@@ -243,7 +244,7 @@ class DriversView(BaseDashboardView):
     template_name = "dashboard/drivers.html"
 
 
-class DriverDetailView(DetailView):
+class DriverDetailView(DetailView, BaseDashboardView):
     model = Driver
     template_name = 'dashboard/driver_detail.html'
 
@@ -252,21 +253,20 @@ class DriverDetailView(DetailView):
             return redirect(reverse('index'))
         return super().dispatch(request, *args, **kwargs)
 
+    def get_object(self, queryset=None):
+        return super().get_object(queryset=queryset)
+
     def get_context_data(self, **kwargs):
+        self.object = self.get_object()
+        context = super().get_context_data(**kwargs)
         driver_id = self.kwargs['pk']
         driver_reshuffle = DriverReshuffle.objects.filter(
             swap_time__lte=timezone.localtime(), end_time__gt=timezone.localtime(),
             driver_start=driver_id).select_related('swap_vehicle')
 
-        context = super().get_context_data(**kwargs)
-        context["driver_bonus"] = Bonus.objects.filter(driver=driver_id, driver_payments__isnull=True).select_related(
-            'category', 'vehicle')
-        context["driver_penalty"] = Penalty.objects.filter(driver=driver_id,
-                                                           driver_payments__isnull=True).select_related('category',
-                                                                                                        'vehicle')
-        context["investor_group"] = self.request.user.is_investor()
-        context["partner_group"] = self.request.user.is_partner()
-        context["manager_group"] = self.request.user.is_manager()
+
+        context["driver_bonus"] = Bonus.objects.filter(driver=driver_id, driver_payments__isnull=True).select_related('category', 'vehicle')
+        context["driver_penalty"] = Penalty.objects.filter(driver=driver_id, driver_payments__isnull=True).select_related('category', 'vehicle')
         if driver_reshuffle.exists():
             vehicle = driver_reshuffle.first().swap_vehicle
             context["vehicle"] = {
