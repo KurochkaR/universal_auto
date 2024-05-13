@@ -606,7 +606,7 @@ def generate_rent_message_driver(self, driver_id, manager_chat_id, message_id, p
     gps = UaGpsSynchronizer.objects.get(partner=driver.partner, deleted_at=None)
     reshuffles = check_reshuffle(driver_id, start, end, gps=True)
     if reshuffles:
-        result, empty_time_slots = gps.get_rent_stats(reshuffles, start, end, driver_id, True, False)[:1]
+        result, empty_time_slots = gps.get_rent_stats(reshuffles, start, end, driver_id, True, False)[:2]
         results_with_slots = list(zip(empty_time_slots, result))
         message = f"{driver}\n"
         for slot, result in results_with_slots:
@@ -1144,6 +1144,7 @@ def create_daily_payment(self, **kwargs):
                                                                 driver=driver,
                                                                 defaults=data)
         create_charge_penalty(driver, payment.report_from, payment.report_to)
+        PenaltyBonus.objects.filter(driver=driver, driver_payments__isnull=True).update(driver_payments=payment)
         if not created:
             for key, value in data.items():
                 setattr(payment, key, value)

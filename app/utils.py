@@ -69,7 +69,7 @@ def generate_efficiency_message(partner):
 
         efficiency = DriverEfficiency.objects.filter(driver=driver, report_from=start).first()
         if not orders:
-            rent = efficiency.rent_distance if efficiency else 0
+            rent = efficiency.rent_distance if efficiency else 0.00
             text += f"Водій {driver} ще не виконав замовлень\n" \
                     f"Холостий пробіг: {rent}\n\n"
             continue

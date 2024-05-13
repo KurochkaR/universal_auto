@@ -18,11 +18,12 @@ from django.utils import timezone
 from app.bolt_sync import BoltRequest
 from app.models import SubscribeUsers, Manager, CustomUser, DriverPayments, Bonus, Penalty, Vehicle, PenaltyBonus, \
     BonusCategory, PenaltyCategory, Driver, FleetsDriversVehiclesRate, CustomReport, Fleet, FleetOrder, DriverReshuffle, \
-    PaymentsStatus, PartnerEarnings
+    PaymentsStatus, PartnerEarnings, ParkSettings
 from auto.utils import payment_24hours_create, summary_report_create
 from auto_bot.handlers.driver_manager.utils import calculate_bolt_kasa, create_driver_payments, \
     check_correct_bolt_report
 from auto_bot.handlers.order.utils import check_vehicle
+from auto_bot.main import bot
 from selenium_ninja.ecofactor import EcoFactorRequest
 from taxi_service.forms import MainOrderForm, CommentForm, BonusForm, ContactMeForm
 from taxi_service.utils import (update_order_sum_or_status, restart_order,
@@ -582,11 +583,15 @@ class GetRequestHandler:
 
     @staticmethod
     def handle_check_task(request):
-        upd = AsyncResult(request.GET.get('task_id'))
-        if upd.status == "SUCCESS":
-            response = JsonResponse({'data': upd.status, 'result': upd.result}, safe=False)
-        else:
-            response = JsonResponse({'data': upd.status}, safe=False)
+        try:
+            upd = AsyncResult(request.GET.get('task_id'))
+            if upd.status == "SUCCESS":
+                response = JsonResponse({'data': upd.status, 'result': upd.result}, safe=False)
+            else:
+                response = JsonResponse({'data': upd.status}, safe=False)
+        except Exception as e:
+            bot.send_message(chat_id=ParkSettings.get_value("DEVELOPER_CHAT_ID"), text=e)
+            response = JsonResponse({'error': str(e)}, status=404)
         return response
 
     @staticmethod

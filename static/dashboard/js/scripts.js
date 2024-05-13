@@ -371,10 +371,10 @@ $(document).ready(function () {
 			$('.new-category-field').hide()
 		}
 	});
-//
-//	$(this).on('click', '.not-closed', function () {
-//		$('.modal-not-closed-payments').show();
-//	});
+
+	$(this).on('click', '.not-closed', function () {
+		$('.modal-not-closed-payments').show();
+	});
 
 	$(this).on("click", ".selected-option", function() {
         $(".custom-select").toggleClass("active");

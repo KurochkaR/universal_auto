@@ -360,6 +360,9 @@ $(document).ready(function () {
 		if ($(this).hasClass('pay-btn')) {
 			status = 'completed';
 			$confirmationBox.find("h2").text("Ви впевнені, що хочете закрити платіж ?");
+			$("#confirmation-btn-on").text("Так")
+			$("#confirmation-btn-off").text("Ні");
+			$(".confirmation-box input").hide();
 		} else {
 			status = 'failed';
 			confirmationTextOn = "Водій не розрахувався";

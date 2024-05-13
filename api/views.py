@@ -145,8 +145,8 @@ class InvestorCarsEarningsView(CombinedPermissionsMixin,
 
     def get_queryset(self):
         start, end, format_start, format_end = get_start_end(self.kwargs['period'])
-        queryset = InvestorFilterMixin.get_queryset(CarEfficiency, self.request.user)
-        queryset = queryset.filter(report_to__range=(start, end))
+        queryset = InvestorFilterMixin.get_queryset(InvestorPayments, self.request.user)
+        queryset = queryset.filter(report_from__range=(start, end))
         lose_percent = ParkSettings.get_value("LOSE_PERCENT", default=12)
         mileage_subquery = CarEfficiency.objects.filter(
             report_from__range=(start, end),
@@ -178,8 +178,8 @@ class InvestorCarsEarningsView(CombinedPermissionsMixin,
             total_actives=Coalesce(Sum('current_price', output_field=DecimalField()), Decimal(0))
 
         )
-        mileage_info = mileage_subquery.values('vehicle').annotate('mileage')
-        get_logger().info(mileage_info)
+        # mileage_info = mileage_subquery.values('vehicle').annotate('mileage')
+        # get_logger().info(mileage_info)
         qs = queryset.values('vehicle__licence_plate').annotate(
             licence_plate=F('vehicle__licence_plate'),
             earnings=Sum(F('earning')),
