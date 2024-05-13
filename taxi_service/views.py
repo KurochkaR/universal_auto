@@ -15,7 +15,7 @@ from django.utils.decorators import method_decorator
 from taxi_service.forms import SubscriberForm
 from taxi_service.handlers import PostRequestHandler, GetRequestHandler
 from taxi_service.seo_keywords import *
-from app.models import Driver, Vehicle, CustomUser, DriverReshuffle, Bonus, Penalty, PenaltyBonus
+from app.models import Driver, Vehicle, CustomUser, DriverReshuffle, Bonus, Penalty, PenaltyBonus, ParkSettings
 from auto_bot.main import bot
 
 
@@ -214,6 +214,14 @@ class BaseDashboardView(TemplateView):
 class DashboardView(BaseDashboardView):
     template_name = "dashboard/dashboard.html"
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["driver_daily_earnings"] = ParkSettings.get_value("DRIVER_DAILY_EARNINGS")
+        context["business_vehicle_efficiency"] = ParkSettings.get_value("BUSINESS_VEHICLE_EFFICIENCY")
+        context["comfort_vehicle_efficiency"] = ParkSettings.get_value("COMFORT_VEHICLE_EFFICIENCY")
+
+        return context
+
 
 class DashboardPaymentView(BaseDashboardView):
     template_name = "dashboard/dashboard-payments.html"
@@ -251,8 +259,11 @@ class DriverDetailView(DetailView):
             driver_start=driver_id).select_related('swap_vehicle')
 
         context = super().get_context_data(**kwargs)
-        context["driver_bonus"] = Bonus.objects.filter(driver=driver_id, driver_payments__isnull=True).select_related('category', 'vehicle')
-        context["driver_penalty"] = Penalty.objects.filter(driver=driver_id, driver_payments__isnull=True).select_related('category', 'vehicle')
+        context["driver_bonus"] = Bonus.objects.filter(driver=driver_id, driver_payments__isnull=True).select_related(
+            'category', 'vehicle')
+        context["driver_penalty"] = Penalty.objects.filter(driver=driver_id,
+                                                           driver_payments__isnull=True).select_related('category',
+                                                                                                        'vehicle')
         context["investor_group"] = self.request.user.is_investor()
         context["partner_group"] = self.request.user.is_partner()
         context["manager_group"] = self.request.user.is_manager()

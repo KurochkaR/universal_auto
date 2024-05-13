@@ -1,5 +1,4 @@
 // ---------- CHARTS ---------- //
-
 var barChart = echarts.init(document.getElementById('bar-chart'));
 window.addEventListener('resize', function () {
 	barChart.resize();
@@ -231,7 +230,8 @@ let threeChartOptions = {
 		}
 	},
 	yAxis: {
-		type: 'value'
+		type: 'value',
+		max: parseInt(BusinessVehicleEfficiency) + 2,
 	},
 	dataZoom: [
 		{
@@ -260,12 +260,42 @@ let threeChartOptions = {
 	],
 	series: [
 		{
-			data: [],
+			name: 'efficiency',
 			type: 'bar',
+			stack: 'total',
 			itemStyle: {
 				color: '#A1E8B9'
+			},
+			data: [],
+			markLine: {
+				data: [
+					{
+						yAxis: 15,
+						name: 'Another Value',
+						lineStyle: {color: 'green', width: 3}
+					},
+					{
+						yAxis: 12,
+						name: 'Another Value',
+						lineStyle: {color: 'red', width: 3}
+					}
+				]
 			}
-		}
+		},
+		{
+			name: 'vision_color',
+			type: 'bar',
+			stack: 'total',
+			label: {
+				focus: 'series'
+			},
+			itemStyle: {
+				color: '#A1E8B9',
+				borderColor: 'green',
+				borderWidth: 5
+			},
+			data: []
+		},
 	],
 	tooltip: {
 		show: true,
@@ -369,7 +399,7 @@ function fetchSummaryReportData(period, start, end) {
 						formattedNamesList.push(name);
 					}
 				});
-				const maxEarningsPeriod = calculateEarnings(startDate, endDate, 2500);
+				const maxEarningsPeriod = calculateEarnings(startDate, endDate, parseInt(DriverDailyEarnings));
 				const earnings6 = maxEarningsPeriod.earnings6;
 				const earnings5 = maxEarningsPeriod.earnings5;
 				const earnings4 = maxEarningsPeriod.earnings4;
@@ -505,6 +535,15 @@ function fetchCarEfficiencyData(period, vehicleId, vehicle_lc, start, end) {
 				threeChartOptions.xAxis.data = vehicleData.map(function (vehicle) {
 					return vehicle.name;
 				});
+				threeChartOptions.series[1].data = Array.from({length: chartData.length}, () => ({value: 0.1}));
+
+				for (var i = 0; i < chartData.length; i++) {
+					var value = chartData[i].value;
+					var color = value < parseInt(ComfortVehicleEfficiency) ? 'red' : (value < parseInt(BusinessVehicleEfficiency) ? 'green' : 'violet');
+					threeChartOptions.series[1].data[i].itemStyle = {
+						borderColor: color
+					};
+				}
 				threeChart.setOption(threeChartOptions);
 
 				const totalMileage = data['mileage'];
@@ -610,3 +649,4 @@ function getColor(value, earnings6, earnings5, earnings4) {
 		return 'violet';
 	}
 }
+

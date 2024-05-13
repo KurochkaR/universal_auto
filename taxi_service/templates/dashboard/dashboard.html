@@ -194,12 +194,11 @@
 </div>
 
 <!-- Scripts -->
-<!--<script>-->
-<!--	const VehicleImg = "{% static 'app/images/index-one-block-2.webp' %}";-->
-<!--	const logoImageUrl = "{% static 'app/images/logo-2.svg' %}";-->
-<!--	let ajaxPostUrl = "{% url 'post_request' %}";-->
-<!--	let ajaxGetUrl = "{% url 'get_request' %}";-->
-<!--</script>-->
+<script>
+	const DriverDailyEarnings = {{ driver_daily_earnings|safe }};
+	const BusinessVehicleEfficiency = {{ business_vehicle_efficiency|safe }};
+	const ComfortVehicleEfficiency = {{ comfort_vehicle_efficiency|safe }};
+</script>
 <!-- ApexCharts -->
 <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.41.0/dist/apexcharts.min.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
