@@ -5,10 +5,10 @@ from app.models import DriverPayments, Bonus, Penalty, Driver, DriverEfficiencyP
 
 class AggregateReportSerializer(serializers.Serializer):
     full_name = serializers.CharField()
-    total_kasa = serializers.DecimalField(max_digits=10, decimal_places=2)
-    total_card = serializers.DecimalField(max_digits=10, decimal_places=2)
-    total_cash = serializers.DecimalField(max_digits=10, decimal_places=2)
-    payment_amount = serializers.DecimalField(max_digits=10, decimal_places=2)
+    total_kasa_sum = serializers.DecimalField(max_digits=10, decimal_places=2)
+    total_card_sum = serializers.DecimalField(max_digits=10, decimal_places=2)
+    total_cash_sum = serializers.DecimalField(max_digits=10, decimal_places=2)
+    # payment_amount = serializers.DecimalField(max_digits=10, decimal_places=2)
     weekly_payments = serializers.DecimalField(max_digits=10, decimal_places=2)
 
 
@@ -207,4 +207,18 @@ class DriverInformationSerializer(serializers.ModelSerializer):
         model = Driver
         fields = (
             "id", "photo", "full_name", "phone_number", "chat_id", "driver_schema", "driver_status", "vehicle"
+        )
+
+
+class NotCompletePaymentsSerializer(serializers.ModelSerializer):
+    full_name = serializers.SerializerMethodField()
+
+    def get_full_name(self, obj):
+        driver = Driver.objects.get(pk=obj.driver_id)
+
+        return str(driver)
+    class Meta:
+        model = DriverPayments
+        fields = (
+            "full_name", "kasa"
         )

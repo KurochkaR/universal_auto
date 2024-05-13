@@ -17,7 +17,7 @@ from rest_framework.response import Response
 from api.mixins import CombinedPermissionsMixin, ManagerFilterMixin, InvestorFilterMixin
 from api.serializers import SummaryReportSerializer, CarEfficiencySerializer, CarDetailSerializer, \
     DriverEfficiencyRentSerializer, InvestorCarsSerializer, ReshuffleSerializer, DriverPaymentsSerializer, \
-    DriverEfficiencyFleetRentSerializer, DriverInformationSerializer
+    DriverEfficiencyFleetRentSerializer, DriverInformationSerializer, NotCompletePaymentsSerializer
 from app.models import SummaryReport, CarEfficiency, Vehicle, DriverEfficiency, RentInformation, DriverReshuffle, \
     PartnerEarnings, InvestorPayments, DriverPayments, PaymentsStatus, PenaltyBonus, Penalty, Bonus, \
     DriverEfficiencyFleet, VehicleSpending, Driver, BonusCategory, CustomReport, SalaryCalculation, WeeklyReport, \
@@ -29,61 +29,48 @@ from taxi_service.utils import get_start_end
 class SummaryReportListView(CombinedPermissionsMixin, generics.ListAPIView):
     serializer_class = SummaryReportSerializer
 
-    @staticmethod
-    def format_name(name):
-        if len(name) > 17:
-            half_length = len(name) // 2
-            name = name[:half_length] + '-\n' + name[half_length:]
-        return name
-
     def get_queryset(self):
         partner = self.request.user.pk if self.request.user.is_partner() else self.request.user.manager.managers_partner.pk
         start, end, format_start, format_end = get_start_end(self.kwargs['period'])
         start_week = timezone.localtime().date() - timedelta(days=timezone.localtime().weekday())
-        queryset = ManagerFilterMixin.get_queryset(CustomReport, self.request.user).select_related('driver__user_ptr')
+        queryset = ManagerFilterMixin.get_queryset(DriverEfficiency, self.request.user).select_related('driver__user_ptr')
         filtered_qs = queryset.filter(report_from__range=(start, end))
         weekly_bolt_reports = WeeklyReport.objects.filter(
             report_from__range=(start, end), report_to__range=(start, end), partner=partner, fleet__name="Bolt").order_by('report_from')
 
         kasa_bonus = filtered_qs.aggregate(
-            kasa=Coalesce(Sum('total_amount_without_fee'), Decimal(0)),
-            bonus=Coalesce(Sum('bonuses'), Decimal(0))
+            kasa=Coalesce(Sum('total_kasa'), Decimal(0)),
+            rent_amount=Coalesce(Sum('rent_distance'), Decimal(0)),
+            weekly_kasa=Coalesce(Sum('total_kasa', filter=Q(
+                driver__schema__salary_calculation=SalaryCalculation.WEEK,
+                report_from__range=(start_week, end))), Decimal(0))
         )
+        weekly_bonus = 0
         if weekly_bolt_reports.exists():
             weekly_bonus = weekly_bolt_reports.aggregate(bonus=Coalesce(Sum('bonuses'), Decimal(0)))['bonus']
-            custom_bonus = filtered_qs.filter(
-                report_to__range=(weekly_bolt_reports.last().report_to + timedelta(minutes=1), end)).aggregate(
-                bonus=Coalesce(Sum('bonuses'), Decimal(0)))['bonus']
-            bonus = weekly_bonus + custom_bonus
-        else:
-            bonus = kasa_bonus['bonus']
-        kasa = kasa_bonus['kasa'] + bonus
+            # custom_bonus = filtered_qs.filter(
+            #     report_to__range=(weekly_bolt_reports.last().report_to + timedelta(minutes=1), end)).aggregate(
+            #     bonus=Coalesce(Sum('bonuses'), Decimal(0)))['bonus']
+            # bonus = weekly_bonus + custom_bonus
 
-        rent_amount_subquery = Subquery(RentInformation.objects.filter(
-            report_from__range=(start, end),
-            driver_id=OuterRef('driver_id')
-        ).values('driver_id').annotate(
-            rent_amount=Coalesce(Sum('rent_distance'), Decimal(0))
-        ).values('rent_amount'))
+        kasa = kasa_bonus['kasa'] + weekly_bonus
 
-        payment_amount_subquery = DriverPayments.objects.filter(
-            report_from__range=(start, end),
+        # rent_amount_subquery = Subquery(RentInformation.objects.filter(
+        #     report_from__range=(start, end),
+        #     driver_id=OuterRef('driver_id')
+        # ).values('driver_id').annotate(
+        #     rent_amount=Coalesce(Sum('rent_distance'), Decimal(0))
+        # ).values('rent_amount'))
+
+        payment_totals = DriverPayments.objects.filter(
+            report_to__range=(start, end),
             partner=partner,
-            driver_id=OuterRef('driver_id')
-        ).values('driver_id').annotate(
-            payment_amount=Sum(Case(When(status__in=[PaymentsStatus.CHECKING, PaymentsStatus.PENDING], then=F('kasa')),
-                                    defaults=0,
-                                    output_field=DecimalField())),
-            rent_distance=Sum(Case(When(status__in=[PaymentsStatus.CHECKING, PaymentsStatus.PENDING], then=F('rent_distance')),
-                              defaults=0,
-                              output_field=IntegerField())),
-            payment_rent=Sum(Case(When(status=PaymentsStatus.COMPLETED, then=F('rent')),
-                             defaults=0,
-                             output_field=DecimalField())),
+        ).aggregate(
+            kasa=Coalesce(Sum('kasa', filter=Q(status__in=[PaymentsStatus.CHECKING, PaymentsStatus.PENDING])), Decimal(0)),
+            rent_distance=Coalesce(
+                Sum('rent_distance', filter=Q(status__in=[PaymentsStatus.CHECKING, PaymentsStatus.PENDING])), Decimal(0)),
+            rent=Coalesce(Sum('rent', filter=Q(status=PaymentsStatus.COMPLETED)), Decimal(0)),
         )
-
-        payment_amount_results = payment_amount_subquery.values('driver_id', 'payment_amount', 'rent_distance',
-                                                                'payment_rent')
 
         bonus_category, _ = BonusCategory.objects.get_or_create(title='Компенсація холостого пробігу')
         total_compensation_bonus = Bonus.objects.filter(
@@ -91,10 +78,8 @@ class SummaryReportListView(CombinedPermissionsMixin, generics.ListAPIView):
             driver_payments__status=PaymentsStatus.COMPLETED,
             driver_payments__partner_id=partner
         ).aggregate(total_spending=Coalesce(Sum('amount'), Decimal(0)),
-                    total_amount=Coalesce(Sum(Case(When(category=bonus_category, then=F('amount')),
-                                          defaults=0,
-                                          output_field=DecimalField()),
-                                              ), Decimal(0)))
+                    total_amount=Coalesce(Sum('amount', filter=Q(category=bonus_category)), Decimal(0)),
+                    )
 
         total_vehicle_spending = VehicleSpending.objects.filter(
             created_at__range=(start, end),
@@ -106,37 +91,33 @@ class SummaryReportListView(CombinedPermissionsMixin, generics.ListAPIView):
                 Func(F("driver__user_ptr__name"), Value(1), Value(1), function='SUBSTRING', output_field=CharField()),
                 Value(". "),
                 F("driver__user_ptr__second_name"), output_field=CharField()),
-            total_kasa=Sum('total_amount_without_fee'),
-            total_cash=Sum('total_amount_cash'),
-            total_card=Sum('total_amount_without_fee') - Sum('total_amount_cash'),
-            rent_amount=rent_amount_subquery,
-            payment_rent=Subquery(payment_amount_results.filter(driver_id=OuterRef('driver_id')).values('payment_rent')),
-            payment_amount=Subquery(payment_amount_results.filter(driver_id=OuterRef('driver_id')).values('payment_amount')),
-            rent_distance=Subquery(payment_amount_results.filter(driver_id=OuterRef('driver_id')).values('rent_distance')),
-            weekly_payments=Sum(Case(
-                When(Q(driver__schema__salary_calculation=SalaryCalculation.WEEK,
-                     report_from__gte=start_week),
-                     then=F('total_amount_without_fee') + F('bonuses')),
-                defaults=0,
-                output_field=DecimalField())),
+            total_kasa_sum=Sum('total_kasa'),
+            total_cash_sum=Sum('total_cash'),
+            total_card_sum=Sum('total_kasa') - Sum('total_cash'),
+            rent_amount=Coalesce(Sum('rent_distance'), Decimal(0)),
+            # payment_amount=Subquery(payment_amount_subquery.filter(driver_id=OuterRef('driver_id')).values('payment_amount')),
+            weekly_payments=Coalesce(Sum('total_kasa', filter=Q(
+                driver__schema__salary_calculation=SalaryCalculation.WEEK,
+                report_from__gte=start_week)), Decimal(0))
         )
 
-        total_dict = queryset.aggregate(total_rent=Coalesce(Sum('rent_amount'), Decimal(0)),
-                                        total_payment=Coalesce(Sum('payment_amount'), Decimal(0)) + Coalesce(
-                                            Sum('weekly_payments'), Decimal(0)),
-                                        sum_rent=Coalesce(Sum('payment_rent'), Decimal(0)),
-                                        total_distance=Coalesce(Sum('rent_distance'), Value(0)))
-        queryset = queryset.exclude(total_kasa=0).order_by('full_name')
-        rent_earnings = total_dict['sum_rent'] - total_compensation_bonus['total_amount']
-        return [
-            {'total_distance': total_dict['total_distance'],
-             'rent_earnings': rent_earnings,
-             'total_rent': total_dict['total_rent'],
-             'kasa': kasa,
-             'total_payment': total_dict['total_payment'],
-             'total_vehicle_spending': total_vehicle_spending,
-             'total_driver_spending': total_compensation_bonus['total_spending'],
-             'start': format_start, 'end': format_end, 'drivers': queryset}]
+        # total_dict = queryset.aggregate(total_rent=Coalesce(Sum('rent_amount'), Decimal(0)),
+        #                                 total_payment=Coalesce(Sum('payment_amount'), Decimal(0)) + Coalesce(
+        #                                     Sum('weekly_payments'), Decimal(0)),
+        #                                 sum_rent=Coalesce(Sum('payment_rent'), Decimal(0)),
+        #                                 total_distance=Coalesce(Sum('rent_distance'), Value(0)))
+        queryset = queryset.exclude(total_kasa_sum=0).order_by('full_name')
+        rent_earnings = payment_totals['rent'] - total_compensation_bonus['total_amount']
+        return [dict(total_distance=payment_totals['rent_distance'],
+                     rent_earnings=rent_earnings,
+                     total_rent=kasa_bonus['rent_amount'],
+                     kasa=kasa,
+                     total_payment=payment_totals['kasa'] + kasa_bonus['weekly_kasa'],
+                     total_vehicle_spending=total_vehicle_spending,
+                     total_driver_spending=total_compensation_bonus['total_spending'],
+                     start=format_start,
+                     end=format_end,
+                     drivers=queryset)]
 
 
 class InvestorCarsEarningsView(CombinedPermissionsMixin,
@@ -553,6 +534,16 @@ class DriverPaymentsListView(CombinedPermissionsMixin, generics.ListAPIView):
             bonuses=Coalesce(Sum('penaltybonus__amount', filter=Q(penaltybonus__bonus__isnull=False)), Decimal(0)),
             penalties=Coalesce(Sum('penaltybonus__amount', filter=Q(penaltybonus__penalty__isnull=False)), Decimal(0)),
         ).order_by('-report_to', 'driver')
+        return queryset
+
+class NotCompletePayments(CombinedPermissionsMixin, generics.ListAPIView):
+    serializer_class = NotCompletePaymentsSerializer
+
+    def get_queryset(self):
+        qs = ManagerFilterMixin.get_queryset(DriverPayments, self.request.user)
+        start, end, format_start, format_end = get_start_end(self.kwargs['period'])
+        queryset = qs.filter(report_from__range=(start, end),
+                         status__in=[PaymentsStatus.CHECKING, PaymentsStatus.INCORRECT, PaymentsStatus.PENDING]).select_related('driver')
         return queryset
 
 

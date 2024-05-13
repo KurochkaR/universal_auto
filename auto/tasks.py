@@ -253,7 +253,7 @@ def check_card_cash_value(self, **kwargs):
             rent_payment = rent * driver.schema.rent_price
             fleet_dict_kasa = get_kasa_and_card_driver(start, today, driver)
             kasa, card = (sum(v[0] for v in fleet_dict_kasa.values()), sum(v[1] for v in fleet_dict_kasa.values()))
-            if kasa > driver.schema.cash:
+            if kasa + rent + penalties > driver.schema.cash:
                 ratio = (card - rent_payment - penalties) / kasa
                 without_rent = (card - penalties) / kasa
                 rate = driver.cash_rate if driver.cash_rate else driver.schema.rate

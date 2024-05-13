@@ -267,7 +267,6 @@ function fetchSummaryReportData(period, start, end) {
 		type: 'GET',
 		dataType: 'json',
 		success: function (data) {
-			$(".apply-filter-button").prop("disabled", false);
 			let startDate = data[0]['start'];
 			let endDate = data[0]['end'];
 			let totalDistance = data[0]['total_rent'];
@@ -291,8 +290,8 @@ function fetchSummaryReportData(period, start, end) {
 					}
 				});
 
-				const total_card = driversData.map(driver => driver.total_card);
-				const total_cash = driversData.map(driver => driver.total_cash);
+				const total_card = driversData.map(driver => driver.total_card_sum);
+				const total_cash = driversData.map(driver => driver.total_cash_sum);
 
 				barChartOptions.series[1].data = total_card;
 				barChartOptions.series[0].data = total_cash;

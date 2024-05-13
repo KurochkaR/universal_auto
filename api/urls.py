@@ -15,4 +15,5 @@ urlpatterns = [
     path("drivers_efficiency/<str:period>/", DriverEfficiencyListView.as_view()),
     path("reshuffle/<str:period>/", DriverReshuffleListView.as_view()),
     path("driver_payments/<str:status>/", DriverPaymentsListView.as_view()),
+    path("not_complete_payments/<str:period>/", NotCompletePayments.as_view())
 ]

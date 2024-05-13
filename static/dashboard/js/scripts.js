@@ -373,15 +373,24 @@ $(document).ready(function () {
 	});
 
 	$(this).on('click', '.not-closed', function () {
+	    selectedValue = $(".selected-option").data('value')
+        if (!selectedValue) {
+	        selectedValue = 'today'
+	    }
+	    if (selectedValue === 'custom') {
+	        applyDateRange(function(selectedPeriod, startDate, endDate) {
+                getNotCompletedPayments(selectedPeriod, startDate, endDate)
+
+        });
+	    } else {
+	        getNotCompletedPayments(selectedValue)
+	    }
 		$('.modal-not-closed-payments').show();
 	});
 
 	$(this).on("click", ".selected-option", function() {
         $(".custom-select").toggleClass("active");
     });
-
-
-
 });
 
 function initializeCustomSelect(callback) {
@@ -582,5 +591,32 @@ function validNumberInput(maxValue = 100, element) {
 	element.val(sanitizedValue);
 }
 
+function getNotCompletedPayments(period, start=null, end=null) {
+    let api_url
+    if (period === 'custom') {
+		apiUrl = `/api/not_complete_payments/${start}&${end}/`;
+	} else {
+		apiUrl = `/api/not_complete_payments/${period}/`;
+	}
+    $.ajax({
+		url: apiUrl,
+		type: 'GET',
+		dataType: 'json',
+		success: function (data) {
+			const table = $('.driver-table');
+
+			table.find('tbody').empty();
+
+			data.forEach(driver => {
+				const row = $('<tr></tr>');
+				const totalAmount = parseFloat(driver.kasa || 0);
+
+				row.append(`<td>${driver.full_name}</td>`);
+				row.append(`<td>${parseInt(totalAmount)}</td>`);
+				table.append(row);
+			});
+		}
+		})
+}
 
 

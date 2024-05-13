@@ -188,7 +188,6 @@ class BaseDashboardView(TemplateView):
     def get_context_data(self, **kwargs):
         user = self.request.user
         context = super().get_context_data(**kwargs)
-        print(context)
         context["get_all_vehicle"] = None
         context["get_all_driver"] = None
 
