@@ -5,6 +5,7 @@ window.addEventListener('resize', function () {
 	barChart.resize();
 	areaChart.resize();
 	threeChart.resize();
+	partnerAreaChart.resize();
 });
 
 // BAR CHART
@@ -286,6 +287,51 @@ let threeChartOptions = {
 
 threeChart.setOption(threeChartOptions);
 
+var partnerAreaChart = echarts.init(document.getElementById('partner-area-chart'));
+let partnerAreaChartOptions = {
+	grid: {
+		height: '70%'
+	},
+	yAxis: {
+		type: 'category',
+		data: [],
+		axisLabel: {
+			rotate: 45
+		}
+	},
+	xAxis: {
+		type: 'value',
+		name: 'Пробіг (км)',
+		nameLocation: 'middle',
+		nameGap: 60,
+		nameTextStyle: {
+			fontSize: 18,
+		}
+	},
+	tooltip: {
+		trigger: 'axis',
+		axisPointer: {
+			type: 'shadow'
+		},
+	},
+	series: [
+		{
+			name: 'Пробіг (км)',
+			type: 'bar',
+			stack: 'total',
+			label: {
+				focus: 'series'
+			},
+			itemStyle: {
+				color: '#18A64D'
+			},
+			data: []
+		},
+	]
+};
+
+partnerAreaChart.setOption(partnerAreaChartOptions);
+
 // ---------- END CHARTS ---------- //
 
 function fetchSummaryReportData(period, start, end) {
@@ -459,8 +505,15 @@ function fetchCarEfficiencyData(period, vehicleId, vehicle_lc, start, end) {
 				threeChartOptions.xAxis.data = vehicleData.map(function (vehicle) {
 					return vehicle.name;
 				});
-
 				threeChart.setOption(threeChartOptions);
+
+				const totalMileage = data['mileage'];
+				const partnerNames = Object.keys(totalMileage);
+				const mileages = Object.values(totalMileage);
+
+				partnerAreaChartOptions.yAxis.data = partnerNames;
+				partnerAreaChartOptions.series[0].data = mileages;
+				partnerAreaChart.setOption(partnerAreaChartOptions);
 			} else {
 				$(".noDataMessage2").show();
 				$('#area-chart').hide();
