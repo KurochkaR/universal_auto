@@ -13,7 +13,7 @@ from app.models import ParkSettings, FleetsDriversVehiclesRate, Service, FleetOr
 from auto_bot.handlers.order.utils import check_vehicle, normalized_plate
 from auto_bot.main import bot
 from scripts.redis_conn import redis_instance
-from selenium_ninja.synchronizer import Synchronizer, AuthenticationError
+from selenium_ninja.synchronizer import Synchronizer, AuthenticationError, CustomException, UklonException
 
 
 class UklonRequest(Fleet, Synchronizer):
@@ -46,13 +46,13 @@ class UklonRequest(Fleet, Synchronizer):
 
     def uklon_id(self):
         if not redis_instance().exists(f"{self.partner.id}_park_id"):
-            response = self.response_data(url=f"{self.base_url}me")
+            response = self.response_data(url=f"{self.base_url}/me")
             redis_instance().set(f"{self.partner.id}_park_id", response['fleets'][0]['id'])
         return redis_instance().get(f"{self.partner.id}_park_id")
 
     def create_session(self, partner, password=None, login=None):
         payload = self.park_payload(login, password)
-        response = requests.post(f"{self.base_url}auth", json=payload)
+        response = requests.post(f"{self.base_url}/auth", json=payload)
         if response.status_code == 201:
             token = response.json()["access_token"]
             refresh_token = response.json()["refresh_token"]
@@ -75,7 +75,7 @@ class UklonRequest(Fleet, Synchronizer):
             'device_id': device_id,
             "client_secret": ParkSettings.get_value('CLIENT_SECRET_UKLON')
         }
-        response = requests.post(f"{self.base_url}auth", data=data)
+        response = requests.post(f"{self.base_url}/auth", data=data)
         if response.status_code == 201:
             token = response.json()['access_token']
         else:
@@ -104,7 +104,6 @@ class UklonRequest(Fleet, Synchronizer):
                       data=None,
                       headers: dict = None,
                       method: str = None) -> dict or None:
-
         response = self.request_method(url=url,
                                        params=params,
                                        headers=self.get_header() if headers is None else headers,
@@ -114,9 +113,17 @@ class UklonRequest(Fleet, Synchronizer):
             self.get_access_token()
             return self.response_data(url, params, data, headers, method)
         try:
+            if response.status_code == 404:
+                raise UklonException(message=f"Not Found in {self.get_parent_function_name()}: "
+                                             f"{response.json().get('message', url)}",
+                                     url=url,
+                                     method=self.get_parent_function_name())
             return response.json()
         except JSONDecodeError:
-            return None
+            raise UklonException(
+                message=f"Failed to decode JSON response for URL in {self.get_parent_function_name()}: {url}",
+                url=url,
+                method=self.get_parent_function_name())
 
     @staticmethod
     def to_float(number: int, div=100) -> Decimal:
@@ -124,7 +131,7 @@ class UklonRequest(Fleet, Synchronizer):
 
     def get_tips(self, order):
         return (self.to_float(order['additionalIncome']['tips']['amount']) +
-                        self.to_float(order['additionalIncome']['compensation']['amount']))
+                self.to_float(order['additionalIncome']['compensation']['amount']))
 
     def find_value(self, data: dict, *args) -> Decimal:
         """Search value if args not False and return float"""
@@ -174,7 +181,7 @@ class UklonRequest(Fleet, Synchronizer):
         return report, distance
 
     def generate_report(self, param):
-        url = f"{Service.get_value('UKLON_3')}{self.uklon_id()}"
+        url = f"{Service.get_value('UKLON_3')}/{self.uklon_id()}"
         url += Service.get_value('UKLON_4')
         resp = self.response_data(url=url, params=param)
         return resp
@@ -200,7 +207,9 @@ class UklonRequest(Fleet, Synchronizer):
                                                           fleet=self,
                                                           partner=self.partner,
                                                           defaults=report)
-            if offset + limit < data['total_count']:
+            if not data.get('has_more_items'):
+                break
+            elif offset + limit < data['total_count']:
                 offset += limit
             else:
                 break
@@ -252,7 +261,9 @@ class UklonRequest(Fleet, Synchronizer):
                                                             fleet=self,
                                                             partner=self.partner)
                     db_report.update(**report) if db_report else CustomReport.objects.create(**report)
-            if offset + limit < data['total_count']:
+            if not data.get('has_more_items'):
+                break
+            elif offset + limit < data['total_count']:
                 offset += limit
             else:
                 break
@@ -283,7 +294,9 @@ class UklonRequest(Fleet, Synchronizer):
                         setattr(db_report, key, value)
                     db_report.save()
                 reports.append(db_report)
-            if offset + limit < data['total_count']:
+            if not data.get('has_more_items'):
+                break
+            elif offset + limit < data['total_count']:
                 offset += limit
             else:
                 break
@@ -306,7 +319,7 @@ class UklonRequest(Fleet, Synchronizer):
                      'limit': '50', 'offset': '0',
                      'driverId': driver_id
                      }
-            url = f"{Service.get_value('UKLON_3')}{self.uklon_id()}"
+            url = f"{Service.get_value('UKLON_3')}/{self.uklon_id()}"
             url += Service.get_value('UKLON_4')
             data = self.response_data(url=url, params=param)
             if data.get("items"):
@@ -316,7 +329,7 @@ class UklonRequest(Fleet, Synchronizer):
 
     def get_drivers_status(self):
         with_client = wait = Driver.objects.none()
-        url = f"{Service.get_value('UKLON_5')}{self.uklon_id()}"
+        url = f"{Service.get_value('UKLON_5')}/{self.uklon_id()}"
         url += Service.get_value('UKLON_6')
         data = self.response_data(url, params={'limit': '50', 'offset': '0'})
         for driver in data.get('data', []):
@@ -336,8 +349,9 @@ class UklonRequest(Fleet, Synchronizer):
     def get_drivers_table(self):
         drivers = []
         param = {'status': 'All',
+                 'block_status': 'All',
                  'limit': 30}
-        url = f"{Service.get_value('UKLON_1')}{self.uklon_id()}"
+        url = f"{Service.get_value('UKLON_1')}/{self.uklon_id()}"
         url_1 = url + Service.get_value('UKLON_6')
         offset = 0
         limit = param["limit"]
@@ -394,7 +408,7 @@ class UklonRequest(Fleet, Synchronizer):
         batch_data = []
         orders = []
         while True:
-            response = self.response_data(url=f"{Service.get_value('UKLON_1')}orders", params=params)
+            response = self.response_data(url=f"{Service.get_value('UKLON_1')}/orders", params=params)
             orders.extend(response['items'])
             if response.get('cursor'):
                 params['cursor'] = response['cursor']
@@ -470,7 +484,7 @@ class UklonRequest(Fleet, Synchronizer):
         return calendar_errors
 
     def disable_cash(self, driver_id, enable):
-        url = f"{Service.get_value('UKLON_1')}{self.uklon_id()}"
+        url = f"{Service.get_value('UKLON_1')}/{self.uklon_id()}"
         url += f'{Service.get_value("UKLON_6")}/{driver_id}/restrictions'
         headers = self.get_header()
         headers.update({"Content-Type": "application/json"})
@@ -485,7 +499,7 @@ class UklonRequest(Fleet, Synchronizer):
         return result
 
     def withdraw_money(self):
-        base_url = f"{Service.get_value('UKLON_1')}{self.uklon_id()}"
+        base_url = f"{Service.get_value('UKLON_1')}/{self.uklon_id()}"
         url = base_url + f"{Service.get_value('UKLON_7')}"
         balance = {}
         items = []
@@ -512,7 +526,7 @@ class UklonRequest(Fleet, Synchronizer):
             self.response_data(url=url2, headers=headers, data=json.dumps(payload), method='POST')
 
     def detaching_the_driver_from_the_car(self, licence_plate):
-        base_url = f"{Service.get_value('UKLON_1')}{self.uklon_id()}"
+        base_url = f"{Service.get_value('UKLON_1')}/{self.uklon_id()}"
         url = base_url + Service.get_value('UKLON_2')
         params = {
             'limit': 30,
@@ -533,7 +547,7 @@ class UklonRequest(Fleet, Synchronizer):
 
         while True:
             param["offset"] = offset
-            url = f"{Service.get_value('UKLON_1')}{self.uklon_id()}"
+            url = f"{Service.get_value('UKLON_1')}/{self.uklon_id()}"
             url += Service.get_value('UKLON_2')
             all_vehicles = self.response_data(url=url, params=param)
             for vehicle in all_vehicles['data']:

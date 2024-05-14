@@ -3,12 +3,14 @@ from decimal import Decimal
 
 import requests
 from django.db import models
+from requests import JSONDecodeError
+
 from app.models import UberService, UberSession, FleetsDriversVehiclesRate, FleetOrder, \
     CustomReport, Fleet, CredentialPartner, WeeklyReport, DailyReport, Driver
 from auto_bot.handlers.order.utils import check_vehicle
 from scripts.redis_conn import get_logger
 from selenium_ninja.driver import SeleniumTools
-from selenium_ninja.synchronizer import Synchronizer
+from selenium_ninja.synchronizer import Synchronizer, UberException
 
 
 class UberRequest(Fleet, Synchronizer):
@@ -174,10 +176,13 @@ class UberRequest(Fleet, Synchronizer):
                     }
         data = self.get_payload(query, variables)
         response = requests.post(str(self.base_url), headers=self.get_header(), json=data)
-        if response.status_code == 200 and response.json()['data']:
+        try:
             results = response.json()['data']['getPerformanceReport']
-        else:
-            get_logger().error(f"Failed save uber report {self.partner} {response.json()}")
+        except (KeyError, JSONDecodeError):
+            message = f"Failed to decode JSON response for URL in {self.get_parent_function_name()}: {self.base_url}",
+            raise UberException(message=message,
+                                url=self.base_url,
+                                method=self.get_parent_function_name())
         return results
 
     def generate_vehicle_report(self, start, end, vehicles_list):
@@ -231,10 +236,13 @@ class UberRequest(Fleet, Synchronizer):
                     }
         data = self.get_payload(query, variables)
         response = requests.post(str(self.base_url), headers=self.get_header(), json=data)
-        if response.status_code == 200 and response.json()['data']:
+        try:
             results = response.json()['data']['getPerformanceReport']
-        else:
-            get_logger().error(f"Failed save uber report {self.partner} {response.json()}")
+        except (KeyError, JSONDecodeError):
+            message = f"Failed to decode JSON response for URL in {self.get_parent_function_name()}: {self.base_url}",
+            raise UberException(message=message,
+                                url=self.base_url,
+                                method=self.get_parent_function_name())
         return results
 
     def parse_json_report(self, start, end, report):

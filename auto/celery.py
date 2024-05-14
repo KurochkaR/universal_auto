@@ -1,29 +1,24 @@
 from __future__ import absolute_import
-from celery import Celery
+
+import sentry_sdk
+from celery import Celery, signals
 import os
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'auto.settings')
 
 app = Celery('auto')
+
+
+@signals.worker_init.connect
+def init_sentry(**_kwargs):
+    sentry_sdk.init(
+        dsn=os.getenv("SENTRY_DSN"),
+        enable_tracing=True
+    )
+
+
 app.config_from_object('django.conf:settings', namespace='CELERY')
-# app.conf.task_queues = {
-#     'beat_tasks_1': {
-#         'exchange': 'beat_tasks_1',
-#         'routing_key': 'beat_tasks_1',
-#     },
-#     'beat_tasks_2': {
-#         'exchange': 'beat_tasks_2',
-#         'routing_key': 'beat_tasks_2',
-#     },
-#     'beat_tasks_6': {
-#         'exchange': 'beat_tasks_6',
-#         'routing_key': 'beat_tasks_6',
-#     },
-#     'beat_tasks_7': {
-#         'exchange': 'beat_tasks_7',
-#         'routing_key': 'beat_tasks_7',
-#     },
-# }
+
 app.conf.update(
     task_ignore_result=True,
     task_serializer='json',
