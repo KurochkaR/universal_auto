@@ -129,10 +129,9 @@ class EcoFactorRequest:
         batch_data = []
         for entry in new_charges:
             client_name = entry['clientInfo']['clientName']
-            try:
+            if client_name:
                 second_name, name = client_name.split()
-            except (ValueError, AttributeError) as e:
-                get_logger().error(e)
+            else:
                 continue
             driver = Driver.objects.get_active(second_name=second_name, name=name).first()
             start = timezone.make_aware(datetime.strptime(entry['created'], '%Y-%m-%dT%H:%M:%S.%fZ'),

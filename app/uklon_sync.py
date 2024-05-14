@@ -120,10 +120,11 @@ class UklonRequest(Fleet, Synchronizer):
                                      method=self.get_parent_function_name())
             return response.json()
         except JSONDecodeError:
-            raise UklonException(
-                message=f"Failed to decode JSON response for URL in {self.get_parent_function_name()}: {url}",
-                url=url,
-                method=self.get_parent_function_name())
+            if self.get_parent_function_name() != 'disable_cash':
+                raise UklonException(
+                    message=f"Failed to decode JSON response for URL in {self.get_parent_function_name()}: {url}",
+                    url=url,
+                    method=self.get_parent_function_name())
 
     @staticmethod
     def to_float(number: int, div=100) -> Decimal:
