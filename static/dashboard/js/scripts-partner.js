@@ -6,6 +6,7 @@ window.addEventListener('resize', function () {
 	areaChart.resize();
 	threeChart.resize();
 	partnerAreaChart.resize();
+	vehicleBarChart.resize();
 });
 
 // BAR CHART
