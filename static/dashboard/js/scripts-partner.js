@@ -5,6 +5,8 @@ window.addEventListener('resize', function () {
 	barChart.resize();
 	areaChart.resize();
 	threeChart.resize();
+	partnerAreaChart.resize();
+	vehicleBarChart.resize();
 });
 
 // BAR CHART
@@ -108,12 +110,132 @@ let barChartOptions = {
 			itemStyle: {
 				color: '#A1E8B9'
 			},
-			data: []
+			data: [],
+			markLine: {
+				data: [
+					{
+						yAxis: 0,
+						name: 'Another Value',
+						lineStyle: {color: 'green', width: 3}
+					},
+					{
+						yAxis: 0,
+						name: 'Another Value',
+						lineStyle: {color: 'orange', width: 3}
+					},
+					{
+						yAxis: 0,
+						name: 'Another Value',
+						lineStyle: {color: 'red', width: 3}
+					}
+				]
+			}
+		},
+		{
+			name: 'vision_color',
+			type: 'bar',
+			stack: 'total',
+			label: {
+				focus: 'series'
+			},
+			itemStyle: {
+				color: '#A1E8B9',
+				borderColor: 'green',
+				borderWidth: 5
+			},
+			data: [1, 1, 1, 1, 1]
 		},
 	]
 };
 
 barChart.setOption(barChartOptions);
+
+var vehicleBarChart = echarts.init(document.getElementById('vehicle-bar-chart'));
+
+// BAR CHART
+let vehicleBarChartOptions = {
+	grid: {
+		height: '70%'
+	},
+	xAxis: {
+		type: 'category',
+		data: [],
+		axisLabel: {
+			rotate: 45
+		}
+	},
+	yAxis: {
+		type: 'value',
+		name: gettext('Сума (грн.)'),
+		nameLocation: 'middle',
+		nameRotate: 90,
+		nameGap: 60,
+		nameTextStyle: {
+			fontSize: 18,
+		}
+	},
+	dataZoom: [
+		{
+			type: 'slider',
+			start: 1,
+			end: 100,
+			showDetail: false,
+			backgroundColor: 'white',
+			dataBackground: {
+				lineStyle: {
+					color: 'orange',
+					width: 5
+				}
+			},
+			selectedDataBackground: {
+				lineStyle: {
+					color: 'rgb(255, 69, 0)',
+					width: 5
+				}
+			},
+			handleStyle: {
+				color: 'orange',
+				borderWidth: 0
+			},
+		}
+	],
+	tooltip: {
+		trigger: 'axis',
+		axisPointer: {
+			type: 'shadow'
+		},
+		formatter: function (params) {
+			let category = params[0].axisValue;
+			let cash = parseFloat(params[0].value);
+			let cashColor = '#A1E8B9';
+			return (
+				category +
+				':<br>' +
+				'<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background-color:' +
+				cashColor +
+				'"></span> Дохід: ' +
+				cash +
+				' грн.<br>'
+			);
+		}
+	},
+	series: [
+		{
+			name: 'cash',
+			type: 'bar',
+			stack: 'total',
+			label: {
+				focus: 'series'
+			},
+			itemStyle: {
+				color: '#A1E8B9'
+			},
+			data: [],
+		}
+	]
+};
+
+vehicleBarChart.setOption(vehicleBarChartOptions);
 
 
 // AREA CHART
@@ -197,7 +319,8 @@ let threeChartOptions = {
 		}
 	},
 	yAxis: {
-		type: 'value'
+		type: 'value',
+		max: parseInt(BusinessVehicleEfficiency) + 2,
 	},
 	dataZoom: [
 		{
@@ -226,12 +349,42 @@ let threeChartOptions = {
 	],
 	series: [
 		{
-			data: [],
+			name: 'efficiency',
 			type: 'bar',
+			stack: 'total',
 			itemStyle: {
 				color: '#A1E8B9'
+			},
+			data: [],
+			markLine: {
+				data: [
+					{
+						yAxis: 15,
+						name: 'Another Value',
+						lineStyle: {color: 'green', width: 3}
+					},
+					{
+						yAxis: 12,
+						name: 'Another Value',
+						lineStyle: {color: 'red', width: 3}
+					}
+				]
 			}
-		}
+		},
+		{
+			name: 'vision_color',
+			type: 'bar',
+			stack: 'total',
+			label: {
+				focus: 'series'
+			},
+			itemStyle: {
+				color: '#A1E8B9',
+				borderColor: 'green',
+				borderWidth: 5
+			},
+			data: []
+		},
 	],
 	tooltip: {
 		show: true,
@@ -252,6 +405,51 @@ let threeChartOptions = {
 }
 
 threeChart.setOption(threeChartOptions);
+
+var partnerAreaChart = echarts.init(document.getElementById('partner-area-chart'));
+let partnerAreaChartOptions = {
+	grid: {
+		height: '70%'
+	},
+	yAxis: {
+		type: 'category',
+		data: [],
+		axisLabel: {
+			rotate: 45
+		}
+	},
+	xAxis: {
+		type: 'value',
+		name: 'Пробіг (км)',
+		nameLocation: 'middle',
+		nameGap: 60,
+		nameTextStyle: {
+			fontSize: 18,
+		}
+	},
+	tooltip: {
+		trigger: 'axis',
+		axisPointer: {
+			type: 'shadow'
+		},
+	},
+	series: [
+		{
+			name: 'Пробіг (км)',
+			type: 'bar',
+			stack: 'total',
+			label: {
+				focus: 'series'
+			},
+			itemStyle: {
+				color: '#18A64D'
+			},
+			data: []
+		},
+	]
+};
+
+partnerAreaChart.setOption(partnerAreaChartOptions);
 
 // ---------- END CHARTS ---------- //
 
@@ -290,13 +488,30 @@ function fetchSummaryReportData(period, start, end) {
 						formattedNamesList.push(name);
 					}
 				});
+				const maxEarningsPeriod = calculateEarnings(startDate, endDate, parseInt(DriverDailyEarnings));
+				const earnings6 = maxEarningsPeriod.earnings6;
+				const earnings5 = maxEarningsPeriod.earnings5;
+				const earnings4 = maxEarningsPeriod.earnings4;
 
-				const total_card = driversData.map(driver => driver.total_card);
-				const total_cash = driversData.map(driver => driver.total_cash);
+				const total_card = driversData.map(driver => ({value: parseFloat(driver.total_card)}));
+				const total_cash = driversData.map(driver => ({value: parseFloat(driver.total_cash)}));
 
 				barChartOptions.series[1].data = total_card;
 				barChartOptions.series[0].data = total_cash;
+				barChartOptions.series[2].data = Array.from({length: total_card.length}, () => ({value: 1}));
+
 				barChartOptions.xAxis.data = formattedNamesList;
+				barChartOptions.series[1].markLine.data[0].yAxis = earnings6;
+				barChartOptions.series[1].markLine.data[1].yAxis = earnings5;
+				barChartOptions.series[1].markLine.data[2].yAxis = earnings4;
+
+				for (var i = 0; i < total_card.length; i++) {
+					var sum = total_card[i].value + total_cash[i].value;
+					var color = getColor(sum, earnings6, earnings5, earnings4);
+					barChartOptions.series[2].data[i].itemStyle = {
+						borderColor: color
+					};
+				}
 				barChart.setOption(barChartOptions);
 			} else {
 				$(".noDataMessage1").show();
@@ -354,6 +569,8 @@ function fetchCarEfficiencyData(period, vehicleId, vehicle_lc, start, end) {
 				$(".noDataMessage2").hide();
 				$('#area-chart').show();
 				$('#bar-three-chart').show();
+				$('#partner-area-chart').show();
+				$('#vehicle-bar-chart').show();
 				$('.car-select').show();
 
 				let firstVehicleData = {
@@ -390,11 +607,13 @@ function fetchCarEfficiencyData(period, vehicleId, vehicle_lc, start, end) {
 					let carData = {
 						name: carName,
 						efficiency: carInfo.average_eff,
+						totalEarnings: carInfo.total_earnings || 0,
 						trips: carInfo.branding_trips || 0,
 						brand: carInfo.vehicle_brand || 'Відсутній'
 					};
 					vehicleData.push(carData);
 				});
+
 
 				let chartData = vehicleData.map(function (vehicle) {
 					return {
@@ -409,12 +628,42 @@ function fetchCarEfficiencyData(period, vehicleId, vehicle_lc, start, end) {
 				threeChartOptions.xAxis.data = vehicleData.map(function (vehicle) {
 					return vehicle.name;
 				});
+				threeChartOptions.series[1].data = Array.from({length: chartData.length}, () => ({value: 0.1}));
 
+				for (var i = 0; i < chartData.length; i++) {
+					var value = chartData[i].value;
+					var color = value < parseInt(ComfortVehicleEfficiency) ? 'red' : (value < parseInt(BusinessVehicleEfficiency) ? 'green' : 'violet');
+					threeChartOptions.series[1].data[i].itemStyle = {
+						borderColor: color
+					};
+				}
 				threeChart.setOption(threeChartOptions);
+
+				const totalMileage = data['mileage'];
+				const partnerNames = Object.keys(totalMileage);
+				const mileages = Object.values(totalMileage);
+
+				partnerAreaChartOptions.yAxis.data = partnerNames;
+				partnerAreaChartOptions.series[0].data = mileages;
+				partnerAreaChart.setOption(partnerAreaChartOptions);
+
+				var vehicleDate = vehicleData.map(function (vehicle) {
+					return {
+						name: vehicle.name,
+						value: vehicle.totalEarnings,
+					};
+				});
+				vehicleBarChartOptions.series[0].data = vehicleDate;
+				vehicleBarChartOptions.xAxis.data = vehicleData.map(function (vehicle) {
+					return vehicle.name;
+				});
+				vehicleBarChart.setOption(vehicleBarChartOptions);
 			} else {
 				$(".noDataMessage2").show();
 				$('#area-chart').hide();
 				$('#bar-three-chart').hide();
+				$('#partner-area-chart').hide();
+				$('#vehicle-bar-chart').hide();
 				$('.car-select').css('display', 'none');
 			}
 
@@ -429,7 +678,7 @@ function fetchCarEfficiencyData(period, vehicleId, vehicle_lc, start, end) {
 }
 
 $(document).ready(function () {
-    fetchSummaryReportData('today');
+	fetchSummaryReportData('today');
 
 	const firstVehicle = $(".custom-dropdown .dropdown-options li:first");
 	const vehicleId = firstVehicle.data('value');
@@ -437,17 +686,17 @@ $(document).ready(function () {
 
 	fetchCarEfficiencyData('today', vehicleId, vehicle_lc);
 
-	$(this).on('click', '.apply-filter-button', function() {
-        applyDateRange(function(selectedPeriod, startDate, endDate) {
-            fetchSummaryReportData(selectedPeriod, startDate, endDate);
-	        fetchCarEfficiencyData(selectedPeriod, vehicleId, vehicle_lc, startDate, endDate);
-        });
-    })
+	$(this).on('click', '.apply-filter-button', function () {
+		applyDateRange(function (selectedPeriod, startDate, endDate) {
+			fetchSummaryReportData(selectedPeriod, startDate, endDate);
+			fetchCarEfficiencyData(selectedPeriod, vehicleId, vehicle_lc, startDate, endDate);
+		});
+	})
 
-	initializeCustomSelect(function(clickedValue) {
-        fetchSummaryReportData(clickedValue);
-	    fetchCarEfficiencyData(clickedValue, vehicleId, vehicle_lc);
-    });
+	initializeCustomSelect(function (clickedValue) {
+		fetchSummaryReportData(clickedValue);
+		fetchCarEfficiencyData(clickedValue, vehicleId, vehicle_lc);
+	});
 
 	$(".custom-dropdown .selected-option").click(function () {
 		$(".custom-dropdown .dropdown-options").toggle();
@@ -473,3 +722,38 @@ $(document).ready(function () {
 		}
 	});
 });
+
+function calculateEarnings(start, end, dailyWage) {
+	const startDateParts = start.split('.');
+	const endDateParts = end.split('.');
+	const startDateFormatted = `${startDateParts[2]}-${startDateParts[1]}-${startDateParts[0]}`;
+	const endDateFormatted = `${endDateParts[2]}-${endDateParts[1]}-${endDateParts[0]}`;
+	const startDate = new Date(startDateFormatted);
+	const endDate = new Date(endDateFormatted);
+
+	const oneDay = 24 * 60 * 60 * 1000;
+	const totalDays = Math.round(Math.abs((endDate - startDate) / oneDay)) + 1;
+
+	const workDays6_1 = Math.floor(totalDays / 7) * 6 + Math.min(totalDays % 7, 6);
+	const workDays5_2 = Math.floor(totalDays / 7) * 5 + Math.min(totalDays % 7, 5);
+	const workDays4_3 = Math.floor(totalDays / 7) * 4 + Math.min(totalDays % 7, 4);
+
+	const earnings6 = workDays6_1 * dailyWage;
+	const earnings5 = workDays5_2 * dailyWage;
+	const earnings4 = workDays4_3 * dailyWage;
+
+	return {earnings6, earnings5, earnings4};
+}
+
+function getColor(value, earnings6, earnings5, earnings4) {
+	if (value < earnings4) {
+		return 'red';
+	} else if (value >= earnings4 && value < earnings5) {
+		return 'orange';
+	} else if (value >= earnings5 && value < earnings6) {
+		return 'green';
+	} else {
+		return 'violet';
+	}
+}
+

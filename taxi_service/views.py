@@ -16,7 +16,7 @@ from django.views.generic.detail import BaseDetailView
 from taxi_service.forms import SubscriberForm
 from taxi_service.handlers import PostRequestHandler, GetRequestHandler
 from taxi_service.seo_keywords import *
-from app.models import Driver, Vehicle, CustomUser, DriverReshuffle, Bonus, Penalty, PenaltyBonus
+from app.models import Driver, Vehicle, CustomUser, DriverReshuffle, Bonus, Penalty, PenaltyBonus, ParkSettings
 from auto_bot.main import bot
 
 
@@ -188,7 +188,6 @@ class BaseDashboardView(TemplateView):
     def get_context_data(self, **kwargs):
         user = self.request.user
         context = super().get_context_data(**kwargs)
-        print(context)
         context["get_all_vehicle"] = None
         context["get_all_driver"] = None
 
@@ -215,6 +214,14 @@ class BaseDashboardView(TemplateView):
 
 class DashboardView(BaseDashboardView):
     template_name = "dashboard/dashboard.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["driver_daily_earnings"] = ParkSettings.get_value("DRIVER_DAILY_EARNINGS")
+        context["business_vehicle_efficiency"] = ParkSettings.get_value("BUSINESS_VEHICLE_EFFICIENCY")
+        context["comfort_vehicle_efficiency"] = ParkSettings.get_value("COMFORT_VEHICLE_EFFICIENCY")
+
+        return context
 
 
 class DashboardPaymentView(BaseDashboardView):

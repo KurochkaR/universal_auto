@@ -43,7 +43,8 @@ class SummaryReportListView(CombinedPermissionsMixin, generics.ListAPIView):
         queryset = ManagerFilterMixin.get_queryset(CustomReport, self.request.user).select_related('driver__user_ptr')
         filtered_qs = queryset.filter(report_from__range=(start, end))
         weekly_bolt_reports = WeeklyReport.objects.filter(
-            report_from__range=(start, end), report_to__range=(start, end), partner=partner, fleet__name="Bolt").order_by('report_from')
+            report_from__range=(start, end), report_to__range=(start, end), partner=partner,
+            fleet__name="Bolt").order_by('report_from')
 
         kasa_bonus = filtered_qs.aggregate(
             kasa=Coalesce(Sum('total_amount_without_fee'), Decimal(0)),
@@ -74,12 +75,13 @@ class SummaryReportListView(CombinedPermissionsMixin, generics.ListAPIView):
             payment_amount=Sum(Case(When(status__in=[PaymentsStatus.CHECKING, PaymentsStatus.PENDING], then=F('kasa')),
                                     defaults=0,
                                     output_field=DecimalField())),
-            rent_distance=Sum(Case(When(status__in=[PaymentsStatus.CHECKING, PaymentsStatus.PENDING], then=F('rent_distance')),
-                              defaults=0,
-                              output_field=IntegerField())),
+            rent_distance=Sum(
+                Case(When(status__in=[PaymentsStatus.CHECKING, PaymentsStatus.PENDING], then=F('rent_distance')),
+                     defaults=0,
+                     output_field=IntegerField())),
             payment_rent=Sum(Case(When(status=PaymentsStatus.COMPLETED, then=F('rent')),
-                             defaults=0,
-                             output_field=DecimalField())),
+                                  defaults=0,
+                                  output_field=DecimalField())),
         )
 
         payment_amount_results = payment_amount_subquery.values('driver_id', 'payment_amount', 'rent_distance',
@@ -92,8 +94,8 @@ class SummaryReportListView(CombinedPermissionsMixin, generics.ListAPIView):
             driver_payments__partner_id=partner
         ).aggregate(total_spending=Coalesce(Sum('amount'), Decimal(0)),
                     total_amount=Coalesce(Sum(Case(When(category=bonus_category, then=F('amount')),
-                                          defaults=0,
-                                          output_field=DecimalField()),
+                                                   defaults=0,
+                                                   output_field=DecimalField()),
                                               ), Decimal(0)))
 
         total_vehicle_spending = VehicleSpending.objects.filter(
@@ -110,12 +112,15 @@ class SummaryReportListView(CombinedPermissionsMixin, generics.ListAPIView):
             total_cash=Sum('total_amount_cash'),
             total_card=Sum('total_amount_without_fee') - Sum('total_amount_cash'),
             rent_amount=rent_amount_subquery,
-            payment_rent=Subquery(payment_amount_results.filter(driver_id=OuterRef('driver_id')).values('payment_rent')),
-            payment_amount=Subquery(payment_amount_results.filter(driver_id=OuterRef('driver_id')).values('payment_amount')),
-            rent_distance=Subquery(payment_amount_results.filter(driver_id=OuterRef('driver_id')).values('rent_distance')),
+            payment_rent=Subquery(
+                payment_amount_results.filter(driver_id=OuterRef('driver_id')).values('payment_rent')),
+            payment_amount=Subquery(
+                payment_amount_results.filter(driver_id=OuterRef('driver_id')).values('payment_amount')),
+            rent_distance=Subquery(
+                payment_amount_results.filter(driver_id=OuterRef('driver_id')).values('rent_distance')),
             weekly_payments=Sum(Case(
                 When(Q(driver__schema__salary_calculation=SalaryCalculation.WEEK,
-                     report_from__gte=start_week),
+                       report_from__gte=start_week),
                      then=F('total_amount_without_fee') + F('bonuses')),
                 defaults=0,
                 output_field=DecimalField())),
@@ -157,8 +162,8 @@ class InvestorCarsEarningsView(CombinedPermissionsMixin,
             price=F('vehicle__purchase_price'),
             start_count_roi=Case(
                 When(vehicle__purchase_date__gt=start, then=F('vehicle__purchase_date')),
-                     default=start,
-                     output_field=DateField()),
+                default=start,
+                output_field=DateField()),
             days_since_purchase=Extract(end - F('start_count_roi'), 'day'),
             current_price=F('vehicle__purchase_price') -
                           (F('days_since_purchase') / 365) * lose_percent *
@@ -189,13 +194,14 @@ class InvestorCarsEarningsView(CombinedPermissionsMixin,
         )
         total_earnings = queryset.aggregate(
             total_earnings=Coalesce(Sum(F('earning')), Decimal(0)))['total_earnings']
-        total_investment = total_mileage_spending["total_investment"] if total_mileage_spending["total_investment"] else 1
+        total_investment = total_mileage_spending["total_investment"] if total_mileage_spending[
+            "total_investment"] else 1
         roi = ((total_earnings - total_mileage_spending["total_spending"] +
                 total_mileage_spending["total_actives"] - total_investment) / total_investment)
         total = dict(total_earnings=total_earnings, total_mileage=total_mileage_spending["total_mileage"],
                      total_spending=total_mileage_spending["total_spending"],
-                     roi=roi*100,)
-                     # annualized_roi=(pow((1+roi), 1/days_since_purchase) - 1) * 100)
+                     roi=roi * 100, )
+        # annualized_roi=(pow((1+roi), 1/days_since_purchase) - 1) * 100)
         return [{'start': format_start, 'end': format_end, 'car_earnings': qs, 'totals': total}]
 
 
@@ -220,12 +226,21 @@ class CarEfficiencyListView(CombinedPermissionsMixin, generics.ListAPIView):
             total_kasa=Coalesce(Sum('total_kasa'), Decimal(0)),
             total_mileage=Coalesce(Sum('mileage'), Decimal(0))
         )
+
         efficiency_qs = queryset.values('vehicle__licence_plate').distinct().filter(mileage__gt=0).annotate(
             vehicle_id=F('vehicle__id'),
             average_vehicle=Coalesce(Sum('total_kasa') / Sum('mileage'), Decimal(0)),
+            total_earnings=Coalesce(Sum('total_kasa'), Decimal(0)),
             vehicle_brand=F('vehicle__branding__name'),
             branding_trips=Coalesce(Sum('total_brand_trips'), 0)
         )
+
+        mileage_dict = {}
+        for item in queryset:
+            if item.vehicle.licence_plate not in mileage_dict:
+                mileage_dict[item.vehicle.licence_plate] = 0
+            mileage_dict[item.vehicle.licence_plate] += item.mileage
+
         queryset = queryset.filter(vehicle=self.kwargs['vehicle']).order_by("report_from")
         kasa = aggregated_data.get('total_kasa')
         total_mileage = aggregated_data.get('total_mileage')
@@ -241,8 +256,9 @@ class CarEfficiencyListView(CombinedPermissionsMixin, generics.ListAPIView):
                 item['vehicle__licence_plate']: {
                     "vehicle_id": item['vehicle_id'],
                     "average_eff": round(item['average_vehicle'], 2),
+                    "total_earnings": round(item['total_earnings'], 2),
                     "vehicle_brand": item['vehicle_brand'],
-                    "branding_trips": item['branding_trips']
+                    "branding_trips": item['branding_trips'],
                 }
             }
             for item in efficiency_qs
@@ -250,7 +266,7 @@ class CarEfficiencyListView(CombinedPermissionsMixin, generics.ListAPIView):
         ]
 
         response_data = {
-            # "mileage": list(queryset.values_list("mileage", flat=True)),
+            "mileage": mileage_dict,
             "efficiency": list(queryset.values_list("efficiency", flat=True)),
             "dates": format_dates,
             "total_mileage": total_mileage,
