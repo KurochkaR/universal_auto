@@ -149,6 +149,93 @@ let barChartOptions = {
 
 barChart.setOption(barChartOptions);
 
+var vehicleBarChart = echarts.init(document.getElementById('vehicle-bar-chart'));
+
+// BAR CHART
+let vehicleBarChartOptions = {
+	grid: {
+		height: '70%'
+	},
+	xAxis: {
+		type: 'category',
+		data: [],
+		axisLabel: {
+			rotate: 45
+		}
+	},
+	yAxis: {
+		type: 'value',
+		name: gettext('Сума (грн.)'),
+		nameLocation: 'middle',
+		nameRotate: 90,
+		nameGap: 60,
+		nameTextStyle: {
+			fontSize: 18,
+		}
+	},
+	dataZoom: [
+		{
+			type: 'slider',
+			start: 1,
+			end: 100,
+			showDetail: false,
+			backgroundColor: 'white',
+			dataBackground: {
+				lineStyle: {
+					color: 'orange',
+					width: 5
+				}
+			},
+			selectedDataBackground: {
+				lineStyle: {
+					color: 'rgb(255, 69, 0)',
+					width: 5
+				}
+			},
+			handleStyle: {
+				color: 'orange',
+				borderWidth: 0
+			},
+		}
+	],
+	tooltip: {
+		trigger: 'axis',
+		axisPointer: {
+			type: 'shadow'
+		},
+		formatter: function (params) {
+			let category = params[0].axisValue;
+			let cash = parseFloat(params[0].value);
+			let cashColor = '#A1E8B9';
+			return (
+				category +
+				':<br>' +
+				'<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background-color:' +
+				cashColor +
+				'"></span> Дохід: ' +
+				cash +
+				' грн.<br>'
+			);
+		}
+	},
+	series: [
+		{
+			name: 'cash',
+			type: 'bar',
+			stack: 'total',
+			label: {
+				focus: 'series'
+			},
+			itemStyle: {
+				color: '#A1E8B9'
+			},
+			data: [],
+		}
+	]
+};
+
+vehicleBarChart.setOption(vehicleBarChartOptions);
+
 
 // AREA CHART
 
@@ -481,6 +568,8 @@ function fetchCarEfficiencyData(period, vehicleId, vehicle_lc, start, end) {
 				$(".noDataMessage2").hide();
 				$('#area-chart').show();
 				$('#bar-three-chart').show();
+				$('#partner-area-chart').show();
+				$('#vehicle-bar-chart').show();
 				$('.car-select').show();
 
 				let firstVehicleData = {
@@ -517,11 +606,13 @@ function fetchCarEfficiencyData(period, vehicleId, vehicle_lc, start, end) {
 					let carData = {
 						name: carName,
 						efficiency: carInfo.average_eff,
+						totalEarnings: carInfo.total_earnings || 0,
 						trips: carInfo.branding_trips || 0,
 						brand: carInfo.vehicle_brand || 'Відсутній'
 					};
 					vehicleData.push(carData);
 				});
+
 
 				let chartData = vehicleData.map(function (vehicle) {
 					return {
@@ -554,10 +645,24 @@ function fetchCarEfficiencyData(period, vehicleId, vehicle_lc, start, end) {
 				partnerAreaChartOptions.yAxis.data = partnerNames;
 				partnerAreaChartOptions.series[0].data = mileages;
 				partnerAreaChart.setOption(partnerAreaChartOptions);
+
+				var vehicleDate = vehicleData.map(function (vehicle) {
+					return {
+						name: vehicle.name,
+						value: vehicle.totalEarnings,
+					};
+				});
+				vehicleBarChartOptions.series[0].data = vehicleDate;
+				vehicleBarChartOptions.xAxis.data = vehicleData.map(function (vehicle) {
+					return vehicle.name;
+				});
+				vehicleBarChart.setOption(vehicleBarChartOptions);
 			} else {
 				$(".noDataMessage2").show();
 				$('#area-chart').hide();
 				$('#bar-three-chart').hide();
+				$('#partner-area-chart').hide();
+				$('#vehicle-bar-chart').hide();
 				$('.car-select').css('display', 'none');
 			}
 
@@ -572,7 +677,7 @@ function fetchCarEfficiencyData(period, vehicleId, vehicle_lc, start, end) {
 }
 
 $(document).ready(function () {
-    fetchSummaryReportData('today');
+	fetchSummaryReportData('today');
 
 	const firstVehicle = $(".custom-dropdown .dropdown-options li:first");
 	const vehicleId = firstVehicle.data('value');
@@ -580,8 +685,8 @@ $(document).ready(function () {
 
 	fetchCarEfficiencyData('today', vehicleId, vehicle_lc);
 
-	$(this).on('click', '.apply-filter-button', function() {
-		applyDateRange(function(selectedPeriod, startDate, endDate) {
+	$(this).on('click', '.apply-filter-button', function () {
+		applyDateRange(function (selectedPeriod, startDate, endDate) {
 			fetchSummaryReportData(selectedPeriod, startDate, endDate);
 			fetchCarEfficiencyData(selectedPeriod, vehicleId, vehicle_lc, startDate, endDate);
 		});
