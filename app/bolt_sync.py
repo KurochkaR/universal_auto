@@ -12,13 +12,15 @@ from django.db.models import Q, Case, When, Value, F
 from django.utils import timezone
 
 from django.db import models, transaction
+from requests import JSONDecodeError
+
 from app.models import BoltService, Driver, FleetsDriversVehiclesRate, FleetOrder, \
     CredentialPartner, Vehicle, PaymentTypes, Fleet, CustomReport, WeeklyReport, DailyReport, ParkSettings
 from auto import settings
 
 from auto_bot.handlers.order.utils import check_vehicle, normalized_plate
 from scripts.redis_conn import redis_instance, get_logger
-from selenium_ninja.synchronizer import Synchronizer, AuthenticationError
+from selenium_ninja.synchronizer import Synchronizer, AuthenticationError, BoltException
 
 
 class BoltRequest(Fleet, Synchronizer):
@@ -102,7 +104,18 @@ class BoltRequest(Fleet, Synchronizer):
         if response.json().get("code") in (999, 503):
             self.get_access_token()
             return self.get_target_url(url, params, json=json, method=method)
-        return response.json()
+        try:
+            if response.status_code == 404:
+                raise BoltException(message=f"Not Found in {self.get_parent_function_name()}: "
+                                            f"{response.json().get('message', url)}",
+                                    url=url,
+                                    method=self.get_parent_function_name())
+            return response.json()
+        except JSONDecodeError:
+            message = f"Failed to decode JSON response for URL in {self.get_parent_function_name()}: {url}",
+            raise BoltException(message=message,
+                                url=url,
+                                method=self.get_parent_function_name())
 
     def get_list_result(self, url, param, **kwargs):
         result = []

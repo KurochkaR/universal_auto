@@ -108,30 +108,29 @@ def get_start_end(period, day=None):
     if period in ('today', 'yesterday', 'current_week', 'current_month', 'current_quarter',
                   'last_week', 'last_month', 'last_quarter'):
         start, end = get_dates(period, day)
-        format_start = start.strftime("%d.%m.%Y")
-        format_end = end.strftime("%d.%m.%Y")
     elif period != 'all_period':
         start_str, end_str = period.split('&')
         start = timezone.make_aware(datetime.combine(datetime.strptime(start_str, "%Y-%m-%d"), time.min))
         end = timezone.make_aware(datetime.combine(datetime.strptime(end_str, "%Y-%m-%d"),
                                                    time.max.replace(microsecond=0)))
-        format_start = ".".join(start_str.split("-")[::-1])
-        format_end = ".".join(end_str.split("-")[::-1])
     else:
         return None, None, None, None
+    format_start = start.strftime("%d.%m.%Y")
+    format_end = end.strftime("%d.%m.%Y")
     return start, end, format_start, format_end
 
 
-def update_park_set(partner, key, value, description=None, check_value=True, park=True):
+def update_park_set(partner, key, park_value, description=None, check_value=True, park=True):
     data = {"description": description,
-            "value": value if park else CredentialPartner.encrypt_credential(value)
+            "value": park_value if park else CredentialPartner.encrypt_credential(park_value)
             }
     if park:
-        setting, created = ParkSettings.objects.get_or_create(key=key, partner=partner, defaults=data)
+        setting, created = ParkSettings.objects.get_or_create(key=key, partner_id=partner, defaults=data)
     else:
-        setting, created = CredentialPartner.objects.get_or_create(key=key, partner=partner, defaults=data)
-    if all([not created, setting.value != value, check_value]):
-        setting.value = value
+        setting, created = CredentialPartner.objects.get_or_create(key=key, partner_id=partner,
+                                                                   defaults={'value': data['value']})
+    if all([not created, setting.value != data['value'], check_value]):
+        setting.value = data['value']
         setting.save(update_fields=['value'])
 
 

@@ -68,31 +68,30 @@ class UaGpsSynchronizer(Fleet):
         return redis_instance().get(f"{self.partner.id}_gps_id")
 
     def synchronize(self):
-        if not redis_instance().exists(f"{self.partner.id}_remove_gps"):
-            params = {
-                'sid': self.get_session(),
-                'svc': 'core/update_data_flags',
-                'params': json.dumps({"spec": [{"type": "type",
-                                                "data": "avl_unit",
-                                                "flags": 1,
-                                                "mode": 0}]})
-            }
-            response = requests.get(f"{self.get_base_url()}wialon/ajax.html", params=params)
-            for vehicle in response.json():
-                data = {"name": vehicle['d']['nm'],
-                        "partner": self.partner}
-                obj, created = GPSNumber.objects.get_or_create(gps_id=vehicle['i'],
-                                                               defaults=data)
-                if not created:
-                    for key, value in data.items():
-                        setattr(obj, key, value)
-                    obj.save()
-                for partner_vehicle in Vehicle.objects.filter(partner=self.partner, gps__isnull=True):
-                    licence_number = ''.join(char for char in partner_vehicle.licence_plate if char.isdigit())
-                    if licence_number in vehicle['d']['nm']:
-                        partner_vehicle.gps = obj
-                        partner_vehicle.save()
-                        break
+        params = {
+            'sid': self.get_session(),
+            'svc': 'core/update_data_flags',
+            'params': json.dumps({"spec": [{"type": "type",
+                                            "data": "avl_unit",
+                                            "flags": 1,
+                                            "mode": 0}]})
+        }
+        response = requests.get(f"{self.get_base_url()}wialon/ajax.html", params=params)
+        response_data = response.json()
+        if 'error' in response_data:
+            error_message = response_data['error']
+            get_logger().error(error_message)
+        for vehicle in response_data:
+            data = {"name": vehicle['d']['nm'],
+                    "partner": self.partner}
+            obj, created = GPSNumber.objects.update_or_create(
+                gps_id=vehicle['i'],
+                defaults=data)
+            Vehicle.objects.filter(
+                partner=self.partner,
+                licence_plate__icontains=data['name'],
+                gps__isnull=True
+            ).update(gps=obj)
 
     def get_params_for_report(self, start_time, end_time, vehicle_id, sid=None):
         parameters = {

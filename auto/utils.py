@@ -3,8 +3,8 @@ from datetime import timedelta
 import requests
 from _decimal import Decimal, ROUND_HALF_UP
 
-from django.db.models import Sum, DecimalField, Q, Value, F, ExpressionWrapper, FloatField
-from django.db.models.functions import Coalesce
+from django.db.models import Sum, DecimalField, Q, Value, F, ExpressionWrapper, FloatField, Case, When
+from django.db.models.functions import Coalesce, Cast
 
 from app.models import CustomReport, ParkSettings, Vehicle, Partner, Payments, SummaryReport, DriverPayments, Penalty, \
     Bonus, FleetOrder, Fleet, DriverReshuffle, DriverEfficiency, InvestorPayments, WeeklyReport, CarEfficiency, \
@@ -181,7 +181,7 @@ def get_efficiency_today(start, end, driver):
     return kasa, card, orders.count(), total_completed.count(), canceled_orders, fleet_list
 
 
-def check_today_rent(gps, period="today", day=None, last_order=False):
+def check_today_rent(gps, period, day=None, last_order=False):
     start, end = get_dates(period, day)
     in_road = gps.get_road_distance(start, end, last_order)
     for driver, result in in_road.items():
@@ -242,25 +242,28 @@ def calendar_weekly_report(partner_pk, start_date, end_date, format_start, forma
     total_earnings = weekly_kasa + weekly_bonus
 
     vehicles_count = Vehicle.objects.get_active(partner=partner_pk).count()
-    maximum_working_time = (24 * 7 * vehicles_count) * 36
+    maximum_working_time = (24 * 7 * vehicles_count) * 3600
 
     qs_reshuffle = DriverReshuffle.objects.filter(
         swap_time__range=(start_date, end_date),
         end_time__range=(start_date, end_date),
         partner=partner_pk
     )
-    totals = qs_reshuffle.annotate(
-        duration=ExpressionWrapper(F('end_time') - F('swap_time'), output_field=FloatField())).aggregate(
-        total_shift_duration=Coalesce(Sum('duration', filter=~Q(driver_start__isnull=True)),
-                                      Value(timedelta(0), output_field=FloatField())),
-        total_accidents_duration=Coalesce(Sum('duration', filter=Q(dtp_or_maintenance='accident')),
-                                          Value(timedelta(0), output_field=FloatField())),
-        total_maintenance_duration=Coalesce(Sum('duration', filter=Q(dtp_or_maintenance='maintenance')),
-                                            Value(timedelta(0), output_field=FloatField()))
-    )
-    occupancy_percentage = totals['total_shift_duration'] / maximum_working_time
-    total_accidents_percentage = totals['total_accidents'] / maximum_working_time
-    total_maintenance_percentage = totals['total_maintenance'] / maximum_working_time
+    total_shift_duration = qs_reshuffle.filter(driver_start__isnull=False).aggregate(
+        total_shift_duration=Coalesce(Sum(F('end_time') - F('swap_time')), timedelta(0))
+    )['total_shift_duration'].total_seconds()
+
+    occupancy_percentage = (total_shift_duration / maximum_working_time) * 100
+
+    total_accidents = qs_reshuffle.filter(dtp_or_maintenance='accident').aggregate(
+        total_accidents_duration=Coalesce(Sum(F('end_time') - F('swap_time')), timedelta(0))
+    )['total_accidents_duration'].total_seconds()
+    total_accidents_percentage = (total_accidents / maximum_working_time) * 100
+
+    total_maintenance = qs_reshuffle.filter(dtp_or_maintenance='maintenance').aggregate(
+        total_maintenance_duration=Coalesce(Sum(F('end_time') - F('swap_time')), timedelta(0))
+    )['total_maintenance_duration'].total_seconds()
+    total_maintenance_percentage = (total_maintenance / maximum_working_time) * 100
 
     total_idle = 100 - occupancy_percentage - total_accidents_percentage - total_maintenance_percentage
 

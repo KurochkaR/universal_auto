@@ -11,22 +11,22 @@ $(document).ajaxStop(function () {
 
 $(document).ajaxError(function (event, xhr, settings) {
 	console.error('Error:', xhr);
-    var status = xhr.status;
-    var error = xhr.responseJSON.error;
-    if (status === 403) {
-        window.location.href = '/';
-    } else if (status === 400) {
-        $('.modal-overlay').hide();
-        $('#loadingModal').show();
-        $('#loadingMessage').text(error);
-        $("#loader").hide();
-        setTimeout(function () {
-            $('#loadingModal').hide();
-        }, 3000);
-    } else {
-        console.error('Помилка запиту: ' + error);
-    }
-    return;
+	var status = xhr.status;
+	var error = xhr.responseJSON.error;
+	if (status === 403) {
+		window.location.href = '/';
+	} else if (status === 400) {
+		$('.modal-overlay').hide();
+		$('#loadingModal').show();
+		$('#loadingMessage').text(error);
+		$("#loader").hide();
+		setTimeout(function () {
+			$('#loadingModal').hide();
+		}, 3000);
+	} else {
+		console.error('Помилка запиту: ' + error);
+	}
+	return;
 });
 
 $(document).ready(function () {
@@ -37,13 +37,13 @@ $(document).ready(function () {
 	});
 
 	$(this).on('click', '.update-database', function (event) {
-	    event.stopPropagation();
+		event.stopPropagation();
 		$(".confirmation-box h2").text("Бажаєте оновити базу даних?");
 		$("#confirmation-btn-on").data("confirmUpdate", true)
 		$(".confirmation-update-database").show();
 	});
 
-	$(this).on('click',"#confirmation-btn-on", function () {
+	$(this).on('click', "#confirmation-btn-on", function () {
 		$(".confirmation-update-database").hide(0);
 
 		if ($(this).data("confirmUpdate")) {
@@ -139,7 +139,7 @@ $(document).ready(function () {
 	$(this).on('click', '.opt-partnerForm span', function () {
 		var passwordField = $('.partnerPassword');
 		var fieldType = passwordField.attr('type');
-        $(".circle-password").toggleClass('circle-active')
+		$(".circle-password").toggleClass('circle-active')
 		if (fieldType === 'password') {
 			passwordField.attr('type', 'text');
 			$(".showPasswordText").text('Приховати пароль');
@@ -301,7 +301,7 @@ $(document).ready(function () {
 				}
 			},
 			error: function (xhr, textStatus, errorThrown) {
-			    button.prop("disabled", false);
+				button.prop("disabled", false);
 				if (xhr.status === 400) {
 					let errors = xhr.responseJSON.errors;
 					$.each(errors, function (key, value) {
@@ -343,7 +343,7 @@ $(document).ready(function () {
 			success: function (data) {
 				$('#modal-add-bonus')[0].reset();
 				$('#modal-add-bonus').hide();
-                button.prop("disabled", false);
+				button.prop("disabled", false);
 				if (paymentId === undefined || paymentId === null) {
 					window.location.reload();
 				} else {
@@ -351,7 +351,7 @@ $(document).ready(function () {
 				}
 			},
 			error: function (xhr, textStatus, errorThrown) {
-			    button.prop("disabled", false);
+				button.prop("disabled", false);
 				if (xhr.status === 400) {
 					let errors = xhr.responseJSON.errors;
 					$.each(errors, function (key, value) {
@@ -388,52 +388,51 @@ $(document).ready(function () {
 		$('.modal-not-closed-payments').show();
 	});
 
-	$(this).on("click", ".selected-option", function() {
-        $(".custom-select").toggleClass("active");
-    });
+	$(this).on("click", ".selected-option, .fa-angle-down", function () {
+		$(".custom-select").toggleClass("active");
+	});
+
+
 });
 
 function initializeCustomSelect(callback) {
-
-    $(document).on("click", ".options li", function() {
-        const customSelect = $(".custom-select");
-        const selectedOption = customSelect.find(".selected-option");
-        const datePicker = $("#datePicker");
-        const clickedValue = $(this).data("value");
-        selectedOption.data("value", clickedValue);
-        selectedOption.text($(this).text());
-        customSelect.removeClass("active");
-        if (clickedValue !== "custom") {
-            datePicker.hide();
-            callback(clickedValue);
-        } else {
-            if (window.innerWidth <= 768) {
-                    datePicker.show();
-            } else {
-                datePicker.css("display", "inline-block");
-            }
-        }
-    });
-
+	$(document).on("click", ".options li", function () {
+		const customSelect = $(".custom-select");
+		const selectedOption = customSelect.find(".selected-option");
+		const datePicker = $("#datePicker");
+		const clickedValue = $(this).data("value");
+		selectedOption.data("value", clickedValue);
+		selectedOption.text($(this).text());
+		customSelect.removeClass("active");
+		if (clickedValue !== "custom") {
+			datePicker.hide();
+			callback(clickedValue);
+		} else {
+			if (window.innerWidth <= 768) {
+				datePicker.show();
+			} else {
+				datePicker.css("display", "inline-block");
+			}
+		}
+	});
 }
 
 
-
 function applyDateRange(callback) {
-    const selectedPeriod = 'custom';
+	const selectedPeriod = 'custom';
 	let startDate = $("#start_report").val();
 	let endDate = $("#end_report").val();
 	if (!startDate || !endDate) {
-        $("#error_message").text("Поле не може бути пустим, введіть дату").show();
-        return;
-    }
+		$("#error_message").text("Поле не може бути пустим, введіть дату").show();
+		return;
+	}
 	if (startDate > endDate) {
-	    [startDate, endDate] = [endDate, startDate];
+		[startDate, endDate] = [endDate, startDate];
 	}
 
 	$("#error_message").hide();
 
-    callback(selectedPeriod, startDate, endDate)
+	callback(selectedPeriod, startDate, endDate)
 }
 
 function openForm(paymentId, bonusPenaltyId, itemType, driverId) {
@@ -503,9 +502,8 @@ function formatTime(time) {
 }
 
 
-
 function sortTable(column, order) {
-    let $tbody = $('.driver-efficiency-table').find('tbody');
+	let $tbody = $('.driver-efficiency-table').find('tbody');
 	var groups = [];
 	var group = [];
 

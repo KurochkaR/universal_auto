@@ -1,3 +1,4 @@
+import inspect
 from io import BytesIO
 
 import requests
@@ -23,7 +24,46 @@ class InfinityTokenError(Exception):
         super().__init__(self.message)
 
 
+class CustomException(Exception):
+
+    def __init__(self, message, url=None, method=None):
+        super().__init__(message)
+        self.message = message
+        self.url = url
+        self.method = method
+
+    def __str__(self):
+        return f"{self.__class__.__name__}: {self.message}"
+
+    def to_dict(self):
+        """Convert exception to a dictionary."""
+        return {
+            "type": self.__class__.__name__,
+            "message": self.message,
+            "url": self.url,
+            "method": self.method
+        }
+
+
+class UklonException(CustomException):
+    pass
+
+
+class BoltException(CustomException):
+    pass
+
+
+class UberException(CustomException):
+    pass
+
+
 class Synchronizer:
+    @staticmethod
+    def get_parent_function_name():
+        """Get the name of the parent function."""
+        frame = inspect.currentframe().f_back
+        calling_function_name = frame.f_back.f_code.co_name
+        return calling_function_name
 
     def get_drivers_table(self):
         raise NotImplementedError

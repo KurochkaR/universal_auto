@@ -270,7 +270,7 @@ p, span, div {
 
 .sidebar-toggle {
 	position: fixed;
-	top: 80px;
+	top: 100px;
 	left: 22px;
 	cursor: pointer;
 	z-index: 999;
@@ -1076,8 +1076,8 @@ i.fas.fa-power-off {
 }
 
 .filter-efficiency {
-    display: flex;
-    align-items: center;
+	display: flex;
+	align-items: center;
 }
 
 .info-driver table {
@@ -2215,13 +2215,13 @@ td.driver-rate {
 }
 
 td.calc-buttons {
-    display: flex;
-    flex-direction:column;
+	display: flex;
+	flex-direction: column;
 	cursor: pointer;
 }
 
 td.send-buttons {
-    text-align: center;
+	text-align: center;
 	cursor: pointer;
 }
 
