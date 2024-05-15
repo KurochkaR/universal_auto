@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from app.models import DriverPayments, Bonus, Penalty, Driver, DriverEfficiencyPolymorphic, Vehicle, DriverEfficiency
+from taxi_service.utils import get_dates
 
 
 class AggregateReportSerializer(serializers.Serializer):
@@ -212,11 +213,19 @@ class DriverInformationSerializer(serializers.ModelSerializer):
 
 class NotCompletePaymentsSerializer(serializers.ModelSerializer):
     full_name = serializers.SerializerMethodField()
+    kasa = serializers.SerializerMethodField()
 
     def get_full_name(self, obj):
         driver = Driver.objects.get(pk=obj.driver_id)
 
         return str(driver)
+
+    def get_kasa(self, obj):
+        if isinstance(obj, DriverPayments):
+            return obj.kasa + obj.not_payment_kasa if obj.not_payment_kasa else obj.kasa
+        else:
+            return obj.not_payment_kasa
+
     class Meta:
         model = DriverPayments
         fields = (

@@ -21,9 +21,9 @@ from api.serializers import SummaryReportSerializer, CarEfficiencySerializer, Ca
 from app.models import SummaryReport, CarEfficiency, Vehicle, DriverEfficiency, RentInformation, DriverReshuffle, \
     PartnerEarnings, InvestorPayments, DriverPayments, PaymentsStatus, PenaltyBonus, Penalty, Bonus, \
     DriverEfficiencyFleet, VehicleSpending, Driver, BonusCategory, CustomReport, SalaryCalculation, WeeklyReport, \
-    ParkSettings
+    ParkSettings, Schema
 from scripts.redis_conn import get_logger
-from taxi_service.utils import get_start_end
+from taxi_service.utils import get_start_end, get_dates
 
 
 class SummaryReportListView(CombinedPermissionsMixin, generics.ListAPIView):
@@ -32,7 +32,7 @@ class SummaryReportListView(CombinedPermissionsMixin, generics.ListAPIView):
     def get_queryset(self):
         partner = self.request.user.pk if self.request.user.is_partner() else self.request.user.manager.managers_partner.pk
         start, end, format_start, format_end = get_start_end(self.kwargs['period'])
-        start_week = timezone.localtime().date() - timedelta(days=timezone.localtime().weekday())
+        start_week, _, _, _ = get_start_end('current_week')
         queryset = ManagerFilterMixin.get_queryset(DriverEfficiency, self.request.user).select_related('driver__user_ptr')
         filtered_qs = queryset.filter(report_from__range=(start, end))
         weekly_bolt_reports = WeeklyReport.objects.filter(
@@ -536,14 +536,45 @@ class DriverPaymentsListView(CombinedPermissionsMixin, generics.ListAPIView):
         ).order_by('-report_to', 'driver')
         return queryset
 
+
 class NotCompletePayments(CombinedPermissionsMixin, generics.ListAPIView):
     serializer_class = NotCompletePaymentsSerializer
 
     def get_queryset(self):
         qs = ManagerFilterMixin.get_queryset(DriverPayments, self.request.user)
         start, end, format_start, format_end = get_start_end(self.kwargs['period'])
-        queryset = qs.filter(report_from__range=(start, end),
-                         status__in=[PaymentsStatus.CHECKING, PaymentsStatus.INCORRECT, PaymentsStatus.PENDING]).select_related('driver')
+        start_week, _, _, _ = get_start_end('current_week')
+        partner_pk = self.request.user.manager.managers_partner.pk if self.request.user.is_manager() else self.request.user.pk
+        weekly_drivers = Schema.get_weekly_drivers(partner_pk)
+        qs_efficiency = DriverEfficiency.objects.filter(
+            report_from__range=(start, end),
+            report_from__gte=start_week,
+            driver__in=weekly_drivers
+        )
+
+        # Subquery to annotate not_payment_kasa for each driver in DriverEfficiency
+        subquery_efficiency = qs_efficiency.filter(driver_id=OuterRef('driver_id')).values('driver_id').annotate(
+            not_payment_kasa=Coalesce(Sum('total_kasa'), Decimal(0))
+        ).values('not_payment_kasa')
+
+        # Filter DriverPayments queryset based on date range and status
+        qs_payments = DriverPayments.objects.filter(
+            report_from__range=(start, end),
+            status__in=[PaymentsStatus.CHECKING, PaymentsStatus.INCORRECT, PaymentsStatus.PENDING]
+        ).select_related('driver')
+
+        if qs_payments.exists():
+            # If qs_payments has results, annotate with subquery
+            queryset = qs_payments.annotate(
+                not_payment_kasa=Subquery(subquery_efficiency)
+            )
+        else:
+            # If qs_payments is empty, use subquery as queryset
+            queryset = qs_efficiency.annotate(
+                not_payment_kasa=Subquery(subquery_efficiency)
+            )
+
+        print(queryset)
         return queryset
 
 

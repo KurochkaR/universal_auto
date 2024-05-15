@@ -285,7 +285,7 @@ class BoltRequest(Fleet, Synchronizer):
                 try:
                     driver_info = self.get_target_url(f'{self.base_url}getDriver', driver_params)
                 except Exception as e:
-                    get_logger().error(e)
+                    get_logger().error(f"log_error is {e}")
             driver_list.append({
                 'name': driver_info['data']['first_name'],
                 'second_name': driver_info['data']['last_name'],
