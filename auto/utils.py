@@ -181,7 +181,7 @@ def get_efficiency_today(start, end, driver):
     return kasa, card, orders.count(), total_completed.count(), canceled_orders, fleet_list
 
 
-def check_today_rent(gps, period="today", day=None, last_order=False):
+def check_today_rent(gps, period, day=None, last_order=False):
     start, end = get_dates(period, day)
     in_road = gps.get_road_distance(start, end, last_order)
     for driver, result in in_road.items():

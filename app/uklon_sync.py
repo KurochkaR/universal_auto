@@ -410,7 +410,7 @@ class UklonRequest(Fleet, Synchronizer):
         orders = []
         while True:
             response = self.response_data(url=f"{Service.get_value('UKLON_1')}/orders", params=params)
-            orders.extend(response['items'])
+            orders.extend(response.get('items', []))
             if response.get('cursor'):
                 params['cursor'] = response['cursor']
             else:

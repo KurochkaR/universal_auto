@@ -168,10 +168,11 @@ def get_session(self, **kwargs):
     if token:
         login_in(aggregator=aggregator, partner_id=partner_pk,
                  login_name=login, password=password, token=token)
-        obj, created = fleet.objects.get_or_create(name=aggregator, partner_id=partner_pk)
-        if not created:
-            obj.deleted_at = None
-            obj.save(update_fields=['deleted_at'])
+        Fleet.objects.update_or_create(
+            name=aggregator,
+            partner_id=partner_pk,
+            defaults={'deleted_at': None})
+
 
 
 @app.task(bind=True, queue='bot_tasks')
@@ -518,18 +519,18 @@ def schedule_for_detaching_uklon(self, **kwargs):
     partner_pk = kwargs.get("partner_pk")
     today = timezone.localtime()
     desired_time = today + timedelta(hours=1)
-    for vehicle in Vehicle.objects.get_active(partner=partner_pk):
-        reshuffle = DriverReshuffle.objects.filter(~Q(end_time__time=time(23, 59, 59)),
-                                                   swap_time__date=today.date(),
-                                                   swap_vehicle=vehicle,
-                                                   end_time__range=(today, desired_time),
-                                                   partner=partner_pk,
-                                                   driver_start__isnull=False).first()
-        if reshuffle:
-            eta = timezone.localtime(reshuffle.end_time)
-            detaching_the_driver_from_the_car.apply_async(kwargs={"partner_pk": partner_pk,
-                                                                  "licence_plate": reshuffle.swap_vehicle.licence_plate,
-                                                                  "eta":eta}, eta=eta)
+    vehicles = Vehicle.objects.get_active(partner=partner_pk)
+    reshuffles = DriverReshuffle.objects.filter(~Q(end_time__time=time(23, 59, 59)),
+                                               swap_time__date=today.date(),
+                                               swap_vehicle__in=vehicles,
+                                               end_time__range=(today, desired_time),
+                                               partner=partner_pk,
+                                               driver_start__isnull=False)
+    for reshuffle in reshuffles:
+        eta = timezone.localtime(reshuffle.end_time)
+        detaching_the_driver_from_the_car.apply_async(kwargs={"partner_pk": partner_pk,
+                                                              "licence_plate": reshuffle.swap_vehicle.licence_plate,
+                                                              "eta":eta}, eta=eta)
 
 
 @app.task(bind=True, retry_backoff=30, max_retries=1)
@@ -624,7 +625,7 @@ def get_today_rent(self, **kwargs):
     try:
         today_stats = "Поточна статистика\n"
         gps = UaGpsSynchronizer.objects.get(partner=partner, deleted_at=None)
-        check_today_rent(gps, last_order=True)
+        check_today_rent(gps, "today", last_order=True)
         text = generate_efficiency_message(partner)
         if text:
             today_stats += text
