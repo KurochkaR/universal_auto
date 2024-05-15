@@ -7,9 +7,8 @@ from operator import itemgetter
 
 from django.contrib.postgres.aggregates import ArrayAgg
 from django.db.models import Sum, F, OuterRef, Subquery, DecimalField, Avg, Value, CharField, ExpressionWrapper, Case, \
-    When, Func, FloatField, Exists, Prefetch, Q, IntegerField, DateField
-from django.db.models.functions import Concat, Round, Coalesce, Cast, Extract
-from django.forms import DurationField
+    When, Func, Exists, Prefetch, Q, IntegerField, DateField
+from django.db.models.functions import Concat, Round, Coalesce, Extract
 from django.utils import timezone
 from rest_framework import generics
 from rest_framework.response import Response
@@ -18,12 +17,11 @@ from api.mixins import CombinedPermissionsMixin, ManagerFilterMixin, InvestorFil
 from api.serializers import SummaryReportSerializer, CarEfficiencySerializer, CarDetailSerializer, \
     DriverEfficiencyRentSerializer, InvestorCarsSerializer, ReshuffleSerializer, DriverPaymentsSerializer, \
     DriverEfficiencyFleetRentSerializer, DriverInformationSerializer, NotCompletePaymentsSerializer
-from app.models import SummaryReport, CarEfficiency, Vehicle, DriverEfficiency, RentInformation, DriverReshuffle, \
-    PartnerEarnings, InvestorPayments, DriverPayments, PaymentsStatus, PenaltyBonus, Penalty, Bonus, \
-    DriverEfficiencyFleet, VehicleSpending, Driver, BonusCategory, CustomReport, SalaryCalculation, WeeklyReport, \
+from app.models import CarEfficiency, Vehicle, DriverEfficiency, DriverReshuffle, \
+    PartnerEarnings, InvestorPayments, DriverPayments, PaymentsStatus, PenaltyBonus, Bonus, \
+    DriverEfficiencyFleet, VehicleSpending, Driver, BonusCategory, SalaryCalculation, WeeklyReport, \
     ParkSettings, Schema
-from scripts.redis_conn import get_logger
-from taxi_service.utils import get_start_end, get_dates
+from taxi_service.utils import get_start_end
 
 
 class SummaryReportListView(CombinedPermissionsMixin, generics.ListAPIView):
@@ -49,19 +47,8 @@ class SummaryReportListView(CombinedPermissionsMixin, generics.ListAPIView):
         weekly_bonus = 0
         if weekly_bolt_reports.exists():
             weekly_bonus = weekly_bolt_reports.aggregate(bonus=Coalesce(Sum('bonuses'), Decimal(0)))['bonus']
-            # custom_bonus = filtered_qs.filter(
-            #     report_to__range=(weekly_bolt_reports.last().report_to + timedelta(minutes=1), end)).aggregate(
-            #     bonus=Coalesce(Sum('bonuses'), Decimal(0)))['bonus']
-            # bonus = weekly_bonus + custom_bonus
 
         kasa = kasa_bonus['kasa'] + weekly_bonus
-
-        # rent_amount_subquery = Subquery(RentInformation.objects.filter(
-        #     report_from__range=(start, end),
-        #     driver_id=OuterRef('driver_id')
-        # ).values('driver_id').annotate(
-        #     rent_amount=Coalesce(Sum('rent_distance'), Decimal(0))
-        # ).values('rent_amount'))
 
         payment_totals = DriverPayments.objects.filter(
             report_to__range=(start, end),
@@ -96,17 +83,10 @@ class SummaryReportListView(CombinedPermissionsMixin, generics.ListAPIView):
             total_cash_sum=Sum('total_cash'),
             total_card_sum=Sum('total_kasa') - Sum('total_cash'),
             rent_amount=Coalesce(Sum('rent_distance'), Decimal(0)),
-            # payment_amount=Subquery(payment_amount_subquery.filter(driver_id=OuterRef('driver_id')).values('payment_amount')),
             weekly_payments=Coalesce(Sum('total_kasa', filter=Q(
                 driver__schema__salary_calculation=SalaryCalculation.WEEK,
                 report_from__gte=start_week)), Decimal(0))
         )
-
-        # total_dict = queryset.aggregate(total_rent=Coalesce(Sum('rent_amount'), Decimal(0)),
-        #                                 total_payment=Coalesce(Sum('payment_amount'), Decimal(0)) + Coalesce(
-        #                                     Sum('weekly_payments'), Decimal(0)),
-        #                                 sum_rent=Coalesce(Sum('payment_rent'), Decimal(0)),
-        #                                 total_distance=Coalesce(Sum('rent_distance'), Value(0)))
         queryset = queryset.exclude(total_kasa_sum=0).order_by('full_name')
         rent_earnings = payment_totals['rent'] - total_compensation_bonus['total_amount']
         return [dict(total_distance=payment_totals['rent_distance'],
@@ -160,8 +140,6 @@ class InvestorCarsEarningsView(CombinedPermissionsMixin,
             total_actives=Coalesce(Sum('current_price', output_field=DecimalField()), Decimal(0))
 
         )
-        # mileage_info = mileage_subquery.values('vehicle').annotate('mileage')
-        # get_logger().info(mileage_info)
         qs = queryset.values('vehicle__licence_plate').annotate(
             licence_plate=F('vehicle__licence_plate'),
             earnings=Sum(F('earning')),
@@ -257,9 +235,9 @@ class CarEfficiencyListView(CombinedPermissionsMixin, generics.ListAPIView):
 def get_dynamic_fleet():
     dynamic_fleet = {
         'total_kasa': Sum('total_kasa'),
-        'full_name': Concat(F("driver__user_ptr__name"),
+        'full_name': Concat(F("driver__user_ptr__second_name"),
                             Value(" "),
-                            F("driver__user_ptr__second_name"), output_field=CharField()),
+                            F("driver__user_ptr__name"), output_field=CharField()),
         'total_orders_accepted': Sum('total_orders_accepted'),
         'total_orders_rejected': Sum('total_orders_rejected'),
         'average_price': Avg('average_price'),
@@ -307,7 +285,7 @@ class DriverEfficiencyListView(CombinedPermissionsMixin,
         additional_drivers_info = [
             {
                 'driver_id': driver_info['id'],
-                'full_name': f"{driver_info['name']} {driver_info['second_name']}",
+                'full_name': f"{driver_info['second_name']} {driver_info['name']}",
                 'total_kasa': 0,
                 'total_orders_accepted': 0,
                 'total_orders_rejected': 0,
@@ -539,9 +517,9 @@ class DriverPaymentsListView(CombinedPermissionsMixin, generics.ListAPIView):
             Prefetch('penaltybonus_set', queryset=PenaltyBonus.objects.all().select_related('vehicle', 'category'),
                      to_attr='prefetched_penaltybonuses')).annotate(
             full_name=Concat(
-                F("driver__user_ptr__name"),
+                F("driver__user_ptr__second_name"),
                 Value(" "),
-                F("driver__user_ptr__second_name")),
+                F("driver__user_ptr__name")),
             driver_vehicles=Subquery(driver_vehicle_ids),
             bonuses=Coalesce(Sum('penaltybonus__amount', filter=Q(penaltybonus__bonus__isnull=False)), Decimal(0)),
             penalties=Coalesce(Sum('penaltybonus__amount', filter=Q(penaltybonus__penalty__isnull=False)), Decimal(0)),
@@ -559,26 +537,30 @@ class NotCompletePayments(CombinedPermissionsMixin, generics.ListAPIView):
         partner_pk = self.request.user.manager.managers_partner.pk if self.request.user.is_manager() else self.request.user.pk
         weekly_drivers = Schema.get_weekly_drivers(partner_pk)
         qs_efficiency = DriverEfficiency.objects.filter(
-            report_from__range=(start, end),
-            report_from__gte=start_week,
+            report_to__range=(start, end),
+            report_to__gte=start_week,
             driver__in=weekly_drivers
+        ).select_related('driver').values('driver_id').annotate(
+            not_payment_kasa=Coalesce(Sum('total_kasa'), Decimal(0)),
+            full_name=Concat(
+                F("driver__user_ptr__second_name"),
+                Value(" "),
+                F("driver__user_ptr__name"))
         )
 
-        subquery_efficiency = qs_efficiency.filter(driver_id=OuterRef('driver_id')).values('driver_id').annotate(
-            not_payment_kasa=Coalesce(Sum('total_kasa'), Decimal(0))
-        ).values('not_payment_kasa')
-
         qs_payments = qs.filter(
-            report_from__range=(start, end),
+            report_to__range=(start, end),
             status__in=[PaymentsStatus.CHECKING, PaymentsStatus.INCORRECT, PaymentsStatus.PENDING]
-        ).select_related('driver')
+        ).select_related('driver').annotate(full_name=Concat(
+                F("driver__user_ptr__second_name"),
+                Value(" "),
+                F("driver__user_ptr__name")))
+        payments_data = list(qs_payments.values('full_name', 'kasa'))
+        print(payments_data)
+        efficiency_data = list(qs_efficiency.values('full_name', 'not_payment_kasa'))
+        payments_data.extend(efficiency_data)
 
-        queryset = qs_payments if qs_payments.exists() else qs_efficiency
-
-        result_qs = queryset.annotate(
-                not_payment_kasa=Subquery(subquery_efficiency)
-            )
-        return result_qs
+        return payments_data
 
 
 class DriverInformationListView(CombinedPermissionsMixin, generics.ListAPIView):
